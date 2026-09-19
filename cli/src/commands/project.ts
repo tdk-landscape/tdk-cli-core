@@ -117,7 +117,7 @@ export const projectCommand = new Command("project")
         showSuccess(".tdk/project.json exists");
         showStep("\n📋 Regenerating master configuration files...\n");
 
-        generateMasterConfigs(projectRoot);
+        await generateMasterConfigs(projectRoot);
         console.log(chalk.green("\n✅ Project configuration regenerated!"));
         showDetail("\nGenerated in .tdk/.tdk-out/:", 0);
         for (const file of MASTER_CONFIG_FILES) {
@@ -234,7 +234,7 @@ export const projectCommand = new Command("project")
       showDetail(`→ Project: ${projectConfig.project.name}`);
 
       showStep("\n📋 Generating master configuration files...\n");
-      generateMasterConfigs(projectRoot);
+      await generateMasterConfigs(projectRoot);
 
       console.log(chalk.green("\n✅ Project configuration complete!"));
       showDetail("\nGenerated files in .tdk/.tdk-out/:", 0);

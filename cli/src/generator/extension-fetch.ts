@@ -1,106 +1,172 @@
-// Fetches the TDK Tilt extension (engine/discovery/specs/ext) from a gated
-// distribution endpoint at `tdk up` time, instead of requiring the caller to
-// have access to the private tdk-cli source repo.
+// Fetches the paid-tier "premium" resource bundle (playwright, c4-diagram,
+// logging, and a few other extras - see tdk-cli-extensions/premium/) from
+// the gated distribution worker, when a license key is configured. The
+// free engine never needs this - every free resource (docker-compose,
+// verdaccio, npm, bun, etc.) is already public in this repo, no key
+// required.
 //
-// Design intent: the endpoint (not this client) is the actual access-control
-// boundary. No decryption key or copy of the extension source ships inside
-// this binary — there is nothing here for someone to extract. The endpoint
-// can rate-limit, log, or revoke access at any time without a new release.
-//
-// See docs/extension-distribution.md for the endpoint contract this expects
-// and the server-side responsibilities (packaging + signing the bundle from
-// the private source, which must be done by someone with repo access - not
-// by this client).
+// The worker (tdk-extension-dist) is the real access-control boundary: it
+// checks the key against BUNDLES_REPO/keys/*.json - existence, activation/
+// expiry dates, granted resources, and a per-key project limit - before
+// serving anything. This client just asks and, if granted, unpacks the
+// result over the vendored stub files so the generator pipeline picks up
+// the real implementations transparently. See
+// tdk-extension-dist/src/index.ts for the server-side enforcement and
+// tdk-extension-dist/src/project-limit.ts for the project-limit logic.
 
-import { createHash, verify as verifySignature } from "crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
-import { homedir } from "os";
-import { join } from "path";
-import { extractTarball } from "../utils/tar";
+import { randomUUID } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
+import { extractTarball } from "../utils/tar.js";
 
-const DEFAULT_ENDPOINT = "https://tdk-extension-dist.oranguman.workers.dev/v1/extension";
+const DEFAULT_ENDPOINT = "https://tdk-extension-dist.oranguman.workers.dev/v1/premium/bundle.tar.gz";
 
-// Ed25519 public key, PEM-encoded. Placeholder - replace with the real key
-// generated for the distribution endpoint before this ships. The matching
-// private key must never leave the server; it is used there to sign each
-// bundle so this client can verify it wasn't tampered with in transit.
-const PUBLIC_KEY_PEM = `-----BEGIN PUBLIC KEY-----
-REPLACE_WITH_REAL_ED25519_PUBLIC_KEY
------END PUBLIC KEY-----`;
+// Tried in order until one is granted - the worker unlocks the whole
+// bundle on the first resource name a key is found to grant, since
+// premium.tar.gz ships all paid resources together. Keep in sync with
+// what issue-key.yml/update-key.yml accept as `resources` entries.
+const KNOWN_RESOURCES = ["playwright", "c4-diagram", "logging"];
 
-interface BundleManifest {
-  version: string;
-  sha256: string;
-  signature: string; // base64, signs the sha256 hex string
+// Re-check the license periodically rather than trusting a local cache
+// forever - an expired or revoked key shouldn't keep unlocking premium
+// content indefinitely just because it worked once.
+const CACHE_TTL_MS = 12 * 60 * 60 * 1000;
+
+// Maps each file's path inside premium.tar.gz to where it belongs in the
+// vendored engine output, so the generator pipeline finds it in the same
+// place the free stub (or, for the never-wired items, nothing at all)
+// used to be.
+const PREMIUM_PATH_MAP: Record<string, string> = {
+  "typescript/playwright_config.star":
+    "engine/topologies/tilt/generators/typescript/playwright_config.star",
+  "c4_diagram.star": "engine/topologies/tilt/generators/c4_diagram.star",
+  "observability/logging.star": "engine/topologies/platform/observability/logging.star",
+  "generators/database_provisioner.star":
+    "engine/topologies/tilt/generators/database_provisioner.star",
+  "generators/dependency_manifest.star":
+    "engine/topologies/tilt/generators/dependency_manifest.star",
+  "generators/fixed_frontend_tsconfig.star":
+    "engine/topologies/tilt/generators/typescript/fixed_frontend_tsconfig.star",
+  "synthetic_monitor.star": "engine/resources/synthetic_monitor.star",
+  "synthetic-monitor-topology.star": "engine/topologies/platform/services/synthetic-monitor.star",
+  "database-management-service.yaml":
+    "platform/services/platform/database-management/service.yaml",
+};
+
+function getLicenseKey(): string | null {
+  return process.env.TDK_LICENSE_KEY?.trim() || null;
 }
 
-function cacheDir(version: string): string {
-  return join(homedir(), ".tdk", "cache", `extension-${version}`);
+function getEndpoint(): string {
+  return process.env.TDK_PREMIUM_ENDPOINT?.trim() || DEFAULT_ENDPOINT;
 }
 
-function isCached(version: string): boolean {
-  const dir = cacheDir(version);
-  return existsSync(join(dir, "Tiltfile")) && existsSync(join(dir, "engine"));
-}
-
-async function fetchManifest(endpoint: string, version: string): Promise<BundleManifest> {
-  const res = await fetch(`${endpoint}/${version}/manifest.json`);
-  if (!res.ok) {
-    throw new Error(`manifest fetch failed: ${res.status} ${res.statusText}`);
+// A stable per-project id for the worker's project-limit tracking - not a
+// device or user id. Generated once and persisted alongside the rest of
+// the project's .tdk/ state.
+function getOrCreateProjectId(projectRoot: string): string {
+  const idPath = join(projectRoot, ".tdk", ".project-id");
+  if (existsSync(idPath)) {
+    return readFileSync(idPath, "utf-8").trim();
   }
-  return (await res.json()) as BundleManifest;
+  const id = randomUUID();
+  mkdirSync(join(projectRoot, ".tdk"), { recursive: true });
+  writeFileSync(idPath, id + "\n");
+  return id;
 }
 
-async function fetchBundle(endpoint: string, version: string): Promise<Buffer> {
-  const res = await fetch(`${endpoint}/${version}/bundle.tar.gz`);
-  if (!res.ok) {
-    throw new Error(`bundle fetch failed: ${res.status} ${res.statusText}`);
-  }
-  return Buffer.from(await res.arrayBuffer());
+function cacheTarballPath(key: string): string {
+  // Cache is per-key (not shared across different keys on the same
+  // machine) so switching license keys doesn't serve a stale bundle
+  // fetched under a different plan.
+  const safeName = key.replace(/[^a-zA-Z0-9_-]/g, "_");
+  return join(homedir(), ".tdk", "cache", `premium-${safeName}`, "premium.tar.gz");
 }
 
-function verifyBundle(bundle: Buffer, manifest: BundleManifest): boolean {
-  const actualHash = createHash("sha256").update(bundle).digest("hex");
-  if (actualHash !== manifest.sha256) {
-    return false;
-  }
-  return verifySignature(
-    null,
-    Buffer.from(manifest.sha256, "hex"),
-    PUBLIC_KEY_PEM,
-    Buffer.from(manifest.signature, "base64")
-  );
+function isCacheFresh(path: string): boolean {
+  if (!existsSync(path)) return false;
+  return Date.now() - statSync(path).mtimeMs < CACHE_TTL_MS;
 }
 
-/**
- * Fetches, verifies, and caches the extension bundle for `version`.
- * Returns the local directory containing Tiltfile/engine/discovery/specs/ext,
- * or null if the endpoint is unreachable / verification fails (caller should
- * fall back to the existing TDK_EXTENSION_PATH / sibling-checkout resolution).
- */
-export async function fetchExtension(
-  version: string,
-  endpoint: string = process.env.TDK_EXTENSION_ENDPOINT || DEFAULT_ENDPOINT
-): Promise<string | null> {
-  if (isCached(version)) {
-    return cacheDir(version);
-  }
+async function fetchPremiumBundle(key: string, projectId: string): Promise<Buffer | null> {
+  const endpoint = getEndpoint();
+  for (const resource of KNOWN_RESOURCES) {
+    const url =
+      `${endpoint}?key=${encodeURIComponent(key)}` +
+      `&resource=${encodeURIComponent(resource)}` +
+      `&projectId=${encodeURIComponent(projectId)}`;
 
-  try {
-    const manifest = await fetchManifest(endpoint, version);
-    const bundle = await fetchBundle(endpoint, version);
-
-    if (!verifyBundle(bundle, manifest)) {
-      console.warn("⚠️  Extension bundle failed signature verification - discarding.");
+    let res: Response;
+    try {
+      res = await fetch(url);
+    } catch (err) {
+      console.warn(`⚠️  Premium fetch failed (network error): ${(err as Error).message}`);
       return null;
     }
 
-    const dir = cacheDir(version);
-    mkdirSync(dir, { recursive: true });
-    extractTarball(bundle, dir);
-    return dir;
-  } catch (err) {
-    console.warn(`⚠️  Could not fetch TDK extension from ${endpoint}: ${(err as Error).message}`);
+    if (res.ok) {
+      return Buffer.from(await res.arrayBuffer());
+    }
+    if (res.status === 401 || res.status === 403) {
+      // Not granted for this specific resource name - try the next one
+      // before concluding the key has nothing to offer.
+      continue;
+    }
+    // Anything else (404 missing bundle release, 502 upstream failure,
+    // etc.) won't be fixed by trying a different resource name.
+    console.warn(`⚠️  Premium fetch failed: HTTP ${res.status}`);
     return null;
+  }
+  return null;
+}
+
+/**
+ * Fetches (with a local, time-limited cache) the premium bundle for the
+ * configured license key and overlays its files onto the already-vendored
+ * free engine at destDir. Best-effort: returns false (never throws) if
+ * there's no key configured, the key doesn't grant anything, or the fetch
+ * fails - the caller should keep going with the free engine either way.
+ */
+export async function applyPremiumOverlay(projectRoot: string, destDir: string): Promise<boolean> {
+  const key = getLicenseKey();
+  if (!key) return false;
+
+  const tarballPath = cacheTarballPath(key);
+
+  if (!isCacheFresh(tarballPath)) {
+    const projectId = getOrCreateProjectId(projectRoot);
+    const bundle = await fetchPremiumBundle(key, projectId);
+    if (!bundle) {
+      console.warn("⚠️  No premium resources unlocked for this key - using free tier only.");
+      return false;
+    }
+    mkdirSync(join(tarballPath, ".."), { recursive: true });
+    writeFileSync(tarballPath, bundle);
+  }
+
+  try {
+    const extractDir = join(tarballPath, "..", "extracted");
+    mkdirSync(extractDir, { recursive: true });
+    extractTarball(readFileSync(tarballPath), extractDir);
+
+    let applied = 0;
+    for (const [src, dest] of Object.entries(PREMIUM_PATH_MAP)) {
+      const from = join(extractDir, src);
+      if (!existsSync(from)) continue;
+      const to = join(destDir, dest);
+      mkdirSync(join(to, ".."), { recursive: true });
+      writeFileSync(to, readFileSync(from));
+      applied++;
+    }
+
+    if (applied > 0) {
+      console.log(`✓ Premium resources unlocked (${applied} file${applied === 1 ? "" : "s"})`);
+      return true;
+    }
+    return false;
+  } catch (err) {
+    console.warn(`⚠️  Failed to apply premium overlay: ${(err as Error).message}`);
+    return false;
   }
 }

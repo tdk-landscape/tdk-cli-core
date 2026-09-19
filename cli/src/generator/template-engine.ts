@@ -295,7 +295,7 @@ export function readProjectConfig(projectRoot: string): ProjectConfig {
   return parsed;
 }
 
-export function generateMasterConfigs(projectRoot: string): void {
+export async function generateMasterConfigs(projectRoot: string): Promise<void> {
   const projectConfig = readProjectConfig(projectRoot);
 
   const outputDir = path.join(projectRoot, ".tdk", ".tdk-out");
@@ -321,7 +321,7 @@ export function generateMasterConfigs(projectRoot: string): void {
     console.log(`✓ Copied: .tiltignore → project root`);
   }
 
-  vendorTdkExtension(projectRoot);
+  await vendorTdkExtension(projectRoot);
 
   console.log("");
   console.log("💡 To start Tilt: tdk up");
@@ -351,7 +351,7 @@ function findSelfContainedEngineRoot(): string | null {
   return null;
 }
 
-function vendorTdkExtension(projectRoot: string): void {
+async function vendorTdkExtension(projectRoot: string): Promise<void> {
   const outputDir = path.join(projectRoot, ".tdk", ".tdk-out");
   const vendoredDir = path.join(outputDir, "tdk-cli-ext");
 
@@ -404,6 +404,18 @@ function vendorTdkExtension(projectRoot: string): void {
     });
   }
   console.log(`✓ Vendored TDK extension → .tdk/.tdk-out/tdk-cli-ext/`);
+
+  // Best-effort: if TDK_LICENSE_KEY is set and grants any paid resource,
+  // overlay the premium bundle over the stub files just vendored above.
+  // No-ops silently (beyond a warning) if there's no key, the fetch
+  // fails, or nothing's granted - the free engine already works fine on
+  // its own.
+  try {
+    const { applyPremiumOverlay } = await import("./extension-fetch.js");
+    await applyPremiumOverlay(projectRoot, vendoredDir);
+  } catch (err) {
+    console.warn(`⚠️  Premium overlay skipped: ${(err as Error).message}`);
+  }
 }
 
 export function verifyMasterConfigs(projectRoot: string): { valid: boolean; errors: string[] } {
