@@ -29,10 +29,23 @@ build_target bun-linux-arm64 tdk-linux-arm64
 build_target bun-darwin-x64 tdk-darwin-amd64
 build_target bun-darwin-arm64 tdk-darwin-arm64
 
+# A compiled binary has no import.meta.dirname to walk up from, so it can't
+# find engine/ the way a source checkout can. template-engine.ts already
+# checks exeDir/tdk-cli as a candidate - bundle the free engine there so a
+# standalone binary works the same as `tdk-cli-core` cloned from source.
+mkdir -p "${RELEASE_DIR}/tdk-cli"
+cp "${ROOT_DIR}/Tiltfile" "${RELEASE_DIR}/tdk-cli/Tiltfile"
+cp -R "${ROOT_DIR}/engine" "${RELEASE_DIR}/tdk-cli/engine"
+cp -R "${ROOT_DIR}/discovery" "${RELEASE_DIR}/tdk-cli/discovery"
+cp -R "${ROOT_DIR}/specs" "${RELEASE_DIR}/tdk-cli/specs"
+cp -R "${ROOT_DIR}/ext" "${RELEASE_DIR}/tdk-cli/ext"
+
 (
   cd "${RELEASE_DIR}"
-  shasum -a 256 tdk-* > checksums.txt
-  zip -q "tdk-cli-${RELEASE_TAG}-binaries.zip" tdk-* checksums.txt
+  shasum -a 256 tdk-linux-amd64 tdk-linux-arm64 tdk-darwin-amd64 tdk-darwin-arm64 > checksums.txt
+  zip -qr "tdk-cli-${RELEASE_TAG}-binaries.zip" \
+    tdk-linux-amd64 tdk-linux-arm64 tdk-darwin-amd64 tdk-darwin-arm64 \
+    tdk-cli checksums.txt
 )
 
 echo "Built release assets in ${RELEASE_DIR}"

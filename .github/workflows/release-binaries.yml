@@ -1,0 +1,27 @@
+name: Release binaries
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "cli/package.json"
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile
+        working-directory: cli
+
+      - run: scripts/release-binaries.sh --publish
+        env:
+          GH_TOKEN: ${{ secrets.BINARY_RELEASE_TOKEN }}

@@ -1,7 +1,7 @@
 #!/bin/bash
 # TDK CLI Install Script
 # Install the Tilt Development Kit CLI
-# Usage: curl -fsSL https://raw.githubusercontent.com/tdk-landscape/tdk-cli/main/install.sh | bash
+# Usage: curl -fsSL https://raw.githubusercontent.com/tdk-landscape/tdk-cli-core/main/install.sh | bash
 
 set -e
 
@@ -13,7 +13,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-REPO_URL="https://github.com/tdk-landscape/tdk-cli.git"
+REPO_URL="https://github.com/tdk-landscape/tdk-cli-core.git"
 INSTALL_DIR="${HOME}/.tdk"
 BIN_DIR="${HOME}/.bun/bin"
 
