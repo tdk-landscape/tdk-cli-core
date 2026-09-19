@@ -49,7 +49,12 @@ function detectInstallation(): InstallInfo {
 }
 
 function getCurrentVersion(): string {
-  return getPackageVersion();
+  try {
+    return getPackageVersion();
+  } catch (err: unknown) {
+    logVerbose("Version detection error", err);
+    return "unknown";
+  }
 }
 
 async function getLatestVersion(): Promise<string | null> {

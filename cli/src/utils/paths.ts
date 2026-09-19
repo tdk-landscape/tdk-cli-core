@@ -1,7 +1,7 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { cwd } from "node:process";
-import { fileURLToPath } from "node:url";
+import packageJson from "../../package.json" with { type: "json" };
 import type { JsonObject, PackageInfo } from "../types/index.js";
 
 export function findProjectRoot(startDir: string = cwd()): string | null {
@@ -30,27 +30,19 @@ function getPackageInfo(): PackageInfo {
     return packageCache;
   }
 
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = dirname(__filename);
-  const packagePath = resolve(__dirname, "..", "..", "package.json");
+  // Imported JSON is bundled by Bun compile, unlike a runtime fs lookup from $bunfs.
+  const parsed: unknown = packageJson;
 
-  const content = readFileSync(packagePath, "utf-8");
-
-  // Parse with unknown type, then validate before asserting type
-  const parsed: unknown = JSON.parse(content);
-
-  // Runtime validation: package.json must be an object, not null, not an array
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error(`Invalid package.json at ${packagePath}: expected object`);
+    throw new Error("Invalid package.json: expected object");
   }
 
-  // Safe to cast after validation - we know it's a Record<string, unknown>
-  const pkg = parsed as JsonObject;
+  const packageInfo = parsed as JsonObject;
 
   packageCache = {
-    name: String(pkg.name ?? "@tdk/cli"),
-    version: String(pkg.version ?? "0.0.0"),
-    fullPackage: pkg,
+    name: String(packageInfo.name ?? "@tdk/cli"),
+    version: String(packageInfo.version ?? "0.0.0"),
+    fullPackage: packageInfo,
   };
 
   return packageCache;
