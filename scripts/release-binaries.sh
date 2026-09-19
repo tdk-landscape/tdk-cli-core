@@ -46,6 +46,10 @@ cp -R "${ROOT_DIR}/ext" "${RELEASE_DIR}/tdk-cli/ext"
   zip -qr "tdk-cli-${RELEASE_TAG}-binaries.zip" \
     tdk-linux-amd64 tdk-linux-arm64 tdk-darwin-amd64 tdk-darwin-arm64 \
     tdk-cli checksums.txt
+  # Fixed filename (no version/tag in the name) so install.sh can always
+  # find it via the stable /releases/latest/download/ URL, unlike the zip
+  # above whose name embeds the tag and changes every release.
+  tar -czf tdk-cli-engine.tar.gz tdk-cli
 )
 
 echo "Built release assets in ${RELEASE_DIR}"
@@ -69,6 +73,7 @@ readonly ASSETS=(
   "${RELEASE_DIR}/tdk-darwin-arm64"
   "${RELEASE_DIR}/checksums.txt"
   "${RELEASE_DIR}/tdk-cli-${RELEASE_TAG}-binaries.zip"
+  "${RELEASE_DIR}/tdk-cli-engine.tar.gz"
 )
 
 if gh release view "${RELEASE_TAG}" --repo "${RELEASE_REPOSITORY}" >/dev/null 2>&1; then
