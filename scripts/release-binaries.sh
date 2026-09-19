@@ -59,13 +59,25 @@ if ! command -v gh >/dev/null 2>&1; then
   exit 1
 fi
 
+# Upload actual files only - tdk-cli/ is a directory (the bundled engine),
+# already packed inside the zip, and `gh release upload` can't take a
+# directory as an asset.
+readonly ASSETS=(
+  "${RELEASE_DIR}/tdk-linux-amd64"
+  "${RELEASE_DIR}/tdk-linux-arm64"
+  "${RELEASE_DIR}/tdk-darwin-amd64"
+  "${RELEASE_DIR}/tdk-darwin-arm64"
+  "${RELEASE_DIR}/checksums.txt"
+  "${RELEASE_DIR}/tdk-cli-${RELEASE_TAG}-binaries.zip"
+)
+
 if gh release view "${RELEASE_TAG}" --repo "${RELEASE_REPOSITORY}" >/dev/null 2>&1; then
-  gh release upload "${RELEASE_TAG}" --repo "${RELEASE_REPOSITORY}" --clobber "${RELEASE_DIR}"/*
+  gh release upload "${RELEASE_TAG}" --repo "${RELEASE_REPOSITORY}" --clobber "${ASSETS[@]}"
   gh release edit "${RELEASE_TAG}" --repo "${RELEASE_REPOSITORY}" --latest
 else
   gh release create "${RELEASE_TAG}" \
     --repo "${RELEASE_REPOSITORY}" \
     --title "TDK CLI ${RELEASE_TAG#v}" \
     --latest \
-    "${RELEASE_DIR}"/*
+    "${ASSETS[@]}"
 fi
