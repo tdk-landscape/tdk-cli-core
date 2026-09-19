@@ -1,0 +1,170 @@
+# =============================================================================
+# 🐳 PLATFORM DOCKER CONSTANTS
+# =============================================================================
+# Centralized configuration constants for Docker Compose generation.
+# All DATABASE_URL formats, project names, runtime versions, and other
+# shared constants are defined here to ensure consistency across the topology.
+# =============================================================================
+
+# Load project name from project.json (makes TDK CLI portable across projects)
+# Falls back to 'tdk_project' / 'tdk-project' if project.json not found
+# Use TDK_PROJECT_ROOT env var set by Tilt, fallback to current directory
+def _load_project_names():
+    project_root = os.environ.get('TDK_PROJECT_ROOT', '')
+    project_json_path = '.tdk/project.json'
+    if project_root:
+        project_json_path = project_root + '/' + project_json_path
+    
+    if os.path.exists(project_json_path):
+        _project_json = read_json(project_json_path)
+        _PROJECT_NAME_HYPHEN = _project_json.get('project', {}).get('name', 'tdk-project')
+        # Convert hyphenated name to underscore (e.g., "my-project" -> "my_project")
+        _PROJECT_NAME = _PROJECT_NAME_HYPHEN.replace('-', '_')
+        return _PROJECT_NAME, _PROJECT_NAME_HYPHEN
+    return "tdk_project", "tdk-project"
+
+_PROJECT_NAME, _PROJECT_NAME_HYPHEN = _load_project_names()
+
+# Project name constants
+PROJECT_NAME = _PROJECT_NAME
+PROJECT_NAME_HYPHEN = _PROJECT_NAME_HYPHEN
+
+# Domain constants
+LOCAL_DOMAIN = PROJECT_NAME_HYPHEN + ".localhost"
+APP_SUBDOMAIN_PREFIX = "app"
+API_SUBDOMAIN_PREFIX = "api"
+APP_LOCAL_DOMAIN = APP_SUBDOMAIN_PREFIX + "." + LOCAL_DOMAIN
+API_LOCAL_DOMAIN = API_SUBDOMAIN_PREFIX + "." + LOCAL_DOMAIN
+EMAIL_DOMAIN = PROJECT_NAME_HYPHEN + ".local"
+
+# NPM scope constant
+NPM_SCOPE = "@" + PROJECT_NAME_HYPHEN + "/"
+
+# Bun runtime constants
+BUN_VERSION = "1.3.11"
+BUN_IMAGE = "oven/bun:" + BUN_VERSION + "-alpine"
+
+# Database connection constants
+DB_USER = PROJECT_NAME
+DB_HOST = PROJECT_NAME + "_postgres"
+DB_PORT = "5432"
+# ⚠️ SECURITY: No default password - must be provided via DB_PASSWORD env var
+DB_PASSWORD_SHELL = "${DB_PASSWORD}"  # Requires DB_PASSWORD to be set
+DB_SCHEMA = "public"
+
+# Network names
+NETWORK_TRAEFIK_PUBLIC = PROJECT_NAME + "_traefik-public"
+NETWORK_BACKEND = PROJECT_NAME + "_backend"
+NETWORK_DATABASE = PROJECT_NAME + "_database"
+NETWORK_INFISICAL = PROJECT_NAME + "_infisical-network"
+NETWORK_PROXY = PROJECT_NAME + "_proxy"
+
+# NATS constants
+NATS_HOST = PROJECT_NAME + "_nats"
+NATS_PORT = "4222"
+NATS_URL = "nats://" + NATS_HOST + ":" + NATS_PORT
+
+# Verdaccio constants
+VERDACCIO_PORT = 4873
+VERDACCIO_HOST = "localhost"
+VERDACCIO_HOST_DOCKER = "host.docker.internal"
+VERDACCIO_CONTAINER_NAME = PROJECT_NAME_HYPHEN + "-verdaccio"
+VERDACCIO_URL_LOCAL = "http://" + VERDACCIO_HOST + ":" + str(VERDACCIO_PORT)
+VERDACCIO_URL_DOCKER = "http://" + VERDACCIO_HOST_DOCKER + ":" + str(VERDACCIO_PORT)
+VERDACCIO_NETWORK = PROJECT_NAME + "_verdaccio-network"
+VERDACCIO_NPM_REGISTRY = "https://registry.npmjs.org/"
+# Resource and service names
+VERDACCIO_RESOURCE_NAME = "verdaccio"
+VERDACCIO_CONNECT_NETWORK_RESOURCE = "verdaccio-connect-network"
+VERDACCIO_DOMAIN = "verdaccio"
+VERDACCIO_TRAEFIK_HOST = "verdaccio.localhost"
+
+# Helper function to generate database name
+def get_db_name(domain_or_service):
+    """Returns standardized database name for a domain or service."""
+    return PROJECT_NAME + "_" + domain_or_service.replace("-", "_")
+
+# Base JDBC URL format (without database name)
+def get_database_url_base():
+    """Returns base DATABASE_URL format without database name."""
+    return "postgresql://" + DB_USER + ":" + DB_PASSWORD_SHELL + "@" + DB_HOST + ":" + DB_PORT + "/"
+
+# Complete DATABASE_URL with database name (for .env files)
+def get_database_url_for_env(db_name):
+    """Returns DATABASE_URL format for .env files (shell syntax preserved)."""
+    return get_database_url_base() + db_name + "?schema=" + DB_SCHEMA
+
+# Complete DATABASE_URL with database name (for shell scripts)
+def get_database_url_for_shell(db_name):
+    """Returns DATABASE_URL format for shell scripts."""
+    return "postgresql://" + DB_USER + ":$DB_PASSWORD@" + DB_HOST + ":" + DB_PORT + "/" + db_name + "?schema=" + DB_SCHEMA
+
+# Docker Compose environment variable format with fallback
+def get_compose_env_database_url(db_name):
+    """Returns Docker Compose environment variable format with fallback."""
+    base_url = get_database_url_for_env(db_name)
+    return "${{DATABASE_URL:-" + base_url + "}}"
+
+# Tilt resource DATABASE_URL format (for Starlark .format() with host/port placeholders)
+def get_tilt_database_url_template():
+    """Returns DATABASE_URL template with {host} and {port} placeholders for .format()."""
+    # ⚠️ SECURITY: No default password - DB_PASSWORD must be set
+    return "postgresql://" + PROJECT_NAME + ":${DB_PASSWORD}@{host}:{port}/{db}?schema=public"
+
+# Database config entry for config.star
+DB_CONFIG = {
+    "host": DB_HOST,
+    "port": int(DB_PORT),
+    "user": DB_USER,
+    "password": DB_PASSWORD_SHELL,
+    "name_prefix": PROJECT_NAME + "_",
+}
+
+PlatformDockerConstants = struct(
+    PROJECT_NAME = PROJECT_NAME,
+    PROJECT_NAME_HYPHEN = PROJECT_NAME_HYPHEN,
+    LOCAL_DOMAIN = LOCAL_DOMAIN,
+    APP_SUBDOMAIN_PREFIX = APP_SUBDOMAIN_PREFIX,
+    API_SUBDOMAIN_PREFIX = API_SUBDOMAIN_PREFIX,
+    APP_LOCAL_DOMAIN = APP_LOCAL_DOMAIN,
+    API_LOCAL_DOMAIN = API_LOCAL_DOMAIN,
+    EMAIL_DOMAIN = EMAIL_DOMAIN,
+    NPM_SCOPE = NPM_SCOPE,
+    BUN_VERSION = BUN_VERSION,
+    BUN_IMAGE = BUN_IMAGE,
+    DB_USER = DB_USER,
+    DB_HOST = DB_HOST,
+    DB_PORT = DB_PORT,
+    DB_PASSWORD_SHELL = DB_PASSWORD_SHELL,
+    DB_SCHEMA = DB_SCHEMA,
+    NETWORK_TRAEFIK_PUBLIC = NETWORK_TRAEFIK_PUBLIC,
+    NETWORK_BACKEND = NETWORK_BACKEND,
+    NETWORK_DATABASE = NETWORK_DATABASE,
+    NETWORK_INFISICAL = NETWORK_INFISICAL,
+    NETWORK_PROXY = NETWORK_PROXY,
+    NATS_HOST = NATS_HOST,
+    NATS_PORT = NATS_PORT,
+    NATS_URL = NATS_URL,
+    # Verdaccio constants
+    VERDACCIO_PORT = VERDACCIO_PORT,
+    VERDACCIO_HOST = VERDACCIO_HOST,
+    VERDACCIO_HOST_DOCKER = VERDACCIO_HOST_DOCKER,
+    VERDACCIO_CONTAINER_NAME = VERDACCIO_CONTAINER_NAME,
+    VERDACCIO_URL_LOCAL = VERDACCIO_URL_LOCAL,
+    VERDACCIO_URL_DOCKER = VERDACCIO_URL_DOCKER,
+    VERDACCIO_NETWORK = VERDACCIO_NETWORK,
+    VERDACCIO_NPM_REGISTRY = VERDACCIO_NPM_REGISTRY,
+    VERDACCIO_RESOURCE_NAME = VERDACCIO_RESOURCE_NAME,
+    VERDACCIO_CONNECT_NETWORK_RESOURCE = VERDACCIO_CONNECT_NETWORK_RESOURCE,
+    VERDACCIO_DOMAIN = VERDACCIO_DOMAIN,
+    VERDACCIO_TRAEFIK_HOST = VERDACCIO_TRAEFIK_HOST,
+    DB_CONFIG = DB_CONFIG,
+    get_db_name = get_db_name,
+    get_database_url_base = get_database_url_base,
+    get_database_url_for_env = get_database_url_for_env,
+    get_database_url_for_shell = get_database_url_for_shell,
+    get_compose_env_database_url = get_compose_env_database_url,
+    get_tilt_database_url_template = get_tilt_database_url_template,
+)
+
+CONSTANTS = {}

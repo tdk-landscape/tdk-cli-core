@@ -1,0 +1,114 @@
+/* ============================================================================
+   TOOLTIPS CSS - UI Enhancements Extension
+   Provides contextual tooltips for Tilt UI elements
+   ============================================================================ */
+
+/* Tooltip container */
+.tilt-tooltip {
+  position: absolute;
+  background: #1a1a2e;
+  color: #e0e0e0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  max-width: 300px;
+  z-index: 10000;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(4px);
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  border: 1px solid #2d2d44;
+  line-height: 1.4;
+}
+
+/* Tooltip visible state */
+.tilt-tooltip.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Tooltip arrow */
+.tilt-tooltip::after {
+  content: "";
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-style: solid;
+}
+
+/* Tooltip arrow pointing up (default) */
+.tilt-tooltip[data-position="bottom"]::after {
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 0 6px 6px 6px;
+  border-color: transparent transparent #1a1a2e transparent;
+}
+
+/* Tooltip arrow pointing down */
+.tilt-tooltip[data-position="top"]::after {
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 6px 6px 0 6px;
+  border-color: #1a1a2e transparent transparent transparent;
+}
+
+/* Tooltip arrow pointing left */
+.tilt-tooltip[data-position="right"]::after {
+  left: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-width: 6px 6px 6px 0;
+  border-color: transparent #1a1a2e transparent transparent;
+}
+
+/* Tooltip arrow pointing right */
+.tilt-tooltip[data-position="left"]::after {
+  right: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-width: 6px 0 6px 6px;
+  border-color: transparent transparent transparent #1a1a2e;
+}
+
+/* Resource name tooltip trigger */
+[data-tilt-tooltip] {
+  cursor: help;
+}
+
+/* Status indicator tooltips */
+.tilt-status-indicator[data-tilt-tooltip] {
+  cursor: help;
+}
+
+/* Control button tooltips */
+.tilt-control-btn[data-tilt-tooltip] {
+  cursor: help;
+}
+
+/* Tooltip content formatting */
+.tilt-tooltip .tooltip-title {
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.tilt-tooltip .tooltip-description {
+  color: #b0b0c0;
+  display: block;
+}
+
+.tilt-tooltip .tooltip-meta {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid #2d2d44;
+  font-size: 11px;
+  color: #808090;
+}

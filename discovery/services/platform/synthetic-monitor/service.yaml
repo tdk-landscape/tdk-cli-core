@@ -1,0 +1,9 @@
+appName: synthetic-monitor
+appType: backend
+stack: platform
+port: 4100
+features:
+  - nats
+internalDependencies:
+replicas: 1
+runtime: bun

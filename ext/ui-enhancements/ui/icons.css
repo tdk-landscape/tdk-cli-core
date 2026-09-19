@@ -1,0 +1,125 @@
+/* ============================================================================
+   ICONS CSS - UI Enhancements Extension
+   Provides visual icons for resource type identification
+   ============================================================================ */
+
+/* Icon base styles */
+.tilt-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.tilt-icon svg {
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
+}
+
+/* Status-based icon colors */
+.tilt-icon.status-ready,
+.tilt-icon.status-success {
+  color: #4caf50;
+}
+
+.tilt-icon.status-pending,
+.tilt-icon.status-warning {
+  color: #ff9800;
+}
+
+.tilt-icon.status-error,
+.tilt-icon.status-failed {
+  color: #f44336;
+}
+
+.tilt-icon.status-running {
+  color: #2196f3;
+  animation: tilt-pulse 1.5s ease-in-out infinite;
+}
+
+.tilt-icon.status-idle,
+.tilt-icon.status-paused {
+  color: #9e9e9e;
+}
+
+/* Pulse animation for running state */
+@keyframes tilt-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Resource type specific icons */
+/* Service icon - box/server */
+.tilt-icon-type-service {
+  color: #64b5f6;
+}
+
+/* Job icon - play/check */
+.tilt-icon-type-job {
+  color: #81c784;
+}
+
+/* Test icon - beaker */
+.tilt-icon-type-test {
+  color: #ffb74d;
+}
+
+/* Infrastructure icon - database */
+.tilt-icon-type-infrastructure,
+.tilt-icon-type-db {
+  color: #ba68c8;
+}
+
+/* Cron icon - clock */
+.tilt-icon-type-cron {
+  color: #4dd0e1;
+}
+
+/* Frontend icon - web */
+.tilt-icon-type-frontend {
+  color: #ff8a65;
+}
+
+/* Backend icon - server */
+.tilt-icon-type-backend {
+  color: #7986cb;
+}
+
+/* Library icon - package */
+.tilt-icon-type-library {
+  color: #a1887f;
+}
+
+/* Maintenance icon - tools */
+.tilt-icon-type-maintenance {
+  color: #90a4ae;
+}
+
+/* Quality icon - checkmark */
+.tilt-icon-type-quality {
+  color: #69f0ae;
+}
+
+/* Position icon next to resource name */
+.tilt-resource-with-icon {
+  display: inline-flex;
+  align-items: center;
+}
+
+.tilt-resource-with-icon .tilt-icon {
+  margin-right: 6px;
+}
+
+/* Ensure icons don't interfere with click targets */
+.tilt-icon {
+  pointer-events: none;
+}

@@ -1,0 +1,15 @@
+appName: database-management
+appType: infra
+stack: platform
+port: 5432
+description: PostgreSQL database with pgAdmin for local development
+features:
+healthCheck: False
+internalDependencies:
+params:
+  PGADMIN_DEFAULT_EMAIL: admin@beauty.local
+  PGADMIN_DEFAULT_PASSWORD: admin
+  POSTGRES_DB: beauty_crm
+  POSTGRES_PASSWORD: postgres
+  POSTGRES_USER: postgres
+runtime: docker

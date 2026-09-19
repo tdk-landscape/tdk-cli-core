@@ -1,0 +1,11 @@
+{
+  "name": "order-frontend",
+  "type": "frontend",
+  "stack": "order",
+  "port": 3001,
+  "path": "services/product/order/order-frontend",
+  "backendName": "order-backend",
+  "basePath": "/orders",
+  "features": ["vite"],
+  "replicas": 1
+}

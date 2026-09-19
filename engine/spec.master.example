@@ -1,0 +1,341 @@
+#!/usr/bin/env starlark
+# BEFORE/AFTER: Making Tilt Obvious (Zig-Style Explicitness)
+# 
+# This file demonstrates how the new spec.master makes the system
+# completely explicit - addressing the Zig developer's critique about
+# "hidden control flow" and "no hidden allocations"
+
+# =============================================================================
+# ❌ BEFORE: Implicit, Hidden, Magic
+# =============================================================================
+
+# Magic load - where does this file live? Who knows.
+# load("./discovery/registry.star", "get_app_resources")
+
+# Magic context - what's inside ctx? Runtime mystery.
+# ctx = Context.build(full_graph, manifest)
+
+# Magic path construction - where does this write?
+# output_path = path.join(resource_path, "tsconfig.json")
+
+# Magic feature check - is this enabled? Where defined?
+# if features.is_enabled("istio"):
+
+# Magic port allocation - algorithm hidden
+# port = allocate_port(resource_name)
+
+# Magic dependency resolution - how does this work?
+# deps = resolve_dependencies(manifest)
+
+# =============================================================================
+# ✅ AFTER: Explicit, Obvious, No Magic
+# =============================================================================
+
+# Load the master spec - ALL paths are explicit constants
+load("{PROJECT_ROOT}/.tilt/spec.master", "SPEC", "CONSTANTS", "VALIDATION", "FEATURES", "OUTPUT", "DEBUG")
+
+# 💡 ALTERNATIVE: Use the easier-to-remember alias names
+# Both work identically - use whichever you prefer!
+#
+#     load("{PROJECT_ROOT}/.tilt/paths.star", "SPEC", "CONSTANTS", "DEBUG")
+#     load("{PROJECT_ROOT}/.tilt/where-things-live.star", "SPEC", "CONSTANTS", "DEBUG")
+#
+# Why aliases? Because "paths" is easier to remember than "spec.master" 😊
+
+# Explicit imports - you SEE exactly what files are loaded
+load(SPEC.DISCOVERY.REGISTRY, "get_app_resources", "get_resource_by_name")
+load(SPEC.DISCOVERY.LOADING, "load_manifest")
+load(SPEC.GENERATORS.VITE, "generate_vite_config")
+load(SPEC.GENERATORS.TSCONFIG, "generate_tsconfig")
+load(SPEC.GENERATORS.DOCKERFILE, "generate_dockerfile")
+load(SPEC.GENERATORS.MANIFEST_RESOURCE, "ManifestResource")
+
+# EXPLICIT path construction - no hidden logic
+def get_resource_path(resource_name):
+    """Build service path EXPLICITLY from constants."""
+    return SPEC.RESOURCES_DIR + "/product/" + resource_name
+
+def get_manifest_path(resource_path):
+    """Manifest path is EXPLICIT, not discovered."""
+    return resource_path + "/" + RESOURCE_PATTERNS.MANIFEST_FILE
+
+def get_output_path(resource_name, filename):
+    """Output path is EXPLICIT, constructed from constants."""
+    return OUTPUT.CONFIGS + "/" + resource_name + "/" + filename
+
+# =============================================================================
+# EXPLICIT CONFIGURATION GENERATION
+# =============================================================================
+
+def generate_resource_configs(resource_name, manifest):
+    """
+    Generate configs with EXPLICIT paths and constraints.
+    No hidden allocations. No magic context.
+    """
+    
+    # EXPLICIT: Validate inputs (Zig-style defensive programming)
+    if not resource_name:
+        fail("resource_name is empty - explicit validation")
+    
+    if not manifest:
+        fail("manifest is empty - explicit validation")
+    
+    # EXPLICIT: Port validation with visible constraints
+    port = manifest.get("port")
+    if port < VALIDATION.MIN_PORT or port > VALIDATION.MAX_PORT:
+        fail("port {} outside valid range [{}-{}]".format(
+            port, VALIDATION.MIN_PORT, VALIDATION.MAX_PORT
+        ))
+    
+    if port in VALIDATION.RESERVED_PORTS:
+        fail("port {} is in RESERVED_PORTS list".format(port))
+    
+    # EXPLICIT: Feature check - visible toggle
+    if FEATURES.ISTIO_INTEGRATION:
+        # 🗓️ ROADMAP: Will generate Istio configs when implemented
+        istio_config = generate_istio_config(manifest)
+    else:
+        # EXPLICIT: Currently using Traefik
+        istio_config = None
+    
+    # EXPLICIT: Path construction - you SEE where files go
+    resource_path = get_resource_path(resource_name)
+    output_dir = get_output_path(resource_name, "")
+    
+    configs = {
+        "tsconfig": {
+            "input": get_manifest_path(resource_path),
+            "output": output_dir + RESOURCE_PATTERNS.GENERATED_TSCONFIG,
+            "generator": SPEC.GENERATORS.TSCONFIG,
+        },
+        "vite": {
+            "input": get_manifest_path(resource_path),
+            "output": output_dir + RESOURCE_PATTERNS.GENERATED_VITE_CONFIG,
+            "generator": SPEC.GENERATORS.VITE,
+        },
+        "dockerfile": {
+            "input": get_manifest_path(resource_path),
+            "output": resource_path + "/" + RESOURCE_PATTERNS.DOCKERFILE,
+            "generator": SPEC.GENERATORS.DOCKERFILE,
+        },
+    }
+    
+    # EXPLICIT: Debug output (visible when DEBUG.DUMP_GENERATED_CONFIGS)
+    if DEBUG.DUMP_GENERATED_CONFIGS:
+        print("[DEBUG] Generated configs for {}:".format(resource_name))
+        for name, cfg in configs.items():
+            print("  {}: {}".format(name, cfg["output"]))
+    
+    return configs
+
+# =============================================================================
+# EXPLICIT SERVICE DISCOVERY (No Magic Globbing)
+# =============================================================================
+
+def discover_services_explicit():
+    """
+    Discover services with EXPLICIT search paths.
+    No hidden glob patterns. Everything visible.
+    """
+    discovered = []
+    
+    # EXPLICIT: Iterate declared search paths
+    for search_path in DISCOVERY.RESOURCE_SEARCH_PATHS:
+        # EXPLICIT: Glob pattern is declared in spec.master
+        pattern = search_path + "/" + DISCOVERY.MANIFEST_PATTERNS[0]  # service.json
+        
+        # EXPLICIT: Check exclusions
+        matches = glob([pattern], exclude=DISCOVERY.EXCLUDE_PATTERNS)
+        
+        for match in matches:
+            # EXPLICIT: Construct service info from path
+            resource_dir = os.path.dirname(match)
+            resource_name = os.path.basename(resource_dir)
+            
+            discovered.append({
+                "name": resource_name,
+                "path": resource_dir,
+                "manifest_path": match,
+            })
+    
+    return discovered
+
+# =============================================================================
+# EXPLICIT CONTEXT BUILDING (No Black Box)
+# =============================================================================
+
+def build_explicit_context(resource_manifest, all_services):
+    """
+    Build context EXPLICITLY - every field is visible.
+    No mystery black box.
+    """
+    ctx = struct(
+        # EXPLICIT: Source data
+        manifest = resource_manifest,
+        all_services = all_services,
+        
+        # EXPLICIT: Computed values (transparent logic)
+        resource_name = resource_manifest.get("appName"),
+        resource_path = get_resource_path(resource_manifest.get("appName")),
+        port = resource_manifest.get("port"),
+        
+        # EXPLICIT: Dependencies (resolved, not hidden)
+        dependencies = resolve_explicit_dependencies(
+            resource_manifest.get("internalDependencies", []),
+            all_services
+        ),
+        
+        # EXPLICIT: System constants
+        constants = CONSTANTS,
+        validation = VALIDATION,
+        features = FEATURES,
+    )
+    
+    # EXPLICIT: Debug inspection
+    if DEBUG.DUMP_CONTEXT_ON_GENERATION:
+        print("[DEBUG] Context for {}:".format(ctx.resource_name))
+        print("  port: {}".format(ctx.port))
+        print("  dependencies: {}".format([d["name"] for d in ctx.dependencies]))
+        print("  features enabled: {}".format([f for f in dir(FEATURES) if not f.startswith("_")]))
+    
+    return ctx
+
+def resolve_explicit_dependencies(dep_names, all_services):
+    """
+    Resolve dependencies EXPLICITLY.
+    No hidden graph traversal.
+    """
+    resolved = []
+    
+    for dep_name in dep_names:
+        # EXPLICIT: Lookup in explicit list
+        found = None
+        for svc in all_services:
+            if svc["name"] == dep_name:
+                found = svc
+                break
+        
+        if not found:
+            fail("Dependency '{}' not found in explicit service list".format(dep_name))
+        
+        # EXPLICIT: Check for circular dependencies
+        if dep_name in resolved:
+            fail("Circular dependency detected involving '{}'".format(dep_name))
+        
+        resolved.append(found)
+    
+    return resolved
+
+# =============================================================================
+# EXPLICIT GENERATION ENTRY POINT
+# =============================================================================
+
+def generate_all_explicit():
+    """
+    Main generation with EXPLICIT flow.
+    Every step is visible. No magic.
+    """
+    
+    print("=" * 60)
+    print("TILT GENERATION - EXPLICIT MODE")
+    print("=" * 60)
+    
+    # EXPLICIT: Step 1 - Discovery
+    print("\n[1/5] DISCOVERY")
+    print("  Search paths: {}".format(DISCOVERY.RESOURCE_SEARCH_PATHS))
+    services = discover_services_explicit()
+    print("  Found {} services".format(len(services)))
+    for svc in services:
+        print("    - {} at {}".format(svc["name"], svc["path"]))
+    
+    # EXPLICIT: Step 2 - Validation
+    print("\n[2/5] VALIDATION")
+    for svc in services:
+        port = svc.get("port", 0)
+        if port < VALIDATION.MIN_PORT:
+            fail("  ❌ {}: port {} below minimum {}".format(
+                svc["name"], port, VALIDATION.MIN_PORT
+            ))
+        print("  ✅ {}: port {} valid".format(svc["name"], port))
+    
+    # EXPLICIT: Step 3 - Context Building
+    print("\n[3/5] CONTEXT BUILDING")
+    contexts = {}
+    for svc in services:
+        ctx = build_explicit_context(svc, services)
+        contexts[svc["name"]] = ctx
+        print("  ✅ {}: context built".format(svc["name"]))
+    
+    # EXPLICIT: Step 4 - Generation
+    print("\n[4/5] GENERATION")
+    generated = {}
+    for svc in services:
+        configs = generate_resource_configs(svc["name"], svc)
+        generated[svc["name"]] = configs
+        print("  ✅ {}: {} configs generated".format(svc["name"], len(configs)))
+    
+    # EXPLICIT: Step 5 - Output
+    print("\n[5/5] OUTPUT")
+    print("  Output directory: {}".format(OUTPUT.CONFIGS))
+    for svc_name, configs in generated.items():
+        for cfg_name, cfg in configs.items():
+            print("  Writing: {}".format(cfg["output"]))
+            # write_file(cfg["output"], cfg["content"])
+    
+    print("\n" + "=" * 60)
+    print("GENERATION COMPLETE")
+    print("  Services: {}".format(len(services)))
+    print("  Configs: {}".format(sum(len(c) for c in generated.values())))
+    print("  Output: {}".format(OUTPUT.CONFIGS))
+    print("=" * 60)
+
+# =============================================================================
+# ZIG-STYLE MANIFESTO APPLIED
+# =============================================================================
+
+"""
+WHAT CHANGED:
+
+BEFORE (Implicit):
+  - Paths discovered at runtime
+  - Features checked magically  
+  - Context is black box
+  - Errors at runtime
+
+AFTER (Explicit - Zig-style):
+  - Paths are CONSTANTS in spec.master
+  - Features are EXPLICIT STRUCT toggles
+  - Context is EXPLICIT STRUCT (every field visible)
+  - Errors at "compile time" (Tiltfile load)
+
+PRINCIPLES APPLIED:
+  ✅ No hidden control flow
+  ✅ No hidden allocations (paths explicit)
+  ✅ No magic (everything declared in spec.master)
+  ✅ Explicit is better than implicit
+  ✅ Fail fast with clear messages
+
+ANSWER TO ZIG DEVELOPER:
+  "You wanted obvious. Now it's obvious."
+  "Every path is a constant."
+  "Every feature is a toggle."
+  "Every context field is visible."
+  "No magic. No surprises."
+"""
+
+# =============================================================================
+# USAGE EXAMPLE
+# =============================================================================
+
+# To use in your Tiltfile:
+#
+# load("{}/.tilt/spec.master".format(PROJECT_ROOT), "SPEC", "CONSTANTS")
+# 
+# # Now EVERYTHING is explicit and obvious
+# print("Registry path: {}".format(SPEC.DISCOVERY.REGISTRY))
+# print("Max port: {}".format(VALIDATION.MAX_PORT))
+# print("Istio enabled: {}".format(FEATURES.ISTIO_INTEGRATION))
+#
+# # No more guessing where files live
+# # No more wondering what ctx contains
+# # No more hidden feature flags

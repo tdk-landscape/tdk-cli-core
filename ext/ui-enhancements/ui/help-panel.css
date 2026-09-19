@@ -1,0 +1,279 @@
+/* ============================================================================
+   HELP PANEL CSS - UI Enhancements Extension
+   Provides slide-in help panel for developer onboarding
+   ============================================================================ */
+
+/* Help button in header */
+.tilt-help-button {
+  position: fixed;
+  top: 12px;
+  right: 80px;
+  z-index: 1000;
+  background: #2d2d44;
+  color: #e0e0e0;
+  border: 1px solid #3d3d5c;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+}
+
+.tilt-help-button:hover {
+  background: #3d3d5c;
+  border-color: #4d4d6c;
+}
+
+.tilt-help-button svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+/* Help panel overlay */
+.tilt-help-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1001;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.3s,
+    visibility 0.3s;
+}
+
+.tilt-help-overlay.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Help panel */
+.tilt-help-panel {
+  position: fixed;
+  top: 0;
+  right: -450px;
+  width: 450px;
+  height: 100vh;
+  background: #1a1a2e;
+  border-left: 1px solid #2d2d44;
+  z-index: 1002;
+  display: flex;
+  flex-direction: column;
+  transition: right 0.3s ease;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.tilt-help-panel.open {
+  right: 0;
+}
+
+/* Help panel header */
+.tilt-help-header {
+  padding: 20px;
+  border-bottom: 1px solid #2d2d44;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tilt-help-header h2 {
+  margin: 0;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.tilt-help-close {
+  background: none;
+  border: none;
+  color: #808090;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition:
+    background 0.2s,
+    color 0.2s;
+}
+
+.tilt-help-close:hover {
+  background: #2d2d44;
+  color: #fff;
+}
+
+/* Search box */
+.tilt-help-search {
+  padding: 15px 20px;
+  border-bottom: 1px solid #2d2d44;
+}
+
+.tilt-help-search input {
+  width: 100%;
+  padding: 10px 14px;
+  background: #2d2d44;
+  border: 1px solid #3d3d5c;
+  border-radius: 6px;
+  color: #e0e0e0;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.tilt-help-search input:focus {
+  border-color: #64b5f6;
+}
+
+.tilt-help-search input::placeholder {
+  color: #808090;
+}
+
+/* Help content */
+.tilt-help-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+/* Section styling */
+.tilt-help-section {
+  margin-bottom: 24px;
+}
+
+.tilt-help-section:last-child {
+  margin-bottom: 0;
+}
+
+.tilt-help-section h3 {
+  color: #64b5f6;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 12px 0;
+}
+
+.tilt-help-section p {
+  color: #b0b0c0;
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0 0 12px 0;
+}
+
+/* Resource type list */
+.tilt-help-resource-type {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #2d2d44;
+}
+
+.tilt-help-resource-type:last-child {
+  border-bottom: none;
+}
+
+.tilt-help-resource-type .icon {
+  width: 20px;
+  height: 20px;
+  color: #64b5f6;
+}
+
+.tilt-help-resource-type .info {
+  flex: 1;
+}
+
+.tilt-help-resource-type .name {
+  color: #e0e0e0;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.tilt-help-resource-type .desc {
+  color: #808090;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+/* Keyboard shortcuts */
+.tilt-help-shortcut {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #2d2d44;
+}
+
+.tilt-help-shortcut:last-child {
+  border-bottom: none;
+}
+
+.tilt-help-shortcut .action {
+  color: #b0b0c0;
+  font-size: 14px;
+}
+
+.tilt-help-shortcut .key {
+  background: #2d2d44;
+  color: #e0e0e0;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: monospace;
+  border: 1px solid #3d3d5c;
+}
+
+/* Common tasks */
+.tilt-help-task {
+  padding: 12px;
+  background: #2d2d44;
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+
+.tilt-help-task:last-child {
+  margin-bottom: 0;
+}
+
+.tilt-help-task .title {
+  color: #e0e0e0;
+  font-weight: 500;
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+.tilt-help-task .steps {
+  color: #808090;
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+  padding-left: 16px;
+}
+
+.tilt-help-task .steps li {
+  margin-bottom: 4px;
+}
+
+/* Search results highlighting */
+.tilt-help-section.hidden {
+  display: none;
+}
+
+.tilt-help-section .highlight {
+  background: rgba(100, 181, 246, 0.2);
+  padding: 2px 4px;
+  border-radius: 3px;
+}

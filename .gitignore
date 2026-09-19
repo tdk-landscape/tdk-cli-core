@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+*.log
+
+# Build output
+cli/dist/
+*.tsbuildinfo
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+
+# Testing
+coverage/
+.nyc_output/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Generated reports
+.jscpd-report/
+.tdk/.tdk-out/
+
+release-dist-*/

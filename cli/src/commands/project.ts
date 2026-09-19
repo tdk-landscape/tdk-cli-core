@@ -1,0 +1,251 @@
+import { existsSync } from "node:fs";
+import { join, resolve } from "node:path";
+import { cwd } from "node:process";
+import chalk from "chalk";
+import { Command } from "commander";
+import inquirer from "inquirer";
+import { generateMasterConfigs, readProjectConfig } from "../generator/template-engine.js";
+import { MASTER_CONFIG_FILES } from "../utils/constants.js";
+import { runCommand, showErrorAndExit } from "../utils/errors.js";
+import { ensureDirectory, writeJsonFile } from "../utils/file-helpers.js";
+import {
+  showCancelled,
+  showCommandHeader,
+  showDetail,
+  showStep,
+  showSuccess,
+} from "../utils/formatting.js";
+import { findProjectRoot } from "../utils/paths.js";
+
+const DEFAULT_PROJECT_JSON = {
+  version: "1.0",
+  project: {
+    name: "",
+    version: "1.0.0",
+  },
+  stacks: {
+    pre_alpha: {
+      name: "Pre-Alpha",
+      description: "Core infrastructure and MVP services",
+      services: [],
+    },
+    alpha: {
+      name: "Alpha",
+      description: "Essential business services",
+      services: [],
+    },
+    beta: {
+      name: "Beta",
+      description: "Extended features",
+      services: [],
+    },
+    out_of_scope: {
+      name: "Out of Scope",
+      description: "Future releases",
+      services: [],
+    },
+  },
+  optional_infra: {
+    monitoring: false,
+    elk: false,
+    debezium: false,
+    golden_image: true,
+  },
+  discovery: {
+    paths: ["services/product/*", "services/platform/*"],
+  },
+  overrides: {},
+};
+
+export const projectCommand = new Command("project")
+  .description("Initialize or validate project-level master configuration")
+  .option("--check", "Check if master configs exist and are in sync")
+  .option("--force", "Overwrite existing configuration (dangerous)")
+  .option("--yes", "Non-interactive mode (use defaults)")
+  .option("--config-file <path>", "Load project config from existing JSON file")
+  .action(async (options) => {
+    await runCommand(async () => {
+      let projectRoot = findProjectRoot();
+
+      if (!projectRoot) {
+        projectRoot = cwd();
+        showStep("🚀 Initializing new TDK project...\n");
+        showDetail(`Location: ${projectRoot}\n`, 0);
+      }
+
+      const tdkDir = join(projectRoot, ".tdk");
+      const projectJsonPath = join(tdkDir, "project.json");
+
+      if (options.check) {
+        const allFilesExist = MASTER_CONFIG_FILES.every((f) =>
+          existsSync(join(projectRoot, ".tdk", ".tdk-out", f)),
+        );
+        const projectJsonExists = existsSync(projectJsonPath);
+
+        if (allFilesExist && projectJsonExists) {
+          const projectConfig = readProjectConfig(projectRoot);
+          showSuccess("Project configuration is valid");
+          showDetail(`Project: ${projectConfig.project.name}`, 3);
+          showDetail(`Stacks: ${Object.keys(projectConfig.stacks).join(", ")}`, 3);
+          process.exit(0);
+        } else {
+          console.log(chalk.yellow("⚠️  Project configuration incomplete:"));
+          if (!projectJsonExists) showDetail(".tdk/project.json (not found)", 3);
+          if (!allFilesExist) {
+            for (const f of MASTER_CONFIG_FILES.filter(
+              (f) => !existsSync(join(projectRoot, ".tdk/.tdk-out", f)),
+            )) {
+              showDetail(`.tdk/.tdk-out/${f} (not found)`, 3);
+            }
+          }
+          showDetail("Run `tdk project` to create them.");
+          process.exit(1);
+        }
+      }
+
+      showCommandHeader("Project Configuration");
+      showDetail(`Project root: ${projectRoot}\n`, 0);
+
+      if (!existsSync(tdkDir)) {
+        ensureDirectory(tdkDir);
+        showSuccess("Created: .tdk/ directory");
+      }
+
+      const projectJsonExists = existsSync(projectJsonPath);
+
+      if (projectJsonExists && !options.force) {
+        showSuccess(".tdk/project.json exists");
+        showStep("\n📋 Regenerating master configuration files...\n");
+
+        generateMasterConfigs(projectRoot);
+        console.log(chalk.green("\n✅ Project configuration regenerated!"));
+        showDetail("\nGenerated in .tdk/.tdk-out/:", 0);
+        for (const file of MASTER_CONFIG_FILES) {
+          showDetail(`- ${file}`);
+        }
+        return;
+      }
+
+      if (projectJsonExists && options.force) {
+        console.log(chalk.red("\n⚠️  WARNING: --force will overwrite .tdk/project.json!"));
+        const { confirm } = await inquirer.prompt([
+          {
+            type: "confirm",
+            name: "confirm",
+            message: "This will reset your project configuration. Continue?",
+            default: false,
+          },
+        ]);
+        if (!confirm) {
+          showCancelled();
+          return;
+        }
+      }
+
+      let projectConfig: typeof DEFAULT_PROJECT_JSON;
+
+      if (options.configFile) {
+        const configFilePath = resolve(options.configFile);
+        if (!existsSync(configFilePath)) {
+          showErrorAndExit(`Config file not found: ${configFilePath}`);
+        }
+        const configContent = await import("node:fs").then((fs) =>
+          fs.readFileSync(configFilePath, "utf-8"),
+        );
+        projectConfig = JSON.parse(configContent);
+        showSuccess(`Loaded config from: ${configFilePath}`);
+      } else if (options.yes) {
+        projectConfig = JSON.parse(JSON.stringify(DEFAULT_PROJECT_JSON));
+        projectConfig.project.name = projectRoot.split("/").pop() || "my-project";
+        console.log(chalk.gray("Using default configuration (non-interactive mode)"));
+      } else {
+        showStep("📝 Project Setup Wizard\n");
+
+        const answers = await inquirer.prompt([
+          {
+            type: "input",
+            name: "name",
+            message: "Project name:",
+            default: projectRoot.split("/").pop() || "my-project",
+            validate: (input: string) => input.trim() !== "" || "Project name is required",
+          },
+          {
+            type: "input",
+            name: "version",
+            message: "Project version:",
+            default: "1.0.0-alpha",
+          },
+          {
+            type: "checkbox",
+            name: "preAlphaServices",
+            message: "Select Pre-Alpha services (core infrastructure):",
+            choices: [
+              { name: "proxy (Traefik)", value: "proxy" },
+              { name: "verdaccio (NPM registry)", value: "verdaccio" },
+              { name: "database-management (PostgreSQL)", value: "database-management" },
+            ],
+          },
+          {
+            type: "checkbox",
+            name: "alphaServices",
+            message: "Select Alpha services (core business):",
+            choices: [
+              { name: "api (Backend API)", value: "api" },
+              { name: "app (Frontend app)", value: "app" },
+            ],
+          },
+          {
+            type: "checkbox",
+            name: "betaServices",
+            message: "Select Beta services (extended features):",
+            choices: [
+              { name: "worker (Background jobs)", value: "worker" },
+              { name: "migrator (Database migrations)", value: "migrator" },
+            ],
+          },
+          {
+            type: "checkbox",
+            name: "optionalInfra",
+            message: "Enable optional infrastructure (high resource):",
+            choices: [
+              { name: "monitoring (SigNoz/SkyWalking)", value: "monitoring" },
+              { name: "elk (Elasticsearch stack)", value: "elk" },
+              { name: "debezium (CDC)", value: "debezium" },
+              { name: "golden_image (One-time build)", value: "golden_image", checked: true },
+            ],
+          },
+        ]);
+
+        projectConfig = JSON.parse(JSON.stringify(DEFAULT_PROJECT_JSON));
+        projectConfig.project.name = answers.name;
+        projectConfig.project.version = answers.version;
+        projectConfig.stacks.pre_alpha.services = answers.preAlphaServices;
+        projectConfig.stacks.alpha.services = answers.alphaServices;
+        projectConfig.stacks.beta.services = answers.betaServices;
+        projectConfig.optional_infra.monitoring = answers.optionalInfra.includes("monitoring");
+        projectConfig.optional_infra.elk = answers.optionalInfra.includes("elk");
+        projectConfig.optional_infra.debezium = answers.optionalInfra.includes("debezium");
+        projectConfig.optional_infra.golden_image = answers.optionalInfra.includes("golden_image");
+      }
+
+      showStep("\n📋 Creating project configuration...\n");
+      writeJsonFile(projectJsonPath, projectConfig);
+      showSuccess("Created: .tdk/project.json");
+      showDetail(`→ Project: ${projectConfig.project.name}`);
+
+      showStep("\n📋 Generating master configuration files...\n");
+      generateMasterConfigs(projectRoot);
+
+      console.log(chalk.green("\n✅ Project configuration complete!"));
+      showDetail("\nGenerated files in .tdk/.tdk-out/:", 0);
+      for (const file of MASTER_CONFIG_FILES) {
+        showDetail(`- ${file}`);
+      }
+      showDetail("\nSource file:", 0);
+      showDetail("- .tdk/project.json (edit this to change project structure)");
+      showDetail("\nNext steps:", 0);
+      showDetail("1. Run `tdk config regenerate` after editing .tdk/project.json");
+      showDetail("2. Run `tdk stack` to manage services in stacks");
+      showDetail("3. Run `tdk up` to start development");
+    });
+  });

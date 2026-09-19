@@ -1,0 +1,177 @@
+import { execSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import chalk from "chalk";
+import { Command } from "commander";
+import { handleDryRun } from "../utils/command-helpers.js";
+import { errorFactories, handleTiltFailure, withTiltCheck } from "../utils/errors.js";
+import { formatCount } from "../utils/formatting.js";
+import { findAvailablePort } from "../utils/port-assignment.js";
+import {
+  discoverResources,
+  discoverStacks,
+  getResourcesForStack,
+  stackExists,
+} from "../utils/services.js";
+import { buildTiltUpArgs, runTilt } from "../utils/tilt.js";
+
+import { findProjectRoot } from "../utils/paths.js";
+
+function getProjectName(): string {
+  const root = findProjectRoot();
+  if (root) {
+    try {
+      const content = readFileSync(join(root, ".tdk", "project.json"), "utf-8");
+      const parsed = JSON.parse(content);
+      if (parsed?.project?.name) {
+        return parsed.project.name;
+      }
+    } catch {}
+  }
+  return "beauty-crm";
+}
+
+function resolveSubdomainBases(): { appBase: string; apiBase: string } {
+  const projectName = getProjectName();
+  const raw = process.env.TDK_SERVICE_BASE_URL ?? `http://${projectName}.localhost`;
+  try {
+    const u = new URL(raw.includes("://") ? raw : `http://${raw}`);
+    const host = u.hostname;
+    if (host === "localhost" || /^\d+\.\d+\.\d+\.\d+$/.test(host)) {
+      return {
+        appBase: `${u.protocol}//${host}${u.port ? `:${u.port}` : ""}`,
+        apiBase: `${u.protocol}//${host}${u.port ? `:${u.port}` : ""}`,
+      };
+    }
+    const bare = host.replace(/^(app|api)\./, "");
+    return {
+      appBase: `${u.protocol}//app.${bare}${u.port ? `:${u.port}` : ""}`,
+      apiBase: `${u.protocol}//api.${bare}${u.port ? `:${u.port}` : ""}`,
+    };
+  } catch {
+    return {
+      appBase: `http://app.${projectName}.localhost`,
+      apiBase: `http://api.${projectName}.localhost`,
+    };
+  }
+}
+
+export const upCommand = new Command("up")
+  .description("Start all services (optionally filtered by stack)")
+  .alias("deploy")
+  .argument("[stack-name]", "Name of the stack to start (optional - runs all if omitted)")
+  .option("-v, --verbose", "Enable verbose output", false)
+  .option("-q, --quiet", "Suppress non-essential output", false)
+  .option("--dry-run", "Show what would be started without starting", false)
+  .option("-f, --force", "Kill existing Tilt process before starting", false)
+  .action(async (stackName, options) => {
+    await withTiltCheck(async () => {
+      let servicesToStart: Awaited<ReturnType<typeof discoverResources>>;
+      let stackDescription: string;
+
+      if (stackName) {
+        if (!stackExists(stackName)) {
+          errorFactories.stackNotFound(stackName).display();
+          process.exit(1);
+        }
+
+        servicesToStart = getResourcesForStack(stackName);
+        stackDescription = `stack "${stackName}"`;
+      } else {
+        servicesToStart = discoverResources();
+        const allStacks = discoverStacks();
+        stackDescription = `all stacks (${formatCount(allStacks.length, "stack")}, ${formatCount(servicesToStart.length, "service")})`;
+      }
+
+      if (options.verbose && !options.quiet) {
+        console.log(
+          chalk.gray(
+            `Found ${formatCount(servicesToStart.length, "service")} in ${stackDescription}`,
+          ),
+        );
+      }
+
+      const serviceNames = servicesToStart.map((s) => s.name);
+
+      if (!options.quiet) {
+        console.log(
+          chalk.blue(
+            `Starting ${formatCount(serviceNames.length, "service")} from ${stackDescription}...`,
+          ),
+        );
+        serviceNames.forEach((name) => {
+          console.log(chalk.gray(`  - ${name}`));
+        });
+
+        const { appBase, apiBase } = resolveSubdomainBases();
+        const frontends = servicesToStart.filter((s) => s.config?.appType === "frontend");
+        const backends = servicesToStart.filter((s) => s.config?.appType === "backend");
+
+        if (frontends.length > 0) {
+          console.log(chalk.blue("\n🌍 Frontend URLs:"));
+          frontends.forEach((svc) => {
+            const basePath = svc.config?.basePath ?? `/${svc.name}`;
+            console.log(chalk.gray(`  - ${svc.name}: ${appBase}${chalk.cyan(basePath)}`));
+          });
+        }
+
+        if (backends.length > 0) {
+          console.log(chalk.blue("\n🔧 Backend API URLs:"));
+          backends.forEach((svc) => {
+            const servicePathName = svc.name.replace(/-api$/, "");
+            const apiPath = svc.config?.apiPath ?? `/api/${servicePathName}`;
+            console.log(chalk.gray(`  - ${svc.name}: ${apiBase}${chalk.cyan(apiPath)}`));
+          });
+        }
+      }
+
+      if (handleDryRun(options, "not starting services", `tilt up ${serviceNames.join(" ")}`)) {
+        return;
+      }
+
+      if (options.force && !options.quiet) {
+        console.log(chalk.yellow("Force flag set - killing any existing Tilt processes..."));
+        execSync("killall tilt 2>/dev/null || true", { shell: "/bin/sh", stdio: "pipe" });
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
+
+      const basePort = 10350;
+      let port = basePort;
+
+      if (process.env.TILT_PORT) {
+        port = parseInt(process.env.TILT_PORT, 10);
+      } else {
+        const availablePort = await findAvailablePort(basePort, 10);
+        if (availablePort && availablePort !== basePort) {
+          port = availablePort;
+          if (!options.quiet) {
+            console.log(chalk.yellow(`⚠️  Port ${basePort} is already in use`));
+            console.log(chalk.blue(`🔄 Auto-switching to port ${port}\n`));
+          }
+        }
+      }
+
+      process.env.TILT_PORT = port.toString();
+
+      const tiltArgs = buildTiltUpArgs(serviceNames, {
+        verbose: options.verbose,
+        quiet: options.quiet,
+        force: options.force,
+      });
+
+      if (!options.quiet) {
+        console.log(chalk.gray("\nRunning tilt up..."));
+        console.log(chalk.gray(`Using Tiltfile: .tdk/.tdk-out/Tiltfile`));
+        console.log(chalk.blue(`📊 Tilt UI: http://localhost:${port}/\n`));
+      }
+      const result = await runTilt("up", tiltArgs, {
+        verbose: options.verbose,
+        quiet: options.quiet,
+        inheritStdio: !options.quiet, // Suppress tilt output in quiet mode
+      });
+
+      if (result.exitCode !== 0) {
+        handleTiltFailure("up", result.exitCode);
+      }
+    });
+  });

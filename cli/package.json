@@ -1,0 +1,70 @@
+{
+  "name": "@tdk/cli",
+  "version": "1.1.0",
+  "description": "TDK CLI - Tilt Development Kit command line interface",
+  "keywords": [
+    "tdk",
+    "tilt",
+    "cli",
+    "local-dev",
+    "microservices"
+  ],
+  "homepage": "https://github.com/tdk-landscape/tdk-cli#readme",
+  "bugs": {
+    "url": "https://github.com/tdk-landscape/tdk-cli/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tdk-landscape/tdk-cli.git",
+    "directory": "cli"
+  },
+  "license": "MIT",
+  "author": "TDK Team",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "tdk": "./bin/tdk.js",
+    "tdk-cli": "./bin/tdk.js"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "lint": "biome check .",
+    "lint:fix": "biome check . --write",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "dev": "bun run build:watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@types/react": "^19.2.14",
+    "chalk": "^5.3.0",
+    "commander": "^12.0.0",
+    "handlebars": "^4.7.8",
+    "ink": "^7.0.1",
+    "ink-select-input": "^6.2.0",
+    "inquirer": "^9.2.0",
+    "ora": "^8.0.0",
+    "react": "^19.2.5",
+    "react-devtools-core": "^8.0.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.13",
+    "@types/inquirer": "^9.0.0",
+    "@types/node": "^20.0.0",
+    "knip": "^6.35.1",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

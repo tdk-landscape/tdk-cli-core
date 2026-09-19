@@ -1,0 +1,148 @@
+import { describe, expect, it } from "vitest";
+import { VALID_RESOURCE_TYPES } from "../constants.js";
+import {
+  createKebabCaseValidator,
+  isValidPort,
+  sanitizeForShell,
+  validateOptionalInfraService,
+  validateResourceName,
+} from "../validation.js";
+
+describe("validateResourceName", () => {
+  it("should validate correct kebab-case names", () => {
+    expect(validateResourceName("my-service")).toEqual({ valid: true });
+    expect(validateResourceName("service123")).toEqual({ valid: true });
+    expect(validateResourceName("api-gateway")).toEqual({ valid: true });
+    expect(validateResourceName("a")).toEqual({ valid: true });
+    expect(validateResourceName("test-123-abc")).toEqual({ valid: true });
+  });
+
+  it("should reject empty names", () => {
+    const result = validateResourceName("");
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain("required");
+  });
+
+  it("should reject whitespace-only names", () => {
+    const result = validateResourceName("   ");
+    expect(result.valid).toBe(false);
+  });
+
+  it("should reject camelCase", () => {
+    expect(validateResourceName("myService").valid).toBe(false);
+  });
+
+  it("should reject underscores", () => {
+    expect(validateResourceName("my_service").valid).toBe(false);
+  });
+
+  it("should reject uppercase letters", () => {
+    expect(validateResourceName("My-Service").valid).toBe(false);
+  });
+
+  it("should reject spaces", () => {
+    expect(validateResourceName("my service").valid).toBe(false);
+  });
+
+  it("should reject dots", () => {
+    expect(validateResourceName("my.service").valid).toBe(false);
+  });
+});
+
+describe("createKebabCaseValidator", () => {
+  it("should return true for valid resource names", () => {
+    const validator = createKebabCaseValidator("resource");
+    expect(validator("my-resource")).toBe(true);
+  });
+
+  it("should return error for empty resource name", () => {
+    const validator = createKebabCaseValidator("resource");
+    expect(validator("")).toBe("Resource name is required");
+  });
+
+  it("should return error for invalid resource name", () => {
+    const validator = createKebabCaseValidator("resource");
+    expect(validator("MyResource")).toBe("Use lowercase letters, numbers, and hyphens only");
+  });
+
+  it("should return error for empty stack name", () => {
+    const validator = createKebabCaseValidator("stack");
+    expect(validator("")).toBe("Stack name is required");
+  });
+
+  it("should return error for invalid stack name", () => {
+    const validator = createKebabCaseValidator("stack");
+    expect(validator("MyStack")).toBe("Use kebab-case (lowercase, numbers, hyphens only)");
+  });
+});
+
+describe("validateOptionalInfraService", () => {
+  it("should accept valid infra services", () => {
+    expect(validateOptionalInfraService("monitoring").valid).toBe(true);
+    expect(validateOptionalInfraService("elk").valid).toBe(true);
+    expect(validateOptionalInfraService("debezium").valid).toBe(true);
+    expect(validateOptionalInfraService("golden_image").valid).toBe(true);
+  });
+
+  it("should reject invalid infra services", () => {
+    const result = validateOptionalInfraService("redis");
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain("Invalid service");
+  });
+
+  it("should reject empty string", () => {
+    expect(validateOptionalInfraService("").valid).toBe(false);
+  });
+});
+
+describe("isValidPort", () => {
+  it("should accept valid ports", () => {
+    expect(isValidPort(1)).toBe(true);
+    expect(isValidPort(1024)).toBe(true);
+    expect(isValidPort(3000)).toBe(true);
+    expect(isValidPort(8080)).toBe(true);
+    expect(isValidPort(65535)).toBe(true);
+  });
+
+  it("should reject port 0", () => {
+    expect(isValidPort(0)).toBe(false);
+  });
+
+  it("should reject negative ports", () => {
+    expect(isValidPort(-1)).toBe(false);
+  });
+
+  it("should reject ports > 65535", () => {
+    expect(isValidPort(65536)).toBe(false);
+  });
+
+  it("should reject NaN", () => {
+    expect(isValidPort(NaN)).toBe(false);
+  });
+
+  it("should reject non-integer ports", () => {
+    expect(isValidPort(80.5)).toBe(false);
+  });
+});
+
+describe("sanitizeForShell", () => {
+  it("should replace special characters", () => {
+    expect(sanitizeForShell("hello$world")).toBe("hello_world");
+  });
+
+  it("should keep alphanumeric and hyphens", () => {
+    expect(sanitizeForShell("my-service-123")).toBe("my-service-123");
+  });
+
+  it("should limit output to 100 chars", () => {
+    const long = "a".repeat(200);
+    expect(sanitizeForShell(long).length).toBe(100);
+  });
+});
+
+describe("VALID_RESOURCE_TYPES", () => {
+  it("should include all expected types", () => {
+    const expected = ["backend", "frontend", "library", "sdk", "worker", "migrator"];
+    expect(VALID_RESOURCE_TYPES.sort()).toEqual(expected.sort());
+  });
+});

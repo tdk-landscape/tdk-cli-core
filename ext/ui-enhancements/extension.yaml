@@ -1,0 +1,36 @@
+# UI Enhancements Extension for TDK Landscape Tilt IDE
+# Provides tooltips, icons, help panels, and cron jobs monitoring
+
+name: ui-enhancements
+version: 1.0.0
+author: TDK Landscape Platform Team
+description: |
+  Enhances the Tilt web UI with:
+  - Contextual tooltips for all resources
+  - Visual icons for resource type identification
+  - Help panels for developer onboarding
+  - Cron Jobs monitoring tab
+
+tags:
+  - ui
+  - developer-experience
+  - monitoring
+
+dependencies: []
+
+config:
+  # Feature flags - can be overridden in Tiltfile
+  enable_tooltips: true
+  enable_icons: true
+  enable_help_panel: true
+  enable_cron_jobs_tab: true
+
+  # Polling interval for cron jobs status (seconds)
+  cron_status_poll_interval: 5
+
+  # Status endpoint URL
+  cron_status_endpoint: http://localhost:10350/api/cron-jobs-status
+
+entrypoint:
+  # The main script that injects CSS and JS into Tilt UI
+  script: tiltfile.py
