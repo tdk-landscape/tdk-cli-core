@@ -368,10 +368,14 @@ async function vendorTdkExtension(projectRoot: string): Promise<void> {
   if (selfContainedRoot) {
     sources.push(selfContainedRoot);
   }
-  const exeDir =
-    typeof process.executablePath === "string"
-      ? path.dirname(process.executablePath)
-      : import.meta.dirname || process.cwd();
+  // process.execPath is the compiled binary's own path when running as a
+  // standalone executable (what we actually need here). In dev mode it's
+  // the bun CLI's own path instead (e.g. ~/.bun/bin/bun) - harmless, that
+  // candidate just won't match anything and falls through to the next
+  // one. Note: process.executablePath is not a real property on Node or
+  // Bun's process object - it was always undefined, silently falling
+  // back to cwd() instead of the binary's real location.
+  const exeDir = path.dirname(process.execPath);
   sources.push(path.join(exeDir, "tdk-cli"));
   sources.push(path.join(projectRoot, "..", "tdk-cli"));
 
