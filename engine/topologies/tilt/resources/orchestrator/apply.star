@@ -21,7 +21,28 @@ def apply_app_service(resource_config, ctx):
     resource_path = resource_config.get('path', 'NO_PATH')
     should_enable = ctx['should_enable']
 
-    if not should_enable(resource_name):
+    # resource_config here is a STACK-level grouping from discovery_orchestrator.star
+    # (its own 'name'/'appName' is the stack, e.g. "auth") - the actual
+    # individual services live nested in resource_config['resources'], each
+    # with its own 'name' (e.g. "auth-api-backend"). tdk stack/tdk project -
+    # the CLI's own standard scaffolding - populates spec.master's
+    # PRE_ALPHA_RESOURCES etc. keyed by individual SERVICE name, not stack
+    # name. Checking should_enable() only at the stack level silently drops
+    # every service whose stack name isn't itself individually enabled, even
+    # when the service is - which is the common case for any project using
+    # the CLI's normal `tdk resource` + `tdk stack` workflow. Fall back to
+    # checking each nested service name before giving up on this group.
+    stack_enabled = should_enable(resource_name)
+    service_enabled = False
+    if not stack_enabled:
+        for nested in resource_config.get('resources', []):
+            nested_name = nested.get('name', '')
+            if nested_name and should_enable(nested_name):
+                print("DEBUG APPLY: stack '{}' not individually enabled, but nested service '{}' is - proceeding".format(resource_name, nested_name))
+                service_enabled = True
+                break
+
+    if not stack_enabled and not service_enabled:
         return
 
     runtime_flags = RuntimeFlags.resolve()
