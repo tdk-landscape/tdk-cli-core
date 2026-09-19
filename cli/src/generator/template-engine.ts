@@ -334,17 +334,39 @@ export function generateMasterConfigs(projectRoot: string): void {
 // no dependency on a private GitHub repo.
 const TDK_EXTENSION_DIRS = ["engine", "discovery", "specs", "ext"] as string[];
 
+// Walk up from this module's own location looking for a directory that has
+// both Tiltfile and engine/ next to it - true when cli/ and engine/ ship
+// together in the same repo (the public tdk-cli-core layout, where a plain
+// `git clone` + `bun run` needs zero extra config to find the engine).
+function findSelfContainedEngineRoot(): string | null {
+  let dir = import.meta.dirname || process.cwd();
+  for (let i = 0; i < 6; i++) {
+    if (fs.existsSync(path.join(dir, "Tiltfile")) && fs.existsSync(path.join(dir, "engine"))) {
+      return dir;
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return null;
+}
+
 function vendorTdkExtension(projectRoot: string): void {
   const outputDir = path.join(projectRoot, ".tdk", ".tdk-out");
   const vendoredDir = path.join(outputDir, "tdk-cli-ext");
 
   // Source resolution order:
   //   1. $TDK_EXTENSION_SOURCE (explicit override)
-  //   2. Executable-adjacent checkout (bundled installs / dev checkouts)
-  //   3. Relative ../tdk-cli sibling (monorepo maintainer layout)
+  //   2. Self-contained repo (engine/ ships next to cli/ - public tdk-cli-core)
+  //   3. Executable-adjacent checkout (bundled installs)
+  //   4. Relative ../tdk-cli sibling (monorepo maintainer layout)
   let sources: string[] = [];
   if (process.env.TDK_EXTENSION_SOURCE) {
     sources.push(process.env.TDK_EXTENSION_SOURCE);
+  }
+  const selfContainedRoot = findSelfContainedEngineRoot();
+  if (selfContainedRoot) {
+    sources.push(selfContainedRoot);
   }
   const exeDir =
     typeof process.executablePath === "string"
