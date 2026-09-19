@@ -240,13 +240,20 @@ def _init_networks(fix_docker_networks_fn):
 # 🏗️ GOLDEN IMAGE (Base Docker Image)
 # =============================================================================
 
-def _load_golden_image(should_enable, docker_provider):
-    """Build the golden base image for faster service builds."""
+def _load_golden_image(should_enable, docker_provider, project_root='.'):
+    """Build the golden base image for faster service builds.
+
+    project_root must be passed through here the same way every other
+    infra loader below receives it (as root_prefix) - local_resource cmds
+    run relative to the Tiltfile's own directory (.tdk/.tdk-out/), not
+    the project root, so an unprefixed project-root-relative path like
+    GOLDEN_DOCKERFILE resolves to the wrong file otherwise.
+    """
     if not should_enable('golden-image'):
         return None
-    
+
     print("🏗️  Building golden base image...")
-    return docker_provider.golden_image.build()
+    return docker_provider.golden_image.build(project_root=project_root)
 
 
 def _generate_golden_dockerfile(should_enable, docker_provider, write_fn):
@@ -298,7 +305,7 @@ def load_all_infrastructure(should_enable, fix_docker_networks_fn=None, docker_p
     golden_image_resource = None
     if docker_provider and write_fn:
         _generate_golden_dockerfile(should_enable, docker_provider, write_fn)
-        golden_image_resource = _load_golden_image(should_enable, docker_provider)
+        golden_image_resource = _load_golden_image(should_enable, docker_provider, project_root=project_root or '.')
 
     # Get project root prefix for paths (e.g., "../../" from .tdk/.tdk-out/)
     # Ensure root_prefix ends with / for proper path concatenation

@@ -9,8 +9,19 @@ def build_golden_layers(project_root='.'):
     """
     Build all golden layer images using local_resource.
     Returns the resource name for dependency tracking.
+
+    project_root: path back to the project root from wherever
+    local_resource cmds actually run (the Tiltfile's own directory,
+    .tdk/.tdk-out/ - not the project root), e.g. '../../'. GOLDEN_DOCKERFILE
+    is itself project-root-relative, so it must be prefixed with this to
+    resolve correctly - passing project_root='.' (the default) only works
+    when the Tiltfile happens to live at the project root.
     """
     resource_name = 'golden-layers-build'
+    dockerfile_from_tiltfile = (
+        GOLDEN_DOCKERFILE if project_root in (None, '.', '')
+        else project_root.rstrip('/') + '/' + GOLDEN_DOCKERFILE
+    )
 
     build_cmd = """
 echo "🏗️  Building golden layered images (8 total)..."
@@ -53,7 +64,7 @@ echo "  ✓ {prefix}-l4-backend-node:{tag} (Node.js - 20MB, LIGHTWEIGHT)"
 echo "  ✓ {prefix}-l4-frontend:{tag}"
 echo "  ✓ {prefix}-l4-migrator:{tag}"
 """.format(
-        dockerfile=GOLDEN_DOCKERFILE,
+        dockerfile=dockerfile_from_tiltfile,
         prefix=GOLDEN_IMAGE_PREFIX,
         tag='latest',
         context=project_root,
@@ -63,7 +74,7 @@ echo "  ✓ {prefix}-l4-migrator:{tag}"
         resource_name,
         cmd=build_cmd,
         labels=['infra.docker', 'golden-layers'],
-        deps=[GOLDEN_DOCKERFILE],
+        deps=[dockerfile_from_tiltfile],
         allow_parallel=True,
         auto_init=True,
     )
