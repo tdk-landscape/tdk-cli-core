@@ -10,9 +10,19 @@ import { showCancelled } from "../utils/formatting.js";
 import { getPackageVersion } from "../utils/paths.js";
 
 interface InstallInfo {
-  method: "npm" | "bun" | "git" | "unknown";
+  method: "npm" | "bun" | "git" | "binary" | "unknown";
   path?: string;
   version?: string;
+}
+
+function isStandaloneBinary(tdkPath: string): boolean {
+  try {
+    const fileInfo = execSync(`file -b ${JSON.stringify(tdkPath)}`, { encoding: "utf-8" });
+    return /Mach-O|ELF/.test(fileInfo);
+  } catch (err: unknown) {
+    logVerbose("Binary detection (file command) error", err);
+    return false;
+  }
 }
 
 function detectInstallation(): InstallInfo {
@@ -40,11 +50,82 @@ function detectInstallation(): InstallInfo {
       return { method: "git", path: cliRoot };
     }
 
+    // Standalone prebuilt binary from tdk-cli-releases (installed to e.g. /usr/local/bin),
+    // not a node_modules/.bun link and not sitting inside a git checkout.
+    if (isStandaloneBinary(realPath)) {
+      return { method: "binary", path: realPath };
+    }
+
     return { method: "unknown", path: tdkPath };
   } catch (err: unknown) {
     console.warn(chalk.yellow("⚠️ Could not detect installation method"));
     logVerbose("Installation detection error", err);
     return { method: "unknown" };
+  }
+}
+
+const BINARY_RELEASE_REPO = "tdk-landscape/tdk-cli-releases";
+
+function binaryAssetName(): string | null {
+  const osName = process.platform === "darwin" ? "darwin" : process.platform === "linux" ? "linux" : null;
+  const archName = process.arch === "arm64" ? "arm64" : process.arch === "x64" ? "amd64" : null;
+  if (!osName || !archName) return null;
+  return `tdk-${osName}-${archName}`;
+}
+
+interface BinaryRelease {
+  tag: string;
+  assetName: string;
+  downloadUrl: string;
+}
+
+async function getLatestBinaryRelease(): Promise<BinaryRelease | null> {
+  const assetName = binaryAssetName();
+  if (!assetName) return null;
+
+  try {
+    const raw = execSync(
+      `curl -fsSL https://api.github.com/repos/${BINARY_RELEASE_REPO}/releases/latest`,
+      { encoding: "utf-8", timeout: 10000 },
+    );
+    const data = JSON.parse(raw) as { tag_name?: string };
+    if (!data.tag_name) return null;
+
+    return {
+      tag: data.tag_name,
+      assetName,
+      downloadUrl: `https://github.com/${BINARY_RELEASE_REPO}/releases/download/${data.tag_name}/${assetName}`,
+    };
+  } catch (err: unknown) {
+    logVerbose("Binary release lookup error", err);
+    return null;
+  }
+}
+
+async function upgradeViaBinary(tdkPath: string, release: BinaryRelease): Promise<boolean> {
+  const spinner = ora(`Downloading ${release.assetName} (${release.tag})...`).start();
+  const tmpPath = `${tdkPath}.download`;
+
+  try {
+    execSync(`curl -fsSL -o ${JSON.stringify(tmpPath)} ${JSON.stringify(release.downloadUrl)}`, {
+      stdio: "pipe",
+      timeout: 120000,
+    });
+    execSync(`chmod +x ${JSON.stringify(tmpPath)}`);
+    execSync(`mv ${JSON.stringify(tmpPath)} ${JSON.stringify(tdkPath)}`);
+    spinner.succeed(`Upgraded to ${release.tag}`);
+    return true;
+  } catch (err: unknown) {
+    spinner.fail(`Binary upgrade failed: ${getErrorMessage(err)}`);
+    logVerbose("Binary upgrade error", err);
+    try {
+      execSync(`rm -f ${JSON.stringify(tmpPath)}`);
+    } catch {
+      // best-effort cleanup
+    }
+    console.log(chalk.yellow("\n💡 If this failed due to permissions, try:"));
+    console.log(chalk.cyan(`   sudo tdk upgrade`));
+    return false;
   }
 }
 
@@ -187,6 +268,7 @@ async function upgradeViaGit(path: string): Promise<boolean> {
 }
 
 export const upgradeCommand = new Command("upgrade")
+  .alias("update")
   .description("Upgrade TDK CLI to the latest version")
   .option("-f, --force", "Force upgrade even if already on latest", false)
   .option("--dry-run", "Show what would be upgraded without actually doing it", false)
@@ -211,8 +293,33 @@ export const upgradeCommand = new Command("upgrade")
     }
 
     let latestVersion: string | null = null;
+    let binaryRelease: BinaryRelease | null = null;
 
-    if (installInfo.method === "git" && installInfo.path) {
+    if (installInfo.method === "binary" && installInfo.path) {
+      console.log(chalk.blue("📦 Standalone binary installation detected"));
+
+      binaryRelease = await getLatestBinaryRelease();
+
+      if (!binaryRelease) {
+        showErrorAndExit(
+          `Could not determine latest release for this platform (${process.platform}/${process.arch})`,
+        );
+      }
+
+      latestVersion = binaryRelease.tag.replace(/^v/, "").split("-")[0];
+
+      if (latestVersion === currentVersion && !options.force) {
+        console.log(chalk.green("\n✅ You are already on the latest version!"));
+        console.log(chalk.gray(`   ${currentVersion} (current) = ${latestVersion} (latest)`));
+        process.exit(0);
+      }
+
+      if (latestVersion !== currentVersion) {
+        console.log(chalk.yellow(`\n⬆️  Upgrade available: ${currentVersion} → ${binaryRelease.tag}`));
+      } else if (options.force) {
+        console.log(chalk.yellow(`\n🔄 Force upgrade requested (currently ${currentVersion})`));
+      }
+    } else if (installInfo.method === "git" && installInfo.path) {
       console.log(chalk.blue("📦 Git installation detected - will pull latest from origin"));
 
       try {
@@ -277,6 +384,8 @@ export const upgradeCommand = new Command("upgrade")
         console.log(
           chalk.gray("   Action: git pull origin main && bun install && bun link --force"),
         );
+      } else if (installInfo.method === "binary" && binaryRelease) {
+        console.log(chalk.gray(`   Action: Download and replace with ${binaryRelease.downloadUrl}`));
       } else {
         console.log(chalk.gray(`   Action: Upgrade to ${latestVersion}`));
       }
@@ -321,6 +430,11 @@ export const upgradeCommand = new Command("upgrade")
           success = await upgradeViaGit(installInfo.path);
         }
         break;
+      case "binary":
+        if (installInfo.path && binaryRelease) {
+          success = await upgradeViaBinary(installInfo.path, binaryRelease);
+        }
+        break;
     }
 
     if (!success) {
@@ -334,6 +448,11 @@ export const upgradeCommand = new Command("upgrade")
         console.log(chalk.cyan("   bun install -g github:tdk-landscape/tdk-cli"));
       } else if (installInfo.method === "git") {
         console.log(chalk.cyan(`   cd ${installInfo.path} && git pull && bun link --force`));
+      } else if (installInfo.method === "binary" && binaryRelease) {
+        console.log(
+          chalk.cyan(`   curl -fsSL -o ${installInfo.path} ${binaryRelease.downloadUrl}`),
+        );
+        console.log(chalk.cyan(`   chmod +x ${installInfo.path}`));
       }
       process.exit(1);
     }

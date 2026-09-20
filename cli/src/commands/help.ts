@@ -58,14 +58,23 @@ const COMMAND_GROUPS = [
     ],
   },
   {
+    title: "🌐 Networking",
+    emoji: "🌐",
+    color: chalk.blueBright,
+    commands: [
+      { name: "networks, traefik", desc: "Show Traefik-routed URLs for all services", alias: "--stack, --json" },
+    ],
+  },
+  {
     title: "🛠️ Utilities",
     emoji: "🛠️",
     color: chalk.cyan,
     commands: [
       { name: "ui, interactive", desc: "Interactive TUI for managing services", alias: "" },
+      { name: "config", desc: "Manage project configuration and regenerate master files", alias: "regenerate, verify, edit" },
       { name: "doctor", desc: "Check environment readiness", alias: "" },
       { name: "completion", desc: "Generate shell completions", alias: "--install --shell zsh" },
-      { name: "upgrade", desc: "Self-update to latest version", alias: "--force" },
+      { name: "upgrade, update", desc: "Self-update to latest version", alias: "--force" },
       { name: "version, -v", desc: "Display version number", alias: "" },
       { name: "help", desc: "Show this colorful help", alias: "[command]" },
     ],
@@ -128,6 +137,7 @@ export function showHelp(): void {
   ${chalk.cyan("$")} tdk resource app --type frontend       # Create frontend app
   ${chalk.cyan("$")} tdk stacks --services                  # List stacks with resources
   ${chalk.cyan("$")} tdk up my-stack                        # Start a stack
+  ${chalk.cyan("$")} tdk networks                          # Show Traefik-routed URLs
   ${chalk.cyan("$")} tdk doctor                           # Check environment
   ${chalk.cyan("$")} tdk upgrade                          # Self-update
   `),

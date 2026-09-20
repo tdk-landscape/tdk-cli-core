@@ -30,6 +30,16 @@ def _file_exists(path):
     result = str(local("test -f '{path}' && echo 'yes' || echo 'no'".format(path=path), quiet=True, echo_off=True)).strip()
     return result == 'yes'
 
+
+def _docker_compose(compose_paths, env_file):
+    """docker_compose() wrapper: Tilt's builtin rejects env_file=None outright
+    (it type-checks the kwarg as path|string, not Optional), so the keyword must be
+    omitted entirely rather than passed as None when no .env file exists."""
+    if env_file:
+        docker_compose(compose_paths, env_file=env_file)
+    else:
+        docker_compose(compose_paths)
+
 def _load_database_management(should_enable, root_prefix="", env_file=None):
     """Load database and messaging infrastructure."""
     if not should_enable('database-management'):
@@ -42,7 +52,7 @@ def _load_database_management(should_enable, root_prefix="", env_file=None):
     postgres_compose = root_prefix + 'services/platform/database-management/docker-compose.yml'
     if _file_exists(postgres_compose):
         print("DEBUG INFRA: Loading postgres compose from {}".format(postgres_compose))
-        docker_compose(postgres_compose, env_file=env_file)
+        _docker_compose(postgres_compose, env_file)
         dc_resource('postgres', labels=['infra.tools'], resource_deps=['init-networks'], auto_init=True)
     else:
         print("DEBUG INFRA: Skipping postgres (compose file not found)")
@@ -51,7 +61,7 @@ def _load_database_management(should_enable, root_prefix="", env_file=None):
     messaging_compose = root_prefix + 'services/platform/messaging/docker-compose.yml'
     if _file_exists(messaging_compose):
         print("DEBUG INFRA: Loading messaging compose from {}".format(messaging_compose))
-        docker_compose(messaging_compose, env_file=env_file)
+        _docker_compose(messaging_compose, env_file)
         dc_resource('redis', labels=['infra.messaging'], auto_init=False)
         dc_resource('nats', labels=['infra.messaging'], auto_init=True)
     else:
@@ -85,7 +95,7 @@ def _load_verdaccio(should_enable, root_prefix="", env_file=None):
         print("DEBUG INFRA: Skipping Verdaccio (compose file not found)")
         return
     print("DEBUG INFRA: Loading Verdaccio from {} with env_file={}".format(compose_file, env_file))
-    docker_compose(compose_file, env_file=env_file)
+    _docker_compose(compose_file, env_file)
     print("DEBUG INFRA: Calling dc_resource for verdaccio")
     dc_resource(PlatformDockerConstants.VERDACCIO_RESOURCE_NAME, labels=['infra.tools', 'registry'], resource_deps=['init-networks'], auto_init=True)
     print("DEBUG INFRA: dc_resource for verdaccio completed")
@@ -112,7 +122,7 @@ def _load_infisical(should_enable, root_prefix="", env_file=None):
         return
 
     print("🔐 Loading Infisical...")
-    docker_compose(compose_file, env_file=env_file)
+    _docker_compose(compose_file, env_file)
     dc_resource('infisical-db', labels=['infra.tools', 'secrets'], resource_deps=['init-networks'], auto_init=True)
     dc_resource('infisical-redis', labels=['infra.tools', 'secrets'], resource_deps=['init-networks'], auto_init=True)
     dc_resource('infisical', labels=['infra.tools', 'secrets'], resource_deps=['init-networks', 'infisical-db', 'infisical-redis'], auto_init=True)
@@ -130,7 +140,7 @@ def _load_standalone_traefik(root_prefix, env_file, write_fn):
         write_fn(compose_rel, content)
     compose_file = root_prefix + compose_rel if root_prefix else compose_rel
     print("🌐 Loading standalone Traefik from {}".format(compose_file))
-    docker_compose(compose_file, env_file=env_file)
+    _docker_compose(compose_file, env_file)
     dc_resource(
         "traefik",
         labels=["infra.tools"],
@@ -166,7 +176,7 @@ def _load_proxy(should_enable, root_prefix="", env_file=None, write_fn=None):
 
     # Use introvertic/infra traefik configuration (primary)
     # Keep legacy core.yml for network definitions during migration
-    docker_compose(compose_files, env_file=env_file)
+    _docker_compose(compose_files, env_file)
     
     # Traefik depends on core infrastructure being healthy (not just started) to prevent 504s
     dc_resource('traefik', 
@@ -334,9 +344,13 @@ def load_all_infrastructure(should_enable, fix_docker_networks_fn=None, docker_p
         root_prefix = root_prefix + '/'
 
     # Load environment file for docker-compose variables
-    # Use provided env_file or construct default from root_prefix
+    # Use provided env_file or construct default from root_prefix.
+    # `docker compose ... --env-file <path>` hard-fails if that path doesn't exist, and
+    # .env is gitignored (with no .env.example shipped) across every TDK example repo, so
+    # a fresh clone must fall back to no --env-file flag rather than a dangling path.
     if env_file == None:
-        env_file = root_prefix + '.env' if root_prefix else '.env'
+        candidate_env_file = root_prefix + '.env' if root_prefix else '.env'
+        env_file = candidate_env_file if _file_exists(candidate_env_file) else None
 
     # Load infrastructure in order
     _load_database_management(should_enable, root_prefix, env_file)
