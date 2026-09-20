@@ -20,6 +20,7 @@ import { findProjectRoot } from "../utils/paths.js";
 import { PROJECT_TEMPLATES } from "../utils/project-templates.js";
 import { discoverStackNames } from "../utils/services.js";
 import { ensureEnvFile, validateEnvFile } from "../utils/env-validator.js";
+import { PROJECT_FEATURES } from "../utils/project-features.js";
 
 /**
  * Stack names discovered from service.json files already in the repo (e.g. a
@@ -34,6 +35,15 @@ function discoverExistingServiceStacks(projectRoot: string): string[] {
   } catch {
     return [];
   }
+}
+
+/**
+ * Get core infrastructure services from PROJECT_FEATURES that are enabled by default
+ */
+function getDefaultCoreServices(): string[] {
+  return Object.values(PROJECT_FEATURES)
+    .filter((f) => f.enabled_by_default && f.category === "core")
+    .map((f) => f.name);
 }
 
 async function cloneProjectTemplate(templateName: string, targetDir?: string): Promise<void> {
@@ -92,7 +102,7 @@ const DEFAULT_PROJECT_JSON = {
     pre_alpha: {
       name: "Pre-Alpha",
       description: "Core infrastructure and MVP services",
-      services: ["proxy", "verdaccio", "database-management"] as string[],
+      services: getDefaultCoreServices(),
     },
     alpha: {
       name: "Alpha",
@@ -271,9 +281,13 @@ export const projectCommand = new Command("project")
             name: "preAlphaServices",
             message: "Select Pre-Alpha services (core infrastructure):",
             choices: [
-              { name: "proxy (Traefik)", value: "proxy", checked: true },
-              { name: "verdaccio (NPM registry)", value: "verdaccio", checked: true },
-              { name: "database-management (PostgreSQL)", value: "database-management", checked: true },
+              ...Object.values(PROJECT_FEATURES)
+                .filter((f) => f.category === "core" && f.stack === "pre_alpha")
+                .map((f) => ({
+                  name: f.description,
+                  value: f.name,
+                  checked: f.enabled_by_default,
+                })),
               ...discoveredStacks.map((stack) => ({
                 name: `${stack} (discovered service stack)`,
                 value: stack,
@@ -303,12 +317,13 @@ export const projectCommand = new Command("project")
             type: "checkbox",
             name: "optionalInfra",
             message: "Enable optional infrastructure (high resource):",
-            choices: [
-              { name: "monitoring (SigNoz/SkyWalking)", value: "monitoring" },
-              { name: "elk (Elasticsearch stack)", value: "elk" },
-              { name: "debezium (CDC)", value: "debezium" },
-              { name: "golden_image (One-time build)", value: "golden_image", checked: true },
-            ],
+            choices: Object.values(PROJECT_FEATURES)
+              .filter((f) => f.category === "optional")
+              .map((f) => ({
+                name: f.description,
+                value: f.name,
+                checked: f.enabled_by_default,
+              })),
           },
           {
             type: "input",
