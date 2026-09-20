@@ -113,7 +113,8 @@
       "type": "string"
     },
     "dependencies": {
-      "description": "Resource dependencies used for startup ordering and frontend dependency env generation.\nEach entry can be a stack (e.g. 'service') or resource name (e.g. 'service-management-backend').",
+      "description": "Deprecated. Use 'dependsOn' instead.",
+      "deprecated": true,
       "items": {
         "pattern": "^[a-z][a-z0-9-]*$",
         "type": "string"
@@ -205,18 +206,9 @@
       "type": "string"
     },
     "dependsOn": {
-      "description": "Legacy alias of dependencies. Stack dependencies for Tilt's dependency graph.\nResources listed here start before this resource.\nUsed for focus mode, health checks, migration order.",
+      "description": "Resource dependencies used for startup ordering and frontend dependency env generation.\nEach entry can be a stack (e.g. 'service') or resource name (e.g. 'user-admin-api').\nResources listed here start before this resource. Used for focus mode, health checks, migration order.",
       "items": {
-        "enum": [
-          "auth",
-          "user",
-          "team",
-          "order",
-          "service",
-          "inventory",
-          "billing",
-          "notification"
-        ],
+        "pattern": "^[a-z][a-z0-9-]*$",
         "type": "string"
       },
       "type": "array",
