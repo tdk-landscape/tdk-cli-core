@@ -184,8 +184,8 @@ def _generate_single_backend_entry(resource_path, resource_name, res, manifest, 
     
     # Auth configuration - use centralized auth utilities
     # Extract auth config from manifest to decouple auth.star from manifest structure
-    # Auto-detect identity-service mode if 'identity' is in internalDependencies
-    internal_deps = manifest.get('internalDependencies', []) if manifest else []
+    # Auto-detect identity-service mode if 'identity' is in dependsOn
+    internal_deps = manifest.get('dependsOn', []) if manifest else []
     has_identity_dep = 'identity' in internal_deps
     
     # If manifest has authMode, use it; otherwise auto-detect based on identity dependency

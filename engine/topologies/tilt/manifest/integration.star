@@ -302,7 +302,7 @@ def check_dependencies_valid(manifests):
     
     for manifest in manifests:
         app_name = manifest.get('appName', 'unknown')
-        internal_deps = manifest.get('internalDependencies', [])
+        internal_deps = manifest.get('dependsOn', [])
         
         for dep in internal_deps:
             if dep not in app_names:

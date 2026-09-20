@@ -204,7 +204,7 @@
       "pattern": "^/[a-z0-9/-]*$",
       "type": "string"
     },
-    "internalDependencies": {
+    "dependsOn": {
       "description": "Legacy alias of dependencies. Stack dependencies for Tilt's dependency graph.\nResources listed here start before this resource.\nUsed for focus mode, health checks, migration order.",
       "items": {
         "enum": [

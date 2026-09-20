@@ -65,7 +65,7 @@ def parse(content, path=""):
             warnings=warnings,
         )
     
-    # Note: 'dependencies' field is no longer supported, use 'internalDependencies'
+    # Note: 'dependencies' field is no longer supported, use 'dependsOn'
     
     return struct(
         manifest=manifest,
@@ -124,11 +124,11 @@ def normalize(manifest, resource_path=""):
     if not normalized.get('envVars'):
         normalized['envVars'] = {}
     
-    # Normalize internalDependencies
-    if 'dependencies' in manifest and not normalized.get('internalDependencies'):
-        normalized['internalDependencies'] = manifest['dependencies']
-    if not normalized.get('internalDependencies'):
-        normalized['internalDependencies'] = []
+    # Normalize dependsOn
+    if 'dependencies' in manifest and not normalized.get('dependsOn'):
+        normalized['dependsOn'] = manifest['dependencies']
+    if not normalized.get('dependsOn'):
+        normalized['dependsOn'] = []
     
     # 3. Set up Traefik configuration defaults
     if not normalized.get('traefik'):

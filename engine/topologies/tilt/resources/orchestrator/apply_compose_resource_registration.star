@@ -86,8 +86,8 @@ def _build_resource_deps(res, res_name, manifest, resource_config, infra_deps, c
         if migrator_name not in res_deps:
             res_deps.append(migrator_name)
     
-    # NEW: Resolve internalDependencies from manifest
-    internal_deps = manifest.get('internalDependencies', [])
+    # NEW: Resolve dependsOn from manifest
+    internal_deps = manifest.get('dependsOn', [])
     for dep in internal_deps:
         resolved_dep = _resolve_dependency_to_resource(dep, all_services_map)
         if resolved_dep and resolved_dep not in res_deps:

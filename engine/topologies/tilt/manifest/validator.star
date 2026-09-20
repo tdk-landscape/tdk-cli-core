@@ -407,7 +407,7 @@ def _validate_cross_field(manifest, context):
 def _validate_cross_resource(manifest, context):
     """
     Level 4: Cross-Resource Validation
-    - internalDependencies exist as resources
+    - dependsOn exist as resources
     - No circular dependencies
     - Backend references are valid
     - Port uniqueness across resources
@@ -440,8 +440,8 @@ def _validate_cross_resource(manifest, context):
     current_name = manifest.get('appName', '')
     current_port = manifest.get('port')
     
-    # Check internalDependencies exist
-    internal_deps = manifest.get('internalDependencies', [])
+    # Check dependsOn exist
+    internal_deps = manifest.get('dependsOn', [])
     if internal_deps:
         stats['fields_checked'] += 1
         
@@ -455,7 +455,7 @@ def _validate_cross_resource(manifest, context):
                 message="Missing resource dependencies: {}".format(', '.join(missing_deps)),
                 category=ManifestErrors.CATEGORY['DEPENDENCY'],
                 severity=ManifestErrors.SEVERITY['ERROR'],
-                context={'field': 'internalDependencies', 'missing': missing_deps},
+                context={'field': 'dependsOn', 'missing': missing_deps},
             ))
             stats['rules_failed'] += 1
         else:

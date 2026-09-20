@@ -125,7 +125,7 @@ def _scan_services_from_yaml():
         'item_type': 'string',
         'max_length': VALIDATION_THRESHOLDS['max_dependencies'],
     },
-    'description': 'Legacy field - use internalDependencies',
+    'description': 'Legacy field - use dependsOn',
     'deprecated': True,
     'default': [],
 },
@@ -133,7 +133,7 @@ def _scan_services_from_yaml():
 
 **Analysis:**
 - **Type:** Deprecated schema field with backward compatibility support
-- **Replaced by:** `internalDependencies` field (line 146)
+- **Replaced by:** `dependsOn` field (line 146)
 - **Current Status:** Intentionally kept for existing manifests
 - **Recommendation:** **KEEP** - Part of intentional backward compatibility strategy
 

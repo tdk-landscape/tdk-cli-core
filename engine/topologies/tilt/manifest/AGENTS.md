@@ -50,7 +50,7 @@ load("./constants.star", "MANIFEST_FILENAME")
   "stack": "order",
   "port": 4000,
   "features": ["nats", "prisma", "vite-node"],
-  "internalDependencies": ["identity"]
+  "dependsOn": ["identity"]
 }
 ```
 

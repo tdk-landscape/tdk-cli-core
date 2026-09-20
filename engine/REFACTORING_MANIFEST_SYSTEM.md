@@ -388,7 +388,7 @@ MANIFEST_SCHEMA = {
         'pattern': r'^[a-z][a-z0-9_]*$',
         'description': 'PostgreSQL database name',
     },
-    'internalDependencies': {
+    'dependsOn': {
         'type': 'list',
         'required': False,
         'default': [],
@@ -556,7 +556,7 @@ def validate_cross_field(manifest):
 def validate_dependencies(manifest, all_manifests):
     """
     Level 4: Cross-Resource Validation
-    - internalDependencies exist as resources
+    - dependsOn exist as resources
     - No circular dependencies
     - Backend references are valid
     - Port uniqueness across resources

@@ -11,7 +11,7 @@ healthCheck:
   interval: 30
   path: /health
 infisicalSecretPath: /services/orchestrator-glue
-internalDependencies:
+dependsOn:
 replicas: 1
 resources:
   limits:

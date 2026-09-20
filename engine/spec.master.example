@@ -181,7 +181,7 @@ def build_explicit_context(resource_manifest, all_services):
         
         # EXPLICIT: Dependencies (resolved, not hidden)
         dependencies = resolve_explicit_dependencies(
-            resource_manifest.get("internalDependencies", []),
+            resource_manifest.get("dependsOn", []),
             all_services
         ),
         

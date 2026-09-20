@@ -84,7 +84,7 @@ initialize_discovery()
 
 **Rationale:**
 - Field is properly marked as deprecated: `'deprecated': True`
-- Replaced by `internalDependencies` field
+- Replaced by `dependsOn` field
 - Existing service manifests may still use the old field name
 - No migration timeline pressure
 - Breaking change risk if removed

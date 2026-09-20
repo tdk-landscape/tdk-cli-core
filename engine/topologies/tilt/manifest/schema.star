@@ -143,7 +143,7 @@ MANIFEST_SCHEMA = {
     },
     
     # Dependency Configuration
-    'internalDependencies': {
+    'dependsOn': {
         'type': 'list',
         'required': False,
         'constraints': {

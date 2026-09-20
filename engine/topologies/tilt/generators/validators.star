@@ -140,7 +140,7 @@ def validate_dependency_graph(resource_path, manifest, all_services):
     
     Solution:
       - Check all @{npm_scope}/* dependencies exist in library_roots
-      - Check internalDependencies in manifest exist as services
+      - Check dependsOn in manifest exist as services
       - Generate missing dependency report
     
     Returns: (is_valid, missing_deps, suggestions)
@@ -179,8 +179,8 @@ def validate_dependency_graph(resource_path, manifest, all_services):
                         "source": "package.json",
                     })
     
-    # Check manifest internalDependencies
-    internal_deps = manifest.get("internalDependencies", [])
+    # Check manifest dependsOn
+    internal_deps = manifest.get("dependsOn", [])
     for dep in internal_deps:
         dep_exists = False
         for svc in all_services:
@@ -201,7 +201,7 @@ def validate_dependency_graph(resource_path, manifest, all_services):
             missing_deps.append({
                 "name": dep,
                 "type": "service",
-                "source": "service.json internalDependencies",
+                "source": "service.json dependsOn",
             })
     
     is_valid = len(missing_deps) == 0

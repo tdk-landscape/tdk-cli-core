@@ -33,7 +33,7 @@ def _collect_backend_dependencies(frontend_manifest):
 
     manifest_deps = frontend_manifest.get('dependencies')
     if manifest_deps == None:
-        manifest_deps = frontend_manifest.get('internalDependencies', [])
+        manifest_deps = frontend_manifest.get('dependsOn', [])
 
     aliases = get_resource_aliases()
     for dep in manifest_deps:

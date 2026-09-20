@@ -39,18 +39,18 @@ def resolve_backend_api_path(manifest):
 
 
 def resolve_dependency_api_urls(manifest):
-    """Resolve all API URLs from internalDependencies.
+    """Resolve all API URLs from dependsOn.
     
-    For each dependency in internalDependencies, looks up the service
+    For each dependency in dependsOn, looks up the service
     and extracts its apiPath. Returns a dict mapping dependency names to URLs.
     
     Args:
-        manifest: Service manifest with internalDependencies
+        manifest: Service manifest with dependsOn
     
     Returns:
         dict: { dependency_name: api_url }
     """
-    deps = manifest.get("internalDependencies", [])
+    deps = manifest.get("dependsOn", [])
     if not deps:
         return {}
     

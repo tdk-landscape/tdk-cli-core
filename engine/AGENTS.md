@@ -84,7 +84,7 @@ You don't just manage services; you map, design, and optimize the topology that 
     "host": "user.backend.{project}.local",
     "pathPrefix": "/api/users"
   },
-  "internalDependencies": ["identity", "eventing"]
+  "dependsOn": ["identity", "eventing"]
 }
 ```
 

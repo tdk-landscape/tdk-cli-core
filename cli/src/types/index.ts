@@ -16,7 +16,7 @@ export interface ResourceConfig {
   replicas?: number;
   runtime?: string;
   features?: string[];
-  internalDependencies?: string[];
+  dependsOn?: string[];
   enabled?: boolean;
   basePath?: string;
   backendName?: string;

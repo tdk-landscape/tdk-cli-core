@@ -241,7 +241,7 @@ export function getResourceMetadata(resource: DiscoveredResource): ResourceMetad
     port: resource.config?.port,
     createdAt,
     lastModified,
-    dependencies: resource.config?.internalDependencies ?? [],
+    dependencies: resource.config?.dependsOn ?? [],
     hasDockerfile,
     hasTiltfile,
     hasDockerCompose,

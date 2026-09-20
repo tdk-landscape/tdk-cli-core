@@ -16,10 +16,10 @@ api_path = resolve_backend_api_path(manifest)
 ```
 
 ### `resolve_dependency_api_urls(manifest)`
-Resolves all API URLs from `internalDependencies`.
+Resolves all API URLs from `dependsOn`.
 
 ```python
-# Manifest: { "internalDependencies": ["identity", "user"] }
+# Manifest: { "dependsOn": ["identity", "user"] }
 urls = resolve_dependency_api_urls(manifest)
 # Returns: { "identity": "/api/v1/identities", "user": "/api/v1/users" }
 ```

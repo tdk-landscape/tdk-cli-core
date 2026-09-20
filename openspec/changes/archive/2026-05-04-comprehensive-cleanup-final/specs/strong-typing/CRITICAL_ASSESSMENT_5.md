@@ -112,7 +112,7 @@ function isNodeError(err: unknown): err is NodeJS.ErrnoException {
   "replicas": "number?",
   "runtime": "string",
   "features": "string[]?",
-  "internalDependencies": "string[]?",
+  "dependsOn": "string[]?",
   "enabled": "boolean?",
   "basePath": "string?",
   "backendName": "string?"

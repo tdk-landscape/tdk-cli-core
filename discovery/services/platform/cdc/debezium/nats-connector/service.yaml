@@ -4,6 +4,6 @@ stack: platform
 port: 4103
 features:
   - nats
-internalDependencies:
+dependsOn:
 replicas: 1
 runtime: node

@@ -176,7 +176,7 @@ main() {
   "port": ${port},
   "replicas": 1,
   "features": ${features},
-  "internalDependencies": ${deps}
+  "dependsOn": ${deps}
 }
 EOF
 

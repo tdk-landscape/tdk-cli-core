@@ -6,7 +6,7 @@ description: Traefik reverse proxy with dynamic routing
 features:
   - traefik
 healthCheck: False
-internalDependencies:
+dependsOn:
   - database-management
 runtime: docker
 traefik:

@@ -34,10 +34,10 @@ FIELD_MAPPINGS = {
     'features': ['features', 'capabilities', 'spec.features', 'enabledFeatures', 'app.features'],
     
     # Dependencies
-    'internalDependencies': [
-        'internalDependencies', 
-        'dependencies.internal',
+    'dependsOn': [
         'dependsOn',
+        'dependsOn',
+        'dependencies.internal',
         'spec.dependencies.internal',
         'requires'
     ],
@@ -203,7 +203,7 @@ def _to_yaml_format(internal_manifest):
             'features': internal_manifest.get('features', []),
             'envVars': internal_manifest.get('envVars', {}),
             'dependencies': {
-                'internal': internal_manifest.get('internalDependencies', []),
+                'internal': internal_manifest.get('dependsOn', []),
                 'external': internal_manifest.get('externalDependencies', []),
             },
             'database': {

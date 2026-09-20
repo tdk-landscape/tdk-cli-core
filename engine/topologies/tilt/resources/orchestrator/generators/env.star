@@ -50,7 +50,7 @@ def _dependency_env_key(dependency):
 
 
 def _build_dependency_env_lines(manifest):
-    dependencies = manifest.get('dependencies', manifest.get('internalDependencies', []))
+    dependencies = manifest.get('dependencies', manifest.get('dependsOn', []))
     if not dependencies:
         return ''
 
@@ -105,8 +105,8 @@ def _generate_params_env(manifest, backend_manifest=None, write_fn=None):
     # Auth configuration - support both identity service and local JWT modes
     # Use centralized auth utilities for consistency
     # Extract auth config from manifest to pass as a separate dict
-    # Auto-detect identity-service mode if 'identity' is in internalDependencies
-    internal_deps = manifest.get('internalDependencies', []) if manifest else []
+    # Auto-detect identity-service mode if 'identity' is in dependsOn
+    internal_deps = manifest.get('dependsOn', []) if manifest else []
     has_identity_dep = 'identity' in internal_deps
     
     # If manifest has authMode, use it; otherwise auto-detect based on identity dependency

@@ -127,7 +127,7 @@ def _load_and_normalize(manifest_path, warn_only=True):
         normalized['frontend'] = True
     
     # 🎯 EXTRACT dependencies for registry
-    normalized['serviceDependencies'] = normalized.get('internalDependencies', [])
+    normalized['serviceDependencies'] = normalized.get('dependsOn', normalized.get('dependsOn', []))
 
     return normalized
 
@@ -247,7 +247,7 @@ def _generate_manifest_template(app_name, stack, app_type='backend', port=4000):
         "port": port,
         "replicas": 1,
         "features": [MESSAGING, "infisical"],
-        "internalDependencies": [],
+        "dependsOn": [],
         "runtime": RUNTIME
     }
     return Utils.encode_json(template)

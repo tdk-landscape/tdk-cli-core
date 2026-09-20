@@ -94,7 +94,7 @@ tilt up
   "stack": "order",
   "port": 4002,
   "features": ["nats", "prisma"],
-  "internalDependencies": ["identity", "user"]
+  "dependsOn": ["identity", "user"]
 }
 ```
 

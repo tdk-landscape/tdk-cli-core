@@ -52,7 +52,7 @@ class TestDaemonValidation:
             "path": "services/product/test/test-service"
         }
         
-        required_fields = ["appName", "type", "stack", "path"]
+        required_fields = ["appName", "appType", "stack", "path"]
         missing_fields = [f for f in required_fields if f not in valid_service]
         
         is_valid = len(missing_fields) == 0
@@ -61,10 +61,10 @@ class TestDaemonValidation:
     def test_validation_detects_port_range(self):
         """Test that port is validated to be in reasonable range."""
         test_cases = [
-            ({"appName": "test", "type": "backend", "stack": "test", "path": "p", "port": 3000}, True),
-            ({"appName": "test", "type": "backend", "stack": "test", "path": "p", "port": 9999}, True),
-            ({"appName": "test", "type": "backend", "stack": "test", "path": "p", "port": 80}, False),  # Too low
-            ({"appName": "test", "type": "backend", "stack": "test", "path": "p", "port": 100000}, False),  # Too high
+            ({"appName": "test", "appType": "backend", "stack": "test", "path": "p", "port": 3000}, True),
+            ({"appName": "test", "appType": "backend", "stack": "test", "path": "p", "port": 9999}, True),
+            ({"appName": "test", "appType": "backend", "stack": "test", "path": "p", "port": 80}, False),  # Too low
+            ({"appName": "test", "appType": "backend", "stack": "test", "path": "p", "port": 100000}, False),  # Too high
         ]
         
         for service, expected_valid in test_cases:

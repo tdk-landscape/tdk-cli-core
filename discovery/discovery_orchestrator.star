@@ -155,7 +155,7 @@ def initialize_discovery(cache, second_pass=False):
             
             # Extract dependencies from manifest
             manifest = resource.get("_manifest", {})
-            deps = manifest.get("internalDependencies", [])
+            deps = manifest.get("dependsOn", manifest.get("dependsOn", []))
             if deps:
                 dependencies[name] = deps
     

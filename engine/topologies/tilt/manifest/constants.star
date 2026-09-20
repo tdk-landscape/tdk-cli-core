@@ -153,7 +153,7 @@ MANIFEST_DEFAULTS = {
     'features': [],
     'envVars': {},
     'syncs': None,
-    'internalDependencies': [],
+    'dependsOn': [],
     'runtime': RUNTIME,
     'traefik': {
         'pathPrefix': '',

@@ -36,7 +36,7 @@ This folder contains the **service discovery system** for TDK Landscape's Tilt i
 │  │  validation.star                                    │   │
 │  │  ├── validate(manifest) → returns issues[]          │   │
 │  │  ├── Validates: appName, appType, domain, port      │   │
-│  │  ├── Validates: features, internalDependencies      │   │
+│  │  ├── Validates: features, dependsOn      │   │
 │  │  └── Lenient mode: warns but continues discovery    │   │
 │  └─────────────────────────────────────────────────────┘   │
 │                            │                                │

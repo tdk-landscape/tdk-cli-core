@@ -195,7 +195,7 @@ def _test_dependency_validation():
             'appType': 'backend',
             'stack': 'user',
             'port': 4000,
-            'internalDependencies': ['identity-backend'],  # Valid
+            'dependsOn': ['identity-backend'],  # Valid
         },
         {
             'appName': 'user-frontend',
@@ -209,7 +209,7 @@ def _test_dependency_validation():
             'appType': 'backend',
             'stack': 'user',
             'port': 4001,
-            'internalDependencies': ['nonexistent-service'],  # Invalid
+            'dependsOn': ['nonexistent-service'],  # Invalid
         },
     ]
     

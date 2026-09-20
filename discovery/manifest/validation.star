@@ -21,7 +21,7 @@ def validate_manifest(manifest):
     - appType: from VALID_APP_TYPES
     - port: within range for appType (backends: 4000-5999, frontends: 3000-3999)
     - features: from VALID_FEATURES
-    - internalDependencies: from VALID_STACKS (resource aliases)
+    - dependsOn: from VALID_STACKS (resource aliases)
     - replicas: 1-10
     """
     issues = []
@@ -85,10 +85,10 @@ def validate_manifest(manifest):
             if f not in VALID_FEATURES:
                 issues.append("Invalid feature: " + str(f) + ". Must be one of: " + ', '.join(VALID_FEATURES))
     
-    # 6. Validate internalDependencies array (must be valid resource aliases)
-    deps = manifest.get('internalDependencies', [])
+    # 6. Validate dependsOn array (must be valid resource aliases)
+    deps = manifest.get('dependsOn', manifest.get('dependsOn', []))
     if type(deps) != 'list':
-        issues.append("Invalid internalDependencies: must be an array")
+        issues.append("Invalid dependsOn: must be an array")
     else:
         # Valid dependency targets are discovered dynamically from manifests
         # No hardcoded list - all dependencies validated against discovered resources

@@ -243,7 +243,7 @@ def _test_cross_resource_validation():
             'appType': 'backend',
             'stack': 'user',
             'port': 4000,
-            'internalDependencies': ['identity-backend'],  # Valid
+            'dependsOn': ['identity-backend'],  # Valid
         },
         {
             'appName': 'user-frontend',
@@ -265,7 +265,7 @@ def _test_cross_resource_validation():
         'appType': 'backend',
         'stack': 'user',
         'port': 4002,
-        'internalDependencies': ['nonexistent-service'],  # Invalid
+        'dependsOn': ['nonexistent-service'],  # Invalid
     }
     
     result = Manifest.validate_dependencies(bad_dep_manifest, manifests)
@@ -314,7 +314,7 @@ def _test_full_validation():
         'runtime': 'bun',
         'features': ['nats', 'prisma'],
         'databaseName': 'TDK_user',
-        'internalDependencies': [],
+        'dependsOn': [],
         'traefik': {
             'pathPrefix': '/api/v1/users',
             'priority': 100,
