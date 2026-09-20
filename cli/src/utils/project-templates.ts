@@ -9,6 +9,10 @@ export const PROJECT_TEMPLATES: Record<string, ProjectTemplate> = {
     repo: "https://github.com/tdk-landscape/tdk-restaurant-example.git",
     description: "Restaurant ops: reservations, kitchen, floor control (Hono + Vite + Bun)",
   },
+  saas: {
+    repo: "https://github.com/tdk-landscape/tdk-saas-starter.git",
+    description: "SaaS starter: account dashboard and a working checkout button (Hono + Vite + Bun)",
+  },
   erp: {
     repo: "https://github.com/tdk-landscape/tdk-erp-system.git",
     description: "Enterprise ERP: 100 microservices across 7 business domains",
