@@ -241,7 +241,7 @@ def _generate_single_backend_entry(resource_path, resource_name, res, manifest, 
         health_path=health_path,
         manifest=manifest,
     )
-    infisical_env = get_infisical_environment_vars(as_array=True)
+    infisical_env = get_infisical_environment_vars(as_array=True, resource_name=res_name)
     
     # Build auth environment variables section using centralized auth utilities
     

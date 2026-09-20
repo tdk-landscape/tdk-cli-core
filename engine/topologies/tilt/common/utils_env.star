@@ -4,10 +4,14 @@
 
 
 def load_dotenv(project_root=''):
-    """Load .env file into os.environ."""
-    env_path = '.env'
-    if project_root:
-        env_path = project_root + '/.env'
+    """Load .env file into os.environ.
+
+    The Tiltfile lives in `.tdk/.tdk-out/`, so a bare `.env` lookup misses the
+    project-root file. Prefer an explicit project_root, then TDK_PROJECT_ROOT.
+    """
+    if not project_root:
+        project_root = os.environ.get('TDK_PROJECT_ROOT', '')
+    env_path = (project_root + '/.env') if project_root else '.env'
     content = str(local("cat '" + env_path + "' 2>/dev/null || true", quiet=True, echo_off=True))
     if content:
         for line in content.split('\n'):

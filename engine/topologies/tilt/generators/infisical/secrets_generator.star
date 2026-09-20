@@ -96,8 +96,13 @@ def _generate_docker_compose_env(resource_name, secret_path, additional_vars=Non
         "INFISICAL_PROJECT_ID": "${INFISICAL_PROJECT_ID:-}",
         "INFISICAL_ENVIRONMENT": "${INFISICAL_ENVIRONMENT:-dev}",
         
-        # Fallback policy (disabled by default for security)
-        "INFISICAL_ALLOW_FALLBACK": "${INFISICAL_ALLOW_FALLBACK:-false}",
+        # Fallback policy: this generator only feeds local Tilt/docker-compose dev
+        # environments (see topologies/platform/docker/compose/compose.star). There's
+        # rarely a real Infisical server running locally, so default to allowing the
+        # entrypoint to fall back to the plain env vars already in the compose file
+        # instead of failing to start. Production/CI paths (Kubernetes secrets, etc.)
+        # are generated separately and are unaffected by this default.
+        "INFISICAL_ALLOW_FALLBACK": "${INFISICAL_ALLOW_FALLBACK:-true}",
     }
     
     if additional_vars:
