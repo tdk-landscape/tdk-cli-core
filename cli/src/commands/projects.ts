@@ -1,10 +1,11 @@
 import { existsSync } from "node:fs";
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
 import chalk from "chalk";
 import { Command } from "commander";
 import { createDiscoveryContext } from "../utils/discovery-context.js";
 import { requireProjectRoot, runCommand } from "../utils/errors.js";
 import { formatCount } from "../utils/formatting.js";
+import { MASTER_CONFIG_FILES } from "../utils/constants.js";
 
 export const projectsCommand = new Command("projects")
   .description("Show project information and configuration status")
@@ -20,23 +21,23 @@ export const projectsCommand = new Command("projects")
       console.log(chalk.gray(`  ${projectRoot}`));
       console.log();
 
-      const defaultsPath = resolve(projectRoot, "TILT_RESOURCE_DEFAULTS.star");
-      const techStackPath = resolve(projectRoot, "TILT_TECH_STACK.star");
-
-      const defaultsExists = existsSync(defaultsPath);
-      const techStackExists = existsSync(techStackPath);
+      const outDir = join(projectRoot, ".tdk", ".tdk-out");
+      const missing = MASTER_CONFIG_FILES.filter((file) => !existsSync(join(outDir, file)));
 
       console.log(chalk.bold("Master Configuration:"));
-      if (defaultsExists) {
-        console.log(chalk.green(`  ✓ TILT_RESOURCE_DEFAULTS.star`));
+      if (missing.length === 0) {
+        for (const file of MASTER_CONFIG_FILES) {
+          console.log(chalk.green(`  ✓ ${file}`));
+        }
       } else {
-        console.log(chalk.red(`  ✗ TILT_RESOURCE_DEFAULTS.star (missing)`));
-      }
-
-      if (techStackExists) {
-        console.log(chalk.green(`  ✓ TILT_TECH_STACK.star`));
-      } else {
-        console.log(chalk.red(`  ✗ TILT_TECH_STACK.star (missing)`));
+        for (const file of MASTER_CONFIG_FILES) {
+          const exists = !missing.includes(file);
+          if (exists) {
+            console.log(chalk.green(`  ✓ ${file}`));
+          } else {
+            console.log(chalk.red(`  ✗ ${file} (missing)`));
+          }
+        }
       }
       console.log();
 
@@ -64,7 +65,7 @@ export const projectsCommand = new Command("projects")
         console.log();
       }
 
-      if (!defaultsExists || !techStackExists) {
+      if (missing.length > 0) {
         console.log(chalk.yellow("Project not fully configured!"));
         console.log(chalk.gray('Run "tdk project" to create master config files.\n'));
       } else {
@@ -75,8 +76,7 @@ export const projectsCommand = new Command("projects")
       }
 
       if (options.check) {
-        const isConfigured = defaultsExists && techStackExists;
-        process.exit(isConfigured ? 0 : 1);
+        process.exit(missing.length === 0 ? 0 : 1);
       }
     });
   });
