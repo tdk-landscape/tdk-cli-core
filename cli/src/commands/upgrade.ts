@@ -152,8 +152,8 @@ async function getLatestVersion(): Promise<string | null> {
     // npm registry failed - package not published yet
     spinner.warn("Package not yet published to npm registry");
     console.log(chalk.yellow("\n💡 For now, please upgrade manually from GitHub:"));
-    console.log(chalk.cyan("   npm install -g github:tdk-landscape/tdk-cli"));
-    console.log(chalk.cyan("   bun install -g github:tdk-landscape/tdk-cli"));
+    console.log(chalk.cyan("   npm install -g github:tdk-landscape/tdk-cli-core"));
+    console.log(chalk.cyan("   bun install -g github:tdk-landscape/tdk-cli-core"));
     console.log(chalk.gray("\n   (npm package will be available soon)"));
     return null;
   }
@@ -174,7 +174,7 @@ async function upgradeViaNpm(): Promise<boolean> {
     spinner.text = "npm registry failed, trying GitHub...";
     logVerbose("npm registry error", err);
     try {
-      execSync("npm install -g github:tdk-landscape/tdk-cli", {
+      execSync("npm install -g github:tdk-landscape/tdk-cli-core", {
         stdio: "inherit",
         timeout: 120000,
       });
@@ -202,7 +202,7 @@ async function upgradeViaBun(): Promise<boolean> {
     spinner.text = "bun registry failed, trying GitHub...";
     logVerbose("bun registry error", err);
     try {
-      execSync("bun install -g github:tdk-landscape/tdk-cli", {
+      execSync("bun install -g github:tdk-landscape/tdk-cli-core", {
         stdio: "inherit",
         timeout: 120000,
       });
@@ -286,8 +286,8 @@ export const upgradeCommand = new Command("upgrade")
     if (installInfo.method === "unknown") {
       console.error(chalk.red("❌ Could not detect installation method"));
       console.log(chalk.yellow("\n💡 Manual upgrade (package not on npm yet, use GitHub):"));
-      console.log(chalk.cyan("   npm:  npm install -g github:tdk-landscape/tdk-cli"));
-      console.log(chalk.cyan("   bun:  bun install -g github:tdk-landscape/tdk-cli"));
+      console.log(chalk.cyan("   npm:  npm install -g github:tdk-landscape/tdk-cli-core"));
+      console.log(chalk.cyan("   bun:  bun install -g github:tdk-landscape/tdk-cli-core"));
       console.log(chalk.cyan("   git:  cd /path/to/tdk-cli && git pull && bun link --force"));
       process.exit(1);
     }
@@ -443,9 +443,9 @@ export const upgradeCommand = new Command("upgrade")
         chalk.yellow("\n💡 Try manual upgrade (use GitHub until npm package is published):"),
       );
       if (installInfo.method === "npm") {
-        console.log(chalk.cyan("   npm install -g github:tdk-landscape/tdk-cli"));
+        console.log(chalk.cyan("   npm install -g github:tdk-landscape/tdk-cli-core"));
       } else if (installInfo.method === "bun") {
-        console.log(chalk.cyan("   bun install -g github:tdk-landscape/tdk-cli"));
+        console.log(chalk.cyan("   bun install -g github:tdk-landscape/tdk-cli-core"));
       } else if (installInfo.method === "git") {
         console.log(chalk.cyan(`   cd ${installInfo.path} && git pull && bun link --force`));
       } else if (installInfo.method === "binary" && binaryRelease) {
