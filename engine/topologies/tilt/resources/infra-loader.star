@@ -211,7 +211,7 @@ def _load_monitoring(should_enable, root_prefix="", env_file=None):
         return
     
     print("📊 Loading monitoring services...")
-    docker_compose(root_prefix + 'services/platform/monitoring/docker-compose.yml', env_file=env_file)
+    _docker_compose(root_prefix + 'services/platform/monitoring/docker-compose.yml', env_file)
     for svc in ['signoz-frontend', 'signoz-otel-collector', 'signoz-query-service']:
         dc_resource(svc, labels=['observability.apm'], auto_init=True)
     dc_resource('clickhouse', labels=['observability.storage'], auto_init=True)
@@ -230,7 +230,7 @@ def _load_debezium(should_enable, root_prefix="", env_file=None):
         return
     
     print("🔄 Loading Enhanced Debezium...")
-    docker_compose(root_prefix + 'services/platform/cdc/docker-compose.enhanced.yml', env_file=env_file)
+    _docker_compose(root_prefix + 'services/platform/cdc/docker-compose.enhanced.yml', env_file)
     dc_resource('nats-http-bridge', labels=['cdc'], resource_deps=['nats'], auto_init=True)
     dc_resource('debezium-connect', labels=['cdc'], resource_deps=['kafka', 'postgres', 'nats-http-bridge'], auto_init=True)
     dc_resource('enhanced-connector-setup', labels=['cdc'], resource_deps=['debezium-connect', 'postgres', 'nats-http-bridge'], auto_init=False)
@@ -246,7 +246,7 @@ def _load_elk(should_enable, root_prefix="", env_file=None):
         return
 
     print("📊 Loading ELK stack...")
-    docker_compose(root_prefix + 'docker/elk-compose.yml', env_file=env_file)
+    _docker_compose(root_prefix + 'docker/elk-compose.yml', env_file)
     dc_resource('elasticsearch', labels=['observability.elk'], auto_init=True)
     dc_resource('logstash', labels=['observability.elk', 'processor', 'logs'], resource_deps=['elasticsearch'], auto_init=True)
     dc_resource('kibana', labels=['observability.elk', 'frontend', 'dashboard'], resource_deps=['elasticsearch'], auto_init=True)
