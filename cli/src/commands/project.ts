@@ -325,10 +325,19 @@ export const projectCommand = new Command("project")
                 checked: f.enabled_by_default,
               })),
           },
+        ]);
+
+        showStep("\n📂 Service discovery");
+        showDetail("What: folder patterns TDK scans for a service.json in each match.");
+        showDetail("Where: type one or more globs, comma-separated.");
+        showDetail("How: saved as discovery.paths in .tdk/project.json - editable later.");
+        showDetail(`Example: ${DEFAULT_PROJECT_JSON.discovery.paths.join(", ")}\n`);
+
+        const { discoveryPaths } = await inquirer.prompt([
           {
             type: "input",
             name: "discoveryPaths",
-            message: "Folders to scan for services (comma-separated globs, e.g. services/*/*, apps/*):",
+            message: "Folders to scan:",
             default: DEFAULT_PROJECT_JSON.discovery.paths.join(", "),
           },
         ]);
@@ -343,12 +352,14 @@ export const projectCommand = new Command("project")
         projectConfig.optional_infra.elk = answers.optionalInfra.includes("elk");
         projectConfig.optional_infra.debezium = answers.optionalInfra.includes("debezium");
         projectConfig.optional_infra.golden_image = answers.optionalInfra.includes("golden_image");
-        const discoveryPaths = answers.discoveryPaths
+        const parsedDiscoveryPaths = discoveryPaths
           .split(",")
           .map((p: string) => p.trim())
           .filter((p: string) => p.length > 0);
         projectConfig.discovery.paths =
-          discoveryPaths.length > 0 ? discoveryPaths : DEFAULT_PROJECT_JSON.discovery.paths;
+          parsedDiscoveryPaths.length > 0
+            ? parsedDiscoveryPaths
+            : DEFAULT_PROJECT_JSON.discovery.paths;
       }
 
       showStep("\n📋 Creating project configuration...\n");
