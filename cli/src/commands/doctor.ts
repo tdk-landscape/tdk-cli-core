@@ -6,6 +6,7 @@ import { Command } from "commander";
 import type { CheckResult } from "../types/index.js";
 import { MASTER_CONFIG_FILES } from "../utils/constants.js";
 import { findProjectRoot } from "../utils/paths.js";
+import { validateEnvFile } from "../utils/env-validator.js";
 
 const QUICKSTART_DOCS_URL = "https://tdk-landscape.github.io/tdk-website/docs/quickstart/";
 
@@ -104,6 +105,35 @@ const checkTilt = createExecCheck(
   `Install Tilt: brew install tilt (macOS) or see https://docs.tilt.dev/install.html. Setup guide: ${QUICKSTART_DOCS_URL}`,
 );
 
+function checkEnvironmentVariables(): CheckResult {
+  const projectRoot = findProjectRoot() ?? process.cwd();
+  const validation = validateEnvFile(projectRoot);
+
+  if (validation.missing.length > 0) {
+    return {
+      name: "Environment Variables",
+      didPass: false,
+      message: `Missing required env variables: ${validation.missing.join(", ")}`,
+      fix: `Edit .env and set these values:\n    ${validation.missing.map((v) => `${v}=<value>`).join("\n    ")}`,
+    };
+  }
+
+  if (validation.invalid.length > 0) {
+    return {
+      name: "Environment Variables",
+      didPass: false,
+      message: `Invalid env variables: ${validation.invalid.join(", ")}`,
+      fix: "Edit .env and provide values for empty variables",
+    };
+  }
+
+  return {
+    name: "Environment Variables",
+    didPass: true,
+    message: "All required environment variables are set",
+  };
+}
+
 function checkMasterConfigs(): CheckResult {
   // `tdk project` writes generated master configs to .tdk/.tdk-out/, not the
   // project root, so look there (and walk up to find the project root, same
@@ -135,7 +165,13 @@ export const doctorCommand = new Command("doctor")
     console.log(`\n${chalk.bold("🔍 TDK Doctor")}\n`);
     console.log("Checking environment...\n");
 
-    const checks = [checkDockerRuntime, checkTilt, checkDockerCompose, checkMasterConfigs];
+    const checks = [
+      checkDockerRuntime,
+      checkTilt,
+      checkDockerCompose,
+      checkMasterConfigs,
+      checkEnvironmentVariables,
+    ];
 
     let allPassed = true;
 

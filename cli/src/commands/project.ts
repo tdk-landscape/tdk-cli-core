@@ -19,6 +19,7 @@ import {
 import { findProjectRoot } from "../utils/paths.js";
 import { PROJECT_TEMPLATES } from "../utils/project-templates.js";
 import { discoverStackNames } from "../utils/services.js";
+import { ensureEnvFile, validateEnvFile } from "../utils/env-validator.js";
 
 /**
  * Stack names discovered from service.json files already in the repo (e.g. a
@@ -307,10 +308,7 @@ export const projectCommand = new Command("project")
           {
             type: "input",
             name: "discoveryPaths",
-            message:
-              "Folders to scan for services (comma-separated glob patterns, e.g. services/*/*, apps/*):\n" +
-              "  TDK looks for a service.json inside each match; edit this later under\n" +
-              "  discovery.paths in .tdk/project.json.\n>",
+            message: "Which folders hold your services? (comma-separated globs)",
             default: DEFAULT_PROJECT_JSON.discovery.paths.join(", "),
           },
         ]);
@@ -341,16 +339,36 @@ export const projectCommand = new Command("project")
       showStep("\n📋 Generating master configuration files...\n");
       await generateMasterConfigs(projectRoot);
 
+      showStep("\n🔧 Setting up environment variables...\n");
+      const envCreated = ensureEnvFile(projectRoot);
+      if (envCreated) {
+        showSuccess("Created: .env (with required variables)");
+        showDetail("→ Edit .env to set VERDACCIO_URL_DOCKER, TILT_ENV, etc.");
+      } else {
+        showSuccess("Found: .env (environment already configured)");
+      }
+
+      const envValidation = validateEnvFile(projectRoot);
+      if (envValidation.missing.length > 0) {
+        console.log(chalk.yellow("\n⚠️  Missing required environment variables:"));
+        for (const missing of envValidation.missing) {
+          showDetail(`- ${missing}`, 1);
+        }
+        showDetail("→ Edit .env and fill in these values before running `tdk up`", 1);
+      }
+
       console.log(chalk.green("\n✅ Project configuration complete!"));
       showDetail("\nGenerated files in .tdk/.tdk-out/:", 0);
       for (const file of MASTER_CONFIG_FILES) {
         showDetail(`- ${file}`);
       }
+      showDetail("\nEnvironment configuration:", 0);
+      showDetail("- .env (contains all required variables)");
       showDetail("\nSource file:", 0);
       showDetail("- .tdk/project.json (edit this to change project structure)");
       showDetail("\nNext steps:", 0);
-      showDetail("1. Run `tdk config regenerate` after editing .tdk/project.json");
-      showDetail("2. Run `tdk stack` to manage services in stacks");
+      showDetail("1. Edit .env to set required values (VERDACCIO_URL_DOCKER, TILT_ENV)");
+      showDetail("2. Run `tdk config regenerate` after editing .tdk/project.json");
       showDetail("3. Run `tdk up` to start development");
     });
   });
