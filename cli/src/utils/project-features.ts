@@ -1,0 +1,113 @@
+/**
+ * Project-Level Features
+ *
+ * These are infrastructure and optional services enabled at the project level.
+ * They are available to all resources and are configured in project.json stacks.
+ *
+ * Default: All CORE features enabled in pre_alpha stack
+ * Optional: OPTIONAL features disabled by default (can be enabled in optional_infra)
+ */
+
+export interface ProjectFeature {
+  name: string;
+  description: string;
+  category: "core" | "optional";
+  stack: "pre_alpha" | "alpha" | "beta";
+  enabled_by_default: boolean;
+  dependencies?: string[];
+}
+
+export const PROJECT_FEATURES: Record<string, ProjectFeature> = {
+  // ============================================================================
+  // CORE INFRASTRUCTURE (always enabled in pre_alpha)
+  // ============================================================================
+  proxy: {
+    name: "proxy",
+    description: "Traefik reverse proxy and API gateway for routing all services",
+    category: "core",
+    stack: "pre_alpha",
+    enabled_by_default: true,
+    dependencies: [],
+  },
+
+  registry: {
+    name: "registry",
+    description: "Verdaccio npm registry for package management and local publishing",
+    category: "core",
+    stack: "pre_alpha",
+    enabled_by_default: true,
+    dependencies: [],
+  },
+
+  "database-management": {
+    name: "database-management",
+    description: "PostgreSQL database for data persistence and SQL operations",
+    category: "core",
+    stack: "pre_alpha",
+    enabled_by_default: true,
+    dependencies: [],
+  },
+
+  // ============================================================================
+  // OPTIONAL INFRASTRUCTURE (disabled by default, enable in optional_infra)
+  // ============================================================================
+  monitoring: {
+    name: "monitoring",
+    description: "SigNoz or SkyWalking observability platform for monitoring and tracing",
+    category: "optional",
+    stack: "pre_alpha",
+    enabled_by_default: false,
+    dependencies: ["database-management"],
+  },
+
+  elk: {
+    name: "elk",
+    description: "Elasticsearch, Logstash, Kibana stack for log aggregation and analysis",
+    category: "optional",
+    stack: "pre_alpha",
+    enabled_by_default: false,
+    dependencies: [],
+  },
+
+  debezium: {
+    name: "debezium",
+    description: "Change Data Capture for real-time data streaming from databases",
+    category: "optional",
+    stack: "pre_alpha",
+    enabled_by_default: false,
+    dependencies: ["database-management"],
+  },
+
+  "golden-image": {
+    name: "golden-image",
+    description: "Pre-built Docker image layer for faster builds and smaller deployments",
+    category: "optional",
+    stack: "pre_alpha",
+    enabled_by_default: true,
+    dependencies: [],
+  },
+};
+
+/**
+ * Get all enabled project features
+ */
+export function getEnabledProjectFeatures(optional_infra?: Record<string, boolean>): string[] {
+  const enabled: string[] = [];
+
+  for (const [key, feature] of Object.entries(PROJECT_FEATURES)) {
+    if (feature.enabled_by_default) {
+      enabled.push(key);
+    }
+  }
+
+  // Add optional features if enabled
+  if (optional_infra) {
+    for (const [key, isEnabled] of Object.entries(optional_infra)) {
+      if (isEnabled && PROJECT_FEATURES[key]) {
+        enabled.push(key);
+      }
+    }
+  }
+
+  return enabled;
+}
