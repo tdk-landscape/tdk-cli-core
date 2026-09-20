@@ -308,7 +308,7 @@ export const projectCommand = new Command("project")
           {
             type: "input",
             name: "discoveryPaths",
-            message: "Which folders hold your services? (comma-separated globs)",
+            message: "Folders to scan for services (comma-separated globs, e.g. services/*/*, apps/*):",
             default: DEFAULT_PROJECT_JSON.discovery.paths.join(", "),
           },
         ]);
