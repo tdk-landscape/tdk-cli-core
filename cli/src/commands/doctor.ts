@@ -5,6 +5,8 @@ import chalk from "chalk";
 import { Command } from "commander";
 import type { CheckResult } from "../types/index.js";
 
+const QUICKSTART_DOCS_URL = "https://tdk-landscape.github.io/tdk-website/docs/quickstart/";
+
 function createExecCheck(
   name: string,
   command: string,
@@ -76,7 +78,7 @@ function checkDockerRuntime(): CheckResult {
             name: "Container Runtime",
             didPass: false,
             message: "No container runtime (Docker/Colima/Podman) is running",
-            fix: "Start: colima start (recommended) OR open -a Docker (macOS) OR sudo systemctl start docker (Linux)",
+            fix: `Start: colima start (recommended) OR open -a Docker (macOS) OR sudo systemctl start docker (Linux). Setup guide: ${QUICKSTART_DOCS_URL}`,
           };
         }
       }
@@ -97,7 +99,7 @@ const checkTilt = createExecCheck(
   "tilt version",
   "Tilt CLI installed",
   "Tilt CLI not found",
-  "Install Tilt: brew install tilt (macOS) or see https://docs.tilt.dev/install.html",
+  `Install Tilt: brew install tilt (macOS) or see https://docs.tilt.dev/install.html. Setup guide: ${QUICKSTART_DOCS_URL}`,
 );
 
 function checkMasterConfigs(): CheckResult {

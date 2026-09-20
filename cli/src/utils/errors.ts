@@ -1,6 +1,9 @@
 import chalk from "chalk";
+import { isDockerAvailable } from "./docker.js";
 import { findProjectRoot } from "./paths.js";
 import { isTiltAvailable } from "./tilt.js";
+
+const QUICKSTART_DOCS_URL = "https://tdk-landscape.github.io/tdk-website/docs/quickstart/";
 
 export function getErrorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
@@ -35,6 +38,14 @@ export const errorFactories = {
       "Install Tilt: `brew install tilt` (macOS)",
       "Or download from: https://docs.tilt.dev/install.html",
       "Verify with: `tilt version`",
+      `Setup guide: ${QUICKSTART_DOCS_URL}`,
+    ]),
+  dockerNotAvailable: () =>
+    new TdkError("Docker (or a compatible container runtime) is not running", [
+      "Start Docker Desktop, then verify with: `docker ps`",
+      "Or start Colima: `colima start`",
+      "Or start the Docker service on Linux: `sudo systemctl start docker`",
+      `Setup guide: ${QUICKSTART_DOCS_URL}`,
     ]),
   stackNotFound: (name: string) =>
     new TdkError(`Stack "${name}" not found`, [
@@ -96,10 +107,24 @@ export async function withTiltCheck<T>(
   action: () => Promise<T>,
   options?: { verbose?: boolean },
 ): Promise<T | never> {
+  const problems: TdkError[] = [];
+  if (!isDockerAvailable()) {
+    problems.push(errorFactories.dockerNotAvailable());
+  }
   if (!(await isTiltAvailable())) {
-    errorFactories.tiltNotInstalled().display();
+    problems.push(errorFactories.tiltNotInstalled());
+  }
+
+  if (problems.length > 0) {
+    console.error(chalk.red(`\nTDK can't start - missing prerequisites:\n`));
+    problems.forEach((problem, i) => {
+      if (i > 0) console.error("");
+      problem.display();
+    });
+    console.error(chalk.gray(`\nRun \`tdk doctor\` for a full environment check.`));
     process.exit(1);
   }
+
   return runCommand(action, options);
 }
 

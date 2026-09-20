@@ -52,8 +52,13 @@ export function runTilt(
 }
 
 export async function isTiltAvailable(): Promise<boolean> {
-  const result = await runTilt("version", [], { inheritStdio: false });
-  return result.exitCode === 0;
+  try {
+    const result = await runTilt("version", [], { inheritStdio: false });
+    return result.exitCode === 0;
+  } catch {
+    // tilt binary not found (or not spawnable) - treat as unavailable
+    return false;
+  }
 }
 
 export function getTiltfilePath(): string {
