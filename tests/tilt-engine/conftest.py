@@ -47,7 +47,7 @@ def mock_resource_json() -> dict:
     """Return a sample valid service.json structure."""
     return {
         "name": "test-resource",
-        "type": "backend",
+        "appType": "backend",
         "stack": "test",
         "port": 4000,
         "path": "services/product/test/test-resource",
@@ -60,7 +60,7 @@ def mock_resource_json() -> dict:
 def mock_invalid_resource_json() -> dict:
     """Return an invalid service.json (missing required fields)."""
     return {
-        "type": "backend",
+        "appType": "backend",
         # Missing: name, stack, port, path
     }
 
