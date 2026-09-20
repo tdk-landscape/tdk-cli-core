@@ -92,7 +92,7 @@ const DEFAULT_PROJECT_JSON = {
     pre_alpha: {
       name: "Pre-Alpha",
       description: "Core infrastructure and MVP services",
-      services: [] as string[],
+      services: ["proxy", "verdaccio", "database-management"] as string[],
     },
     alpha: {
       name: "Alpha",
@@ -239,7 +239,10 @@ export const projectCommand = new Command("project")
       } else if (options.yes) {
         projectConfig = JSON.parse(JSON.stringify(DEFAULT_PROJECT_JSON));
         projectConfig.project.name = projectRoot.split("/").pop() || "my-project";
-        projectConfig.stacks.pre_alpha.services = discoveredStacks;
+        projectConfig.stacks.pre_alpha.services = [
+          ...projectConfig.stacks.pre_alpha.services,
+          ...discoveredStacks,
+        ];
         console.log(chalk.gray("Using default configuration (non-interactive mode)"));
         if (discoveredStacks.length > 0) {
           showDetail(`Auto-enabled discovered service stacks: ${discoveredStacks.join(", ")}`, 0);
@@ -266,9 +269,9 @@ export const projectCommand = new Command("project")
             name: "preAlphaServices",
             message: "Select Pre-Alpha services (core infrastructure):",
             choices: [
-              { name: "proxy (Traefik)", value: "proxy" },
-              { name: "verdaccio (NPM registry)", value: "verdaccio" },
-              { name: "database-management (PostgreSQL)", value: "database-management" },
+              { name: "proxy (Traefik)", value: "proxy", checked: true },
+              { name: "verdaccio (NPM registry)", value: "verdaccio", checked: true },
+              { name: "database-management (PostgreSQL)", value: "database-management", checked: true },
               ...discoveredStacks.map((stack) => ({
                 name: `${stack} (discovered service stack)`,
                 value: stack,
