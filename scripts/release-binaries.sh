@@ -5,7 +5,7 @@ set -euo pipefail
 readonly ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 readonly RELEASE_REPOSITORY="tdk-landscape/tdk-cli-releases"
 readonly VERSION="$(node -p "require('${ROOT_DIR}/cli/package.json').version")"
-readonly RELEASE_TAG="v${VERSION}-$(git -C "${ROOT_DIR}" rev-parse --short HEAD)"
+readonly RELEASE_TAG="v${VERSION}"
 readonly RELEASE_DIR="${ROOT_DIR}/release-dist-${RELEASE_TAG#v}"
 readonly PUBLISH="${1:-}"
 
