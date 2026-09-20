@@ -393,7 +393,8 @@ async function vendorTdkExtension(projectRoot: string): Promise<void> {
 
   if (!sourceRoot) {
     console.warn(
-      `⚠️  TDK extension not found - 'tdk up' will need TDK_EXTENSION_PATH set.`
+      "⚠️  TDK extension not found - set TDK_EXTENSION_SOURCE to its checkout path " +
+        "and re-run `tdk project` (or `tdk config regenerate`) to vendor it before `tdk up`.",
     );
     return;
   }

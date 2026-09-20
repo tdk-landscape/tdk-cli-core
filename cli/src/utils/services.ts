@@ -86,6 +86,17 @@ function parseResource(serviceJsonPath: string): DiscoveredResource {
   };
 }
 
+export function discoverResourcesFromRoot(projectRoot: string): DiscoveredResource[] {
+  const serviceJsonPaths = findServiceJsonFiles(projectRoot);
+  const resources: DiscoveredResource[] = [];
+
+  for (const path of serviceJsonPaths) {
+    resources.push(parseResource(path));
+  }
+
+  return resources;
+}
+
 export function discoverResources(): DiscoveredResource[] {
   const projectRoot = findProjectRoot();
 
@@ -95,14 +106,26 @@ export function discoverResources(): DiscoveredResource[] {
     );
   }
 
-  const serviceJsonPaths = findServiceJsonFiles(projectRoot);
-  const resources: DiscoveredResource[] = [];
+  return discoverResourcesFromRoot(projectRoot);
+}
 
-  for (const path of serviceJsonPaths) {
-    resources.push(parseResource(path));
+/**
+ * Unique, sorted `stack` values across discovered service.json files under `projectRoot`.
+ * Tilt's discovery groups services by this same field (see tdk-cli-extensions
+ * discovery_orchestrator.star), so these are the names that must appear in a
+ * stack's `services` list in .tdk/project.json for that group to be enabled.
+ */
+export function discoverStackNames(projectRoot: string): string[] {
+  const resources = discoverResourcesFromRoot(projectRoot);
+  const stacks = new Set<string>();
+
+  for (const resource of resources) {
+    if (resource.stack) {
+      stacks.add(resource.stack);
+    }
   }
 
-  return resources;
+  return Array.from(stacks).sort();
 }
 
 export function getAllStacks(resources?: DiscoveredResource[]): string[] {

@@ -18,6 +18,22 @@ import {
 } from "../utils/formatting.js";
 import { findProjectRoot } from "../utils/paths.js";
 import { PROJECT_TEMPLATES } from "../utils/project-templates.js";
+import { discoverStackNames } from "../utils/services.js";
+
+/**
+ * Stack names discovered from service.json files already in the repo (e.g. a
+ * cloned starter template). Tilt's discovery groups app resources by this
+ * same `stack` field, so a stack must appear here to ever be enabled by
+ * `should_enable()` - without it, `tdk up` would launch infra only and no
+ * app services would come up, however many the repo actually has.
+ */
+function discoverExistingServiceStacks(projectRoot: string): string[] {
+  try {
+    return discoverStackNames(projectRoot);
+  } catch {
+    return [];
+  }
+}
 
 async function cloneProjectTemplate(templateName: string, targetDir?: string): Promise<void> {
   const template = PROJECT_TEMPLATES[templateName];
@@ -75,22 +91,22 @@ const DEFAULT_PROJECT_JSON = {
     pre_alpha: {
       name: "Pre-Alpha",
       description: "Core infrastructure and MVP services",
-      services: [],
+      services: [] as string[],
     },
     alpha: {
       name: "Alpha",
       description: "Essential business services",
-      services: [],
+      services: [] as string[],
     },
     beta: {
       name: "Beta",
       description: "Extended features",
-      services: [],
+      services: [] as string[],
     },
     out_of_scope: {
       name: "Out of Scope",
       description: "Future releases",
-      services: [],
+      services: [] as string[],
     },
   },
   optional_infra: {
@@ -207,6 +223,7 @@ export const projectCommand = new Command("project")
       }
 
       let projectConfig: typeof DEFAULT_PROJECT_JSON;
+      const discoveredStacks = discoverExistingServiceStacks(projectRoot);
 
       if (options.configFile) {
         const configFilePath = resolve(options.configFile);
@@ -221,7 +238,11 @@ export const projectCommand = new Command("project")
       } else if (options.yes) {
         projectConfig = JSON.parse(JSON.stringify(DEFAULT_PROJECT_JSON));
         projectConfig.project.name = projectRoot.split("/").pop() || "my-project";
+        projectConfig.stacks.pre_alpha.services = discoveredStacks;
         console.log(chalk.gray("Using default configuration (non-interactive mode)"));
+        if (discoveredStacks.length > 0) {
+          showDetail(`Auto-enabled discovered service stacks: ${discoveredStacks.join(", ")}`, 0);
+        }
       } else {
         showStep("📝 Project Setup Wizard\n");
 
@@ -247,6 +268,11 @@ export const projectCommand = new Command("project")
               { name: "proxy (Traefik)", value: "proxy" },
               { name: "verdaccio (NPM registry)", value: "verdaccio" },
               { name: "database-management (PostgreSQL)", value: "database-management" },
+              ...discoveredStacks.map((stack) => ({
+                name: `${stack} (discovered service stack)`,
+                value: stack,
+                checked: true,
+              })),
             ],
           },
           {
@@ -278,6 +304,15 @@ export const projectCommand = new Command("project")
               { name: "golden_image (One-time build)", value: "golden_image", checked: true },
             ],
           },
+          {
+            type: "input",
+            name: "discoveryPaths",
+            message:
+              "Folders to scan for services (comma-separated glob patterns, e.g. services/*/*, apps/*):\n" +
+              "  TDK looks for a service.json inside each match; edit this later under\n" +
+              "  discovery.paths in .tdk/project.json.\n>",
+            default: DEFAULT_PROJECT_JSON.discovery.paths.join(", "),
+          },
         ]);
 
         projectConfig = JSON.parse(JSON.stringify(DEFAULT_PROJECT_JSON));
@@ -290,6 +325,12 @@ export const projectCommand = new Command("project")
         projectConfig.optional_infra.elk = answers.optionalInfra.includes("elk");
         projectConfig.optional_infra.debezium = answers.optionalInfra.includes("debezium");
         projectConfig.optional_infra.golden_image = answers.optionalInfra.includes("golden_image");
+        const discoveryPaths = answers.discoveryPaths
+          .split(",")
+          .map((p: string) => p.trim())
+          .filter((p: string) => p.length > 0);
+        projectConfig.discovery.paths =
+          discoveryPaths.length > 0 ? discoveryPaths : DEFAULT_PROJECT_JSON.discovery.paths;
       }
 
       showStep("\n📋 Creating project configuration...\n");

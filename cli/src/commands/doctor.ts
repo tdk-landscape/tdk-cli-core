@@ -1,9 +1,11 @@
 import { execSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import { resolve } from "node:path";
+import { join } from "node:path";
 import chalk from "chalk";
 import { Command } from "commander";
 import type { CheckResult } from "../types/index.js";
+import { MASTER_CONFIG_FILES } from "../utils/constants.js";
+import { findProjectRoot } from "../utils/paths.js";
 
 const QUICKSTART_DOCS_URL = "https://tdk-landscape.github.io/tdk-website/docs/quickstart/";
 
@@ -103,23 +105,21 @@ const checkTilt = createExecCheck(
 );
 
 function checkMasterConfigs(): CheckResult {
-  const defaultsPath = resolve(process.cwd(), "TILT_RESOURCE_DEFAULTS.star");
-  const techStackPath = resolve(process.cwd(), "TILT_TECH_STACK.star");
+  // `tdk project` writes generated master configs to .tdk/.tdk-out/, not the
+  // project root, so look there (and walk up to find the project root, same
+  // as every other command that reads project state).
+  const projectRoot = findProjectRoot() ?? process.cwd();
+  const outDir = join(projectRoot, ".tdk", ".tdk-out");
 
-  const defaultsExists = existsSync(defaultsPath);
-  const techStackExists = existsSync(techStackPath);
+  const missing = MASTER_CONFIG_FILES.filter((file) => !existsSync(join(outDir, file)));
 
-  if (defaultsExists && techStackExists) {
+  if (missing.length === 0) {
     return {
       name: "Master Configs",
       didPass: true,
-      message: "TILT_RESOURCE_DEFAULTS.star and TILT_TECH_STACK.star found",
+      message: `${MASTER_CONFIG_FILES.join(", ")} found`,
     };
   }
-
-  const missing: string[] = [];
-  if (!defaultsExists) missing.push("TILT_RESOURCE_DEFAULTS.star");
-  if (!techStackExists) missing.push("TILT_TECH_STACK.star");
 
   return {
     name: "Master Configs",
