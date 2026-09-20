@@ -19,6 +19,7 @@
 # =============================================================================
 
 load("../../platform/docker/constants.star", "PlatformDockerConstants")
+load("../../platform/docker/compose/traefik_standalone.star", "generate_standalone_traefik_compose")
 
 # =============================================================================
 # 🗃️ DATABASE MANAGEMENT
@@ -121,9 +122,27 @@ def _load_infisical(should_enable, root_prefix="", env_file=None):
 # 🌐 PROXY (Traefik)
 # =============================================================================
 
-def _load_proxy(should_enable, root_prefix="", env_file=None):
+def _load_standalone_traefik(root_prefix, env_file, write_fn):
+    """Generate and load a self-contained Traefik compose for standalone projects."""
+    compose_rel = ".tdk/.tdk-out/docker-compose.traefik.yml"
+    content = generate_standalone_traefik_compose()
+    if write_fn:
+        write_fn(compose_rel, content)
+    compose_file = root_prefix + compose_rel if root_prefix else compose_rel
+    print("🌐 Loading standalone Traefik from {}".format(compose_file))
+    docker_compose(compose_file, env_file=env_file)
+    dc_resource(
+        "traefik",
+        labels=["infra.tools"],
+        resource_deps=["init-networks"],
+        auto_init=True,
+    )
+
+
+def _load_proxy(should_enable, root_prefix="", env_file=None, write_fn=None):
     """Load Traefik reverse proxy with proper health check sequencing."""
     if not should_enable('proxy'):
+        print("DEBUG INFRA: proxy not enabled")
         return
 
     compose_files = [
@@ -133,10 +152,11 @@ def _load_proxy(should_enable, root_prefix="", env_file=None):
         root_prefix + 'services/platform/proxy/docker-compose.redirects.yml',
         root_prefix + 'services/platform/proxy/docker-compose.docs.yml',
     ]
-    for compose_file in compose_files:
-        if not _file_exists(compose_file):
-            print("DEBUG INFRA: Skipping proxy (compose file not found: {})".format(compose_file))
-            return
+    missing = [path for path in compose_files if not _file_exists(path)]
+    if missing:
+        print("DEBUG INFRA: Platform proxy compose missing ({}), using standalone Traefik".format(missing[0]))
+        _load_standalone_traefik(root_prefix, env_file, write_fn)
+        return
 
     print("🌐 Loading proxy services from Introvertic Infra...")
     print("   → Primary: shared-product-engineering/introvertic/infra/docker-compose.traefik.yml")
@@ -322,7 +342,7 @@ def load_all_infrastructure(should_enable, fix_docker_networks_fn=None, docker_p
     _load_database_management(should_enable, root_prefix, env_file)
     _load_verdaccio(should_enable, root_prefix, env_file)
     _load_infisical(should_enable, root_prefix, env_file)
-    _load_proxy(should_enable, root_prefix, env_file)
+    _load_proxy(should_enable, root_prefix, env_file, write_fn)
     _load_monitoring(should_enable, root_prefix, env_file)
     _load_debezium(should_enable, root_prefix, env_file)
     _load_elk(should_enable, root_prefix, env_file)

@@ -452,30 +452,8 @@ def _replace_ports_with_anchors(entry, has_sdk=False, has_frontend=False, has_ba
         # The actual port value is already correctly set by _generate_single_backend_entry
         # using the internal_port variable. Keep PORT=3000 as-is.
 
-        # Replace Traefik loadbalancer port for backend
-        if "loadbalancer.server.port=3000" in line and "traefik.http.services." in line:
-            new_line = line.replace("loadbalancer.server.port=3000", "loadbalancer.server.port=*backend-port")
-        # Replace Traefik loadbalancer port for frontend/SDK/backend
-        elif "loadbalancer.server.port=" in line and "traefik.http.services." in line:
-            # Extract the port value
-            port_part = line.split("loadbalancer.server.port=")[-1].split('"')[0]
-            if port_part.isdigit():
-                port_val = int(port_part)
-                if port_val == 3000:
-                    new_line = line.replace("loadbalancer.server.port=3000", "loadbalancer.server.port=*backend-port")
-                elif port_val != 3000:
-                    # Use correct anchor based on entry type, not global flags
-                    if is_sdk and has_sdk:
-                        new_line = line.replace("loadbalancer.server.port={}".format(port_val),
-                                                "loadbalancer.server.port=*sdk-port")
-                    elif is_backend and has_backend:
-                        new_line = line.replace("loadbalancer.server.port={}".format(port_val),
-                                                "loadbalancer.server.port=*backend-port")
-                    elif has_frontend:
-                        # Only use frontend-port if this is actually a frontend
-                        if "<<: *frontend-memory-limit" in entry:
-                            new_line = line.replace("loadbalancer.server.port={}".format(port_val),
-                                                    "loadbalancer.server.port=*frontend-port")
+        # YAML anchors do not resolve inside quoted Docker labels. Traefik must
+        # see a numeric loadbalancer.port (e.g. 4000), not `*backend-port`.
         # NOTE: We do NOT replace healthcheck URLs with YAML anchors because anchors
         # don't work inside quoted strings. The wget healthcheck URLs must use actual
         # port numbers (e.g., http://127.0.0.1:3000), not anchor references.

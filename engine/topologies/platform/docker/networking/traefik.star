@@ -7,6 +7,7 @@ load(
     "TRAEFIK_BACKEND_ENABLE_HTTP",
     "TRAEFIK_BACKEND_ENABLE_HTTPS",
     "TRAEFIK_PROJECT_HOST",
+    "TRAEFIK_PROJECT_API_HOST",
     "TRAEFIK_DOCKER_NETWORK",
     "TRAEFIK_ENABLE_LABEL",
     "TRAEFIK_FRONTEND_ENABLE_HTTP",
@@ -25,6 +26,7 @@ load(
 load("./traefik_helpers.star",
     "backend_rule",
     "build_entrypoints",
+    "cli_api_path",
     "frontend_rule",
     "get_api_path",
     "project_backend_rule",
@@ -161,45 +163,70 @@ def get_backend_traefik_labels(
     if sablier_enabled:
         labels += _sablier_container_labels(sablier_group, "      ")
 
-    # Generate project localhost routing from manifest stack
+    # Generate project localhost routing to match `tdk up` URLs:
+    # http://api.{project}.localhost/api/{resource-name}
     if manifest:
         stack = manifest.get("stack", "")
-        if stack:
-            api_path = get_api_path(stack, manifest)
-            project_rule = project_backend_rule(manifest)
-            project_entrypoints = build_entrypoints(
-                TRAEFIK_BACKEND_ENABLE_HTTP,
-                TRAEFIK_BACKEND_ENABLE_HTTPS,
-            )
-            # Calculate priority based on path length (more specific = higher priority)
-            router_priority = TRAEFIK_FRONTEND_PRIORITY_BASE + len(api_path)
+        api_path = cli_api_path(resource_entry_name, manifest)
+        project_rule = project_backend_rule(manifest, resource_entry_name)
+        project_entrypoints = build_entrypoints(
+            TRAEFIK_BACKEND_ENABLE_HTTP,
+            TRAEFIK_BACKEND_ENABLE_HTTPS,
+        )
+        # Calculate priority based on path length (more specific = higher priority)
+        router_priority = TRAEFIK_FRONTEND_PRIORITY_BASE + len(api_path)
 
-            # Generate old path pattern for redirect (e.g., /{stack}-management/api/v1/)
-            old_path_pattern = "/{stack}-management/api/v1".format(stack=stack)
+        # Generate old path pattern for redirect (e.g., /{stack}-management/api/v1/)
+        old_path_pattern = "/{stack}-management/api/v1".format(stack=stack) if stack else ""
+        management_path = get_api_path(stack, manifest) if stack else ""
 
-            labels += """
+        labels += """
       - "traefik.http.routers.{resource_entry_name}-project.rule={project_rule}"
       - "traefik.http.routers.{resource_entry_name}-project.entrypoints={project_entrypoints}"
       - "traefik.http.routers.{resource_entry_name}-project.service={traefik_resource_name}"
       - "traefik.http.routers.{resource_entry_name}-project.middlewares={middleware_name}-project{maintenance_middleware}{sablier_middleware}"
       - "traefik.http.middlewares.{middleware_name}-project.stripprefix.prefixes={api_path}"
       - "traefik.http.routers.{resource_entry_name}-project.priority={router_priority}"
+""".format(
+            resource_entry_name=resource_entry_name,
+            traefik_resource_name=traefik_resource_name,
+            project_rule=project_rule,
+            project_entrypoints=project_entrypoints,
+            middleware_name=middleware_name,
+            maintenance_middleware=maintenance_middleware,
+            sablier_middleware=sablier_middleware,
+            api_path=api_path,
+            router_priority=router_priority,
+        )
 
+        if management_path and management_path != api_path:
+            labels += """
+      - "traefik.http.routers.{resource_entry_name}-management.rule=Host(`{api_host}`) && PathPrefix(`{management_path}`)"
+      - "traefik.http.routers.{resource_entry_name}-management.entrypoints={project_entrypoints}"
+      - "traefik.http.routers.{resource_entry_name}-management.service={traefik_resource_name}"
+      - "traefik.http.routers.{resource_entry_name}-management.middlewares={middleware_name}-management"
+      - "traefik.http.middlewares.{middleware_name}-management.stripprefix.prefixes={management_path}"
+      - "traefik.http.routers.{resource_entry_name}-management.priority={mgmt_priority}"
+""".format(
+                resource_entry_name=resource_entry_name,
+                traefik_resource_name=traefik_resource_name,
+                api_host=TRAEFIK_PROJECT_API_HOST,
+                management_path=management_path,
+                project_entrypoints=project_entrypoints,
+                middleware_name=middleware_name,
+                mgmt_priority=TRAEFIK_FRONTEND_PRIORITY_BASE + len(management_path),
+            )
+
+        if old_path_pattern:
+            labels += """
       # Redirect middleware for URL restructuring: old path -> new path
       - "traefik.http.middlewares.{resource_entry_name}-redirect.redirectregex.regex=^`{old_path_pattern}/(.*)`"
       - "traefik.http.middlewares.{resource_entry_name}-redirect.redirectregex.replacement=`{api_path}/$$1`"
       - "traefik.http.middlewares.{resource_entry_name}-redirect.redirectregex.permanent=true"
 """.format(
                 resource_entry_name=resource_entry_name,
-                traefik_resource_name=traefik_resource_name,
-                project_rule=project_rule,
-                project_entrypoints=project_entrypoints,
-                middleware_name=middleware_name,
-                maintenance_middleware=maintenance_middleware,
-                sablier_middleware=sablier_middleware,
-                api_path=api_path,
-                router_priority=router_priority,
                 old_path_pattern=old_path_pattern,
+                api_path=api_path,
             )
 
     return labels

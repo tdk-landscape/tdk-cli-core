@@ -254,6 +254,12 @@ if FOCUS_MODE and FOCUS_ENABLED_RESOURCES:
         else:
             _MATCHED = [kr for kr in _KNOWN_TILT_RESOURCES if kr != 'service-discovery-daemon' and kr.startswith(_R + '-')]
             _FILTERED_RESOURCES.extend(_MATCHED)
+    for _INFRA in ['init-networks', 'postgres', 'traefik', 'golden-layers-build']:
+        if _INFRA in _KNOWN_TILT_RESOURCES:
+            _FILTERED_RESOURCES.append(_INFRA)
+    for _KR in _KNOWN_TILT_RESOURCES:
+        if _KR.startswith('provision-db-'):
+            _FILTERED_RESOURCES.append(_KR)
     _FILTERED_RESOURCES = sorted(set(_FILTERED_RESOURCES))
     if _FILTERED_RESOURCES:
         config.set_enabled_resources(_FILTERED_RESOURCES)

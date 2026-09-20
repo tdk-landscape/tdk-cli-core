@@ -127,23 +127,33 @@ def get_api_path(stack, manifest=None):
     )
 
 
-def project_backend_rule(manifest):
-    """Generate routing rule for {project}.localhost from manifest.
+def cli_api_path(resource_name, manifest=None):
+    """API path printed by `tdk up` and served on api.{project}.localhost.
+
+    Matches cli/src/commands/up.ts: `/api/{name}` with a trailing `-api` stripped.
+    """
+    if manifest and manifest.get("apiPath"):
+        return manifest.get("apiPath")
+    name = resource_name or (manifest.get("appName", "") if manifest else "")
+    if name.endswith("-api"):
+        name = name[:-4]
+    return TRAEFIK_API_BASE_PATH + "/" + name
+
+
+def project_backend_rule(manifest, resource_name=None):
+    """Generate routing rule for api.{project}.localhost from manifest.
 
     Args:
         manifest: Service manifest dictionary
+        resource_name: Runtime resource name (e.g. auth-api-backend)
 
     Returns:
         str: Traefik routing rule for project localhost domain
     """
-    if not manifest:
-        return ""
-    
-    stack = manifest.get("stack", "")
-    if not stack:
+    if not manifest and not resource_name:
         return ""
 
-    api_path = get_api_path(stack, manifest)
+    api_path = cli_api_path(resource_name, manifest)
     return "Host(`{host}`) && PathPrefix(`{path}`)".format(
         host=TRAEFIK_PROJECT_API_HOST,
         path=api_path,
