@@ -76,13 +76,16 @@ readonly ASSETS=(
   "${RELEASE_DIR}/tdk-cli-engine.tar.gz"
 )
 
+# Never mark a release latest until every asset is uploaded. `gh release create
+# --latest FILE...` publishes the tag first, then uploads binaries, so
+# /releases/latest/download/tdk-* 404s for a few minutes (install.sh hits this).
 if gh release view "${RELEASE_TAG}" --repo "${RELEASE_REPOSITORY}" >/dev/null 2>&1; then
   gh release upload "${RELEASE_TAG}" --repo "${RELEASE_REPOSITORY}" --clobber "${ASSETS[@]}"
-  gh release edit "${RELEASE_TAG}" --repo "${RELEASE_REPOSITORY}" --latest
 else
   gh release create "${RELEASE_TAG}" \
     --repo "${RELEASE_REPOSITORY}" \
     --title "TDK CLI ${RELEASE_TAG#v}" \
-    --latest \
+    --draft \
     "${ASSETS[@]}"
 fi
+gh release edit "${RELEASE_TAG}" --repo "${RELEASE_REPOSITORY}" --draft=false --latest
