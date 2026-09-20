@@ -12,9 +12,9 @@ export interface ProjectFeature {
   name: string;
   description: string;
   category: "core" | "optional";
-  stack: "pre_alpha" | "alpha" | "beta";
+  phase: "pre_alpha" | "alpha" | "beta";
   enabled_by_default: boolean;
-  dependencies?: string[];
+  dependsOn?: string[];
 }
 
 export const PROJECT_FEATURES: Record<string, ProjectFeature> = {
@@ -25,27 +25,27 @@ export const PROJECT_FEATURES: Record<string, ProjectFeature> = {
     name: "proxy",
     description: "Traefik reverse proxy and API gateway for routing all services",
     category: "core",
-    stack: "pre_alpha",
+    phase: "pre_alpha",
     enabled_by_default: true,
-    dependencies: [],
+    dependsOn: [],
   },
 
   registry: {
     name: "registry",
     description: "Verdaccio npm registry for package management and local publishing",
     category: "core",
-    stack: "pre_alpha",
+    phase: "pre_alpha",
     enabled_by_default: true,
-    dependencies: [],
+    dependsOn: [],
   },
 
   "database-management": {
     name: "database-management",
     description: "PostgreSQL database for data persistence and SQL operations",
     category: "core",
-    stack: "pre_alpha",
+    phase: "pre_alpha",
     enabled_by_default: true,
-    dependencies: [],
+    dependsOn: [],
   },
 
   // ============================================================================
@@ -55,36 +55,36 @@ export const PROJECT_FEATURES: Record<string, ProjectFeature> = {
     name: "monitoring",
     description: "SigNoz or SkyWalking observability platform for monitoring and tracing",
     category: "optional",
-    stack: "pre_alpha",
+    phase: "pre_alpha",
     enabled_by_default: false,
-    dependencies: ["database-management"],
+    dependsOn: ["database-management"],
   },
 
   elk: {
     name: "elk",
     description: "Elasticsearch, Logstash, Kibana stack for log aggregation and analysis",
     category: "optional",
-    stack: "pre_alpha",
+    phase: "pre_alpha",
     enabled_by_default: false,
-    dependencies: [],
+    dependsOn: [],
   },
 
   debezium: {
     name: "debezium",
     description: "Change Data Capture for real-time data streaming from databases",
     category: "optional",
-    stack: "pre_alpha",
+    phase: "pre_alpha",
     enabled_by_default: false,
-    dependencies: ["database-management"],
+    dependsOn: ["database-management"],
   },
 
   "golden-image": {
     name: "golden-image",
     description: "Pre-built Docker image layer for faster builds and smaller deployments",
     category: "optional",
-    stack: "pre_alpha",
+    phase: "pre_alpha",
     enabled_by_default: true,
-    dependencies: [],
+    dependsOn: [],
   },
 };
 

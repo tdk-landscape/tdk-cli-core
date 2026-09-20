@@ -282,7 +282,7 @@ export const projectCommand = new Command("project")
             message: "Select Pre-Alpha services (core infrastructure):",
             choices: [
               ...Object.values(PROJECT_FEATURES)
-                .filter((f) => f.category === "core" && f.stack === "pre_alpha")
+                .filter((f) => f.category === "core" && f.phase === "pre_alpha")
                 .map((f) => ({
                   name: f.description,
                   value: f.name,
