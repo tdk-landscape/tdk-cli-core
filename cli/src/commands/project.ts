@@ -1,4 +1,5 @@
-import { existsSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { existsSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { cwd } from "node:process";
 import chalk from "chalk";
@@ -6,7 +7,7 @@ import { Command } from "commander";
 import inquirer from "inquirer";
 import { generateMasterConfigs, readProjectConfig } from "../generator/template-engine.js";
 import { MASTER_CONFIG_FILES } from "../utils/constants.js";
-import { runCommand, showErrorAndExit } from "../utils/errors.js";
+import { errorFactories, runCommand, showErrorAndExit } from "../utils/errors.js";
 import { ensureDirectory, writeJsonFile } from "../utils/file-helpers.js";
 import {
   showCancelled,
@@ -16,6 +17,53 @@ import {
   showSuccess,
 } from "../utils/formatting.js";
 import { findProjectRoot } from "../utils/paths.js";
+import { PROJECT_TEMPLATES } from "../utils/project-templates.js";
+
+async function cloneProjectTemplate(templateName: string, targetDir?: string): Promise<void> {
+  const template = PROJECT_TEMPLATES[templateName];
+
+  if (!template) {
+    console.log(chalk.red(`\n❌ Unknown template: "${templateName}"`));
+    console.log(chalk.yellow("\nAvailable templates:"));
+    for (const [name, info] of Object.entries(PROJECT_TEMPLATES)) {
+      console.log(`  ${chalk.cyan(name)} ${chalk.gray(`- ${info.description}`)}`);
+    }
+    console.log(chalk.gray("\nOr run `tdk project` with no template for a blank project."));
+    process.exit(1);
+  }
+
+  const dirName =
+    targetDir || (template.repo.split("/").pop() ?? templateName).replace(/\.git$/, "");
+
+  if (dirName.includes("\0") || /[<>:"|?*]/.test(dirName)) {
+    errorFactories.invalidPath(dirName).display();
+    process.exit(1);
+  }
+
+  const destination = resolve(cwd(), dirName);
+
+  if (existsSync(destination) && readdirSync(destination).length > 0) {
+    errorFactories.directoryExists(destination).display();
+    process.exit(1);
+  }
+
+  showCommandHeader(`Cloning template: ${templateName}`);
+  showDetail(`${template.description}\n`, 0);
+  showDetail(`Source: ${template.repo}`, 0);
+  showDetail(`Destination: ${destination}\n`, 0);
+
+  try {
+    execFileSync("git", ["clone", template.repo, destination], { stdio: "inherit" });
+  } catch {
+    showErrorAndExit("git clone failed. Check you have git installed and network access.");
+  }
+
+  console.log(chalk.green(`\n✅ Cloned "${templateName}" into ${dirName}/`));
+  showDetail("\nNext steps:", 0);
+  showDetail(`1. cd ${dirName}`);
+  showDetail("2. tdk doctor   # check Docker/Tilt are ready");
+  showDetail("3. tdk up       # start the stack");
+}
 
 const DEFAULT_PROJECT_JSON = {
   version: "1.0",
@@ -59,11 +107,24 @@ const DEFAULT_PROJECT_JSON = {
 
 export const projectCommand = new Command("project")
   .description("Initialize or validate project-level master configuration")
+  .argument(
+    "[template]",
+    `Clone a starter example instead of a blank project (${Object.keys(PROJECT_TEMPLATES).join(", ")})`,
+  )
+  .option(
+    "--path <dir>",
+    "Directory to clone the template into (default: the template's repo name)",
+  )
   .option("--check", "Check if master configs exist and are in sync")
   .option("--force", "Overwrite existing configuration (dangerous)")
   .option("--yes", "Non-interactive mode (use defaults)")
   .option("--config-file <path>", "Load project config from existing JSON file")
-  .action(async (options) => {
+  .action(async (template, options) => {
+    if (template) {
+      await runCommand(async () => cloneProjectTemplate(template, options.path));
+      return;
+    }
+
     await runCommand(async () => {
       let projectRoot = findProjectRoot();
 
