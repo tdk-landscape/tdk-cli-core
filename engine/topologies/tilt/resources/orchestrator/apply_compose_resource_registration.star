@@ -173,14 +173,18 @@ def _register_run_only_resource(config, resource_path, compose_project_name, aut
     compose_files = '-f ' + compose_file
     if str(local("test -f '" + port_override + "' && echo yes || echo no", quiet=True, echo_off=True)).strip() == 'yes':
         compose_files = compose_files + ' -f ' + port_override
+    # .env is gitignored (no .env.example shipped) across every TDK example repo, so a
+    # fresh clone must not hard-require it: only pass --env-file when it actually exists.
+    env_file_flag = ''
+    if str(local("test -f '" + env_file + "' && echo yes || echo no", quiet=True, echo_off=True)).strip() == 'yes':
+        env_file_flag = ' --env-file ' + env_file
     local_resource(
         name=config['res_name'] + '-run-only',
         cmd='docker compose -p '
             + compose_project_name
             + ' '
             + compose_files
-            + ' --env-file '
-            + env_file
+            + env_file_flag
             + ' up -d --no-build '
             + config['res_name'],
         labels=config['labels'] + ['run-only'],

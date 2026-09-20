@@ -62,7 +62,7 @@ def validate(manifest):
             if feature not in VALID_FEATURES:
                 issues.append("Invalid feature: " + str(feature))
 
-    deps = manifest.get("dependsOn", manifest.get("dependsOn", []))
+    deps = manifest.get("dependsOn", [])
     if type(deps) != "list":
         issues.append("Invalid dependsOn: must be an array")
 

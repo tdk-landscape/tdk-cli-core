@@ -92,7 +92,7 @@ class TestDaemonValidation:
         resource_with_optional = {
             "name": "test-service",
             "type": "backend",
-            "domain": "test",
+            "stack": "test",
             "port": 4000,
             "path": "services/product/test/test-service",
             # Optional fields

@@ -100,7 +100,10 @@ const DEFAULT_PROJECT_JSON = {
     golden_image: true,
   },
   discovery: {
-    paths: ["services/product/*", "services/platform/*"],
+    // Generic PSR layout (services/<stack>/<resource>/service.json) - every TDK example
+    // repo (restaurant, saas-starter, user-management, ...) uses its own stack names here,
+    // not the literal "product"/"platform" folders from the internal platform monorepo.
+    paths: ["services/*/*"],
   },
   overrides: {},
 };

@@ -86,7 +86,7 @@ def validate_manifest(manifest):
                 issues.append("Invalid feature: " + str(f) + ". Must be one of: " + ', '.join(VALID_FEATURES))
     
     # 6. Validate dependsOn array (must be valid resource aliases)
-    deps = manifest.get('dependsOn', manifest.get('dependsOn', []))
+    deps = manifest.get('dependsOn', [])
     if type(deps) != 'list':
         issues.append("Invalid dependsOn: must be an array")
     else:

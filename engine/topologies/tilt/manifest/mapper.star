@@ -36,7 +36,6 @@ FIELD_MAPPINGS = {
     # Dependencies
     'dependsOn': [
         'dependsOn',
-        'dependsOn',
         'dependencies.internal',
         'spec.dependencies.internal',
         'requires'

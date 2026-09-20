@@ -127,7 +127,7 @@ def _load_and_normalize(manifest_path, warn_only=True):
         normalized['frontend'] = True
     
     # 🎯 EXTRACT dependencies for registry
-    normalized['serviceDependencies'] = normalized.get('dependsOn', normalized.get('dependsOn', []))
+    normalized['serviceDependencies'] = normalized.get('dependsOn', [])
 
     return normalized
 
