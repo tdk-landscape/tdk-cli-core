@@ -292,7 +292,7 @@ class TestAgentsMdEndToEnd:
         sample_manifest = {
             "appName": "test-service-backend",
             "appType": "backend",
-            "domain": "test",
+            "stack": "test",
             "port": 4000,
             "_servicePath": "services/product/test/test-service-backend",
         }

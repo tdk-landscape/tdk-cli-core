@@ -105,7 +105,7 @@ class TestDaemonRegistration:
             "path": "services/product/test/service.json",
             "name": "test-service",
             "type": "backend",
-            "domain": "test",
+            "stack": "test",
             "port": 4000
         }
         

@@ -43,7 +43,7 @@ class TestCacheOperations:
             "name": "identity-backend",
             "type": "backend",
             "path": "services/product/identity/identity-backend",
-            "domain": "identity",
+            "stack": "identity",
             "port": 4001
         }
         
@@ -52,7 +52,7 @@ class TestCacheOperations:
         
         assert retrieved["name"] == "identity-backend"
         assert retrieved["type"] == "backend"
-        assert retrieved["domain"] == "identity"
+        assert retrieved["stack"] == "identity"
         assert retrieved["port"] == 4001
     
     def test_prevent_duplicate_adds(self, resource_registry_cache):

@@ -99,7 +99,7 @@ def test_backend_service():
     manifest = {
         "appName": "test-api-backend",
         "appType": "backend",
-        "domain": "test",
+        "stack": "test",
         "port": 4001,
         "_servicePath": "services/product/test/test-api-backend",
     }
@@ -132,7 +132,7 @@ def test_frontend_service():
     manifest = {
         "appName": "test-app-frontend",
         "appType": "frontend",
-        "domain": "test",
+        "stack": "test",
         "port": 3001,
         "backendName": "test-api-backend",
         "_servicePath": "services/product/test/test-app-frontend",
@@ -165,7 +165,7 @@ def test_migrator_service():
     manifest = {
         "appName": "test-db-migrator",
         "appType": "migrator",
-        "domain": "test",
+        "stack": "test",
         "port": 7001,
         "_servicePath": "services/product/test/test-db-migrator",
     }
