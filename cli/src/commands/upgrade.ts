@@ -104,7 +104,10 @@ async function getLatestBinaryRelease(): Promise<BinaryRelease | null> {
 
 async function upgradeViaBinary(tdkPath: string, release: BinaryRelease): Promise<boolean> {
   const spinner = ora(`Downloading ${release.assetName} (${release.tag})...`).start();
-  const tmpPath = `${tdkPath}.download`;
+  // Download to /tmp so we don't need write permission to the install dir
+  // (e.g. /usr/local/bin) during the curl step. We only need it for the
+  // final mv, which is a single atomic operation.
+  const tmpPath = `/tmp/tdk-upgrade-${release.assetName}`;
 
   try {
     execSync(`curl -fsSL -o ${JSON.stringify(tmpPath)} ${JSON.stringify(release.downloadUrl)}`, {
@@ -315,7 +318,7 @@ export const upgradeCommand = new Command("upgrade")
       }
 
       if (latestVersion !== currentVersion) {
-        console.log(chalk.yellow(`\n⬆️  Upgrade available: ${currentVersion} → ${binaryRelease.tag}`));
+        console.log(chalk.yellow(`\n⬆️  Upgrade available: ${currentVersion} → ${latestVersion}`));
       } else if (options.force) {
         console.log(chalk.yellow(`\n🔄 Force upgrade requested (currently ${currentVersion})`));
       }
