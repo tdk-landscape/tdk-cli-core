@@ -239,10 +239,12 @@ export const projectCommand = new Command("project")
       } else if (options.yes) {
         projectConfig = JSON.parse(JSON.stringify(DEFAULT_PROJECT_JSON));
         projectConfig.project.name = projectRoot.split("/").pop() || "my-project";
-        projectConfig.stacks.pre_alpha.services = [
-          ...projectConfig.stacks.pre_alpha.services,
-          ...discoveredStacks,
-        ];
+        projectConfig.stacks.pre_alpha.services = Array.from(
+          new Set([
+            ...projectConfig.stacks.pre_alpha.services,
+            ...discoveredStacks,
+          ])
+        );
         console.log(chalk.gray("Using default configuration (non-interactive mode)"));
         if (discoveredStacks.length > 0) {
           showDetail(`Auto-enabled discovered service stacks: ${discoveredStacks.join(", ")}`, 0);

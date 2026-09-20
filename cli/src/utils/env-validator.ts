@@ -92,6 +92,7 @@ export function validateEnvFile(projectRoot: string): {
       .split("\n")
       .filter((line) => !line.startsWith("#") && line.includes("="))
       .map((line) => line.split("=")[0])
+      .filter((name) => name.length > 0)
   );
 
   for (const envVar of REQUIRED_ENV_VARS) {
@@ -100,7 +101,8 @@ export function validateEnvFile(projectRoot: string): {
     }
 
     if (envVars.has(envVar.name)) {
-      const value = envContent.split(`${envVar.name}=`)[1]?.split("\n")[0] || "";
+      const match = envContent.match(new RegExp(`^${envVar.name}=(.*)$`, "m"));
+      const value = match ? match[1] : "";
       if (!value.trim()) {
         result.invalid.push(`${envVar.name} is set but empty`);
       }
