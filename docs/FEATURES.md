@@ -26,7 +26,7 @@ These are always enabled in the `pre_alpha` stack:
 - **Port**: 80 (HTTP), 443 (HTTPS)
 - **Configuration**: Routes all HTTP traffic based on path/domain rules
 
-#### `registry` (Verdaccio)
+#### `verdaccio` (Verdaccio)
 - **Purpose**: Local npm registry for package management and publishing
 - **Default**: ✅ Enabled
 - **Service Name**: `verdaccio`
@@ -213,7 +213,7 @@ These generators always run and don't have a feature flag:
 | Feature | Default | Customizable |
 |---------|---------|--------------|
 | proxy | ✅ | No |
-| registry | ✅ | No |
+| verdaccio | ✅ | No |
 | database | ✅ | No |
 | monitoring | ❌ | Yes |
 | elk | ❌ | Yes |

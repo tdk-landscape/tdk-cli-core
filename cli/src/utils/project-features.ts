@@ -30,8 +30,12 @@ export const PROJECT_FEATURES: Record<string, ProjectFeature> = {
     dependsOn: [],
   },
 
-  registry: {
-    name: "registry",
+  // Key/name must be the literal Tilt resource name (PlatformDockerConstants.VERDACCIO_RESOURCE_NAME
+  // in tdk-cli-extensions), since project.json's services list is copied verbatim into
+  // PRE_ALPHA_RESOURCES and matched against that name by should_enable(). "registry" would
+  // silently fail to enable Verdaccio.
+  verdaccio: {
+    name: "verdaccio",
     description: "Verdaccio npm registry for package management and local publishing",
     category: "core",
     phase: "pre_alpha",
