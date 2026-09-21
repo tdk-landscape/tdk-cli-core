@@ -36,6 +36,13 @@ const REQUIRED_ENV_VARS: EnvVariable[] = [
     required: false,
     default: "postgresql://postgres:postgres@postgres:5432/app_dev",
   },
+  {
+    name: "DB_PASSWORD",
+    description: "PostgreSQL superuser password (docker-compose POSTGRES_PASSWORD)",
+    required: true,
+    default: "postgres",
+    example: "postgres",
+  },
 ];
 
 export function generateEnvFile(projectRoot: string): string {
