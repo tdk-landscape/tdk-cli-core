@@ -5,6 +5,15 @@ node_modules/
 # Build output
 cli/dist/
 *.tsbuildinfo
+*.tgz
+
+# Staged into cli/ only at publish time (see scripts/stage-npm-engine.sh) -
+# real sources live at the repo root.
+cli/Tiltfile
+cli/engine/
+cli/discovery/
+cli/specs/
+cli/ext/
 
 # IDE
 .vscode/
