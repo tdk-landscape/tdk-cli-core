@@ -64,8 +64,13 @@ VALID_RESOURCE_TYPES = [
 ]
 
 VALID_FEATURES = [
-    "nats",
+    # Resource-level features (code generators)
+    "api-client",
+    "env-config",
+    "api-index",
     "prisma",
+    # Infrastructure features
+    "nats",
     "redis",
     "infisical",
     "vitest",

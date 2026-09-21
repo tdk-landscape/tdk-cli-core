@@ -114,6 +114,9 @@ def _test_constants():
     # Test VALID_FEATURES
     assert_in('nats', ManifestConstants.VALID_FEATURES, "nats should be valid feature")
     assert_in('prisma', ManifestConstants.VALID_FEATURES, "prisma should be valid feature")
+    assert_in('api-client', ManifestConstants.VALID_FEATURES, "api-client should be valid feature")
+    assert_in('env-config', ManifestConstants.VALID_FEATURES, "env-config should be valid feature")
+    assert_in('api-index', ManifestConstants.VALID_FEATURES, "api-index should be valid feature")
     
     # Test MANIFEST_DEFAULTS
     assert_equal(4000, ManifestConstants.MANIFEST_DEFAULTS['port'], "Default port should be 4000")

@@ -8,7 +8,7 @@
 
 # === INLINED CONSTANTS for pure extension loading ===
 VALID_STACKS = ()  # Stacks are project-specific, discovered dynamically
-VALID_FEATURES = "nats", "prisma", "redis", "infisical", "vitest", "traefik", "websocket", "graphql", "grpc", "vite-node", "maintenance"
+VALID_FEATURES = "api-client", "env-config", "api-index", "prisma", "nats", "redis", "infisical", "vitest", "traefik", "websocket", "graphql", "grpc", "vite-node", "maintenance"
 PORT_RANGES = {"frontend": {"min": 3000, "max": 5999}, "backend": {"min": 4000, "max": 5999}, "worker": {"min": 6000, "max": 6999}, "migrator": {"min": 7000, "max": 7999}, "sdk": {"min": 3000, "max": 9999}, "library": {"min": 3000, "max": 9999}}
 RUNTIME = "bun"
 TRAEFIK_CONFIG = {"entrypoint": "web", "network": "traefik-public", "default_host": "localhost", "default_port": 8080, "tls_enabled": False, "entrypoints": ["web"], "middlewares": [], "tls": {"enabled": False}, "healthcheck_path": "/health", "healthcheck_interval": "10s", "healthcheck_timeout": "5s", "frontend_priority_base": 100}

@@ -64,7 +64,7 @@ VALIDATION_THRESHOLDS = {
 VALID_STACKS = []
 
 # Valid features
-VALID_FEATURES = ["nats", "prisma", "vite-node", "websocket", "cron"]
+VALID_FEATURES = ["api-client", "env-config", "api-index", "prisma", "nats", "redis", "infisical", "vitest", "traefik", "websocket", "graphql", "grpc", "vite-node", "maintenance", "cron"]
 
 # Port ranges
 PORT_RANGES = {

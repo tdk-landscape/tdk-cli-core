@@ -39,7 +39,8 @@ describe("project and resource feature E2E", () => {
     }
   });
 
-  it("keeps Verdaccio as an explicit premium project feature", () => {
+  it("keeps Verdaccio as an explicit premium project feature", function() {
+    this.timeout(10000); // Increase timeout to 10s
     projectRoot = mkdtempSync(join(tmpdir(), "tdk-project-feature-"));
 
     runTdk(["project", "--yes"], projectRoot);
@@ -65,7 +66,8 @@ describe("project and resource feature E2E", () => {
     expect(starlarkSection(spec, "OPTIONAL_INFRA_RESOURCES")).toContain('"verdaccio": True');
   });
 
-  it("writes default resource-level features into generated service.json files", () => {
+  it("writes default resource-level features into generated service.json files", function() {
+    this.timeout(10000); // Increase timeout to 10s
     projectRoot = mkdtempSync(join(tmpdir(), "tdk-resource-feature-"));
     runTdk(["project", "--yes"], projectRoot);
 

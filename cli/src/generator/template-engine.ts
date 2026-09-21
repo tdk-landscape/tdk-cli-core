@@ -9,13 +9,36 @@ import { isStackFeatureEnabledInStacks } from "../utils/stack-features.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const templatesDir = path.join(__dirname, "..", "..", "templates");
 
-const tiltResourceDefaultsTemplate = fs.readFileSync(path.join(templatesDir, "TILT_RESOURCE_DEFAULTS.star.hbs"), "utf-8");
-const tiltTechStackTemplate = fs.readFileSync(path.join(templatesDir, "TILT_TECH_STACK.star.hbs"), "utf-8");
-const tiltfileTemplate = fs.readFileSync(path.join(templatesDir, "Tiltfile.hbs"), "utf-8");
-const tiltignoreTemplate = fs.readFileSync(path.join(templatesDir, ".tiltignore.hbs"), "utf-8");
-const specMasterTemplate = fs.readFileSync(path.join(templatesDir, "spec.master.hbs"), "utf-8");
+// Helper function to load templates with robust path resolution
+export function loadTemplate(filename: string): string {
+  // Try multiple possible template directory locations
+  const possiblePaths = [
+    path.join(__dirname, "..", "..", "templates"),  // Standard: dist/generator -> templates
+    path.join(__dirname, "..", "templates"),        // Installed: dist/generator -> dist/templates
+    path.join(__dirname, "..", "..", "..", "templates"), // Development: cli/dist/generator -> cli/templates
+    path.join(process.cwd(), "node_modules", "@tdk-landscape", "tdk-cli-core", "templates"), // Monorepo root
+  ];
+
+  for (const templatePath of possiblePaths) {
+    try {
+      const content = fs.readFileSync(templatePath, "utf-8");
+      return content;
+    } catch (error) {
+      // Try next path
+      continue;
+    }
+  }
+
+  throw new Error(`Failed to load template ${filename} from any of these paths: ${possiblePaths.join(", ")}`);
+}
+
+// Load all templates at module initialization
+const tiltResourceDefaultsTemplate = loadTemplate("TILT_RESOURCE_DEFAULTS.star.hbs");
+const tiltTechStackTemplate = loadTemplate("TILT_TECH_STACK.star.hbs");
+const tiltfileTemplate = loadTemplate("Tiltfile.hbs");
+const tiltignoreTemplate = loadTemplate(".tiltignore.hbs");
+const specMasterTemplate = loadTemplate("spec.master.hbs");
 
 interface GeneratorContext {
   version: string;

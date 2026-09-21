@@ -192,8 +192,13 @@ def get_valid_features():
         list: Valid feature flag names
     """
     return [
-        "nats",
+        # Resource-level features (code generators)
+        "api-client",
+        "env-config",
+        "api-index",
         "prisma",
+        # Infrastructure features
+        "nats",
         "redis",
         "infisical",
         "vitest",
