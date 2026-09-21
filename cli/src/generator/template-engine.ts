@@ -6,6 +6,7 @@ import { PLATFORM_STANDARDS } from "../config/platform-standards.js";
 import type { JsonValue, ProjectConfig } from "../types/index.js";
 import { writeTextFile } from "../utils/file-helpers.js";
 import { isStackFeatureEnabledInStacks } from "../utils/stack-features.js";
+import { hasVerdaccioLicense } from "./extension-fetch.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -378,6 +379,24 @@ export function readProjectConfig(projectRoot: string): ProjectConfig {
 
 export async function generateMasterConfigs(projectRoot: string): Promise<void> {
   const projectConfig = readProjectConfig(projectRoot);
+
+  // Verdaccio is Premium - this is the one choke point every path funnels
+  // through (project init, config regenerate, and the wizard all call this
+  // before `tdk up` reads .tdk-out), so it's the real enforcement, not just
+  // the CLI's `config enable-infra` guard. A hand-edited project.json with
+  // optional_infra.verdaccio: true can't skip the check; it just gets
+  // silently downgraded back to false with a warning.
+  if (projectConfig.optional_infra.verdaccio) {
+    const granted = await hasVerdaccioLicense(projectRoot);
+    if (!granted) {
+      console.warn(
+        "⚠️  Verdaccio is a Premium feature - no valid license key found. " +
+          "Disabling it for this generation. Set TDK_LICENSE_KEY to a key that grants it, " +
+          "or run `tdk config disable-infra verdaccio` to silence this warning.",
+      );
+      projectConfig.optional_infra.verdaccio = false;
+    }
+  }
 
   const outputDir = path.join(projectRoot, ".tdk", ".tdk-out");
   if (!fs.existsSync(outputDir)) {

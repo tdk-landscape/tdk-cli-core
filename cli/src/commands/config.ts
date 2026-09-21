@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import chalk from "chalk";
 import { Command } from "commander";
+import { hasVerdaccioLicense } from "../generator/extension-fetch.js";
 import {
   generateMasterConfigs,
   readProjectConfig,
@@ -239,6 +240,19 @@ async function toggleInfraService(service: string, enabled: boolean): Promise<vo
   // Validates service is in OPTIONAL_INFRA_SERVICES array
   const validation = validateOptionalInfraService(service);
   assertValid(validation);
+
+  // Verdaccio is a Premium feature - refuse to enable it without a license
+  // key that actually grants it, rather than writing a config that
+  // generateMasterConfigs will just silently downgrade back to false later.
+  if (service === "verdaccio" && enabled) {
+    const granted = await hasVerdaccioLicense(projectRoot);
+    if (!granted) {
+      throw new Error(
+        "Verdaccio is a Premium feature and requires a license key that grants it. " +
+          "Set export TDK_LICENSE_KEY=<key> (get one at https://tdk-landscape.github.io/#waitlist) and try again.",
+      );
+    }
+  }
 
   const config = readProjectConfig(projectRoot);
 

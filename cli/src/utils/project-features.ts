@@ -36,7 +36,8 @@ export const PROJECT_FEATURES: Record<string, ProjectFeature> = {
   // silently fail to enable Verdaccio.
   verdaccio: {
     name: "verdaccio",
-    description: "Verdaccio npm registry for package management and local publishing",
+    description:
+      "Verdaccio npm registry for package management and local publishing (Premium - requires TDK_LICENSE_KEY)",
     category: "premium",
     phase: "pre_alpha",
     enabled_by_default: false,
