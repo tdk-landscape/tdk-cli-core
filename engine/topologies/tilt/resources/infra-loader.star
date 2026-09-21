@@ -40,7 +40,59 @@ def _docker_compose(compose_paths, env_file):
     else:
         docker_compose(compose_paths)
 
-def _load_database_management(should_enable, root_prefix="", env_file=None):
+
+def _generate_database_management_compose():
+    """Generate the stack-feature compose for local PostgreSQL."""
+    name = PlatformDockerConstants.PROJECT_NAME
+    database_network = PlatformDockerConstants.NETWORK_DATABASE
+    return """###############################################################################
+# SYSTEM-GENERATED - DO NOT EDIT
+# Stack feature: database-management
+# Source: .tdk/project.json stacks.*.services includes "database-management"
+###############################################################################
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: {name}_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: {name}
+      POSTGRES_PASSWORD: ${{DB_PASSWORD}}
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - {name}_postgres_data:/var/lib/postgresql/data
+    networks:
+      - database
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {name} -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+networks:
+  database:
+    name: {database_network}
+    external: true
+
+volumes:
+  {name}_postgres_data:
+""".format(name=name, database_network=database_network)
+
+
+def _ensure_database_management_compose(root_prefix, write_fn):
+    """Ensure the database-management stack feature has its compose file."""
+    compose_rel = "services/platform/database-management/docker-compose.yml"
+    compose_file = root_prefix + compose_rel if root_prefix else compose_rel
+    if _file_exists(compose_file):
+        return compose_file
+    if write_fn:
+        write_fn(compose_rel, _generate_database_management_compose())
+    return compose_file
+
+def _load_database_management(should_enable, root_prefix="", env_file=None, write_fn=None):
     """Load database and messaging infrastructure."""
     if not should_enable('database-management'):
         print("DEBUG INFRA: database-management not enabled")
@@ -48,8 +100,8 @@ def _load_database_management(should_enable, root_prefix="", env_file=None):
     
     print("🗃️  Loading database management services...")
     
-    # Load postgres if compose file exists
-    postgres_compose = root_prefix + 'services/platform/database-management/docker-compose.yml'
+    # Load postgres from the database-management stack feature compose.
+    postgres_compose = _ensure_database_management_compose(root_prefix, write_fn)
     if _file_exists(postgres_compose):
         print("DEBUG INFRA: Loading postgres compose from {}".format(postgres_compose))
         _docker_compose(postgres_compose, env_file)
@@ -353,7 +405,7 @@ def load_all_infrastructure(should_enable, fix_docker_networks_fn=None, docker_p
         env_file = candidate_env_file if _file_exists(candidate_env_file) else None
 
     # Load infrastructure in order
-    _load_database_management(should_enable, root_prefix, env_file)
+    _load_database_management(should_enable, root_prefix, env_file, write_fn)
     _load_verdaccio(should_enable, root_prefix, env_file)
     _load_infisical(should_enable, root_prefix, env_file)
     _load_proxy(should_enable, root_prefix, env_file, write_fn)

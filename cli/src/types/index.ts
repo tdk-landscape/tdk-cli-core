@@ -127,6 +127,7 @@ export interface ProjectOptionalInfra {
   elk: boolean;
   debezium: boolean;
   golden_image: boolean;
+  verdaccio: boolean;
 }
 
 export interface ProjectDiscovery {

@@ -125,6 +125,7 @@ const DEFAULT_PROJECT_JSON = {
     elk: false,
     debezium: false,
     golden_image: true,
+    verdaccio: false,
   },
   discovery: {
     // Generic PSR layout (services/<stack>/<resource>/service.json) - every TDK example
@@ -319,6 +320,7 @@ export const projectCommand = new Command("project")
             message: "Enable optional infrastructure (high resource):",
             choices: Object.values(PROJECT_FEATURES)
               .filter((f) => f.category === "optional")
+              .concat(Object.values(PROJECT_FEATURES).filter((f) => f.category === "premium"))
               .map((f) => ({
                 name: f.description,
                 value: f.name,
@@ -352,6 +354,7 @@ export const projectCommand = new Command("project")
         projectConfig.optional_infra.elk = answers.optionalInfra.includes("elk");
         projectConfig.optional_infra.debezium = answers.optionalInfra.includes("debezium");
         projectConfig.optional_infra.golden_image = answers.optionalInfra.includes("golden_image");
+        projectConfig.optional_infra.verdaccio = answers.optionalInfra.includes("verdaccio");
         const parsedDiscoveryPaths = discoveryPaths
           .split(",")
           .map((p: string) => p.trim())

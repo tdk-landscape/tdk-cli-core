@@ -5,13 +5,13 @@
  * They are available to all resources and are configured in project.json stacks.
  *
  * Default: All CORE features enabled in pre_alpha stack
- * Optional: OPTIONAL features disabled by default (can be enabled in optional_infra)
+ * Optional/premium: disabled by default (can be enabled in optional_infra)
  */
 
 export interface ProjectFeature {
   name: string;
   description: string;
-  category: "core" | "optional";
+  category: "core" | "optional" | "premium";
   phase: "pre_alpha" | "alpha" | "beta";
   enabled_by_default: boolean;
   dependsOn?: string[];
@@ -37,9 +37,9 @@ export const PROJECT_FEATURES: Record<string, ProjectFeature> = {
   verdaccio: {
     name: "verdaccio",
     description: "Verdaccio npm registry for package management and local publishing",
-    category: "core",
+    category: "premium",
     phase: "pre_alpha",
-    enabled_by_default: true,
+    enabled_by_default: false,
     dependsOn: [],
   },
 

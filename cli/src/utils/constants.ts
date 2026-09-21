@@ -15,7 +15,13 @@ export const VALID_RESOURCE_TYPES: ResourceType[] = [
   "migrator",
 ] as const;
 
-export const OPTIONAL_INFRA_SERVICES = ["monitoring", "elk", "debezium", "golden_image"] as const;
+export const OPTIONAL_INFRA_SERVICES = [
+  "monitoring",
+  "elk",
+  "debezium",
+  "golden_image",
+  "verdaccio",
+] as const;
 
 export const PORT_RANGES = {
   frontend: { base: 3000, min: 3000, max: 3999, range: "3000-3999" as const },

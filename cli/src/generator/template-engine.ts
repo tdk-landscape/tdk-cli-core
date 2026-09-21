@@ -4,6 +4,7 @@ import Handlebars from "handlebars";
 import { PLATFORM_STANDARDS } from "../config/platform-standards.js";
 import type { JsonValue, ProjectConfig } from "../types/index.js";
 import { writeTextFile } from "../utils/file-helpers.js";
+import { isStackFeatureEnabledInStacks } from "../utils/stack-features.js";
 import tiltResourceDefaultsTemplate from "../../templates/TILT_RESOURCE_DEFAULTS.star.hbs" with { type: "text" };
 import tiltTechStackTemplate from "../../templates/TILT_TECH_STACK.star.hbs" with { type: "text" };
 import tiltfileTemplate from "../../templates/Tiltfile.hbs" with { type: "text" };
@@ -45,6 +46,7 @@ const INFRA_DESCRIPTIONS: Record<string, string> = {
   elk: "Elasticsearch/Logstash/Kibana",
   debezium: "CDC with Kafka/Zookeeper",
   golden_image: "Golden image rebuild (one-time)",
+  verdaccio: "Premium local npm registry",
 };
 
 /**
@@ -146,7 +148,6 @@ export class TemplateEngine {
       project: projectConfig.project,
       stacks: projectConfig.stacks,
       alwaysEnabledInfra: projectConfig.always_enabled_infra ?? [
-        "verdaccio",
         "database-management",
         "proxy",
         "infisical",
@@ -206,6 +207,49 @@ export class TemplateEngine {
   }
 }
 
+function toComposeProjectName(projectName: string): string {
+  return projectName.replace(/-/g, "_");
+}
+
+export function generateDatabaseManagementCompose(projectConfig: ProjectConfig): string {
+  const name = toComposeProjectName(projectConfig.project.name || "tdk_project");
+  return `###############################################################################
+# SYSTEM-GENERATED - DO NOT EDIT
+# Stack feature: database-management
+# Source: .tdk/project.json stacks.*.services includes "database-management"
+###############################################################################
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ${name}_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${name}
+      POSTGRES_PASSWORD: \${DB_PASSWORD}
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - ${name}_postgres_data:/var/lib/postgresql/data
+    networks:
+      - database
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${name} -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+networks:
+  database:
+    name: ${name}_database
+    external: true
+
+volumes:
+  ${name}_postgres_data:
+`;
+}
+
 /**
  * Type guard to validate if an unknown value is a valid ProjectConfig.
  *
@@ -256,7 +300,8 @@ function isProjectConfig(value: unknown): value is ProjectConfig {
     typeof optionalInfra.monitoring !== "boolean" ||
     typeof optionalInfra.elk !== "boolean" ||
     typeof optionalInfra.debezium !== "boolean" ||
-    typeof optionalInfra.golden_image !== "boolean"
+    typeof optionalInfra.golden_image !== "boolean" ||
+    typeof optionalInfra.verdaccio !== "boolean"
   ) {
     return false;
   }
@@ -311,6 +356,17 @@ export async function generateMasterConfigs(projectRoot: string): Promise<void> 
     const filePath = path.join(outputDir, filename);
     writeTextFile(filePath, content);
     console.log(`✓ Generated: .tdk/.tdk-out/${filename}`);
+  }
+
+  if (isStackFeatureEnabledInStacks(projectConfig.stacks, "database-management")) {
+    const composeDir = path.join(projectRoot, "services", "platform", "database-management");
+    fs.mkdirSync(composeDir, { recursive: true });
+    const composePath = path.join(
+      composeDir,
+      "docker-compose.yml",
+    );
+    writeTextFile(composePath, generateDatabaseManagementCompose(projectConfig));
+    console.log("✓ Generated: services/platform/database-management/docker-compose.yml");
   }
 
   // Copy .tiltignore to project root so Tilt uses it

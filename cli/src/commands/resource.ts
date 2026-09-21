@@ -10,6 +10,7 @@ import { errorFactories, requireProjectRoot, runCommand } from "../utils/errors.
 import { writeFilesWithProgress } from "../utils/file-helpers.js";
 import { showCommandHeader } from "../utils/formatting.js";
 import { assignPort } from "../utils/port-assignment.js";
+import { getDefaultFeaturesForResourceType } from "../utils/resource-features.js";
 import { discoverResources } from "../utils/services.js";
 import { createKebabCaseValidator, validateResourceName } from "../utils/validation.js";
 
@@ -73,6 +74,7 @@ export function createServiceJson(
     ...base,
     appName: name,
     appType: type,
+    features: getDefaultFeaturesForResourceType(type),
     name,
     type,
     stack,

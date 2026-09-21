@@ -266,7 +266,7 @@ configCommand
   .addCommand(
     new Command("enable-infra")
       .description("Enable optional infrastructure service")
-      .argument("<service>", "Service name (monitoring, elk, debezium, golden_image)")
+      .argument("<service>", "Service name (monitoring, elk, debezium, golden_image, verdaccio)")
       .action(async (service) => {
         await runCommand(async () => {
           await toggleInfraService(service, true);
@@ -276,7 +276,7 @@ configCommand
   .addCommand(
     new Command("disable-infra")
       .description("Disable optional infrastructure service")
-      .argument("<service>", "Service name (monitoring, elk, debezium, golden_image)")
+      .argument("<service>", "Service name (monitoring, elk, debezium, golden_image, verdaccio)")
       .action(async (service) => {
         await runCommand(async () => {
           await toggleInfraService(service, false);
