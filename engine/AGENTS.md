@@ -405,8 +405,13 @@ def setup_libraries(ctx, should_enable, DDD_LIBS, PLATFORM_LIBS, PRODUCT_LIBS, g
 
 ### Service Dependencies
 ```
-Infrastructure:
-  golden-image-l1 → golden-image-l2 → verdaccio → postgres
+Infrastructure (independent resources, each gated by should_enable(), no
+runtime dependency between them - see infra-loader.star's _load_* functions):
+  golden-image (L1-L4, built first as a Docker layer-cache optimization,
+                 not a runtime dependency of anything below)
+  database-management (postgres) - Free, on by default
+  verdaccio (npm registry)       - Premium, requires TDK_LICENSE_KEY
+  infisical, proxy, monitoring, debezium, elk - independent, opt-in
 
 Per-Service:
   manifest.json → {service}-config-gen → {service} (Docker)

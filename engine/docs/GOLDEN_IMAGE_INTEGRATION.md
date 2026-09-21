@@ -94,14 +94,15 @@ def L1_generate_os_base(base_image = None, maintainer = "TDK Landscape", use_gol
 
 ### 5. Configuration (`.tilt/core/registry/config.star`)
 
-Golden image is **enabled by default**:
+Golden image is **enabled by default**. Verdaccio is Premium and off by
+default - it requires TDK_LICENSE_KEY (see project-features.ts):
 
 ```starlark
 DEFAULTS = {
     # Infrastructure defaults
     'database-management': True,
     'proxy': True,
-    'verdaccio': True,
+    'verdaccio': False,  # Premium - requires TDK_LICENSE_KEY
     'golden-image': True,  # ← Added
     ...
 }

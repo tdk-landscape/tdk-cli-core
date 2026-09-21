@@ -245,7 +245,9 @@ package.json   ─┼─→ {service}-config-gen ───→ {service} (Docker)
                 │    (10+ generators)           (depends on configs)
                 │
 Infrastructure ─┘
-  golden-image-l1 → golden-image-l2 → verdaccio → postgres
+  golden-image (L1-L4 build cache, not a runtime dep) │ postgres (Free) │
+  verdaccio (Premium, requires TDK_LICENSE_KEY) - each independent,
+  gated by should_enable(), see infra-loader.star
 ```
 
 ---

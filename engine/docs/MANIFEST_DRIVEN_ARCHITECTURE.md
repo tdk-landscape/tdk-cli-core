@@ -200,8 +200,10 @@ package.json   ─┼─→ {service}-config-gen ───→ {service} (Docker)
 ### Full System Dependency Chain
 
 ```
-Infrastructure:
-  golden-image-l1 → golden-image-l2 → verdaccio → postgres
+Infrastructure (independent, no runtime dependency between them):
+  golden-image (L1-L4, build-cache optimization only)
+  postgres (database-management)  - Free, on by default
+  verdaccio (npm registry)        - Premium, requires TDK_LICENSE_KEY
 
 Per-Service:
   manifest.json → {service}-config-gen → {service} (Docker)
