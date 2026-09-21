@@ -81,4 +81,20 @@ describe("stack feature E2E", () => {
     expect(spec).not.toMatch(/"database-management":\s*True/);
     expect(spec).not.toContain("STACK_FEATURES");
   });
+
+  it("dedupes a duplicated service name in project.json instead of emitting a duplicate Starlark key", () => {
+    projectRoot = mkdtempSync(join(tmpdir(), "tdk-stack-feature-dupe-"));
+    runTdk(["project", "--yes"], projectRoot);
+
+    const projectJsonPath = join(projectRoot, ".tdk", "project.json");
+    const projectJson = JSON.parse(readFileSync(projectJsonPath, "utf-8"));
+    projectJson.stacks.pre_alpha.services.push("database-management");
+    writeFileSync(projectJsonPath, `${JSON.stringify(projectJson, null, 2)}\n`);
+
+    runTdk(["project"], projectRoot);
+
+    const spec = readFileSync(join(projectRoot, ".tdk", ".tdk-out", "spec.master"), "utf-8");
+    const matches = spec.match(/"database-management":\s*True/g) ?? [];
+    expect(matches.length).toBe(1);
+  });
 });
