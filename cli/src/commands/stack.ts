@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import chalk from "chalk";
 import { Command } from "commander";
-import inquirer from "inquirer";
+import prompts from "prompts";
 import { confirmOrCancel } from "../utils/command-helpers.js";
 import { clearDiscoveryCache, createDiscoveryContext } from "../utils/discovery-context.js";
 import { requireProjectRoot, runCommand } from "../utils/errors.js";
@@ -65,14 +65,15 @@ export const stackCommand = new Command("stack")
 
       let targetStack = stackName;
       if (!targetStack) {
-        const { name } = await inquirer.prompt([
-          {
-            type: "input",
-            name: "name",
-            message: "Stack name (kebab-case recommended):",
-            validate: createKebabCaseValidator("stack"),
+        const { name } = await prompts({
+          type: "text",
+          name: "name",
+          message: "Stack name (kebab-case recommended):",
+          validate: (input: string) => {
+            const validation = createKebabCaseValidator("stack")(input);
+            return validation === true || validation;
           },
-        ]);
+        });
         targetStack = name;
       }
 
@@ -83,22 +84,19 @@ export const stackCommand = new Command("stack")
         return;
       }
 
-      const { selectedResources } = await inquirer.prompt([
-        {
-          type: "checkbox",
-          name: "selectedResources",
-          message: `Select resources to add to stack "${targetStack}":`,
-          choices: resourcesToUpdate.map((r) => ({
-            name: r.name,
-            value: r.configPath,
-            checked: false,
-          })),
-          validate: (input: string[]) => {
-            if (input.length === 0) return "Select at least one resource";
-            return true;
-          },
+      const { selectedResources } = await prompts({
+        type: "multiselect",
+        name: "selectedResources",
+        message: `Select resources to add to stack "${targetStack}":`,
+        choices: resourcesToUpdate.map((r) => ({
+          title: r.name,
+          value: r.configPath,
+        })),
+        validate: (input: string[]) => {
+          if (input.length === 0) return "Select at least one resource";
+          return true;
         },
-      ]);
+      });
 
       if (selectedResources.length === 0) {
         console.log(chalk.yellow("No resources selected. Exiting."));

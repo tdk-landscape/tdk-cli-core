@@ -4,7 +4,7 @@ import { join, resolve } from "node:path";
 import { cwd } from "node:process";
 import chalk from "chalk";
 import { Command } from "commander";
-import inquirer from "inquirer";
+import prompts from "prompts";
 import { generateMasterConfigs, readProjectConfig } from "../generator/template-engine.js";
 import { MASTER_CONFIG_FILES } from "../utils/constants.js";
 import { errorFactories, runCommand, showErrorAndExit } from "../utils/errors.js";
@@ -219,14 +219,12 @@ export const projectCommand = new Command("project")
 
       if (projectJsonExists && options.force) {
         console.log(chalk.red("\n⚠️  WARNING: --force will overwrite .tdk/project.json!"));
-        const { confirm } = await inquirer.prompt([
-          {
-            type: "confirm",
-            name: "confirm",
-            message: "This will reset your project configuration. Continue?",
-            default: false,
-          },
-        ]);
+        const { confirm } = await prompts({
+          type: "confirm",
+          name: "confirm",
+          message: "This will reset your project configuration. Continue?",
+          initial: false,
+        });
         if (!confirm) {
           showCancelled();
           return;
@@ -262,68 +260,68 @@ export const projectCommand = new Command("project")
       } else {
         showStep("📝 Project Setup Wizard\n");
 
-        const answers = await inquirer.prompt([
+        const answers = await prompts([
           {
-            type: "input",
+            type: "text",
             name: "name",
             message: "Project name:",
-            default: projectRoot.split("/").pop() || "my-project",
+            initial: projectRoot.split("/").pop() || "my-project",
             validate: (input: string) => input.trim() !== "" || "Project name is required",
           },
           {
-            type: "input",
+            type: "text",
             name: "version",
             message: "Project version:",
-            default: "1.0.0-alpha",
+            initial: "1.0.0-alpha",
           },
           {
-            type: "checkbox",
+            type: "multiselect",
             name: "preAlphaServices",
             message: "Select Pre-Alpha services (core infrastructure):",
             choices: [
               ...Object.values(PROJECT_FEATURES)
                 .filter((f) => f.category === "core" && f.phase === "pre_alpha")
                 .map((f) => ({
-                  name: f.description,
+                  title: f.description,
                   value: f.name,
-                  checked: f.enabled_by_default,
+                  selected: f.enabled_by_default,
                 })),
               ...discoveredStacks.map((stack) => ({
-                name: `${stack} (discovered service stack)`,
+                title: `${stack} (discovered service stack)`,
                 value: stack,
-                checked: true,
+                selected: true,
               })),
             ],
           },
           {
-            type: "checkbox",
+            type: "multiselect",
             name: "alphaServices",
             message: "Select Alpha services (core business):",
             choices: [
-              { name: "api (Backend API)", value: "api" },
-              { name: "app (Frontend app)", value: "app" },
+              { title: "api (Backend API)", value: "api" },
+              { title: "app (Frontend app)", value: "app" },
             ],
           },
           {
-            type: "checkbox",
+            type: "multiselect",
             name: "betaServices",
             message: "Select Beta services (extended features):",
             choices: [
-              { name: "worker (Background jobs)", value: "worker" },
-              { name: "migrator (Database migrations)", value: "migrator" },
+              { title: "worker (Background jobs)", value: "worker" },
+              { title: "migrator (Database migrations)", value: "migrator" },
             ],
           },
           {
-            type: "checkbox",
+            type: "multiselect",
             name: "optionalInfra",
             message: "Enable optional infrastructure (high resource):",
             choices: Object.values(PROJECT_FEATURES)
               .filter((f) => f.category === "optional")
               .concat(Object.values(PROJECT_FEATURES).filter((f) => f.category === "premium"))
               .map((f) => ({
-                name: f.description,
+                title: f.description,
                 value: f.name,
-                checked: f.enabled_by_default,
+                selected: f.enabled_by_default,
               })),
           },
         ]);
@@ -334,14 +332,12 @@ export const projectCommand = new Command("project")
         showDetail("How: saved as discovery.paths in .tdk/project.json - editable later.");
         showDetail(`Example: ${DEFAULT_PROJECT_JSON.discovery.paths.join(", ")}\n`);
 
-        const { discoveryPaths } = await inquirer.prompt([
-          {
-            type: "input",
-            name: "discoveryPaths",
-            message: "Folders to scan:",
-            default: DEFAULT_PROJECT_JSON.discovery.paths.join(", "),
-          },
-        ]);
+        const { discoveryPaths } = await prompts({
+          type: "text",
+          name: "discoveryPaths",
+          message: "Folders to scan:",
+          initial: DEFAULT_PROJECT_JSON.discovery.paths.join(", "),
+        });
 
         projectConfig = JSON.parse(JSON.stringify(DEFAULT_PROJECT_JSON));
         projectConfig.project.name = answers.name;

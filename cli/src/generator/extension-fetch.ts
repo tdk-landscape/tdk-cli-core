@@ -1,9 +1,11 @@
 // Fetches the paid-tier "premium" resource bundle (playwright, c4-diagram,
 // logging, agents-md, and a few other extras - see tdk-cli-extensions/premium/) from
 // the gated distribution worker, when a license key is configured. The
-// free engine never needs this - every free resource (docker-compose,
-// verdaccio, npm, bun, etc.) is already public in this repo, no key
-// required.
+// free engine never needs this for its own resources - docker-compose,
+// npm, bun, etc. are already public in this repo, no key required.
+// Verdaccio is NOT free: it's gated separately by hasVerdaccioLicense()
+// below, since it's a live infra resource (not a file overlay) - see that
+// function's own comment for why it can't just be added to KNOWN_RESOURCES.
 //
 // The worker (tdk-extension-dist) is the real access-control boundary: it
 // checks the key against BUNDLES_REPO/keys/*.json - existence, activation/
@@ -170,4 +172,71 @@ export async function applyPremiumOverlay(projectRoot: string, destDir: string):
     console.warn(`⚠️  Failed to apply premium overlay: ${(err as Error).message}`);
     return false;
   }
+}
+
+function verdaccioAccessCachePath(key: string): string {
+  const safeName = key.replace(/[^a-zA-Z0-9_-]/g, "_");
+  return join(homedir(), ".tdk", "cache", `premium-${safeName}`, "verdaccio-access.json");
+}
+
+/**
+ * Checks whether the configured license key grants the "verdaccio"
+ * resource. Unlike applyPremiumOverlay, this isn't a file overlay -
+ * Verdaccio is a live Tilt/Docker resource baked into the free engine, so
+ * there's nothing to swap on disk. It can't reuse KNOWN_RESOURCES/
+ * fetchPremiumBundle either: that loop stops at the FIRST resource the key
+ * grants and would report false for a key that grants verdaccio but not,
+ * say, playwright (or vice versa), since applyPremiumOverlay's success is
+ * measured by files actually applied from PREMIUM_PATH_MAP - which has no
+ * verdaccio entry.
+ *
+ * Best-effort like applyPremiumOverlay: returns false (never throws) if
+ * there's no key, the fetch fails, or the worker denies the resource - the
+ * caller decides what "not licensed" means for verdaccio (currently:
+ * refuse to enable it). Caches the grant/deny outcome (not the bundle
+ * itself, which we never need here) for CACHE_TTL_MS so repeated checks
+ * don't re-download the full premium.tar.gz just to read a status code.
+ */
+export async function hasVerdaccioLicense(projectRoot: string): Promise<boolean> {
+  const key = getLicenseKey();
+  if (!key) return false;
+
+  const cachePath = verdaccioAccessCachePath(key);
+  if (isCacheFresh(cachePath)) {
+    try {
+      const cached = JSON.parse(readFileSync(cachePath, "utf-8")) as { granted: boolean };
+      return cached.granted === true;
+    } catch {
+      // Corrupt/unreadable cache - fall through and re-check live.
+    }
+  }
+
+  const projectId = getOrCreateProjectId(projectRoot);
+  const endpoint = getEndpoint();
+  const url =
+    `${endpoint}?key=${encodeURIComponent(key)}` +
+    `&resource=verdaccio&projectId=${encodeURIComponent(projectId)}`;
+
+  let granted = false;
+  try {
+    const res = await fetch(url);
+    granted = res.ok;
+    // Drain the body (a full premium.tar.gz on success) so we don't leave
+    // it dangling - we only need the status, not the content.
+    if (res.body) {
+      await res.arrayBuffer().catch(() => undefined);
+    }
+  } catch (err) {
+    console.warn(`⚠️  Verdaccio license check failed (network error): ${(err as Error).message}`);
+    return false;
+  }
+
+  try {
+    mkdirSync(join(cachePath, ".."), { recursive: true });
+    writeFileSync(cachePath, JSON.stringify({ granted, checked: new Date().toISOString() }));
+  } catch {
+    // Best-effort cache; a write failure just means we re-check next time.
+  }
+
+  return granted;
 }

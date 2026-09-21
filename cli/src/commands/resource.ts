@@ -2,7 +2,7 @@ import { existsSync, mkdirSync } from "node:fs";
 import { isAbsolute, relative, resolve } from "node:path";
 import chalk from "chalk";
 import { Command } from "commander";
-import inquirer from "inquirer";
+import prompts from "prompts";
 import type { CreatableResourceType, FileGenerationTask } from "../types/index.js";
 import { CREATABLE_RESOURCE_TYPES } from "../types/index.js";
 import { assertValid, confirmOrCancel } from "../utils/command-helpers.js";
@@ -349,14 +349,15 @@ export const resourceCommand = new Command("resource")
 
       let resourceName = name;
       if (!resourceName) {
-        const { inputName } = await inquirer.prompt([
-          {
-            type: "input",
-            name: "inputName",
-            message: "Resource name (kebab-case):",
-            validate: createKebabCaseValidator("resource"),
+        const { inputName } = await prompts({
+          type: "text",
+          name: "inputName",
+          message: "Resource name (kebab-case):",
+          validate: (input: string) => {
+            const validation = createKebabCaseValidator("resource")(input);
+            return validation === true || validation;
           },
-        ]);
+        });
         resourceName = inputName;
       } else {
         assertValid(validateResourceName(resourceName));
@@ -366,19 +367,17 @@ export const resourceCommand = new Command("resource")
       let resourceType: CreatableResourceType | "sdk";
       const validTypes = [...CREATABLE_RESOURCE_TYPES, "sdk"] as const;
       if (!validTypes.includes(options.type)) {
-        const { selectedType } = await inquirer.prompt([
-          {
-            type: "list",
-            name: "selectedType",
-            message: "Resource type:",
-            choices: [
-              { name: "backend - API service with HTTP endpoints", value: "backend" },
-              { name: "frontend - Web application/UI", value: "frontend" },
-              { name: "worker - Background job processor", value: "worker" },
-              { name: "sdk - Library/SDK (register existing)", value: "sdk" },
-            ],
-          },
-        ]);
+        const { selectedType } = await prompts({
+          type: "select",
+          name: "selectedType",
+          message: "Resource type:",
+          choices: [
+            { title: "backend - API service with HTTP endpoints", value: "backend" },
+            { title: "frontend - Web application/UI", value: "frontend" },
+            { title: "worker - Background job processor", value: "worker" },
+            { title: "sdk - Library/SDK (register existing)", value: "sdk" },
+          ],
+        });
         resourceType = selectedType;
       } else {
         resourceType = options.type;
@@ -394,41 +393,41 @@ export const resourceCommand = new Command("resource")
         const existingStacks = Array.from(stackSet);
 
         if (existingStacks.length > 0) {
-          const { selectedStack } = await inquirer.prompt([
-            {
-              type: "list",
-              name: "selectedStack",
-              message: "Assign to stack:",
-              choices: [
-                ...existingStacks.map((s) => ({ name: s, value: s })),
-                { name: "Create new stack", value: "__new__" },
-              ],
-            },
-          ]);
+          const { selectedStack } = await prompts({
+            type: "select",
+            name: "selectedStack",
+            message: "Assign to stack:",
+            choices: [
+              ...existingStacks.map((s) => ({ title: s, value: s })),
+              { title: "Create new stack", value: "__new__" },
+            ],
+          });
 
           if (selectedStack === "__new__") {
-            const { newStack } = await inquirer.prompt([
-              {
-                type: "input",
-                name: "newStack",
-                message: "New stack name:",
-                validate: createKebabCaseValidator("stack"),
+            const { newStack } = await prompts({
+              type: "text",
+              name: "newStack",
+              message: "New stack name:",
+              validate: (input: string) => {
+                const validation = createKebabCaseValidator("stack")(input);
+                return validation === true || validation;
               },
-            ]);
+            });
             stackName = newStack;
           } else {
             stackName = selectedStack;
           }
         } else {
-          const { newStack } = await inquirer.prompt([
-            {
-              type: "input",
-              name: "newStack",
-              message: "Stack name (first resource):",
-              default: "main",
-              validate: createKebabCaseValidator("stack"),
+          const { newStack } = await prompts({
+            type: "text",
+            name: "newStack",
+            message: "Stack name (first resource):",
+            initial: "main",
+            validate: (input: string) => {
+              const validation = createKebabCaseValidator("stack")(input);
+              return validation === true || validation;
             },
-          ]);
+          });
           stackName = newStack;
         }
       }

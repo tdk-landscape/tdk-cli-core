@@ -1,7 +1,7 @@
-import { spawnSync } from "child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "fs";
-import { tmpdir } from "os";
-import { join } from "path";
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 /**
  * Extracts a gzipped tarball (as an in-memory buffer) into destDir.

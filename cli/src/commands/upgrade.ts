@@ -450,15 +450,13 @@ export const upgradeCommand = new Command("upgrade")
 
     if (!options.yes) {
       console.log();
-      const { confirm } = await import("inquirer").then((m) =>
-        m.default.prompt([
-          {
-            type: "confirm",
-            name: "confirm",
-            message: "Proceed with upgrade?",
-            default: true,
-          },
-        ]),
+      const { confirm } = await import("prompts").then((m) =>
+        m.default({
+          type: "confirm",
+          name: "confirm",
+          message: "Proceed with upgrade?",
+          initial: true,
+        }),
       );
 
       if (!confirm) {
