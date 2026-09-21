@@ -188,17 +188,18 @@ def _load_infisical(should_enable, root_prefix="", env_file=None):
 # 🌐 PROXY (Traefik)
 # =============================================================================
 
-def _check_traefik_port_conflict():
-    """Fail fast with an actionable message if another TDK project's standalone
-    Traefik already holds host port 80/8080.
+def _stop_conflicting_traefik():
+    """Auto-stop another TDK project's standalone Traefik if it already holds
+    host port 80/8080, so `tdk up` on a new project always wins over a stale
+    Traefik left running from a previous one.
 
     Each standalone project gets its own container name and Docker network
     (see PlatformDockerConstants.PROJECT_NAME), but the host ports are hardcoded
     to 80/8080 so `api.{project}.localhost` works without a port suffix. That
-    means only one standalone project's Traefik can run at a time. Without this
-    check, a stale Traefik from a *different* project makes `docker compose up`
-    fail deep inside Tilt with a cryptic "port is already allocated" networking
-    error instead of telling the user what to do about it.
+    means only one standalone project's Traefik can run at a time. Without this,
+    starting a second project while another's Traefik is still running fails
+    deep inside `docker compose up` with a cryptic "port is already allocated"
+    networking error instead of just taking over the port.
     """
     own_container = PlatformDockerConstants.PROJECT_NAME + "_traefik"
     result = str(local(
@@ -208,16 +209,16 @@ def _check_traefik_port_conflict():
     for container in result.split("\n"):
         container = container.strip()
         if container and container != own_container:
-            fail((
-                "Port 80/8080 is already in use by another TDK project's Traefik ('{other}').\n" +
-                "Only one standalone TDK project can bind port 80 at a time.\n" +
-                "Stop it first, then retry: docker stop {other}"
-            ).format(other=container))
+            print("🛑 Stopping Traefik from another TDK project ('{}') — it was holding host port 80/8080".format(container))
+            local(
+                "docker stop '{}' >/dev/null 2>&1 || true".format(container),
+                quiet=True, echo_off=True,
+            )
 
 
 def _load_standalone_traefik(root_prefix, env_file, write_fn):
     """Generate and load a self-contained Traefik compose for standalone projects."""
-    _check_traefik_port_conflict()
+    _stop_conflicting_traefik()
     compose_rel = ".tdk/.tdk-out/docker-compose.traefik.yml"
     content = generate_standalone_traefik_compose()
     if write_fn:

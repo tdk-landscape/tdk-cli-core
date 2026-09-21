@@ -211,6 +211,9 @@ def get_valid_resource_features():
         "grpc",
         "vite-node",
         "maintenance",
+        # Premium (requires TDK_LICENSE_KEY) - see generate_backend_path_aliases()
+        # in engine/topologies/tilt/generators/vite/helpers.star
+        "ddd",
     ]
 
 

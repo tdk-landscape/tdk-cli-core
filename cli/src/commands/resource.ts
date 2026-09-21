@@ -2,6 +2,7 @@ import { existsSync, mkdirSync } from "node:fs";
 import { isAbsolute, relative, resolve } from "node:path";
 import chalk from "chalk";
 import { Command } from "commander";
+import { hasDddLicense } from "../generator/extension-fetch.js";
 import type { CreatableResourceType, FileGenerationTask } from "../types/index.js";
 import { CREATABLE_RESOURCE_TYPES } from "../types/index.js";
 import { assertValid, confirmOrCancel } from "../utils/command-helpers.js";
@@ -58,6 +59,7 @@ export function createServiceJson(
   type: CreatableResourceType,
   stack: string,
   port: number,
+  extraFeatures: string[] = [],
 ) {
   const typeSpecific = TYPE_SPECIFIC[type];
 
@@ -74,7 +76,7 @@ export function createServiceJson(
     ...base,
     appName: name,
     appType: type,
-    features: getDefaultFeaturesForResourceType(type),
+    features: [...getDefaultFeaturesForResourceType(type), ...extraFeatures],
     name,
     type,
     stack,
@@ -336,6 +338,10 @@ export const resourceCommand = new Command("resource")
   .option("-p, --path <path>", "Custom path for resource directory")
   .option("--resource-path <path>", "Alias for --path (for backward compatibility)")
   .option("--register-existing", "Register an existing resource without creating templates")
+  .option(
+    "--ddd",
+    "Scaffold DDD (domain-driven design) folders + path aliases (Premium - requires TDK_LICENSE_KEY)",
+  )
   .action(async (name, options) => {
     await runCommand(async () => {
       const projectRoot = requireProjectRoot();
@@ -377,6 +383,26 @@ export const resourceCommand = new Command("resource")
         resourceType = selectedType;
       } else {
         resourceType = options.type;
+      }
+
+      let dddEnabled = false;
+      if (options.ddd) {
+        if (resourceType !== "backend" && resourceType !== "worker") {
+          console.log(
+            chalk.yellow(
+              `\n⚠️  --ddd only applies to backend/worker resources, ignoring for type "${resourceType}"`,
+            ),
+          );
+        } else {
+          const granted = await hasDddLicense(projectRoot);
+          if (!granted) {
+            throw new Error(
+              "DDD scaffolding is a Premium feature and requires a license key that grants it. " +
+                "Set export TDK_LICENSE_KEY=<key> (get one at https://tdk-landscape.github.io/#waitlist) and try again.",
+            );
+          }
+          dddEnabled = true;
+        }
       }
 
       let stackName = options.stack;
@@ -515,6 +541,11 @@ export const resourceCommand = new Command("resource")
       mkdirSync(fullPath, { recursive: true });
       mkdirSync(resolve(fullPath, "src"), { recursive: true });
       mkdirSync(resolve(fullPath, "tests"), { recursive: true });
+      if (dddEnabled) {
+        for (const layer of ["domain", "application", "infrastructure", "presentation"]) {
+          mkdirSync(resolve(fullPath, "src", layer), { recursive: true });
+        }
+      }
 
       // Prepare file generation tasks
       const serviceJson = createServiceJson(
@@ -522,6 +553,7 @@ export const resourceCommand = new Command("resource")
         resourceType as CreatableResourceType,
         stackName,
         assignedPort,
+        dddEnabled ? ["ddd"] : [],
       );
       const packageJson = createPackageJson(resourceName, resourceType);
 

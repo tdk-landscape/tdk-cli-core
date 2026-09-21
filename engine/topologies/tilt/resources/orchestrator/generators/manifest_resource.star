@@ -404,8 +404,9 @@ def _generate_all_configs_for_resource(
         TSConfig.frontend(resource_path, write_file, internal_deps=internal_deps_map, is_docker=False)
     else:
         prisma_path = resource_config.get('prisma_client_path', './node_modules/.prisma/client')
-        TSConfig.backend(resource_path, prisma_path, write_file, internal_deps=internal_deps_map, is_docker=True)
-        TSConfig.backend(resource_path, prisma_path, write_file, internal_deps=internal_deps_map, is_docker=False)
+        resource_features = manifest.get('features', [])
+        TSConfig.backend(resource_path, prisma_path, write_file, internal_deps=internal_deps_map, is_docker=True, features=resource_features)
+        TSConfig.backend(resource_path, prisma_path, write_file, internal_deps=internal_deps_map, is_docker=False, features=resource_features)
         
         # Prisma config
         db_name = _get_db_name_for_resource(resource_name, resource_config['name'])
