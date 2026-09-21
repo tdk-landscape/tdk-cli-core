@@ -145,7 +145,7 @@ async function getLatestVersion(): Promise<string | null> {
   const spinner = ora("Checking for latest version...").start();
 
   try {
-    const result = execSync("npm view @tdk/cli version", {
+    const result = execSync("npm view @tdk-landscape/tdk-cli-core version", {
       encoding: "utf-8",
       timeout: 10000,
     }).trim();
@@ -166,7 +166,7 @@ async function upgradeViaNpm(): Promise<boolean> {
   const spinner = ora("Upgrading via npm...").start();
 
   try {
-    execSync("npm install -g @tdk/cli@latest", {
+    execSync("npm install -g @tdk-landscape/tdk-cli-core@latest", {
       stdio: "inherit",
       timeout: 120000,
     });
@@ -194,7 +194,7 @@ async function upgradeViaBun(): Promise<boolean> {
   const spinner = ora("Upgrading via bun...").start();
 
   try {
-    execSync("bun install -g @tdk/cli@latest", {
+    execSync("bun install -g @tdk-landscape/tdk-cli-core@latest", {
       stdio: "inherit",
       timeout: 120000,
     });

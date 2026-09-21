@@ -151,7 +151,7 @@ try {
 #### 8. `cli/src/commands/upgrade.ts` (lines 58-73)
 ```typescript
 try {
-  const result = execSync('npm view @tdk/cli version', { ... });
+  const result = execSync('npm view @tdk-landscape/tdk-cli-core version', { ... });
   return result.trim();
 } catch (err: unknown) {
   spinner.warn('Package not yet published to npm registry');
@@ -170,7 +170,7 @@ try {
 try/catch
 ```typescript
 try {
-  execSync('npm install -g @tdk/cli@latest', { ... });
+  execSync('npm install -g @tdk-landscape/tdk-cli-core@latest', { ... });
 } catch (err: unknown) {
   // npm registry failed - try GitHub fallback
   try {
@@ -191,7 +191,7 @@ try {
 #### 10. `cli/src/commands/upgrade.ts` (lines 104-130) - NESTED
 ```typescript
 try {
-  execSync('bun install -g @tdk/cli@latest', { ... });
+  execSync('bun install -g @tdk-landscape/tdk-cli-core@latest', { ... });
 } catch (err: unknown) {
   // bun registry failed - try GitHub fallback
   try {

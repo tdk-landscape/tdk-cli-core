@@ -40,7 +40,7 @@ function getPackageInfo(): PackageInfo {
   const packageInfo = parsed as JsonObject;
 
   packageCache = {
-    name: String(packageInfo.name ?? "@tdk/cli"),
+    name: String(packageInfo.name ?? "@tdk-landscape/tdk-cli-core"),
     version: String(packageInfo.version ?? "0.0.0"),
     fullPackage: packageInfo,
   };

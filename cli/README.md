@@ -2,7 +2,7 @@
 
 > **T**ilt **D**evelopment **K**it - All-in-one local development platform for microservices
 
-[![npm version](https://img.shields.io/npm/v/@tdk/cli.svg?style=flat&color=blue)](https://www.npmjs.com/package/@tdk/cli)
+[![npm version](https://img.shields.io/npm/v/@tdk-landscape/tdk-cli-core.svg?style=flat&color=blue)](https://www.npmjs.com/package/@tdk-landscape/tdk-cli-core)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
@@ -31,9 +31,9 @@ TDK CLI organizes your microservices using a clear **Project-Stack-Resource (PSR
 ## 📦 Installation
 
 ```bash
-npm install -g @tdk/cli
+npm install -g @tdk-landscape/tdk-cli-core
 # or
-bun install -g @tdk/cli
+bun install -g @tdk-landscape/tdk-cli-core
 ```
 
 ---

@@ -135,8 +135,8 @@ The public API surface remains unchanged. Existing consumers of these types will
 
 ```typescript
 // Both patterns continue to work:
-import { FileGenerationTask } from '@tdk/cli';        // ✅ Works
-import type { FileGenerationTask } from '@tdk/cli';    // ✅ Works
+import { FileGenerationTask } from '@tdk-landscape/tdk-cli-core';        // ✅ Works
+import type { FileGenerationTask } from '@tdk-landscape/tdk-cli-core';    // ✅ Works
 ```
 
 ---
