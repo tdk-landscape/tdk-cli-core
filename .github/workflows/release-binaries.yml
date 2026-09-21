@@ -1,4 +1,4 @@
-name: Release binaries
+name: Release binaries and npm package
 
 on:
   push:
@@ -19,9 +19,31 @@ jobs:
         with:
           bun-version: latest
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: "https://registry.npmjs.org"
+
       - run: bun install --frozen-lockfile
         working-directory: cli
 
       - run: scripts/release-binaries.sh --publish
         env:
           GH_TOKEN: ${{ secrets.BINARY_RELEASE_TOKEN }}
+
+      # cli/package.json's prepack script (scripts/stage-npm-engine.sh) copies
+      # Tiltfile/engine/discovery/specs/ext into cli/ before packing, so the
+      # published tarball is self-contained the same way the binary release
+      # is - npm can't overwrite an already-published version, so skip
+      # instead of failing when this run didn't bump the version.
+      - name: Publish to npm
+        working-directory: cli
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          if npm view "@tdk-landscape/tdk-cli-core@${PKG_VERSION}" version >/dev/null 2>&1; then
+            echo "@tdk-landscape/tdk-cli-core@${PKG_VERSION} is already published, skipping."
+          else
+            npm publish --access public
+          fi
