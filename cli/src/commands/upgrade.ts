@@ -112,10 +112,20 @@ function isWritable(path: string): boolean {
 }
 
 async function upgradeViaBinary(tdkPath: string, release: BinaryRelease): Promise<boolean> {
+  // Never shells out to sudo - if the install dir isn't user-writable, fail
+  // fast with the manual curl command instead of downloading first and
+  // elevating automatically. The user runs that curl themselves.
+  const installDir = dirname(tdkPath);
+  if (!isWritable(installDir)) {
+    console.log(chalk.yellow(`\n🔒 ${installDir} isn't writable by your user.`));
+    console.log(chalk.yellow("💡 Upgrade manually instead:"));
+    console.log(chalk.cyan(`   curl -fsSL -o ${tdkPath} ${release.downloadUrl}`));
+    console.log(chalk.cyan(`   chmod +x ${tdkPath}`));
+    return false;
+  }
+
   const spinner = ora(`Downloading ${release.assetName} (${release.tag})...`).start();
-  // Download to /tmp so we don't need write permission to the install dir
-  // (e.g. /usr/local/bin) during the curl step. We only need it for the
-  // final mv, which is a single atomic operation.
+  // Download to /tmp so a failed mv can't leave a half-written binary at tdkPath.
   const tmpPath = `/tmp/tdk-upgrade-${release.assetName}`;
 
   try {
@@ -124,23 +134,7 @@ async function upgradeViaBinary(tdkPath: string, release: BinaryRelease): Promis
       timeout: 120000,
     });
     execSync(`chmod +x ${JSON.stringify(tmpPath)}`);
-
-    // install.sh checks writability the same way and elevates automatically -
-    // mirror that here instead of failing and telling the user to retype the
-    // whole command with sudo.
-    const installDir = dirname(tdkPath);
-    if (isWritable(installDir)) {
-      execSync(`mv ${JSON.stringify(tmpPath)} ${JSON.stringify(tdkPath)}`);
-    } else {
-      spinner.stop();
-      console.log(
-        chalk.yellow(`\n🔒 ${installDir} isn't writable - requesting sudo to finish the install.`),
-      );
-      execSync(`sudo mv ${JSON.stringify(tmpPath)} ${JSON.stringify(tdkPath)}`, {
-        stdio: "inherit",
-      });
-      spinner.start();
-    }
+    execSync(`mv ${JSON.stringify(tmpPath)} ${JSON.stringify(tdkPath)}`);
     spinner.succeed(`Upgraded to ${release.tag}`);
     return true;
   } catch (err: unknown) {
@@ -151,8 +145,9 @@ async function upgradeViaBinary(tdkPath: string, release: BinaryRelease): Promis
     } catch {
       // best-effort cleanup
     }
-    console.log(chalk.yellow("\n💡 If this failed due to permissions, try:"));
-    console.log(chalk.cyan(`   sudo tdk upgrade`));
+    console.log(chalk.yellow("\n💡 If this failed due to permissions, upgrade manually instead:"));
+    console.log(chalk.cyan(`   curl -fsSL -o ${tdkPath} ${release.downloadUrl}`));
+    console.log(chalk.cyan(`   chmod +x ${tdkPath}`));
     return false;
   }
 }
