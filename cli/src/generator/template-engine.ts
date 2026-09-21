@@ -183,7 +183,7 @@ export class TemplateEngine {
       docker: PLATFORM_STANDARDS.docker,
       runtime: PLATFORM_STANDARDS.runtime,
       project: projectConfig.project,
-      stacks: projectConfig.stacks,
+      stacks: dedupeStackServices(projectConfig.stacks),
       alwaysEnabledInfra: projectConfig.always_enabled_infra ?? [
         "database-management",
         "proxy",
@@ -242,6 +242,22 @@ export class TemplateEngine {
       ".tiltignore": this.generateTiltIgnore(context),
     };
   }
+}
+
+// spec.master.hbs emits one Starlark dict entry per services[] item, so a
+// duplicate name in project.json (e.g. from the interactive wizard offering
+// the same service as both a core feature and a discovered stack) becomes a
+// duplicate dict key, which fails Starlark parsing at `tdk up`. Dedupe here
+// so a bad project.json can't break generation.
+function dedupeStackServices(stacks: ProjectConfig["stacks"]): ProjectConfig["stacks"] {
+  const deduped = { ...stacks };
+  for (const key of Object.keys(deduped) as (keyof ProjectConfig["stacks"])[]) {
+    deduped[key] = {
+      ...deduped[key],
+      services: Array.from(new Set(deduped[key].services)),
+    };
+  }
+  return deduped;
 }
 
 function toComposeProjectName(projectName: string): string {

@@ -267,21 +267,30 @@ export const projectCommand = new Command("project")
           message: "Project version:",
           initial: "1.0.0-alpha",
         });
+        const corePreAlphaFeatures = Object.values(PROJECT_FEATURES).filter(
+          (f) => f.category === "core" && f.phase === "pre_alpha",
+        );
+        const corePreAlphaNames = new Set(corePreAlphaFeatures.map((f) => f.name));
         const preAlphaServices = await promptMultiSelect({
           message: "Select Pre-Alpha services (core infrastructure):",
           choices: [
-            ...Object.values(PROJECT_FEATURES)
-              .filter((f) => f.category === "core" && f.phase === "pre_alpha")
-              .map((f) => ({
-                title: f.description,
-                value: f.name,
-                selected: f.enabled_by_default,
-              })),
-            ...discoveredStacks.map((stack) => ({
-              title: `${stack} (discovered service stack)`,
-              value: stack,
-              selected: true,
+            ...corePreAlphaFeatures.map((f) => ({
+              title: f.description,
+              value: f.name,
+              selected: f.enabled_by_default,
             })),
+            // Exclude discovered stacks that duplicate a core feature name (e.g. a
+            // "database-management" service dir) - otherwise the same value shows
+            // up as two checked boxes and accepting defaults writes it twice into
+            // project.json, which the generator later emits as a duplicate
+            // Starlark dict key and Tilt refuses to parse.
+            ...discoveredStacks
+              .filter((stack) => !corePreAlphaNames.has(stack))
+              .map((stack) => ({
+                title: `${stack} (discovered service stack)`,
+                value: stack,
+                selected: true,
+              })),
           ],
         });
         const alphaServices = await promptMultiSelect({
@@ -324,9 +333,9 @@ export const projectCommand = new Command("project")
         projectConfig = JSON.parse(JSON.stringify(DEFAULT_PROJECT_JSON));
         projectConfig.project.name = projectName;
         projectConfig.project.version = projectVersion;
-        projectConfig.stacks.pre_alpha.services = preAlphaServices;
-        projectConfig.stacks.alpha.services = alphaServices;
-        projectConfig.stacks.beta.services = betaServices;
+        projectConfig.stacks.pre_alpha.services = Array.from(new Set(preAlphaServices));
+        projectConfig.stacks.alpha.services = Array.from(new Set(alphaServices));
+        projectConfig.stacks.beta.services = Array.from(new Set(betaServices));
         projectConfig.optional_infra.monitoring = optionalInfra.includes("monitoring");
         projectConfig.optional_infra.elk = optionalInfra.includes("elk");
         projectConfig.optional_infra.debezium = optionalInfra.includes("debezium");
