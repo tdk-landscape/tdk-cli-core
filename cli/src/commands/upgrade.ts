@@ -1,5 +1,5 @@
 import { execSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { accessSync, constants, existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import chalk from "chalk";
@@ -102,6 +102,15 @@ async function getLatestBinaryRelease(): Promise<BinaryRelease | null> {
   }
 }
 
+function isWritable(path: string): boolean {
+  try {
+    accessSync(path, constants.W_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function upgradeViaBinary(tdkPath: string, release: BinaryRelease): Promise<boolean> {
   const spinner = ora(`Downloading ${release.assetName} (${release.tag})...`).start();
   // Download to /tmp so we don't need write permission to the install dir
@@ -115,7 +124,23 @@ async function upgradeViaBinary(tdkPath: string, release: BinaryRelease): Promis
       timeout: 120000,
     });
     execSync(`chmod +x ${JSON.stringify(tmpPath)}`);
-    execSync(`mv ${JSON.stringify(tmpPath)} ${JSON.stringify(tdkPath)}`);
+
+    // install.sh checks writability the same way and elevates automatically -
+    // mirror that here instead of failing and telling the user to retype the
+    // whole command with sudo.
+    const installDir = dirname(tdkPath);
+    if (isWritable(installDir)) {
+      execSync(`mv ${JSON.stringify(tmpPath)} ${JSON.stringify(tdkPath)}`);
+    } else {
+      spinner.stop();
+      console.log(
+        chalk.yellow(`\n🔒 ${installDir} isn't writable - requesting sudo to finish the install.`),
+      );
+      execSync(`sudo mv ${JSON.stringify(tmpPath)} ${JSON.stringify(tdkPath)}`, {
+        stdio: "inherit",
+      });
+      spinner.start();
+    }
     spinner.succeed(`Upgraded to ${release.tag}`);
     return true;
   } catch (err: unknown) {
