@@ -36,11 +36,21 @@ jobs:
       # published tarball is self-contained the same way the binary release
       # is - npm can't overwrite an already-published version, so skip
       # instead of failing when this run didn't bump the version.
+      #
+      # Optional: NPM_TOKEN isn't set up yet, so this step is allowed to fail
+      # without failing the job or blocking the binary release above. Once
+      # NPM_TOKEN exists, publish failures here become worth acting on again -
+      # drop continue-on-error at that point.
       - name: Publish to npm
         working-directory: cli
+        continue-on-error: true
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
+          if [ -z "${NODE_AUTH_TOKEN}" ]; then
+            echo "::warning::NPM_TOKEN is not set, skipping npm publish."
+            exit 0
+          fi
           PKG_VERSION=$(node -p "require('./package.json').version")
           if npm view "@tdk-landscape/tdk-cli-core@${PKG_VERSION}" version >/dev/null 2>&1; then
             echo "@tdk-landscape/tdk-cli-core@${PKG_VERSION} is already published, skipping."
