@@ -48,6 +48,16 @@ export function isValidPort(port: number): boolean {
   return Number.isInteger(port) && port > 0 && port <= 65535;
 }
 
+/**
+ * Check a filesystem path segment for characters that are unsafe to use in a
+ * path (null bytes, or characters that are invalid on common filesystems).
+ * Does not check for path traversal (`..`) - callers that resolve the path
+ * against a base directory should check that separately.
+ */
+export function isPathSafe(path: string): boolean {
+  return !path.includes("\0") && !/[<>:"|?*]/.test(path);
+}
+
 export function sanitizeForShell(value: string, replacement: string = "_"): string {
   return value.replace(/[^a-zA-Z0-9-]/g, replacement).substring(0, 100);
 }

@@ -835,8 +835,7 @@ export const uiCommand = new Command("ui")
   .action(async () => {
     const tiltAvailable = await isTiltAvailable();
     if (!tiltAvailable) {
-      errorFactories.tiltNotInstalled().display();
-      process.exit(1);
+      errorFactories.tiltNotInstalled().exit();
     }
 
     requireProjectRoot();

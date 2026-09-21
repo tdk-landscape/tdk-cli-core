@@ -1,9 +1,8 @@
 import chalk from "chalk";
+import { QUICKSTART_DOCS_URL } from "./constants.js";
 import { isDockerAvailable } from "./docker.js";
 import { findProjectRoot } from "./paths.js";
 import { isTiltAvailable } from "./tilt.js";
-
-const QUICKSTART_DOCS_URL = "https://tdk-landscape.github.io/tdk-website/docs/quickstart/";
 
 export function getErrorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
@@ -29,6 +28,12 @@ class TdkError extends Error {
 
   display(): void {
     showError(this.message, undefined, this.suggestions);
+  }
+
+  /** Display this error and exit the process with its exit code. */
+  exit(): never {
+    this.display();
+    process.exit(this.exitCode);
   }
 }
 

@@ -12,7 +12,7 @@ import { showCommandHeader } from "../utils/formatting.js";
 import { assignPort } from "../utils/port-assignment.js";
 import { getDefaultFeaturesForResourceType } from "../utils/resource-features.js";
 import { discoverResources } from "../utils/services.js";
-import { createKebabCaseValidator, validateResourceName } from "../utils/validation.js";
+import { createKebabCaseValidator, isPathSafe, validateResourceName } from "../utils/validation.js";
 
 export const BASE_TEMPLATE = {
   port: 0, // Will be assigned
@@ -449,13 +449,11 @@ export const resourceCommand = new Command("resource")
       // Prevent path traversal attacks
       const relativePathResult = relative(projectRoot, fullPath);
       if (relativePathResult.startsWith("..") || isAbsolute(relativePathResult)) {
-        errorFactories.invalidPath(fullPath).display();
-        process.exit(1);
+        errorFactories.invalidPath(fullPath).exit();
       }
 
-      if (finalResourcePath.includes("\0") || /[<>:"|?*]/.test(finalResourcePath)) {
-        errorFactories.invalidPath(finalResourcePath).display();
-        process.exit(1);
+      if (!isPathSafe(finalResourcePath)) {
+        errorFactories.invalidPath(finalResourcePath).exit();
       }
 
       // Check if resource already exists
@@ -467,8 +465,7 @@ export const resourceCommand = new Command("resource")
         (isExistingResource && hasServiceJson);
 
       if (isExistingResource && !shouldRegisterExisting) {
-        errorFactories.directoryExists(fullPath).display();
-        process.exit(1);
+        errorFactories.directoryExists(fullPath).exit();
       }
 
       const assignedPort =

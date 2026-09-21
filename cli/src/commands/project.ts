@@ -19,6 +19,7 @@ import {
 import { findProjectRoot } from "../utils/paths.js";
 import { PROJECT_TEMPLATES } from "../utils/project-templates.js";
 import { discoverStackNames } from "../utils/services.js";
+import { isPathSafe } from "../utils/validation.js";
 import { ensureEnvFile, validateEnvFile } from "../utils/env-validator.js";
 import { PROJECT_FEATURES } from "../utils/project-features.js";
 
@@ -62,16 +63,14 @@ async function cloneProjectTemplate(templateName: string, targetDir?: string): P
   const dirName =
     targetDir || (template.repo.split("/").pop() ?? templateName).replace(/\.git$/, "");
 
-  if (dirName.includes("\0") || /[<>:"|?*]/.test(dirName)) {
-    errorFactories.invalidPath(dirName).display();
-    process.exit(1);
+  if (!isPathSafe(dirName)) {
+    errorFactories.invalidPath(dirName).exit();
   }
 
   const destination = resolve(cwd(), dirName);
 
   if (existsSync(destination) && readdirSync(destination).length > 0) {
-    errorFactories.directoryExists(destination).display();
-    process.exit(1);
+    errorFactories.directoryExists(destination).exit();
   }
 
   showCommandHeader(`Cloning template: ${templateName}`);

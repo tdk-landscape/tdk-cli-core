@@ -71,8 +71,7 @@ export const upCommand = new Command("up")
 
       if (stackName) {
         if (!stackExists(stackName)) {
-          errorFactories.stackNotFound(stackName).display();
-          process.exit(1);
+          errorFactories.stackNotFound(stackName).exit();
         }
 
         servicesToStart = getResourcesForStack(stackName);

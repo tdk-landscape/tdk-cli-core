@@ -4,11 +4,9 @@ import { join } from "node:path";
 import chalk from "chalk";
 import { Command } from "commander";
 import type { CheckResult } from "../types/index.js";
-import { MASTER_CONFIG_FILES } from "../utils/constants.js";
+import { MASTER_CONFIG_FILES, QUICKSTART_DOCS_URL } from "../utils/constants.js";
 import { findProjectRoot } from "../utils/paths.js";
 import { validateEnvFile } from "../utils/env-validator.js";
-
-const QUICKSTART_DOCS_URL = "https://tdk-landscape.github.io/tdk-website/docs/quickstart/";
 
 function createExecCheck(
   name: string,
