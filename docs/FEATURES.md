@@ -26,13 +26,6 @@ These are always enabled in the `pre_alpha` stack:
 - **Port**: 80 (HTTP), 443 (HTTPS)
 - **Configuration**: Routes all HTTP traffic based on path/domain rules
 
-#### `verdaccio` (Verdaccio)
-- **Purpose**: Local npm registry for package management and publishing
-- **Default**: ✅ Enabled
-- **Service Name**: `verdaccio`
-- **Port**: 4873
-- **Configuration**: All services use this for `npm install` and `bun install`
-
 #### `database-management` (PostgreSQL)
 - **Purpose**: Primary relational database for data persistence
 - **Default**: ✅ Enabled
@@ -40,6 +33,18 @@ These are always enabled in the `pre_alpha` stack:
 - **Port**: 5432
 - **Database**: `app_dev` (default)
 - **Configuration**: Backend services use `DATABASE_URL` env var
+
+### PREMIUM Features (Requires License Key)
+
+Enable these with a premium license key set via `export TDK_LICENSE_KEY=<key>`:
+
+#### `verdaccio` (Verdaccio)
+- **Purpose**: Local npm registry for package management and publishing
+- **Default**: ❌ Disabled (Premium feature)
+- **Service Name**: `verdaccio`
+- **Port**: 4873
+- **License**: Premium (requires `TDK_LICENSE_KEY` environment variable)
+- **Configuration**: Services use this for `npm install` and `bun install` when enabled
 
 ### OPTIONAL Features (Disabled by Default)
 
@@ -78,16 +83,26 @@ Enable these in `.tdk/project.json` under `optional_infra`:
 
 ### Enable/Disable
 
+To enable optional or premium features, edit `.tdk/project.json`:
+
 ```bash
 # Edit .tdk/project.json
 {
   "optional_infra": {
-    "monitoring": true    # Enable
+    "monitoring": true,    # Optional feature (Free)
+    "verdaccio": true      # Premium feature (requires TDK_LICENSE_KEY)
   }
 }
 
 # Regenerate
 tdk config regenerate
+```
+
+**For Premium Features:** Set your license key before running `tdk up`:
+
+```bash
+export TDK_LICENSE_KEY=<your-premium-key>
+tdk up
 ```
 
 ---
@@ -210,15 +225,15 @@ These generators always run and don't have a feature flag:
 
 ### Project Infrastructure
 
-| Feature | Default | Customizable |
-|---------|---------|--------------|
-| proxy | ✅ | No |
-| verdaccio | ✅ | No |
-| database | ✅ | No |
-| monitoring | ❌ | Yes |
-| elk | ❌ | Yes |
-| debezium | ❌ | Yes |
-| golden-image | ✅ | Yes |
+| Feature | Default | Customizable | License |
+|---------|---------|--------------|---------|
+| proxy | ✅ | No | Free |
+| database | ✅ | No | Free |
+| verdaccio | ❌ | Yes | Premium |
+| monitoring | ❌ | Yes | Free |
+| elk | ❌ | Yes | Free |
+| debezium | ❌ | Yes | Free |
+| golden-image | ✅ | Yes | Free |
 
 ---
 
