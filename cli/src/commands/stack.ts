@@ -1,7 +1,6 @@
 import { readFileSync } from "node:fs";
 import chalk from "chalk";
 import { Command } from "commander";
-import prompts from "prompts";
 import { confirmOrCancel } from "../utils/command-helpers.js";
 import { clearDiscoveryCache, createDiscoveryContext } from "../utils/discovery-context.js";
 import { requireProjectRoot, runCommand } from "../utils/errors.js";
@@ -13,6 +12,7 @@ import {
   showDetail,
   showSuccess,
 } from "../utils/formatting.js";
+import { promptMultiSelect, promptText } from "../utils/prompt.js";
 import { createKebabCaseValidator } from "../utils/validation.js";
 
 export const stackCommand = new Command("stack")
@@ -65,9 +65,7 @@ export const stackCommand = new Command("stack")
 
       let targetStack = stackName;
       if (!targetStack) {
-        const { name } = await prompts({
-          type: "text",
-          name: "name",
+        const name = await promptText({
           message: "Stack name (kebab-case recommended):",
           validate: (input: string) => {
             const validation = createKebabCaseValidator("stack")(input);
@@ -84,9 +82,7 @@ export const stackCommand = new Command("stack")
         return;
       }
 
-      const { selectedResources } = await prompts({
-        type: "multiselect",
-        name: "selectedResources",
+      const selectedResources = await promptMultiSelect({
         message: `Select resources to add to stack "${targetStack}":`,
         choices: resourcesToUpdate.map((r) => ({
           title: r.name,

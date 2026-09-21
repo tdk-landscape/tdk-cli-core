@@ -8,6 +8,7 @@ import ora from "ora";
 import { getErrorMessage, logVerbose, showErrorAndExit } from "../utils/errors.js";
 import { showCancelled } from "../utils/formatting.js";
 import { getPackageVersion } from "../utils/paths.js";
+import { promptConfirm } from "../utils/prompt.js";
 
 interface InstallInfo {
   method: "npm" | "bun" | "git" | "binary" | "unknown";
@@ -450,14 +451,10 @@ export const upgradeCommand = new Command("upgrade")
 
     if (!options.yes) {
       console.log();
-      const { confirm } = await import("prompts").then((m) =>
-        m.default({
-          type: "confirm",
-          name: "confirm",
-          message: "Proceed with upgrade?",
-          initial: true,
-        }),
-      );
+      const confirm = await promptConfirm({
+        message: "Proceed with upgrade?",
+        initial: true,
+      });
 
       if (!confirm) {
         showCancelled();

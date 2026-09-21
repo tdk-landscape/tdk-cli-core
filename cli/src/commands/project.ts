@@ -4,7 +4,6 @@ import { join, resolve } from "node:path";
 import { cwd } from "node:process";
 import chalk from "chalk";
 import { Command } from "commander";
-import prompts from "prompts";
 import { generateMasterConfigs, readProjectConfig } from "../generator/template-engine.js";
 import { MASTER_CONFIG_FILES } from "../utils/constants.js";
 import { errorFactories, runCommand, showErrorAndExit } from "../utils/errors.js";
@@ -22,6 +21,7 @@ import { discoverStackNames } from "../utils/services.js";
 import { isPathSafe } from "../utils/validation.js";
 import { ensureEnvFile, validateEnvFile } from "../utils/env-validator.js";
 import { PROJECT_FEATURES } from "../utils/project-features.js";
+import { promptConfirm, promptMultiSelect, promptText } from "../utils/prompt.js";
 
 /**
  * Stack names discovered from service.json files already in the repo (e.g. a
@@ -219,9 +219,7 @@ export const projectCommand = new Command("project")
 
       if (projectJsonExists && options.force) {
         console.log(chalk.red("\n⚠️  WARNING: --force will overwrite .tdk/project.json!"));
-        const { confirm } = await prompts({
-          type: "confirm",
-          name: "confirm",
+        const confirm = await promptConfirm({
           message: "This will reset your project configuration. Continue?",
           initial: false,
         });
@@ -260,71 +258,57 @@ export const projectCommand = new Command("project")
       } else {
         showStep("📝 Project Setup Wizard\n");
 
-        const answers = await prompts([
-          {
-            type: "text",
-            name: "name",
-            message: "Project name:",
-            initial: projectRoot.split("/").pop() || "my-project",
-            validate: (input: string) => input.trim() !== "" || "Project name is required",
-          },
-          {
-            type: "text",
-            name: "version",
-            message: "Project version:",
-            initial: "1.0.0-alpha",
-          },
-          {
-            type: "multiselect",
-            name: "preAlphaServices",
-            message: "Select Pre-Alpha services (core infrastructure):",
-            choices: [
-              ...Object.values(PROJECT_FEATURES)
-                .filter((f) => f.category === "core" && f.phase === "pre_alpha")
-                .map((f) => ({
-                  title: f.description,
-                  value: f.name,
-                  selected: f.enabled_by_default,
-                })),
-              ...discoveredStacks.map((stack) => ({
-                title: `${stack} (discovered service stack)`,
-                value: stack,
-                selected: true,
-              })),
-            ],
-          },
-          {
-            type: "multiselect",
-            name: "alphaServices",
-            message: "Select Alpha services (core business):",
-            choices: [
-              { title: "api (Backend API)", value: "api" },
-              { title: "app (Frontend app)", value: "app" },
-            ],
-          },
-          {
-            type: "multiselect",
-            name: "betaServices",
-            message: "Select Beta services (extended features):",
-            choices: [
-              { title: "worker (Background jobs)", value: "worker" },
-              { title: "migrator (Database migrations)", value: "migrator" },
-            ],
-          },
-          {
-            type: "multiselect",
-            name: "optionalInfra",
-            message: "Enable optional infrastructure (high resource):",
-            choices: Object.values(PROJECT_FEATURES)
-              .filter((f) => f.category === "optional")
-              .concat(Object.values(PROJECT_FEATURES).filter((f) => f.category === "premium"))
+        const projectName = await promptText({
+          message: "Project name:",
+          initial: projectRoot.split("/").pop() || "my-project",
+          validate: (input: string) => input.trim() !== "" || "Project name is required",
+        });
+        const projectVersion = await promptText({
+          message: "Project version:",
+          initial: "1.0.0-alpha",
+        });
+        const preAlphaServices = await promptMultiSelect({
+          message: "Select Pre-Alpha services (core infrastructure):",
+          choices: [
+            ...Object.values(PROJECT_FEATURES)
+              .filter((f) => f.category === "core" && f.phase === "pre_alpha")
               .map((f) => ({
                 title: f.description,
                 value: f.name,
                 selected: f.enabled_by_default,
               })),
-          },
-        ]);
+            ...discoveredStacks.map((stack) => ({
+              title: `${stack} (discovered service stack)`,
+              value: stack,
+              selected: true,
+            })),
+          ],
+        });
+        const alphaServices = await promptMultiSelect({
+          message: "Select Alpha services (core business):",
+          choices: [
+            { title: "api (Backend API)", value: "api" },
+            { title: "app (Frontend app)", value: "app" },
+          ],
+        });
+        const betaServices = await promptMultiSelect({
+          message: "Select Beta services (extended features):",
+          choices: [
+            { title: "worker (Background jobs)", value: "worker" },
+            { title: "migrator (Database migrations)", value: "migrator" },
+          ],
+        });
+        const optionalInfra = await promptMultiSelect({
+          message: "Enable optional infrastructure (high resource):",
+          choices: Object.values(PROJECT_FEATURES)
+            .filter((f) => f.category === "optional")
+            .concat(Object.values(PROJECT_FEATURES).filter((f) => f.category === "premium"))
+            .map((f) => ({
+              title: f.description,
+              value: f.name,
+              selected: f.enabled_by_default,
+            })),
+        });
 
         showStep("\n📂 Service discovery");
         showDetail("What: folder patterns TDK scans for a service.json in each match.");
@@ -332,24 +316,22 @@ export const projectCommand = new Command("project")
         showDetail("How: saved as discovery.paths in .tdk/project.json - editable later.");
         showDetail(`Example: ${DEFAULT_PROJECT_JSON.discovery.paths.join(", ")}\n`);
 
-        const { discoveryPaths } = await prompts({
-          type: "text",
-          name: "discoveryPaths",
+        const discoveryPaths = await promptText({
           message: "Folders to scan:",
           initial: DEFAULT_PROJECT_JSON.discovery.paths.join(", "),
         });
 
         projectConfig = JSON.parse(JSON.stringify(DEFAULT_PROJECT_JSON));
-        projectConfig.project.name = answers.name;
-        projectConfig.project.version = answers.version;
-        projectConfig.stacks.pre_alpha.services = answers.preAlphaServices;
-        projectConfig.stacks.alpha.services = answers.alphaServices;
-        projectConfig.stacks.beta.services = answers.betaServices;
-        projectConfig.optional_infra.monitoring = answers.optionalInfra.includes("monitoring");
-        projectConfig.optional_infra.elk = answers.optionalInfra.includes("elk");
-        projectConfig.optional_infra.debezium = answers.optionalInfra.includes("debezium");
-        projectConfig.optional_infra.golden_image = answers.optionalInfra.includes("golden_image");
-        projectConfig.optional_infra.verdaccio = answers.optionalInfra.includes("verdaccio");
+        projectConfig.project.name = projectName;
+        projectConfig.project.version = projectVersion;
+        projectConfig.stacks.pre_alpha.services = preAlphaServices;
+        projectConfig.stacks.alpha.services = alphaServices;
+        projectConfig.stacks.beta.services = betaServices;
+        projectConfig.optional_infra.monitoring = optionalInfra.includes("monitoring");
+        projectConfig.optional_infra.elk = optionalInfra.includes("elk");
+        projectConfig.optional_infra.debezium = optionalInfra.includes("debezium");
+        projectConfig.optional_infra.golden_image = optionalInfra.includes("golden_image");
+        projectConfig.optional_infra.verdaccio = optionalInfra.includes("verdaccio");
         const parsedDiscoveryPaths = discoveryPaths
           .split(",")
           .map((p: string) => p.trim())

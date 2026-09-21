@@ -1,15 +1,10 @@
-import prompts from "prompts";
 import type { ValidationResult } from "../types/index.js";
 import { showErrorAndExit } from "./errors.js";
 import { showCancelled } from "./formatting.js";
+import { promptConfirm } from "./prompt.js";
 
 export async function confirmAction(message: string, defaultValue = true): Promise<boolean> {
-  const { confirm } = await prompts({
-    type: "confirm",
-    name: "confirm",
-    message,
-    initial: defaultValue,
-  });
+  const confirm = await promptConfirm({ message, initial: defaultValue });
 
   if (!confirm) {
     showCancelled();

@@ -2,7 +2,6 @@ import { existsSync, mkdirSync } from "node:fs";
 import { isAbsolute, relative, resolve } from "node:path";
 import chalk from "chalk";
 import { Command } from "commander";
-import prompts from "prompts";
 import type { CreatableResourceType, FileGenerationTask } from "../types/index.js";
 import { CREATABLE_RESOURCE_TYPES } from "../types/index.js";
 import { assertValid, confirmOrCancel } from "../utils/command-helpers.js";
@@ -10,6 +9,7 @@ import { errorFactories, requireProjectRoot, runCommand } from "../utils/errors.
 import { writeFilesWithProgress } from "../utils/file-helpers.js";
 import { showCommandHeader } from "../utils/formatting.js";
 import { assignPort } from "../utils/port-assignment.js";
+import { promptSelect, promptText } from "../utils/prompt.js";
 import { getDefaultFeaturesForResourceType } from "../utils/resource-features.js";
 import { discoverResources } from "../utils/services.js";
 import { createKebabCaseValidator, isPathSafe, validateResourceName } from "../utils/validation.js";
@@ -349,9 +349,7 @@ export const resourceCommand = new Command("resource")
 
       let resourceName = name;
       if (!resourceName) {
-        const { inputName } = await prompts({
-          type: "text",
-          name: "inputName",
+        const inputName = await promptText({
           message: "Resource name (kebab-case):",
           validate: (input: string) => {
             const validation = createKebabCaseValidator("resource")(input);
@@ -367,9 +365,7 @@ export const resourceCommand = new Command("resource")
       let resourceType: CreatableResourceType | "sdk";
       const validTypes = [...CREATABLE_RESOURCE_TYPES, "sdk"] as const;
       if (!validTypes.includes(options.type)) {
-        const { selectedType } = await prompts({
-          type: "select",
-          name: "selectedType",
+        const selectedType = await promptSelect({
           message: "Resource type:",
           choices: [
             { title: "backend - API service with HTTP endpoints", value: "backend" },
@@ -393,9 +389,7 @@ export const resourceCommand = new Command("resource")
         const existingStacks = Array.from(stackSet);
 
         if (existingStacks.length > 0) {
-          const { selectedStack } = await prompts({
-            type: "select",
-            name: "selectedStack",
+          const selectedStack = await promptSelect({
             message: "Assign to stack:",
             choices: [
               ...existingStacks.map((s) => ({ title: s, value: s })),
@@ -404,9 +398,7 @@ export const resourceCommand = new Command("resource")
           });
 
           if (selectedStack === "__new__") {
-            const { newStack } = await prompts({
-              type: "text",
-              name: "newStack",
+            const newStack = await promptText({
               message: "New stack name:",
               validate: (input: string) => {
                 const validation = createKebabCaseValidator("stack")(input);
@@ -418,9 +410,7 @@ export const resourceCommand = new Command("resource")
             stackName = selectedStack;
           }
         } else {
-          const { newStack } = await prompts({
-            type: "text",
-            name: "newStack",
+          const newStack = await promptText({
             message: "Stack name (first resource):",
             initial: "main",
             validate: (input: string) => {
