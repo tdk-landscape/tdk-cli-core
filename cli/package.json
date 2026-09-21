@@ -54,8 +54,7 @@
     "ink-select-input": "^6.2.0",
     "inquirer": "^9.2.0",
     "ora": "^8.0.0",
-    "react": "^19.2.5",
-    "react-devtools-core": "^8.0.0"
+    "react": "^19.2.5"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.13",
