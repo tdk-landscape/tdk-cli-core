@@ -6,7 +6,7 @@
 # =============================================================================
 
 load('./constants.star', 'VALID_APP_TYPES')
-load('../TILT_DISCOVERY.star', 'VALID_STACKS', 'VALID_FEATURES', 'PORT_RANGES')
+load('../TILT_DISCOVERY.star', 'VALID_STACKS', 'VALID_RESOURCE_FEATURES', 'PORT_RANGES')
 
 
 def validate_manifest(manifest):
@@ -20,7 +20,7 @@ def validate_manifest(manifest):
     - stack: from VALID_STACKS
     - appType: from VALID_APP_TYPES
     - port: within range for appType (backends: 4000-5999, frontends: 3000-3999)
-    - features: from VALID_FEATURES
+    - features: from VALID_RESOURCE_FEATURES
     - dependsOn: from VALID_STACKS (resource aliases)
     - replicas: 1-10
     """
@@ -82,8 +82,8 @@ def validate_manifest(manifest):
         issues.append("Invalid features: must be an array")
     else:
         for f in features:
-            if f not in VALID_FEATURES:
-                issues.append("Invalid feature: " + str(f) + ". Must be one of: " + ', '.join(VALID_FEATURES))
+            if f not in VALID_RESOURCE_FEATURES:
+                issues.append("Invalid feature: " + str(f) + ". Must be one of: " + ', '.join(VALID_RESOURCE_FEATURES))
     
     # 6. Validate dependsOn array (must be valid resource aliases)
     deps = manifest.get('dependsOn', [])

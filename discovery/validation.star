@@ -1,6 +1,6 @@
 load("./TILT_DISCOVERY.star",
     "VALID_STACKS",
-    "VALID_FEATURES",
+    "VALID_RESOURCE_FEATURES",
     "PORT_RANGES",
 )
 load("../engine/topologies/tilt/manifest/constants.star", "VALID_APP_TYPES")
@@ -59,7 +59,7 @@ def validate(manifest):
         issues.append("Invalid features: must be an array")
     else:
         for feature in features:
-            if feature not in VALID_FEATURES:
+            if feature not in VALID_RESOURCE_FEATURES:
                 issues.append("Invalid feature: " + str(feature))
 
     deps = manifest.get("dependsOn", [])

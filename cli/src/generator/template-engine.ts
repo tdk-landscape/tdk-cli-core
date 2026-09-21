@@ -13,24 +13,31 @@ const __dirname = path.dirname(__filename);
 // Helper function to load templates with robust path resolution
 export function loadTemplate(filename: string): string {
   // Try multiple possible template directory locations
-  const possiblePaths = [
-    path.join(__dirname, "..", "..", "templates"),  // Standard: dist/generator -> templates
-    path.join(__dirname, "..", "templates"),        // Installed: dist/generator -> dist/templates
+  const templateDirs = [
+    path.join(__dirname, "..", "..", "templates"), // Standard: dist/generator -> templates (also covers src/generator -> ../../templates in dev/test)
+    path.join(__dirname, "..", "templates"), // Installed: dist/generator -> dist/templates
     path.join(__dirname, "..", "..", "..", "templates"), // Development: cli/dist/generator -> cli/templates
     path.join(process.cwd(), "node_modules", "@tdk-landscape", "tdk-cli-core", "templates"), // Monorepo root
+    // Compiled single-file binary (bun build --compile): __dirname resolves inside the
+    // virtual $bunfs filesystem, not a real path, so fall back to the directory the actual
+    // executable lives in. release-binaries.sh bundles cli/templates at tdk-cli/cli/templates
+    // next to the platform binaries.
+    path.join(path.dirname(process.execPath), "tdk-cli", "cli", "templates"),
   ];
 
-  for (const templatePath of possiblePaths) {
+  const triedPaths: string[] = [];
+  for (const templateDir of templateDirs) {
+    const templatePath = path.join(templateDir, filename);
+    triedPaths.push(templatePath);
     try {
-      const content = fs.readFileSync(templatePath, "utf-8");
-      return content;
+      return fs.readFileSync(templatePath, "utf-8");
     } catch (error) {
       // Try next path
       continue;
     }
   }
 
-  throw new Error(`Failed to load template ${filename} from any of these paths: ${possiblePaths.join(", ")}`);
+  throw new Error(`Failed to load template ${filename} from any of these paths: ${triedPaths.join(", ")}`);
 }
 
 // Load all templates at module initialization

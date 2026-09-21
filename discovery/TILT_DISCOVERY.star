@@ -180,16 +180,19 @@ def get_valid_resource_types():
 
 
 # =============================================================================
-# FEATURE FLAGS CONFIGURATION
+# RESOURCE-LEVEL FEATURES CONFIGURATION
 # =============================================================================
-# Valid feature flags for service capabilities.
+# Valid values for a single resource's `features: []` array in its
+# service.json (code generators plus per-resource infra capabilities).
+# Distinct from project-level features (cli/src/utils/project-features.ts),
+# which are infra/optional services enabled project-wide via project.json.
 
 
-def get_valid_features():
-    """Return list of valid feature flags.
+def get_valid_resource_features():
+    """Return list of valid resource-level feature flags.
 
     Returns:
-        list: Valid feature flag names
+        list: Valid feature flag names for a resource's `features: []` array
     """
     return [
         # Resource-level features (code generators)
@@ -308,7 +311,7 @@ def get_discovery_defaults():
         "synthesis": get_synthesis_config(),
         "stacks": get_valid_stacks(),
         "resource_types": get_valid_resource_types(),
-        "features": get_valid_features(),
+        "features": get_valid_resource_features(),
         "port_ranges": get_port_ranges(),
         "dependencies": get_dependency_resolution_config(),
         "paths": get_discovery_paths(),
@@ -373,7 +376,7 @@ MANIFEST_DISCOVERY_CONFIG = get_manifest_discovery_config()
 SYNTHESIS_CONFIG = get_synthesis_config()
 VALID_STACKS = get_valid_stacks()
 VALID_RESOURCE_TYPES = get_valid_resource_types()
-VALID_FEATURES = get_valid_features()
+VALID_RESOURCE_FEATURES = get_valid_resource_features()
 PORT_RANGES = get_port_ranges()
 DEPENDENCY_CONFIG = get_dependency_resolution_config()
 DISCOVERY_PATHS = get_discovery_paths()
@@ -394,7 +397,7 @@ __all__ = [
     "get_synthesis_config",
     "get_valid_stacks",
     "get_valid_resource_types",
-    "get_valid_features",
+    "get_valid_resource_features",
     "get_port_ranges",
     "get_dependency_resolution_config",
     "get_discovery_paths",
@@ -407,7 +410,7 @@ __all__ = [
     "SYNTHESIS_CONFIG",
     "VALID_STACKS",
     "VALID_RESOURCE_TYPES",
-    "VALID_FEATURES",
+    "VALID_RESOURCE_FEATURES",
     "PORT_RANGES",
     "DEPENDENCY_CONFIG",
     "DISCOVERY_PATHS",

@@ -39,8 +39,7 @@ describe("project and resource feature E2E", () => {
     }
   });
 
-  it("keeps Verdaccio as an explicit premium project feature", function() {
-    this.timeout(10000); // Increase timeout to 10s
+  it("keeps Verdaccio as an explicit premium project feature", () => {
     projectRoot = mkdtempSync(join(tmpdir(), "tdk-project-feature-"));
 
     runTdk(["project", "--yes"], projectRoot);
@@ -64,10 +63,9 @@ describe("project and resource feature E2E", () => {
     spec = readFileSync(join(projectRoot, ".tdk", ".tdk-out", "spec.master"), "utf-8");
     expect(starlarkSection(spec, "PRE_ALPHA_RESOURCES")).not.toContain('"verdaccio": True');
     expect(starlarkSection(spec, "OPTIONAL_INFRA_RESOURCES")).toContain('"verdaccio": True');
-  });
+  }, 10000);
 
-  it("writes default resource-level features into generated service.json files", function() {
-    this.timeout(10000); // Increase timeout to 10s
+  it("writes default resource-level features into generated service.json files", () => {
     projectRoot = mkdtempSync(join(tmpdir(), "tdk-resource-feature-"));
     runTdk(["project", "--yes"], projectRoot);
 
@@ -109,5 +107,5 @@ describe("project and resource feature E2E", () => {
       readFileSync(join(projectRoot, "services", "alpha", "web", "service.json"), "utf-8"),
     );
     expect(frontendService.features).toEqual(["api-client", "env-config", "api-index"]);
-  });
+  }, 10000);
 });

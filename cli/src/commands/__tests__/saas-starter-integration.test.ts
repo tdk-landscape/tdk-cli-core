@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import { execSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -11,7 +11,33 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const CLI_BIN_PATH = join(__dirname, "..", "..", "..", "bin", "tdk.js");
 
-describe("saas-starter cloning and discovery", () => {
+// `tdk doctor` requires these (see REQUIRED_ENV_VARS in ../../utils/env-validator.ts);
+// an empty .env satisfies `tdk project`'s docker-compose validation but leaves doctor
+// reporting "Environment not ready". Use the same defaults env-validator would generate.
+function writeTestEnvFile(starterRoot: string) {
+  writeFileSync(
+    join(starterRoot, ".env"),
+    "VERDACCIO_URL_DOCKER=http://verdaccio:4873\nTILT_ENV=dev\n",
+  );
+}
+
+// tdk-cli-extensions is a sibling checkout, not a dependency of this repo, so its
+// location varies per machine. Respect an explicit override, then fall back to the
+// conventional sibling-directory layout (both repos checked out next to each other),
+// instead of hardcoding one contributor's absolute path.
+const REPO_ROOT = join(__dirname, "..", "..", "..", "..");
+const EXTENSION_SOURCE =
+  process.env.TDK_EXTENSION_SOURCE ?? join(REPO_ROOT, "..", "tdk-cli-extensions");
+const EXTENSION_SOURCE_AVAILABLE = existsSync(EXTENSION_SOURCE);
+
+describe.skipIf(!EXTENSION_SOURCE_AVAILABLE)("saas-starter cloning and discovery", () => {
+  if (!EXTENSION_SOURCE_AVAILABLE) {
+    console.warn(
+      `Skipping saas-starter integration tests: tdk-cli-extensions not found at ${EXTENSION_SOURCE}. ` +
+        "Set TDK_EXTENSION_SOURCE to its checkout path to run these.",
+    );
+  }
+
   let testDir: string;
 
   beforeEach(() => {
@@ -38,8 +64,7 @@ describe("saas-starter cloning and discovery", () => {
    * Verifies that `tdk project saas` clones the repo correctly with required
    * structure (services/stack/service/service.json files).
    */
-  it("should clone saas-starter with valid file structure", function() {
-    this.timeout(30000); // Increase timeout to 30s for cloning
+  it("should clone saas-starter with valid file structure", () => {
     const cwd = testDir;
     execSync(`mkdir -p "${cwd}"`, { stdio: "pipe" });
 
@@ -68,7 +93,7 @@ describe("saas-starter cloning and discovery", () => {
       expect(manifest).toHaveProperty("stack");
       expect(manifest.healthCheck).toBeDefined();
     }
-  });
+  }, 30000); // 30s: clones the real saas-starter repo over the network
 
   /**
    * Verifies that `tdk project --yes` (after cloning) correctly discovers
@@ -77,8 +102,7 @@ describe("saas-starter cloning and discovery", () => {
    * `tdk up` will enable them (before fix: they were silently filtered out
    * in Tilt discovery).
    */
-  it("should auto-populate discovered services in project.json", function() {
-    this.timeout(30000); // Increase timeout to 30s
+  it("should auto-populate discovered services in project.json", () => {
     const cwd = testDir;
     execSync(`mkdir -p "${cwd}"`, { stdio: "pipe" });
 
@@ -88,13 +112,11 @@ describe("saas-starter cloning and discovery", () => {
     });
 
     const starterRoot = join(cwd, "tdk-saas-starter");
-
-    // Create .env so tdk project doesn't fail on docker-compose validation
-    execSync(`touch "${join(starterRoot, ".env")}"`, { stdio: "pipe" });
+    writeTestEnvFile(starterRoot);
 
     // Generate project config
     execSync(
-      `cd "${starterRoot}" && TDK_EXTENSION_SOURCE=/private/var/www/2025/ollamar1/tdk-cli-extensions bun "${CLI_BIN_PATH}" project --yes`,
+      `cd "${starterRoot}" && TDK_EXTENSION_SOURCE="${EXTENSION_SOURCE}" bun "${CLI_BIN_PATH}" project --yes`,
       { stdio: "pipe" }
     );
 
@@ -105,7 +127,7 @@ describe("saas-starter cloning and discovery", () => {
     const projectJson = JSON.parse(readFileSync(projectJsonPath, "utf-8"));
     expect(projectJson.stacks.pre_alpha.services).toContain("app");
     expect(projectJson.stacks.pre_alpha.services).toContain("billing");
-  });
+  }, 30000); // 30s: clones the real saas-starter repo over the network
 
   /**
    * Verifies that spec.master is generated with PRE_ALPHA_RESOURCES dict
@@ -113,7 +135,7 @@ describe("saas-starter cloning and discovery", () => {
    * will allow them to pass through (before fix: PRE_ALPHA_RESOURCES was empty,
    * and only infra resources appeared in `tilt get uiresources`).
    */
-  it.skip("should generate spec.master with discovered services in PRE_ALPHA_RESOURCES", () => {
+  it("should generate spec.master with discovered services in PRE_ALPHA_RESOURCES", () => {
     const cwd = testDir;
     execSync(`mkdir -p "${cwd}"`, { stdio: "pipe" });
 
@@ -122,10 +144,10 @@ describe("saas-starter cloning and discovery", () => {
     });
 
     const starterRoot = join(cwd, "tdk-saas-starter");
-    execSync(`touch "${join(starterRoot, ".env")}"`, { stdio: "pipe" });
+    writeTestEnvFile(starterRoot);
 
     execSync(
-      `cd "${starterRoot}" && TDK_EXTENSION_SOURCE=/private/var/www/2025/ollamar1/tdk-cli-extensions bun ${CLI_BIN_PATH} project --yes`,
+      `cd "${starterRoot}" && TDK_EXTENSION_SOURCE="${EXTENSION_SOURCE}" bun ${CLI_BIN_PATH} project --yes`,
       { stdio: "pipe" }
     );
 
@@ -146,7 +168,7 @@ describe("saas-starter cloning and discovery", () => {
    * Verifies that `tdk doctor` correctly reports master configs as present
    * (they are in .tdk/.tdk-out/, not the project root).
    */
-  it.skip("should pass doctor check after project init", () => {
+  it("should pass doctor check after project init", () => {
     const cwd = testDir;
     execSync(`mkdir -p "${cwd}"`, { stdio: "pipe" });
 
@@ -155,10 +177,10 @@ describe("saas-starter cloning and discovery", () => {
     });
 
     const starterRoot = join(cwd, "tdk-saas-starter");
-    execSync(`touch "${join(starterRoot, ".env")}"`, { stdio: "pipe" });
+    writeTestEnvFile(starterRoot);
 
     execSync(
-      `cd "${starterRoot}" && TDK_EXTENSION_SOURCE=/private/var/www/2025/ollamar1/tdk-cli-extensions bun ${CLI_BIN_PATH} project --yes`,
+      `cd "${starterRoot}" && TDK_EXTENSION_SOURCE="${EXTENSION_SOURCE}" bun ${CLI_BIN_PATH} project --yes`,
       { stdio: "pipe" }
     );
 

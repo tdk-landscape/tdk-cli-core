@@ -30,15 +30,18 @@ build_target bun-darwin-x64 tdk-darwin-amd64
 build_target bun-darwin-arm64 tdk-darwin-arm64
 
 # A compiled binary has no import.meta.dirname to walk up from, so it can't
-# find engine/ the way a source checkout can. template-engine.ts already
-# checks exeDir/tdk-cli as a candidate - bundle the free engine there so a
-# standalone binary works the same as `tdk-cli-core` cloned from source.
+# find engine/ the way a source checkout can. template-engine.ts checks
+# exeDir/tdk-cli as a candidate - bundle the free engine (and the Handlebars
+# templates loadTemplate() reads at module init) there so a standalone binary
+# works the same as `tdk-cli-core` cloned from source.
 mkdir -p "${RELEASE_DIR}/tdk-cli"
 cp "${ROOT_DIR}/Tiltfile" "${RELEASE_DIR}/tdk-cli/Tiltfile"
 cp -R "${ROOT_DIR}/engine" "${RELEASE_DIR}/tdk-cli/engine"
 cp -R "${ROOT_DIR}/discovery" "${RELEASE_DIR}/tdk-cli/discovery"
 cp -R "${ROOT_DIR}/specs" "${RELEASE_DIR}/tdk-cli/specs"
 cp -R "${ROOT_DIR}/ext" "${RELEASE_DIR}/tdk-cli/ext"
+mkdir -p "${RELEASE_DIR}/tdk-cli/cli"
+cp -R "${ROOT_DIR}/cli/templates" "${RELEASE_DIR}/tdk-cli/cli/templates"
 
 (
   cd "${RELEASE_DIR}"
