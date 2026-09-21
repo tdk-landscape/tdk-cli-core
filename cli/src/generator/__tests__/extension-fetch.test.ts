@@ -95,7 +95,7 @@ describe("applyPremiumOverlay", () => {
 
     expect(applied).toBe(false);
     // Every known resource name gets a shot before giving up.
-    expect(fetchSpy).toHaveBeenCalledTimes(3);
+    expect(fetchSpy).toHaveBeenCalledTimes(4);
     for (const call of fetchSpy.mock.calls) {
       const url = call[0] as string;
       expect(url).toContain("key=tdk-fa411b");

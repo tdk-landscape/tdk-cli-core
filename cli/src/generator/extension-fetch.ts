@@ -1,5 +1,5 @@
 // Fetches the paid-tier "premium" resource bundle (playwright, c4-diagram,
-// logging, and a few other extras - see tdk-cli-extensions/premium/) from
+// logging, agents-md, and a few other extras - see tdk-cli-extensions/premium/) from
 // the gated distribution worker, when a license key is configured. The
 // free engine never needs this - every free resource (docker-compose,
 // verdaccio, npm, bun, etc.) is already public in this repo, no key
@@ -26,7 +26,7 @@ const DEFAULT_ENDPOINT = "https://tdk-extension-dist.oranguman.workers.dev/v1/pr
 // bundle on the first resource name a key is found to grant, since
 // premium.tar.gz ships all paid resources together. Keep in sync with
 // what issue-key.yml/update-key.yml accept as `resources` entries.
-const KNOWN_RESOURCES = ["playwright", "c4-diagram", "logging"];
+const KNOWN_RESOURCES = ["playwright", "c4-diagram", "logging", "agents-md"];
 
 // Re-check the license periodically rather than trusting a local cache
 // forever - an expired or revoked key shouldn't keep unlocking premium
@@ -40,6 +40,7 @@ const CACHE_TTL_MS = 12 * 60 * 60 * 1000;
 const PREMIUM_PATH_MAP: Record<string, string> = {
   "typescript/playwright_config.star":
     "engine/topologies/tilt/generators/typescript/playwright_config.star",
+  "generators/agents_md.star": "engine/topologies/tilt/generators/agents_md.star",
   "c4_diagram.star": "engine/topologies/tilt/generators/c4_diagram.star",
   "observability/logging.star": "engine/topologies/platform/observability/logging.star",
   "generators/database_provisioner.star":
