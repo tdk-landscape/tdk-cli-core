@@ -12,7 +12,7 @@ All source code and tooling for the `@tdk-landscape/tdk-cli-core` package SHALL 
 
 #### Scenario: Remove duplicate CLI directory
 - **WHEN** inspecting the `beauty-crm/` project root
-- **THEN** there SHALL be no `cli/` directory containing standalone `@tdk/cli` source
+- **THEN** there SHALL be no `cli/` directory containing standalone `@tdk-landscape/tdk-cli-core` source
 
 #### Scenario: Directory removed completely (no symlink)
 - **WHEN** inspecting the `beauty-crm/` project root
