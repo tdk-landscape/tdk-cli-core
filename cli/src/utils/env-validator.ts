@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -40,10 +41,16 @@ const REQUIRED_ENV_VARS: EnvVariable[] = [
     name: "DB_PASSWORD",
     description: "PostgreSQL superuser password (docker-compose POSTGRES_PASSWORD)",
     required: true,
-    default: "postgres",
+    // No static default: a shared password across every generated project is a
+    // credential leak waiting to happen. generateEnvFile() fills this one in with
+    // a fresh random value per project instead.
     example: "postgres",
   },
 ];
+
+function generateDbPassword(): string {
+  return randomBytes(16).toString("hex");
+}
 
 export function generateEnvFile(projectRoot: string): string {
   const lines: string[] = [
@@ -66,7 +73,8 @@ export function generateEnvFile(projectRoot: string): string {
       lines.push(`# Example: ${envVar.example}`);
     }
 
-    lines.push(`${envVar.name}=${envVar.default || ""}`);
+    const value = envVar.name === "DB_PASSWORD" ? generateDbPassword() : envVar.default || "";
+    lines.push(`${envVar.name}=${value}`);
     lines.push("");
   }
 
