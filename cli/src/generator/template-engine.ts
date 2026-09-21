@@ -1,15 +1,21 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 import Handlebars from "handlebars";
 import { PLATFORM_STANDARDS } from "../config/platform-standards.js";
 import type { JsonValue, ProjectConfig } from "../types/index.js";
 import { writeTextFile } from "../utils/file-helpers.js";
 import { isStackFeatureEnabledInStacks } from "../utils/stack-features.js";
-import tiltResourceDefaultsTemplate from "../../templates/TILT_RESOURCE_DEFAULTS.star.hbs" with { type: "text" };
-import tiltTechStackTemplate from "../../templates/TILT_TECH_STACK.star.hbs" with { type: "text" };
-import tiltfileTemplate from "../../templates/Tiltfile.hbs" with { type: "text" };
-import tiltignoreTemplate from "../../templates/.tiltignore.hbs" with { type: "text" };
-import specMasterTemplate from "../../templates/spec.master.hbs" with { type: "text" };
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const templatesDir = path.join(__dirname, "..", "..", "templates");
+
+const tiltResourceDefaultsTemplate = fs.readFileSync(path.join(templatesDir, "TILT_RESOURCE_DEFAULTS.star.hbs"), "utf-8");
+const tiltTechStackTemplate = fs.readFileSync(path.join(templatesDir, "TILT_TECH_STACK.star.hbs"), "utf-8");
+const tiltfileTemplate = fs.readFileSync(path.join(templatesDir, "Tiltfile.hbs"), "utf-8");
+const tiltignoreTemplate = fs.readFileSync(path.join(templatesDir, ".tiltignore.hbs"), "utf-8");
+const specMasterTemplate = fs.readFileSync(path.join(templatesDir, "spec.master.hbs"), "utf-8");
 
 interface GeneratorContext {
   version: string;
