@@ -154,7 +154,7 @@ def get_global_config():
     )
     # Verdaccio is a premium feature — only enabled when a license key is present.
     # Without a key, scoped packages fall back to the public npm registry.
-    verdaccio_license_key = os.environ.get("VERDACCIO_LICENSE_KEY", "")
+    verdaccio_license_key = os.environ.get("TDK_LICENSE_KEY", "")
     verdaccio_enabled = verdaccio_license_key != ""
     return {
         "verdaccio_url_local": PlatformDockerConstants.VERDACCIO_URL_LOCAL,

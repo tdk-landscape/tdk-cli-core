@@ -131,7 +131,11 @@ def _load_database_management(should_enable, root_prefix="", env_file=None, writ
 # =============================================================================
 
 def _load_verdaccio(should_enable, root_prefix="", env_file=None):
-    """Load Verdaccio private npm registry."""
+    """Load Verdaccio private npm registry (premium feature — requires TDK_LICENSE_KEY)."""
+    # Verdaccio is a premium feature. Skip entirely when no license key is set.
+    if not os.environ.get("TDK_LICENSE_KEY", ""):
+        print("ℹ️  Verdaccio skipped — TDK_LICENSE_KEY not set (premium feature)")
+        return
     if not should_enable(PlatformDockerConstants.VERDACCIO_RESOURCE_NAME):
         print("DEBUG INFRA: Verdaccio not enabled")
         return

@@ -407,10 +407,11 @@ def _generate_all_configs_for_resource(
     # ==========================================================================
     # 8. PACKAGE CONFIGS (npmrc, bunfig)
     # ==========================================================================
-    PackageConfig.npmrc(resource_path=resource_path, registry_url=global_config['verdaccio_url_docker'], is_docker=True, write_fn=write_file)
-    PackageConfig.bunfig(resource_path=resource_path, registry_url=global_config['verdaccio_url_docker'], is_docker=True, write_fn=write_file)
-    PackageConfig.npmrc(resource_path=resource_path, registry_url=global_config['verdaccio_url_local'], is_docker=False, write_fn=write_file)
-    PackageConfig.bunfig(resource_path=resource_path, registry_url=global_config['verdaccio_url_local'], is_docker=False, write_fn=write_file)
+    verdaccio_enabled = global_config.get('verdaccio_enabled', True)
+    PackageConfig.npmrc(resource_path=resource_path, registry_url=global_config['verdaccio_url_docker'], is_docker=True, write_fn=write_file, verdaccio_enabled=verdaccio_enabled)
+    PackageConfig.bunfig(resource_path=resource_path, registry_url=global_config['verdaccio_url_docker'], is_docker=True, write_fn=write_file, verdaccio_enabled=verdaccio_enabled)
+    PackageConfig.npmrc(resource_path=resource_path, registry_url=global_config['verdaccio_url_local'], is_docker=False, write_fn=write_file, verdaccio_enabled=verdaccio_enabled)
+    PackageConfig.bunfig(resource_path=resource_path, registry_url=global_config['verdaccio_url_local'], is_docker=False, write_fn=write_file, verdaccio_enabled=verdaccio_enabled)
     
     # ==========================================================================
     # 9. YAML MANIFEST (for verification)
