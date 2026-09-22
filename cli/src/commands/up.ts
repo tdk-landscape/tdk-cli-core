@@ -1,12 +1,11 @@
 import { execSync } from "node:child_process";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import chalk from "chalk";
 import { Command } from "commander";
 import { handleDryRun } from "../utils/command-helpers.js";
 import { errorFactories, handleTiltFailure, withTiltCheck } from "../utils/errors.js";
 import { formatCount } from "../utils/formatting.js";
 import { findAvailablePort } from "../utils/port-assignment.js";
+import { appendHealthPath, resolveSubdomainBases } from "../utils/service-urls.js";
 import {
   discoverResources,
   discoverStacks,
@@ -14,51 +13,6 @@ import {
   stackExists,
 } from "../utils/services.js";
 import { buildTiltUpArgs, runTilt } from "../utils/tilt.js";
-
-import { findProjectRoot } from "../utils/paths.js";
-
-function getProjectName(): string {
-  const root = findProjectRoot();
-  if (root) {
-    try {
-      const content = readFileSync(join(root, ".tdk", "project.json"), "utf-8");
-      const parsed = JSON.parse(content);
-      if (parsed?.project?.name) {
-        return parsed.project.name;
-      }
-    } catch {}
-  }
-  return "beauty-crm";
-}
-
-function resolveSubdomainBases(): { appBase: string; apiBase: string } {
-  const projectName = getProjectName();
-  const raw = process.env.TDK_SERVICE_BASE_URL ?? `http://${projectName}.localhost`;
-  try {
-    const u = new URL(raw.includes("://") ? raw : `http://${raw}`);
-    const host = u.hostname;
-    if (host === "localhost" || /^\d+\.\d+\.\d+\.\d+$/.test(host)) {
-      return {
-        appBase: `${u.protocol}//${host}${u.port ? `:${u.port}` : ""}`,
-        apiBase: `${u.protocol}//${host}${u.port ? `:${u.port}` : ""}`,
-      };
-    }
-    const bare = host.replace(/^(app|api)\./, "");
-    return {
-      appBase: `${u.protocol}//app.${bare}${u.port ? `:${u.port}` : ""}`,
-      apiBase: `${u.protocol}//api.${bare}${u.port ? `:${u.port}` : ""}`,
-    };
-  } catch {
-    return {
-      appBase: `http://app.${projectName}.localhost`,
-      apiBase: `http://api.${projectName}.localhost`,
-    };
-  }
-}
-
-function appendHealthPath(path: string): string {
-  return `${path.replace(/\/+$/, "")}/health`;
-}
 
 export const upCommand = new Command("up")
   .description("Start all services (optionally filtered by stack)")
@@ -116,7 +70,9 @@ export const upCommand = new Command("up")
           console.log(chalk.blue("\n🌍 Frontend URLs:"));
           frontends.forEach((svc) => {
             const basePath = svc.config?.basePath ?? `/${svc.name}`;
-            console.log(chalk.gray(`  - ${svc.name}: ${appBase}${chalk.cyan(appendHealthPath(basePath))}`));
+            console.log(
+              chalk.gray(`  - ${svc.name}: ${appBase}${chalk.cyan(appendHealthPath(basePath))}`),
+            );
           });
         }
 
@@ -125,14 +81,15 @@ export const upCommand = new Command("up")
           backends.forEach((svc) => {
             const servicePathName = svc.name.replace(/-api$/, "");
             const apiPath = svc.config?.apiPath ?? `/api/${servicePathName}`;
-            console.log(chalk.gray(`  - ${svc.name}: ${apiBase}${chalk.cyan(appendHealthPath(apiPath))}`));
+            console.log(
+              chalk.gray(`  - ${svc.name}: ${apiBase}${chalk.cyan(appendHealthPath(apiPath))}`),
+            );
           });
         }
       }
 
-      const dryRunCommand = focusServiceNames.length > 0
-        ? `tilt up ${focusServiceNames.join(" ")}`
-        : "tilt up";
+      const dryRunCommand =
+        focusServiceNames.length > 0 ? `tilt up ${focusServiceNames.join(" ")}` : "tilt up";
       if (handleDryRun(options, "not starting services", dryRunCommand)) {
         return;
       }

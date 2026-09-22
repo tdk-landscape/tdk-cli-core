@@ -4,10 +4,16 @@ import { join } from "node:path";
 import chalk from "chalk";
 import { Command } from "commander";
 import type { CheckResult } from "../types/index.js";
-import { MASTER_CONFIG_FILES, QUICKSTART_DOCS_URL, REQUIRED_PACKAGE_SCRIPTS } from "../utils/constants.js";
-import { findProjectRoot } from "../utils/paths.js";
-import { discoverResourcesFromRoot } from "../utils/services.js";
+import {
+  MASTER_CONFIG_FILES,
+  QUICKSTART_DOCS_URL,
+  REQUIRED_PACKAGE_SCRIPTS,
+} from "../utils/constants.js";
 import { validateEnvFile } from "../utils/env-validator.js";
+import { formatCount } from "../utils/formatting.js";
+import { findProjectRoot } from "../utils/paths.js";
+import { buildHealthTargets, pingHealthTargets } from "../utils/service-urls.js";
+import { discoverResourcesFromRoot } from "../utils/services.js";
 
 function createExecCheck(
   name: string,
@@ -203,13 +209,88 @@ function checkStartupScripts(): CheckResult {
   };
 }
 
+const DEFAULT_PING_TIMEOUT_MS = 5000;
+
+/**
+ * Pings every routable service on the same /health URLs `tdk up` advertises.
+ *
+ * This is a runtime check, not an environment one: before `tdk up` there is
+ * nothing to ping, so a stopped stack is reported as skipped and doctor still
+ * passes. Once services are up, an unreachable endpoint is a real failure --
+ * it catches the case where a container is running but Traefik never routed
+ * to it, which `docker ps` alone will not show.
+ */
+async function checkServiceHealth(timeoutMs: number): Promise<CheckResult> {
+  const projectRoot = findProjectRoot() ?? process.cwd();
+  const targets = buildHealthTargets(discoverResourcesFromRoot(projectRoot));
+
+  if (targets.length === 0) {
+    return {
+      name: "Service Health",
+      didPass: true,
+      isSkipped: true,
+      message: "No routable services to ping",
+    };
+  }
+
+  const probes = await pingHealthTargets(targets, timeoutMs);
+  const reachable = probes.filter((probe) => probe.ok);
+  const failed = probes.filter((probe) => !probe.ok);
+
+  // Nothing answered at all: the stack is almost certainly not started yet,
+  // which is the normal state for `tdk doctor` before `tdk up`.
+  if (reachable.length === 0) {
+    return {
+      name: "Service Health",
+      didPass: true,
+      isSkipped: true,
+      message: `Services not running - skipped ping of ${formatCount(targets.length, "service")}`,
+      fix: "Start them with: tdk up",
+    };
+  }
+
+  if (failed.length === 0) {
+    return {
+      name: "Service Health",
+      didPass: true,
+      message: `All ${formatCount(targets.length, "service")} responding on /health`,
+    };
+  }
+
+  const details = failed
+    .map((probe) => {
+      const reason = probe.status ? `HTTP ${probe.status}` : (probe.error ?? "no response");
+      return `${probe.name} (${reason})\n      ${probe.url}`;
+    })
+    .join("\n    ");
+
+  return {
+    name: "Service Health",
+    didPass: false,
+    message: `${formatCount(failed.length, "service")} not responding (${reachable.length}/${probes.length} healthy):\n    ${details}`,
+    fix: "Check container state and routing: docker ps, then tdk networks to compare the advertised URLs against Traefik's routers",
+  };
+}
+
 export const doctorCommand = new Command("doctor")
   .description("Check environment readiness for TDK")
-  .action(async () => {
+  .option("--no-ping", "Skip pinging running services' /health endpoints")
+  .option(
+    "--ping-timeout <ms>",
+    "Per-service ping timeout in milliseconds",
+    String(DEFAULT_PING_TIMEOUT_MS),
+  )
+  .action(async (options) => {
     console.log(`\n${chalk.bold("🔍 TDK Doctor")}\n`);
     console.log("Checking environment...\n");
 
-    const checks = [
+    const pingTimeout = Number.parseInt(options.pingTimeout, 10);
+    if (!Number.isFinite(pingTimeout) || pingTimeout <= 0) {
+      console.log(`${chalk.red("✗")} --ping-timeout must be a positive number of milliseconds`);
+      process.exit(1);
+    }
+
+    const checks: Array<() => CheckResult | Promise<CheckResult>> = [
       checkDockerRuntime,
       checkTilt,
       checkDockerCompose,
@@ -218,12 +299,22 @@ export const doctorCommand = new Command("doctor")
       checkEnvironmentVariables,
     ];
 
+    // Runs last: it is the only check that needs the stack already started.
+    if (options.ping) {
+      checks.push(() => checkServiceHealth(pingTimeout));
+    }
+
     let allPassed = true;
 
     for (const checkFn of checks) {
-      const result = checkFn();
+      const result = await checkFn();
 
-      if (result.didPass) {
+      if (result.isSkipped) {
+        console.log(`${chalk.gray("○")} ${chalk.gray(result.message)}`);
+        if (result.fix) {
+          console.log(`${chalk.blue("ℹ")} ${result.fix}`);
+        }
+      } else if (result.didPass) {
         console.log(`${chalk.green("✓")} ${result.message}`);
       } else {
         console.log(`${chalk.red("✗")} ${result.message}`);

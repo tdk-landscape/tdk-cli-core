@@ -16,6 +16,7 @@ load('../../../../topologies/tilt/manifest/constants.star', 'GENERATED_CONFIG_FI
 
 
 load('./templates.star', 'TEMPLATE_VITE_FRONTEND', 'TEMPLATE_VITE_FRONTEND_BUILD')
+load('../../../platform/docker/networking/api_path_constants.star', 'get_frontend_base_path')
 load('./helpers.star', 
     'build_header', 
     'generate_frontend_internal_aliases', 
@@ -56,7 +57,7 @@ def generate_frontend(manifest, backend_manifest=None, write_fn=None):
     stack = manifest.get('stack', 'app')
     port = manifest.get('port', BASE_PORT_FRONTEND)
     hmr_port = port + 1000  # HMR port is always port + 1000
-    base_path = manifest.get('basePath', '/' + stack + 's')
+    base_path = get_frontend_base_path(manifest)
     vite_base_path = _normalize_vite_base_path(base_path)
     app_name = manifest.get('appName', 'unknown')
 

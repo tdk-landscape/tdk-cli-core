@@ -115,6 +115,36 @@ def get_api_path_for_stack(stack, manifest=None):
 # Backwards compatibility alias
 get_api_path_for_domain = get_api_path_for_stack
 
+
+def get_frontend_base_path(manifest, res_name=None):
+    """Returns the public route a frontend is served under, e.g. "/floor-app".
+
+    Single source of truth. Three separate generators need this value and they
+    MUST agree, because they are three halves of one route:
+
+      - compose.star   -> the Traefik router rule and its stripprefix middleware
+      - vite/frontend  -> `base`, which prefixes every asset URL in index.html
+      - env.star       -> PUBLIC_URL
+
+    If they disagree the app still "starts" but serves a white page: Traefik
+    routes /a, index.html asks for /b/assets/*, and nothing answers. They used
+    to default to `stack + 's'`, `'/' + stack + 's'` and `'/' + stack`
+    respectively -- three different answers, one of which ("operations" + "s")
+    produced the nonsense route /operationss.
+
+    Defaults to the service name: it is unique per service (a stack with two
+    frontends would otherwise collide on one route) and it matches the URL
+    `tdk up` prints, so what the CLI advertises is what Traefik serves.
+    """
+    base_path = manifest.get('basePath') if manifest else None
+    if not base_path:
+        base_path = res_name or (manifest.get('appName') if manifest else None) or ''
+    if not base_path:
+        return ''
+    if not base_path.startswith('/'):
+        base_path = '/' + base_path
+    return base_path
+
 def get_api_path_for_resource(resource_name):
     """Returns the full API path for a resource name.
     

@@ -219,6 +219,8 @@ export interface CheckResult {
   didPass: boolean;
   message: string;
   fix?: string;
+  /** Check could not run meaningfully (e.g. nothing started yet); not a failure. */
+  isSkipped?: boolean;
 }
 
 export interface ServiceUrl {
