@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { cwd } from "node:process";
 import chalk from "chalk";
@@ -22,6 +22,7 @@ import { isPathSafe } from "../utils/validation.js";
 import { ensureEnvFile, validateEnvFile } from "../utils/env-validator.js";
 import { PROJECT_FEATURES } from "../utils/project-features.js";
 import { promptConfirm, promptMultiSelect, promptText } from "../utils/prompt.js";
+import type { ProjectConfig } from "../types/index.js";
 
 /**
  * Stack names discovered from service.json files already in the repo (e.g. a
@@ -36,6 +37,39 @@ function discoverExistingServiceStacks(projectRoot: string): string[] {
   } catch {
     return [];
   }
+}
+
+function getAssignedStackServices(projectConfig: Pick<ProjectConfig, "stacks">): Set<string> {
+  return new Set([
+    ...projectConfig.stacks.pre_alpha.services,
+    ...projectConfig.stacks.alpha.services,
+    ...projectConfig.stacks.beta.services,
+    ...projectConfig.stacks.out_of_scope.services,
+  ]);
+}
+
+function syncDiscoveredStacksToPreAlpha(
+  projectConfig: ProjectConfig,
+  discoveredStacks: string[],
+): string[] {
+  const assignedServices = getAssignedStackServices(projectConfig);
+  const missingStacks = discoveredStacks.filter((stack) => !assignedServices.has(stack));
+
+  if (missingStacks.length === 0) {
+    projectConfig.stacks.pre_alpha.services = Array.from(
+      new Set(projectConfig.stacks.pre_alpha.services),
+    );
+    return [];
+  }
+
+  projectConfig.stacks.pre_alpha.services = Array.from(
+    new Set([
+      ...projectConfig.stacks.pre_alpha.services,
+      ...missingStacks,
+    ]),
+  );
+
+  return missingStacks;
 }
 
 /**
@@ -206,6 +240,18 @@ export const projectCommand = new Command("project")
 
       if (projectJsonExists && !options.force) {
         showSuccess(".tdk/project.json exists");
+        const projectConfig = readProjectConfig(projectRoot);
+        const discoveredStacks = discoverExistingServiceStacks(projectRoot);
+        const autoEnabledStacks = syncDiscoveredStacksToPreAlpha(projectConfig, discoveredStacks);
+
+        if (autoEnabledStacks.length > 0) {
+          writeJsonFile(projectJsonPath, projectConfig);
+          showDetail(
+            `Auto-enabled discovered service stacks: ${autoEnabledStacks.join(", ")}`,
+            0,
+          );
+        }
+
         showStep("\n📋 Regenerating master configuration files...\n");
 
         await generateMasterConfigs(projectRoot);
@@ -229,7 +275,7 @@ export const projectCommand = new Command("project")
         }
       }
 
-      let projectConfig: typeof DEFAULT_PROJECT_JSON;
+      let projectConfig: ProjectConfig;
       const discoveredStacks = discoverExistingServiceStacks(projectRoot);
 
       if (options.configFile) {
@@ -237,24 +283,13 @@ export const projectCommand = new Command("project")
         if (!existsSync(configFilePath)) {
           showErrorAndExit(`Config file not found: ${configFilePath}`);
         }
-        const configContent = await import("node:fs").then((fs) =>
-          fs.readFileSync(configFilePath, "utf-8"),
-        );
+        const configContent = readFileSync(configFilePath, "utf-8");
         projectConfig = JSON.parse(configContent);
         showSuccess(`Loaded config from: ${configFilePath}`);
       } else if (options.yes) {
         projectConfig = JSON.parse(JSON.stringify(DEFAULT_PROJECT_JSON));
         projectConfig.project.name = projectRoot.split("/").pop() || "my-project";
-        projectConfig.stacks.pre_alpha.services = Array.from(
-          new Set([
-            ...projectConfig.stacks.pre_alpha.services,
-            ...discoveredStacks,
-          ])
-        );
         console.log(chalk.gray("Using default configuration (non-interactive mode)"));
-        if (discoveredStacks.length > 0) {
-          showDetail(`Auto-enabled discovered service stacks: ${discoveredStacks.join(", ")}`, 0);
-        }
       } else {
         showStep("📝 Project Setup Wizard\n");
 
@@ -349,6 +384,11 @@ export const projectCommand = new Command("project")
           parsedDiscoveryPaths.length > 0
             ? parsedDiscoveryPaths
             : DEFAULT_PROJECT_JSON.discovery.paths;
+      }
+
+      const autoEnabledStacks = syncDiscoveredStacksToPreAlpha(projectConfig, discoveredStacks);
+      if (autoEnabledStacks.length > 0) {
+        showDetail(`Auto-enabled discovered service stacks: ${autoEnabledStacks.join(", ")}`, 0);
       }
 
       showStep("\n📋 Creating project configuration...\n");
