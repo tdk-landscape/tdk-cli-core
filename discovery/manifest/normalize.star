@@ -240,7 +240,7 @@ def _generate_manifest_template(app_name, stack, app_type='backend', port=4000):
     🎯 TEMPLATE GENERATOR: Returns a string with a standard manifest.
     """
     template = {
-        "$schema": "https://" + PlatformDockerConstants.EMAIL_DOMAIN + "/schemas/manifest-schema.json",
+        "$schema": PlatformDockerConstants.RESOURCE_SCHEMA_URL,
         "appName": app_name,
         "appType": app_type,
         "stack": stack,

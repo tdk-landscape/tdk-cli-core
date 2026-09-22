@@ -37,6 +37,9 @@ APP_LOCAL_DOMAIN = APP_SUBDOMAIN_PREFIX + "." + LOCAL_DOMAIN
 API_LOCAL_DOMAIN = API_SUBDOMAIN_PREFIX + "." + LOCAL_DOMAIN
 EMAIL_DOMAIN = PROJECT_NAME_HYPHEN + ".local"
 
+# Published resource-config JSON Schema, same for every project (not project-specific like EMAIL_DOMAIN)
+RESOURCE_SCHEMA_URL = "https://tdk-landscape.github.io/schema.service.json"
+
 # NPM scope constant
 NPM_SCOPE = "@" + PROJECT_NAME_HYPHEN + "/"
 
@@ -129,6 +132,7 @@ PlatformDockerConstants = struct(
     APP_LOCAL_DOMAIN = APP_LOCAL_DOMAIN,
     API_LOCAL_DOMAIN = API_LOCAL_DOMAIN,
     EMAIL_DOMAIN = EMAIL_DOMAIN,
+    RESOURCE_SCHEMA_URL = RESOURCE_SCHEMA_URL,
     NPM_SCOPE = NPM_SCOPE,
     BUN_VERSION = BUN_VERSION,
     BUN_IMAGE = BUN_IMAGE,
