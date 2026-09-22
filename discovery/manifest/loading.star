@@ -318,8 +318,12 @@ def _apply_manifest_defaults(manifest, resource_path):
         elif result['backendName'] != computed_backend:
             overrides.append("backendName: {} (auto: {})".format(result['backendName'], computed_backend))
         
-        # 🎯 SMART BASEPATH for frontends (convention: /{stack}s)
-        computed_base_path = '/' + stack + 's'
+        # 🎯 SMART BASEPATH for frontends (convention: /{appName})
+        # Was '/' + stack + 's', which appended a second 's' to an already-plural
+        # stack ("operations" -> /operationss) and collided whenever one stack had
+        # two frontends. The service name is unique and matches the URL `tdk up`
+        # prints, so what the CLI advertises is what Traefik actually serves.
+        computed_base_path = '/' + app_name
         if 'basePath' not in result:
             result['basePath'] = computed_base_path
         elif result['basePath'] != computed_base_path:
