@@ -96,7 +96,7 @@ function formatCommand(
 export function showHelp(): void {
   console.log(TDK_BANNER);
 
-  console.log(chalk.bold.white("\n  Project → Stack → Resource (PSR) Model\n"));
+  console.log(chalk.bold.white("\n  Project → Phase → Stack → Resource (PPSR) Model\n"));
 
   console.log(chalk.gray("  Usage: tdk [command] [options]\n"));
 

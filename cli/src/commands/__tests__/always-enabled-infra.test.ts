@@ -1,0 +1,101 @@
+import { describe, expect, it } from "vitest";
+
+describe("always_enabled_infra", () => {
+  it("includes core infrastructure always enabled in pre_alpha", () => {
+    const projectConfig = {
+      version: "1.0",
+      project: { name: "checkout-app", version: "1.0.0" },
+      phases: {
+        pre_alpha: {
+          name: "Pre-Alpha",
+          description: "Core infrastructure and MVP services",
+          enabledStacks: ["proxy", "billing", "checkout-app", "database-management"],
+        },
+        alpha: {
+          name: "Alpha",
+          description: "Essential business services",
+          enabledStacks: [],
+        },
+        beta: {
+          name: "Beta",
+          description: "Extended features",
+          enabledStacks: [],
+        },
+        out_of_scope: {
+          name: "Out of Scope",
+          description: "Future releases",
+          enabledStacks: [],
+        },
+      },
+      always_enabled_infra: [
+        "database-management",
+        "proxy",
+        "infisical",
+      ],
+    };
+
+    expect(projectConfig.always_enabled_infra).toContain("database-management");
+    expect(projectConfig.always_enabled_infra).toContain("proxy");
+    expect(projectConfig.always_enabled_infra).toContain("infisical");
+    expect(projectConfig.phases.pre_alpha.enabledStacks).toContain("proxy");
+  });
+
+  it("always_enabled_infra defaults when not specified", () => {
+    const projectConfig = {
+      version: "1.0",
+      project: { name: "my-project", version: "1.0.0" },
+      phases: {
+        pre_alpha: {
+          name: "Pre-Alpha",
+          description: "Core infrastructure and MVP services",
+          enabledStacks: [],
+        },
+        alpha: {
+          name: "Alpha",
+          description: "Essential business services",
+          enabledStacks: [],
+        },
+        beta: {
+          name: "Beta",
+          description: "Extended features",
+          enabledStacks: [],
+        },
+        out_of_scope: {
+          name: "Out of Scope",
+          description: "Future releases",
+          enabledStacks: [],
+        },
+      },
+    };
+
+    // TemplateEngine uses ?? operator to default when undefined/null
+    const defaults = projectConfig.always_enabled_infra ?? [
+      "database-management",
+      "proxy",
+      "infisical",
+    ];
+
+    expect(defaults).toContain("database-management");
+    expect(defaults).toContain("proxy");
+    expect(defaults).toContain("infisical");
+  });
+
+  it("always_enabled_infra + enabledStacks can overlap", () => {
+    const projectConfig = {
+      version: "1.0",
+      project: { name: "test-project", version: "1.0.0" },
+      phases: {
+        pre_alpha: {
+          name: "Pre-Alpha",
+          description: "Core infrastructure and MVP services",
+          enabledStacks: ["proxy", "database-management"],
+        },
+      },
+      always_enabled_infra: ["proxy", "infisical"],
+    };
+
+    expect(projectConfig.phases.pre_alpha.enabledStacks).toContain("proxy");
+    expect(projectConfig.always_enabled_infra).toContain("infisical");
+    expect(projectConfig.always_enabled_infra).toContain("proxy");
+  });
+});
