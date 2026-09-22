@@ -4,6 +4,7 @@
 
 [![npm version](https://img.shields.io/npm/v/@tdk-landscape/tdk-cli-core.svg?style=flat&color=blue)](https://www.npmjs.com/package/@tdk-landscape/tdk-cli-core)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Socket Badge](https://badge.socket.dev/npm/package/@tdk-landscape/tdk-cli-core/1.3.27)](https://badge.socket.dev/npm/package/@tdk-landscape/tdk-cli-core/1.3.27)
 
 ---
 
