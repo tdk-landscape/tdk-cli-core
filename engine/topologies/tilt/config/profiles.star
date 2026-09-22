@@ -321,13 +321,27 @@ def apply_focus_filter(cfg):
     # Logic toggles (e.g. "golden-image", "database-management") are excluded since they're config flags, not resources.
     # Infrastructure resources (postgres, nats, traefik, etc.) are loaded via Infra.load_all()
     # and excluded here since they may not be available in all projects.
-    # Only include resources that exist as discovered services (in resource aliases).
+    # Only include resources that exist as discovered services.
+    #
+    # NOTE: resource_aliases (from get_resource_aliases_ref()) only maps top-level
+    # STACK/domain names (e.g. "app", "billing") to a path - it does not contain an
+    # entry per concrete resource (e.g. "dashboard-api", "checkout-app"). _get_resources_for_domain()
+    # already expanded stack names into concrete resource names above (all_needed), so those
+    # concrete names must be recognized here too, or they get silently dropped and their
+    # services never start. Build that set directly from the discovered service resources.
     resource_aliases = get_resource_aliases_ref()
+    known_service_resource_names = {}
+    for _svc in get_app_resources_ref():
+        for _res in _svc.get("resources", []):
+            _res_name = _res.get("name", "")
+            if _res_name:
+                known_service_resource_names[_res_name] = True
+                known_service_resource_names[_res_name + "-yaml"] = True
     resource_only_needed = []
     for r in all_needed:
         if r in logic_toggles:
             continue
-        if r not in resource_aliases:
+        if r not in resource_aliases and r not in known_service_resource_names:
             continue
         resource_only_needed.append(r)
 

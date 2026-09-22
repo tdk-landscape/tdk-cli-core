@@ -229,7 +229,12 @@ for app_service in _app_resources_list:
 Watchers.setup_package_json(_app_resources_list, should_enable)
 
 # Apply focus mode filter
-# Build known Tilt resource names from discovered services to filter focus list
+# Build known Tilt resource names (and a stack-name -> resource-name index) from
+# discovered services to filter focus list. Focus targets are stack names (e.g.
+# "app", "billing") from spec.master, which do NOT always match the resource
+# name prefix (stack "app" maps to resources "dashboard-api"/"dashboard-app",
+# not "app-*") - so stack membership must be resolved explicitly rather than
+# assumed via string prefix.
 _KNOWN_TILT_RESOURCES = set()
 _KNOWN_TILT_RESOURCES.add('service-discovery-daemon')
 _KNOWN_TILT_RESOURCES.add('init-networks')
@@ -241,8 +246,10 @@ _KNOWN_TILT_RESOURCES.add('infisical-redis')
 _KNOWN_TILT_RESOURCES.add('traefik')
 _KNOWN_TILT_RESOURCES.add('verdaccio')
 _KNOWN_TILT_RESOURCES.add('golden-layers-build')
+_STACK_TO_RESOURCE_NAMES = {}
 for _KNOWN_SVC in _app_resources_list:
     _KNOWN_SVC_NAME = _KNOWN_SVC.get('name', '')
+    _KNOWN_SVC_STACK = _KNOWN_SVC.get('stack', '')
     if _KNOWN_SVC_NAME:
         for _KNOWN_RES in _KNOWN_SVC.get('resources', []):
             _KNOWN_RES_NAME = _KNOWN_RES.get('name', '')
@@ -250,11 +257,19 @@ for _KNOWN_SVC in _app_resources_list:
                 _KNOWN_TILT_RESOURCES.add(_KNOWN_RES_NAME)
                 _KNOWN_TILT_RESOURCES.add(_KNOWN_RES_NAME + '-run-only')
                 _KNOWN_TILT_RESOURCES.add(_KNOWN_RES_NAME + '-config-gen')
+                if _KNOWN_SVC_STACK:
+                    _STACK_TO_RESOURCE_NAMES.setdefault(_KNOWN_SVC_STACK, [])
+                    _STACK_TO_RESOURCE_NAMES[_KNOWN_SVC_STACK].append(_KNOWN_RES_NAME)
 if FOCUS_MODE and FOCUS_ENABLED_RESOURCES:
     _FILTERED_RESOURCES = []
     for _R in FOCUS_ENABLED_RESOURCES:
         if _R in _KNOWN_TILT_RESOURCES:
             _FILTERED_RESOURCES.append(_R)
+        elif _R in _STACK_TO_RESOURCE_NAMES:
+            for _STACK_RES_NAME in _STACK_TO_RESOURCE_NAMES[_R]:
+                _FILTERED_RESOURCES.append(_STACK_RES_NAME)
+                _FILTERED_RESOURCES.append(_STACK_RES_NAME + '-run-only')
+                _FILTERED_RESOURCES.append(_STACK_RES_NAME + '-config-gen')
         else:
             _MATCHED = [kr for kr in _KNOWN_TILT_RESOURCES if kr != 'service-discovery-daemon' and kr.startswith(_R + '-')]
             _FILTERED_RESOURCES.extend(_MATCHED)
