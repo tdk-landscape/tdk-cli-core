@@ -118,6 +118,11 @@ RUN echo '🔍 DEPENDENCY INSTALLATION DIAGNOSTICS (debug)' && \\
         + "RUN --mount=type=cache,target=/cache/bun,sharing=shared chmod +x /usr/local/bin/install-deps.sh && start_ts=$(date +%s) && "
         + install_deps_verbose
         + "/usr/local/bin/install-deps.sh && end_ts=$(date +%s) && echo \"install-deps duration: $((end_ts-start_ts))s\"\n"
+        # Guarantee /app/node_modules/.bun exists so L3's COPY --link never
+        # fails with "not found". Bun's isolated linker only creates this dir
+        # when hoisted packages are present; without TDK_LICENSE_KEY the public-
+        # npm install may skip it entirely.
+        + "RUN mkdir -p /app/node_modules/.bun\n"
     )
 
 DEBUG = {}

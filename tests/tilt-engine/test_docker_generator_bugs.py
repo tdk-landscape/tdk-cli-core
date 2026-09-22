@@ -414,5 +414,80 @@ class TestGeneratorCallerPatterns:
                             )
 
 
+class TestL2BunDirectoryGuarantee:
+    """Test that l2_deps_manifest always creates /app/node_modules/.bun.
+
+    Regression test for: Bun's isolated linker only creates /app/node_modules/.bun
+    when hoisted packages are present. Without TDK_LICENSE_KEY the Verdaccio
+    private registry is skipped, the public-npm install may not produce that
+    directory, and the subsequent L3 `COPY --link --from=l2_deps_manifest
+    /app/node_modules/.bun` fails with 'not found'.
+    """
+
+    def test_l2_layer_contains_mkdir_bun(self):
+        """l2_dependency_layers.star must guarantee /app/node_modules/.bun exists."""
+        l2_star = (
+            Path(__file__).parent.parent.parent
+            / "engine"
+            / "topologies"
+            / "platform"
+            / "docker"
+            / "layers"
+            / "l2_dependency_layers.star"
+        )
+        assert l2_star.exists(), "l2_dependency_layers.star not found"
+        content = l2_star.read_text()
+        assert "mkdir -p /app/node_modules/.bun" in content, (
+            "l2_dependency_layers.star must emit `RUN mkdir -p /app/node_modules/.bun` "
+            "so L3's COPY --link never fails when Bun skips creating the directory "
+            "(e.g. when TDK_LICENSE_KEY is unset and only public npm packages are installed)."
+        )
+
+    def test_mkdir_comes_after_install_deps(self):
+        """The mkdir must appear AFTER install-deps.sh runs, not before."""
+        l2_star = (
+            Path(__file__).parent.parent.parent
+            / "engine"
+            / "topologies"
+            / "platform"
+            / "docker"
+            / "layers"
+            / "l2_dependency_layers.star"
+        )
+        if not l2_star.exists():
+            pytest.skip("l2_dependency_layers.star not found")
+        content = l2_star.read_text()
+        install_pos = content.find("install-deps.sh")
+        mkdir_pos = content.find("mkdir -p /app/node_modules/.bun")
+        assert install_pos != -1, "install-deps.sh reference not found"
+        assert mkdir_pos != -1, "mkdir -p /app/node_modules/.bun not found"
+        assert mkdir_pos > install_pos, (
+            "mkdir -p /app/node_modules/.bun must appear AFTER install-deps.sh"
+        )
+
+    def test_l3_backend_copies_bun_dir_from_l2(self):
+        """l3_builder_layers.star must copy /app/node_modules/.bun from l2_deps_manifest."""
+        l3_star = (
+            Path(__file__).parent.parent.parent
+            / "engine"
+            / "topologies"
+            / "platform"
+            / "docker"
+            / "layers"
+            / "l3_builder_layers.star"
+        )
+        if not l3_star.exists():
+            pytest.skip("l3_builder_layers.star not found")
+        content = l3_star.read_text()
+        # Both backend and frontend builders copy the .bun dir
+        assert content.count("node_modules/.bun") >= 2, (
+            "Expected at least 2 COPY references to node_modules/.bun in l3_builder_layers.star "
+            "(one for backend builder, one for frontend builder)"
+        )
+        assert "l2_deps_manifest" in content, (
+            "L3 must reference l2_deps_manifest as the source for .bun COPY"
+        )
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
