@@ -43,6 +43,8 @@ jobs:
       # of failing when this run didn't bump the version.
       - name: Publish to npm
         working-directory: cli
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           PKG_VERSION=$(node -p "require('./package.json').version")
           if npm view "@tdk-landscape/tdk-cli-core@${PKG_VERSION}" version >/dev/null 2>&1; then
