@@ -56,6 +56,10 @@ function resolveSubdomainBases(): { appBase: string; apiBase: string } {
   }
 }
 
+function appendHealthPath(path: string): string {
+  return `${path.replace(/\/+$/, "")}/health`;
+}
+
 export const upCommand = new Command("up")
   .description("Start all services (optionally filtered by stack)")
   .alias("deploy")
@@ -110,7 +114,7 @@ export const upCommand = new Command("up")
           console.log(chalk.blue("\n🌍 Frontend URLs:"));
           frontends.forEach((svc) => {
             const basePath = svc.config?.basePath ?? `/${svc.name}`;
-            console.log(chalk.gray(`  - ${svc.name}: ${appBase}${chalk.cyan(basePath)}`));
+            console.log(chalk.gray(`  - ${svc.name}: ${appBase}${chalk.cyan(appendHealthPath(basePath))}`));
           });
         }
 
@@ -119,7 +123,7 @@ export const upCommand = new Command("up")
           backends.forEach((svc) => {
             const servicePathName = svc.name.replace(/-api$/, "");
             const apiPath = svc.config?.apiPath ?? `/api/${servicePathName}`;
-            console.log(chalk.gray(`  - ${svc.name}: ${apiBase}${chalk.cyan(apiPath)}`));
+            console.log(chalk.gray(`  - ${svc.name}: ${apiBase}${chalk.cyan(appendHealthPath(apiPath))}`));
           });
         }
       }
