@@ -76,7 +76,7 @@ export function createServiceJson(
     ...base,
     appName: name,
     appType: type,
-    features: [...getDefaultFeaturesForResourceType(type), ...extraFeatures],
+    featuresEnabled: [...getDefaultFeaturesForResourceType(type), ...extraFeatures],
     name,
     type,
     stack,

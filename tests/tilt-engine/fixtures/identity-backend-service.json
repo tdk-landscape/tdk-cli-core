@@ -5,7 +5,7 @@
   "port": 4001,
   "path": "services/product/identity/identity-backend",
   "databaseName": "{project}_identity",
-  "features": ["prisma", "nats", "health-check"],
+  "featuresEnabled": ["prisma", "nats", "health-check"],
   "replicas": 2,
   "healthCheck": true,
   "healthCheckPath": "/health"

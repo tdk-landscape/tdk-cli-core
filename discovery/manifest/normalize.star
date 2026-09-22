@@ -103,7 +103,7 @@ def _load_and_normalize(manifest_path, warn_only=True):
     app_name = normalized.get('appName', '')
     app_type = normalized.get('appType', 'backend')
     stack = normalized.get('stack', '')
-    features = normalized.get('features', [])
+    features = normalized.get('featuresEnabled', [])
     
     # 🎯 AUTO-COMPUTE labels from stack
     normalized['labels'] = ['app.' + stack]
@@ -246,7 +246,7 @@ def _generate_manifest_template(app_name, stack, app_type='backend', port=4000):
         "stack": stack,
         "port": port,
         "replicas": 1,
-        "features": [MESSAGING, "infisical"],
+        "featuresEnabled": [MESSAGING, "infisical"],
         "dependsOn": [],
         "runtime": RUNTIME
     }

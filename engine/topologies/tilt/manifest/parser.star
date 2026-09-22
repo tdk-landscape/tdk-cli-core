@@ -90,7 +90,7 @@ def normalize(manifest, resource_path=""):
     # Copy all existing fields
     for key, value in manifest.items():
         normalized[key] = value
-    
+
     # 1. Apply defaults for missing fields
     for field, default_value in MANIFEST_DEFAULTS.items():
         if field not in normalized or normalized[field] == None:
@@ -111,7 +111,7 @@ def normalize(manifest, resource_path=""):
     if normalized.get('syncs') == None or normalized.get('syncs') == []:
         normalized['syncs'] = _compute_syncs(
             normalized['appType'],
-            normalized.get('features', [])
+            normalized.get('featuresEnabled', [])
         )
     
     # Compute backendName for frontends if missing

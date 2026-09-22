@@ -213,7 +213,7 @@ def _test_cross_field_validation():
         'appType': 'backend',
         'stack': 'user',
         'port': 4001,
-        'features': ['prisma'],
+        'featuresEnabled': ['prisma'],
         # Missing databaseName
     }
     
@@ -312,7 +312,7 @@ def _test_full_validation():
         'port': 4000,
         'replicas': 1,
         'runtime': 'bun',
-        'features': ['nats', 'prisma'],
+        'featuresEnabled': ['nats', 'prisma'],
         'databaseName': 'TDK_user',
         'dependsOn': [],
         'traefik': {

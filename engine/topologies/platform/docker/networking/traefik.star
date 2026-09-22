@@ -60,7 +60,7 @@ def get_frontend_traefik_labels(res_name, domain, base_path, port, traefik_host=
     middleware_name = res_name + TRAEFIK_MIDDLEWARE_SUFFIX
     
     # Check if maintenance feature is enabled
-    features = manifest.get('features', []) if manifest else []
+    features = manifest.get('featuresEnabled', []) if manifest else []
     maintenance_middleware = ""
     if 'maintenance' in features:
         maintenance_middleware = ",maintenance@file"
@@ -112,7 +112,7 @@ def get_backend_traefik_labels(
     middleware_name = resource_entry_name + TRAEFIK_MIDDLEWARE_SUFFIX
     
     # Check if maintenance feature is enabled
-    features = manifest.get('features', []) if manifest else []
+    features = manifest.get('featuresEnabled', []) if manifest else []
     maintenance_middleware = ""
     if 'maintenance' in features:
         maintenance_middleware = ",maintenance@file"

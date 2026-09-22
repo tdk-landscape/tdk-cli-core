@@ -117,7 +117,7 @@ MANIFEST_SCHEMA = {
         'description': 'Runtime environment',
         'default': RUNTIME,
     },
-    'features': {
+    'featuresEnabled': {
         'type': 'list',
         'required': False,
         'constraints': {
@@ -263,7 +263,7 @@ CROSS_FIELD_CONSTRAINTS = {
         'message': 'Frontend resources must specify backendName and basePath',
     },
     'prisma_requires_database': {
-        'condition': {'field': 'features', 'contains': 'prisma'},
+        'condition': {'field': 'featuresEnabled', 'contains': 'prisma'},
         'requires': ['databaseName'],
         'severity': 'warning',
         'message': 'Resources using Prisma should specify databaseName',

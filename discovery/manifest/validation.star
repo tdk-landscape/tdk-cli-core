@@ -77,7 +77,7 @@ def validate_manifest(manifest):
                 issues.append("Port " + str(port) + " out of range for " + app_type + ". Expected " + str(port_range['min']) + "-" + str(port_range['max']))
     
     # 5. Validate features array
-    features = manifest.get('features', [])
+    features = manifest.get('featuresEnabled', [])
     if type(features) != 'list':
         issues.append("Invalid features: must be an array")
     else:

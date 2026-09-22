@@ -45,7 +45,7 @@ def generate_backend(manifest, write_fn=None):
     
     # 🔥 SMART DETECTION: Check if service uses vite-plugin-node for HMR
     use_vite_node = manifest.get('useViteNode', False)
-    features = manifest.get('features', [])
+    features = manifest.get('featuresEnabled', [])
     if 'vite-node' in features or 'vite-plugin-node' in features or 'hmr' in features:
         use_vite_node = True
     

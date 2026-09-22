@@ -164,7 +164,7 @@ def generate_backend_path_aliases(resource_path, manifest):
     # hand-edited features: ["ddd"] with no key at all is still blocked, but real
     # entitlement is checked client-side by hasDddLicense() in extension-fetch.ts
     # before the CLI ever writes "ddd" into a resource's features array.
-    ddd_enabled = 'ddd' in manifest.get('features', []) and os.environ.get('TDK_LICENSE_KEY', '') != ''
+    ddd_enabled = 'ddd' in manifest.get('featuresEnabled', []) and os.environ.get('TDK_LICENSE_KEY', '') != ''
 
     if ddd_enabled:
         ddd_aliases = [

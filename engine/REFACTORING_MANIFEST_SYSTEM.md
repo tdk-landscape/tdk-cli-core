@@ -632,7 +632,7 @@ VALIDATION_RULES = {
     
     'prisma_has_database': {
         'severity': 'warning',
-        'condition': lambda m: 'prisma' in m.get('features', []),
+        'condition': lambda m: 'prisma' in m.get('featuresEnabled', []),
         'check': lambda m: m.get('databaseName'),
         'message': 'Service with prisma feature should specify databaseName',
     },

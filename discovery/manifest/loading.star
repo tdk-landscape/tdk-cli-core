@@ -197,12 +197,12 @@ def _apply_manifest_defaults(manifest, resource_path):
     - domain: "order" -> nats.queueGroup="order_backend_svc"
     """
     result = dict(manifest)
-    
+
     # Normalize resource_path to be relative (strip leading / if present)
     # Docker build context requires relative paths
     if resource_path.startswith('/'):
         resource_path = resource_path[1:]
-    
+
     # Track overrides for logging (task 4.8: override detection)
     overrides = []
     app_name = result.get('appName', '')
@@ -258,7 +258,7 @@ def _apply_manifest_defaults(manifest, resource_path):
     # 🎯 FEATURE FLAGS -> BOOLEAN CONFIG
     # NOTE: Developer manually provides features per CEO Review requirement
     # No auto-detection from file existence (e.g., prisma/schema.prisma)
-    features = result.get('features', [])
+    features = result.get('featuresEnabled', [])
     result['usePrisma'] = 'prisma' in features
     result['useNats'] = 'nats' in features
     result['useTraefik'] = 'traefik' in features or app_type in ['backend', 'sdk']

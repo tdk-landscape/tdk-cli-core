@@ -6,6 +6,6 @@
   "path": "services/product/order/order-frontend",
   "backendName": "order-backend",
   "basePath": "/orders",
-  "features": ["vite"],
+  "featuresEnabled": ["vite"],
   "replicas": 1
 }

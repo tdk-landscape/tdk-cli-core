@@ -281,7 +281,7 @@ def _test_manifest_merging():
         'appName': 'test-service',
         'appType': 'backend',
         'port': 4000,
-        'features': ['nats'],
+        'featuresEnabled': ['nats'],
         'envVars': {
             'SHARED_VAR': 'base_value',
         },
@@ -289,7 +289,7 @@ def _test_manifest_merging():
     
     overlay = {
         'port': 4001,  # Override
-        'features': ['prisma'],  # Override
+        'featuresEnabled': ['prisma'],  # Override
         'envVars': {
             'SHARED_VAR': 'overlay_value',  # Override
             'NEW_VAR': 'new_value',  # Add
@@ -300,7 +300,7 @@ def _test_manifest_merging():
     
     assert_equal('test-service', merged['appName'], "Should preserve base appName")
     assert_equal(4001, merged['port'], "Should overlay port")
-    assert_equal(['prisma'], merged['features'], "Should overlay features")
+    assert_equal(['prisma'], merged['featuresEnabled'], "Should overlay features")
     assert_equal('overlay_value', merged['envVars']['SHARED_VAR'], "Should overlay nested env var")
     assert_equal('new_value', merged['envVars']['NEW_VAR'], "Should add new env var")
     

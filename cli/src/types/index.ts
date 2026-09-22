@@ -15,7 +15,7 @@ export interface ResourceConfig {
   port?: number;
   replicas?: number;
   runtime?: string;
-  features?: string[];
+  featuresEnabled?: string[];
   dependsOn?: string[];
   enabled?: boolean;
   basePath?: string;

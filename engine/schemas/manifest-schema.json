@@ -1,5 +1,5 @@
 {
-  "$id": "https://TDK Landscape.local/schemas/service-schema.json",
+  "$id": "https://tdk-landscape.github.io/schema.manifest.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "additionalProperties": false,
   "allOf": [
@@ -50,14 +50,14 @@
       },
       "then": {
         "properties": {
-          "features": {
+          "featuresEnabled": {
             "contains": {
               "const": "nats"
             }
           }
         },
         "required": [
-          "features"
+          "featuresEnabled"
         ]
       }
     }
@@ -180,7 +180,7 @@
       ],
       "type": "object"
     },
-    "features": {
+    "featuresEnabled": {
       "description": "Platform features:\n• nats - NATS JetStream eventing\n• prisma - DB ORM & migrations\n• redis - Caching layer\n• infisical - Secrets management\n• vitest - Test framework\n• traefik - Reverse proxy routing\n• websocket - WS support\n• graphql - GraphQL server\n• grpc - gRPC protocol",
       "items": {
         "enum": [
@@ -215,7 +215,7 @@
       "uniqueItems": true
     },
     "nats": {
-      "description": "Custom NATS configuration. Auto-generated if 'nats' in features.",
+      "description": "Custom NATS configuration. Auto-generated if 'nats' in featuresEnabled.",
       "properties": {
         "queueGroup": {
           "description": "NATS queue group for load balancing",

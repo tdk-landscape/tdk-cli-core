@@ -31,7 +31,7 @@ FIELD_MAPPINGS = {
     'replicas': ['replicas', 'instances', 'count', 'spec.replicas', 'metadata.replicas'],
     
     # Feature flags
-    'features': ['features', 'capabilities', 'spec.features', 'enabledFeatures', 'app.features'],
+    'featuresEnabled': ['featuresEnabled', 'capabilities', 'spec.features', 'enabledFeatures', 'app.features'],
     
     # Dependencies
     'dependsOn': [
@@ -199,7 +199,7 @@ def _to_yaml_format(internal_manifest):
             'port': internal_manifest.get('port', 4000),
             'runtime': internal_manifest.get('runtime', 'bun'),
             'replicas': internal_manifest.get('replicas', 1),
-            'features': internal_manifest.get('features', []),
+            'featuresEnabled': internal_manifest.get('featuresEnabled', []),
             'envVars': internal_manifest.get('envVars', {}),
             'dependencies': {
                 'internal': internal_manifest.get('dependsOn', []),

@@ -155,7 +155,7 @@ MANIFEST_DEFAULTS = {
     'healthCheckPath': HEALTH_CHECK_PATH,
     'internalPort': BASE_PORT_FRONTEND,
     'replicas': 1,
-    'features': [],
+    'featuresEnabled': [],
     'envVars': {},
     'syncs': None,
     'dependsOn': [],

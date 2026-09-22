@@ -101,11 +101,11 @@ describe("project and resource feature E2E", () => {
     const backendService = JSON.parse(
       readFileSync(join(projectRoot, "services", "alpha", "api", "service.json"), "utf-8"),
     );
-    expect(backendService.features).toEqual(["prisma"]);
+    expect(backendService.featuresEnabled).toEqual(["prisma"]);
 
     const frontendService = JSON.parse(
       readFileSync(join(projectRoot, "services", "alpha", "web", "service.json"), "utf-8"),
     );
-    expect(frontendService.features).toEqual(["api-client", "env-config", "api-index"]);
+    expect(frontendService.featuresEnabled).toEqual(["api-client", "env-config", "api-index"]);
   }, 10000);
 });

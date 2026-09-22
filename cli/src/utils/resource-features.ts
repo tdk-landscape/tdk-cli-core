@@ -2,7 +2,7 @@
  * Resource-Level Features
  *
  * These are code generators and configurations that run per-service/resource.
- * They are controlled via the features: [] array in each service.json file.
+ * They are controlled via the featuresEnabled: [] array in each service.json file.
  *
  * Frontend services: api-client, env-config, api-index (enabled by default)
  * Backend services: prisma (enabled by default)

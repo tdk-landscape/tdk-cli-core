@@ -192,14 +192,15 @@ def should_wait_for_dependencies(resource_config):
     resources = resource_config.get('resources', [])
     for res in resources:
         manifest = res.get('_manifest', {})
-        if manifest.get('databaseName') or manifest.get('features', []).count('prisma') > 0:
+        features = manifest.get('featuresEnabled', [])
+        if manifest.get('databaseName') or features.count('prisma') > 0:
             dependencies.append('database-management')
             break
-    
+
     # Check for NATS dependency
     for res in resources:
         manifest = res.get('_manifest', {})
-        if 'nats' in manifest.get('features', []):
+        if 'nats' in manifest.get('featuresEnabled', []):
             dependencies.append('messaging')
             break
     

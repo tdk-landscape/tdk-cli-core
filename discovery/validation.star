@@ -54,7 +54,7 @@ def validate(manifest):
             if port < port_range["min"] or port > port_range["max"]:
                 issues.append("Port " + str(port) + " out of range for " + app_type)
 
-    features = manifest.get("features", [])
+    features = manifest.get("featuresEnabled", [])
     if type(features) != "list":
         issues.append("Invalid features: must be an array")
     else:

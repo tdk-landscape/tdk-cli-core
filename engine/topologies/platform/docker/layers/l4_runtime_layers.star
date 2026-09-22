@@ -97,7 +97,7 @@ def L4_generate_backend_runtime(res_path, port = BASE_PORT_BACKEND, cmd = 'bun r
     
     # Check for special tooling requirements from manifest features
     # Services requiring Hugo (or other tools) should specify in manifest features array
-    manifest_features = manifest.get('features', []) if manifest else []
+    manifest_features = manifest.get('featuresEnabled', []) if manifest else []
     if "hugo" in manifest_features:
         parts.append("USER root\n")
         parts.append("RUN apk add --no-cache hugo\n")

@@ -316,16 +316,16 @@ def _validate_values(manifest, context):
             stats['rules_passed'] += 1
     
     # Validate features length
-    if 'features' in manifest:
+    if 'featuresEnabled' in manifest:
         stats['fields_checked'] += 1
-        features = manifest['features']
-        
+        features = manifest.get('featuresEnabled', [])
+
         if len(features) > VALIDATION_THRESHOLDS['max_features']:
             warnings.append(ManifestErrors.new(
                 message="Too many features ({}), consider splitting resource".format(len(features)),
                 category=ManifestErrors.CATEGORY['VALIDATION'],
                 severity=ManifestErrors.SEVERITY['WARNING'],
-                context={'field': 'features', 'count': len(features), 'max': VALIDATION_THRESHOLDS['max_features']},
+                context={'field': 'featuresEnabled', 'count': len(features), 'max': VALIDATION_THRESHOLDS['max_features']},
             ))
         else:
             stats['rules_passed'] += 1
@@ -374,16 +374,16 @@ def _validate_cross_field(manifest, context):
             stats['rules_passed'] += 1
     
     # Prisma requires databaseName
-    features = manifest.get('features', [])
+    features = manifest.get('featuresEnabled', [])
     if 'prisma' in features:
         stats['fields_checked'] += 1
-        
+
         if not manifest.get('databaseName'):
             warnings.append(ManifestErrors.new(
                 message="Resource with 'prisma' feature should specify databaseName",
                 category=ManifestErrors.CATEGORY['VALIDATION'],
                 severity=ManifestErrors.SEVERITY['WARNING'],
-                context={'field': 'databaseName', 'features': features},
+                context={'field': 'databaseName', 'featuresEnabled': features},
             ))
         else:
             stats['rules_passed'] += 1
