@@ -41,12 +41,27 @@ export function loadTemplate(filename: string): string {
   throw new Error(`Failed to load template ${filename} from any of these paths: ${triedPaths.join(", ")}`);
 }
 
-// Load all templates at module initialization
-const tiltResourceDefaultsTemplate = loadTemplate("TILT_RESOURCE_DEFAULTS.star.hbs");
-const tiltTechStackTemplate = loadTemplate("TILT_TECH_STACK.star.hbs");
-const tiltfileTemplate = loadTemplate("Tiltfile.hbs");
-const tiltignoreTemplate = loadTemplate(".tiltignore.hbs");
-const specMasterTemplate = loadTemplate("spec.master.hbs");
+// Templates used to be loaded eagerly here, at module initialization. That
+// meant importing this module at all (e.g. via cli.ts -> config.ts/project.ts)
+// threw immediately whenever the bundled templates folder was missing or
+// stale - bricking every single `tdk` command, including `tdk upgrade`, the
+// one command meant to repair a stale install. Load lazily instead, on first
+// actual use, so commands that don't need templates (upgrade, doctor,
+// version, ...) keep working even when the templates folder is absent, and
+// `tdk upgrade` can run to fix it.
+let embeddedTemplatesCache: Record<string, string> | null = null;
+function getEmbeddedTemplates(): Record<string, string> {
+  if (!embeddedTemplatesCache) {
+    embeddedTemplatesCache = {
+      ".tiltignore": loadTemplate(".tiltignore.hbs"),
+      "TILT_RESOURCE_DEFAULTS.star": loadTemplate("TILT_RESOURCE_DEFAULTS.star.hbs"),
+      "TILT_TECH_STACK.star": loadTemplate("TILT_TECH_STACK.star.hbs"),
+      Tiltfile: loadTemplate("Tiltfile.hbs"),
+      "spec.master": loadTemplate("spec.master.hbs"),
+    };
+  }
+  return embeddedTemplatesCache;
+}
 
 interface GeneratorContext {
   version: string;
@@ -103,14 +118,6 @@ const ALL_GENERATED_FILES = [
  * Derived from ALL_GENERATED_FILES const array for type safety.
  */
 type GeneratedFileName = (typeof ALL_GENERATED_FILES)[number];
-
-const EMBEDDED_TEMPLATES: Record<string, string> = {
-  ".tiltignore": tiltignoreTemplate,
-  "TILT_RESOURCE_DEFAULTS.star": tiltResourceDefaultsTemplate,
-  "TILT_TECH_STACK.star": tiltTechStackTemplate,
-  Tiltfile: tiltfileTemplate,
-  "spec.master": specMasterTemplate,
-};
 
 export class TemplateEngine {
   private templatesDir: string;
@@ -199,7 +206,7 @@ export class TemplateEngine {
     const templatePath = path.join(this.templatesDir, `${templateName}.hbs`);
     const templateSource = fs.existsSync(templatePath)
       ? fs.readFileSync(templatePath, "utf-8")
-      : EMBEDDED_TEMPLATES[templateName];
+      : getEmbeddedTemplates()[templateName];
     if (!templateSource) {
       throw new Error(`Template not found: ${templatePath}`);
     }
