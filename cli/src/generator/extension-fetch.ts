@@ -3,9 +3,11 @@
 // the gated distribution worker, when a license key is configured. The
 // free engine never needs this for its own resources - docker-compose,
 // npm, bun, etc. are already public in this repo, no key required.
-// Verdaccio is NOT free: it's gated separately by hasVerdaccioLicense()
-// below, since it's a live infra resource (not a file overlay) - see that
-// function's own comment for why it can't just be added to KNOWN_RESOURCES.
+// Verdaccio and DDD (domain-driven-design scaffolding) are NOT free: they're
+// gated separately by hasVerdaccioLicense()/hasDddLicense() below, via the
+// shared hasLiveResourceLicense() helper, since they're generated
+// code/live infra rather than a file overlay - see that helper's own
+// comment for why it can't just be added to KNOWN_RESOURCES.
 //
 // The worker (tdk-extension-dist) is the real access-control boundary: it
 // checks the key against BUNDLES_REPO/keys/*.json - existence, activation/
@@ -174,34 +176,33 @@ export async function applyPremiumOverlay(projectRoot: string, destDir: string):
   }
 }
 
-function verdaccioAccessCachePath(key: string): string {
+function liveResourceAccessCachePath(key: string, resource: string): string {
   const safeName = key.replace(/[^a-zA-Z0-9_-]/g, "_");
-  return join(homedir(), ".tdk", "cache", `premium-${safeName}`, "verdaccio-access.json");
+  return join(homedir(), ".tdk", "cache", `premium-${safeName}`, `${resource}-access.json`);
 }
 
 /**
- * Checks whether the configured license key grants the "verdaccio"
- * resource. Unlike applyPremiumOverlay, this isn't a file overlay -
- * Verdaccio is a live Tilt/Docker resource baked into the free engine, so
- * there's nothing to swap on disk. It can't reuse KNOWN_RESOURCES/
- * fetchPremiumBundle either: that loop stops at the FIRST resource the key
- * grants and would report false for a key that grants verdaccio but not,
- * say, playwright (or vice versa), since applyPremiumOverlay's success is
- * measured by files actually applied from PREMIUM_PATH_MAP - which has no
- * verdaccio entry.
+ * Checks whether the configured license key grants a given "live" premium
+ * resource - one that's generated code or a Tilt/Docker resource baked into
+ * the free engine rather than a file overlay, so there's nothing to swap on
+ * disk (verdaccio, ddd). Can't reuse KNOWN_RESOURCES/fetchPremiumBundle
+ * either: that loop stops at the FIRST resource the key grants and would
+ * report false for a key that grants this resource but not, say, playwright
+ * (or vice versa), since applyPremiumOverlay's success is measured by files
+ * actually applied from PREMIUM_PATH_MAP - which has no entry for these.
  *
- * Best-effort like applyPremiumOverlay: returns false (never throws) if
- * there's no key, the fetch fails, or the worker denies the resource - the
- * caller decides what "not licensed" means for verdaccio (currently:
- * refuse to enable it). Caches the grant/deny outcome (not the bundle
- * itself, which we never need here) for CACHE_TTL_MS so repeated checks
- * don't re-download the full premium.tar.gz just to read a status code.
+ * Best-effort: returns false (never throws) if there's no key, the fetch
+ * fails, or the worker denies the resource - the caller decides what "not
+ * licensed" means (currently: refuse to enable it). Caches the grant/deny
+ * outcome (not the bundle itself, which we never need here) for
+ * CACHE_TTL_MS so repeated checks don't re-download the full premium.tar.gz
+ * just to read a status code.
  */
-export async function hasVerdaccioLicense(projectRoot: string): Promise<boolean> {
+async function hasLiveResourceLicense(projectRoot: string, resource: string): Promise<boolean> {
   const key = getLicenseKey();
   if (!key) return false;
 
-  const cachePath = verdaccioAccessCachePath(key);
+  const cachePath = liveResourceAccessCachePath(key, resource);
   if (isCacheFresh(cachePath)) {
     try {
       const cached = JSON.parse(readFileSync(cachePath, "utf-8")) as { granted: boolean };
@@ -215,7 +216,7 @@ export async function hasVerdaccioLicense(projectRoot: string): Promise<boolean>
   const endpoint = getEndpoint();
   const url =
     `${endpoint}?key=${encodeURIComponent(key)}` +
-    `&resource=verdaccio&projectId=${encodeURIComponent(projectId)}`;
+    `&resource=${encodeURIComponent(resource)}&projectId=${encodeURIComponent(projectId)}`;
 
   let granted = false;
   try {
@@ -227,7 +228,7 @@ export async function hasVerdaccioLicense(projectRoot: string): Promise<boolean>
       await res.arrayBuffer().catch(() => undefined);
     }
   } catch (err) {
-    console.warn(`⚠️  Verdaccio license check failed (network error): ${(err as Error).message}`);
+    console.warn(`⚠️  ${resource} license check failed (network error): ${(err as Error).message}`);
     return false;
   }
 
@@ -239,4 +240,19 @@ export async function hasVerdaccioLicense(projectRoot: string): Promise<boolean>
   }
 
   return granted;
+}
+
+/** Checks whether the configured license key grants the "verdaccio" resource. */
+export async function hasVerdaccioLicense(projectRoot: string): Promise<boolean> {
+  return hasLiveResourceLicense(projectRoot, "verdaccio");
+}
+
+/**
+ * Checks whether the configured license key grants the "ddd" resource
+ * (domain-driven-design folder structure + path aliases for backend
+ * resources - see generate_backend_path_aliases() in
+ * engine/topologies/tilt/generators/vite/helpers.star).
+ */
+export async function hasDddLicense(projectRoot: string): Promise<boolean> {
+  return hasLiveResourceLicense(projectRoot, "ddd");
 }

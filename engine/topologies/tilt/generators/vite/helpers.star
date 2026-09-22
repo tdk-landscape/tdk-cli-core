@@ -154,20 +154,30 @@ def generate_proxy_block(api_base_path, backend_port, additional_routes, stack='
 
 
 def generate_backend_path_aliases(resource_path, manifest):
-    """Generate TypeScript path aliases for DDD architecture."""
+    """Generate TypeScript path aliases for DDD architecture (Premium - requires TDK_LICENSE_KEY)."""
     lines = []
-    
-    ddd_aliases = [
-        ('@application', './src/application'),
-        ('@domain', './src/domain'),
-        ('@infrastructure', './src/infrastructure'),
-        ('@presentation', './src/presentation'),
-        ('@test', './src/tests'),
-    ]
-    
-    for alias, rel_path in ddd_aliases:
-        lines.append("      '" + alias + "': path.resolve(__dirname, '" + rel_path + "'),")
-    
+
+    # DDD is a premium feature: requires both "ddd" in the resource's service.json
+    # features: [] AND a configured license key. The key presence check here is a
+    # cheap belt-and-suspenders guard (mirrors _load_verdaccio in infra-loader.star) -
+    # it can't verify the key actually grants "ddd" (Starlark has no fetch), so a
+    # hand-edited features: ["ddd"] with no key at all is still blocked, but real
+    # entitlement is checked client-side by hasDddLicense() in extension-fetch.ts
+    # before the CLI ever writes "ddd" into a resource's features array.
+    ddd_enabled = 'ddd' in manifest.get('features', []) and os.environ.get('TDK_LICENSE_KEY', '') != ''
+
+    if ddd_enabled:
+        ddd_aliases = [
+            ('@application', './src/application'),
+            ('@domain', './src/domain'),
+            ('@infrastructure', './src/infrastructure'),
+            ('@presentation', './src/presentation'),
+            ('@test', './src/tests'),
+        ]
+
+        for alias, rel_path in ddd_aliases:
+            lines.append("      '" + alias + "': path.resolve(__dirname, '" + rel_path + "'),")
+
     resource_parts = []
     for p in resource_path.split('/'):
         if p:

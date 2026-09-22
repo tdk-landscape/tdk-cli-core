@@ -17,7 +17,7 @@ const CLI_BIN_PATH = join(__dirname, "..", "..", "..", "bin", "tdk.js");
 function writeTestEnvFile(starterRoot: string) {
   writeFileSync(
     join(starterRoot, ".env"),
-    "VERDACCIO_URL_DOCKER=http://verdaccio:4873\nTILT_ENV=dev\n",
+    "VERDACCIO_URL_DOCKER=http://verdaccio:4873\nTILT_ENV=dev\nDB_PASSWORD=test-password\n",
   );
 }
 

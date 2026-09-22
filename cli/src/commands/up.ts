@@ -72,6 +72,7 @@ export const upCommand = new Command("up")
     await withTiltCheck(async () => {
       let servicesToStart: Awaited<ReturnType<typeof discoverResources>>;
       let stackDescription: string;
+      let focusServiceNames: string[] = [];
 
       if (stackName) {
         if (!stackExists(stackName)) {
@@ -79,6 +80,7 @@ export const upCommand = new Command("up")
         }
 
         servicesToStart = getResourcesForStack(stackName);
+        focusServiceNames = servicesToStart.map((s) => s.name);
         stackDescription = `stack "${stackName}"`;
       } else {
         servicesToStart = discoverResources();
@@ -128,7 +130,10 @@ export const upCommand = new Command("up")
         }
       }
 
-      if (handleDryRun(options, "not starting services", `tilt up ${serviceNames.join(" ")}`)) {
+      const dryRunCommand = focusServiceNames.length > 0
+        ? `tilt up ${focusServiceNames.join(" ")}`
+        : "tilt up";
+      if (handleDryRun(options, "not starting services", dryRunCommand)) {
         return;
       }
 
@@ -156,7 +161,7 @@ export const upCommand = new Command("up")
 
       process.env.TILT_PORT = port.toString();
 
-      const tiltArgs = buildTiltUpArgs(serviceNames, {
+      const tiltArgs = buildTiltUpArgs(focusServiceNames, {
         verbose: options.verbose,
         quiet: options.quiet,
         force: options.force,

@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -80,5 +80,50 @@ describe("stack feature E2E", () => {
     const spec = readFileSync(join(projectRoot, ".tdk", ".tdk-out", "spec.master"), "utf-8");
     expect(spec).not.toMatch(/"database-management":\s*True/);
     expect(spec).not.toContain("STACK_FEATURES");
+  });
+
+  it("dedupes a duplicated service name in project.json instead of emitting a duplicate Starlark key", () => {
+    projectRoot = mkdtempSync(join(tmpdir(), "tdk-stack-feature-dupe-"));
+    runTdk(["project", "--yes"], projectRoot);
+
+    const projectJsonPath = join(projectRoot, ".tdk", "project.json");
+    const projectJson = JSON.parse(readFileSync(projectJsonPath, "utf-8"));
+    projectJson.stacks.pre_alpha.services.push("database-management");
+    writeFileSync(projectJsonPath, `${JSON.stringify(projectJson, null, 2)}\n`);
+
+    runTdk(["project"], projectRoot);
+
+    const spec = readFileSync(join(projectRoot, ".tdk", ".tdk-out", "spec.master"), "utf-8");
+    const matches = spec.match(/"database-management":\s*True/g) ?? [];
+    expect(matches.length).toBe(1);
+  });
+
+  it("adds newly discovered unassigned service stacks to pre_alpha on regeneration", () => {
+    projectRoot = mkdtempSync(join(tmpdir(), "tdk-stack-discovery-sync-"));
+    runTdk(["project", "--yes"], projectRoot);
+
+    const serviceDir = join(projectRoot, "services", "billing", "checkout-app");
+    mkdirSync(serviceDir, { recursive: true });
+    writeFileSync(
+      join(serviceDir, "service.json"),
+      `${JSON.stringify(
+        {
+          appName: "checkout-app",
+          appType: "frontend",
+          stack: "billing",
+          port: 3210,
+        },
+        null,
+        2,
+      )}\n`,
+    );
+
+    runTdk(["project", "--yes"], projectRoot);
+
+    const projectJson = JSON.parse(readFileSync(join(projectRoot, ".tdk", "project.json"), "utf-8"));
+    expect(projectJson.stacks.pre_alpha.services).toContain("billing");
+
+    const spec = readFileSync(join(projectRoot, ".tdk", ".tdk-out", "spec.master"), "utf-8");
+    expect(spec).toMatch(/"billing":\s*True/);
   });
 });
