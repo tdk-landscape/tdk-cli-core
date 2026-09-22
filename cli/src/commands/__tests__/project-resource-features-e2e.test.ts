@@ -46,7 +46,7 @@ describe("project and resource feature E2E", () => {
 
     const projectJsonPath = join(projectRoot, ".tdk", "project.json");
     const projectJson = JSON.parse(readFileSync(projectJsonPath, "utf-8"));
-    expect(projectJson.stacks.pre_alpha.services).not.toContain("verdaccio");
+    expect(projectJson.phases.pre_alpha.enabledStacks).not.toContain("verdaccio");
     expect(projectJson.optional_infra.verdaccio).toBe(false);
 
     let spec = readFileSync(join(projectRoot, ".tdk", ".tdk-out", "spec.master"), "utf-8");
@@ -57,7 +57,7 @@ describe("project and resource feature E2E", () => {
     runTdk(["project", "--yes"], projectRoot);
 
     const updatedProjectJson = JSON.parse(readFileSync(projectJsonPath, "utf-8"));
-    expect(updatedProjectJson.stacks.pre_alpha.services).not.toContain("verdaccio");
+    expect(updatedProjectJson.phases.pre_alpha.enabledStacks).not.toContain("verdaccio");
     expect(updatedProjectJson.optional_infra.verdaccio).toBe(true);
 
     spec = readFileSync(join(projectRoot, ".tdk", ".tdk-out", "spec.master"), "utf-8");

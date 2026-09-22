@@ -116,7 +116,13 @@ export type JsonValue = string | number | boolean | null | JsonArray | JsonObjec
 export interface JsonArray extends Array<JsonValue> {}
 export interface JsonObject extends Record<string, JsonValue> {}
 
-export interface ProjectStackDefinition {
+export interface ProjectPhaseDefinition {
+  name: string;
+  description: string;
+  enabledStacks: string[];
+}
+
+export interface LegacyProjectStackDefinition {
   name: string;
   description: string;
   services: string[];
@@ -140,11 +146,17 @@ export interface ProjectConfig {
     name: string;
     version: string;
   };
-  stacks: {
-    pre_alpha: ProjectStackDefinition;
-    alpha: ProjectStackDefinition;
-    beta: ProjectStackDefinition;
-    out_of_scope: ProjectStackDefinition;
+  phases: {
+    pre_alpha: ProjectPhaseDefinition;
+    alpha: ProjectPhaseDefinition;
+    beta: ProjectPhaseDefinition;
+    out_of_scope: ProjectPhaseDefinition;
+  };
+  stacks?: {
+    pre_alpha: LegacyProjectStackDefinition;
+    alpha: LegacyProjectStackDefinition;
+    beta: LegacyProjectStackDefinition;
+    out_of_scope: LegacyProjectStackDefinition;
   };
   always_enabled_infra?: string[];
   optional_infra: ProjectOptionalInfra;

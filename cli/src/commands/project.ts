@@ -39,12 +39,12 @@ function discoverExistingServiceStacks(projectRoot: string): string[] {
   }
 }
 
-function getAssignedStackServices(projectConfig: Pick<ProjectConfig, "stacks">): Set<string> {
+function getAssignedStackServices(projectConfig: Pick<ProjectConfig, "phases">): Set<string> {
   return new Set([
-    ...projectConfig.stacks.pre_alpha.services,
-    ...projectConfig.stacks.alpha.services,
-    ...projectConfig.stacks.beta.services,
-    ...projectConfig.stacks.out_of_scope.services,
+    ...projectConfig.phases.pre_alpha.enabledStacks,
+    ...projectConfig.phases.alpha.enabledStacks,
+    ...projectConfig.phases.beta.enabledStacks,
+    ...projectConfig.phases.out_of_scope.enabledStacks,
   ]);
 }
 
@@ -56,15 +56,15 @@ function syncDiscoveredStacksToPreAlpha(
   const missingStacks = discoveredStacks.filter((stack) => !assignedServices.has(stack));
 
   if (missingStacks.length === 0) {
-    projectConfig.stacks.pre_alpha.services = Array.from(
-      new Set(projectConfig.stacks.pre_alpha.services),
+    projectConfig.phases.pre_alpha.enabledStacks = Array.from(
+      new Set(projectConfig.phases.pre_alpha.enabledStacks),
     );
     return [];
   }
 
-  projectConfig.stacks.pre_alpha.services = Array.from(
+  projectConfig.phases.pre_alpha.enabledStacks = Array.from(
     new Set([
-      ...projectConfig.stacks.pre_alpha.services,
+      ...projectConfig.phases.pre_alpha.enabledStacks,
       ...missingStacks,
     ]),
   );
@@ -125,32 +125,32 @@ async function cloneProjectTemplate(templateName: string, targetDir?: string): P
   showDetail("3. tdk up       # start the stack");
 }
 
-const DEFAULT_PROJECT_JSON = {
+const DEFAULT_PROJECT_JSON: ProjectConfig = {
   version: "1.0",
   project: {
     name: "",
     version: "1.0.0",
   },
-  stacks: {
+  phases: {
     pre_alpha: {
       name: "Pre-Alpha",
       description: "Core infrastructure and MVP services",
-      services: getDefaultCoreServices(),
+      enabledStacks: getDefaultCoreServices(),
     },
     alpha: {
       name: "Alpha",
       description: "Essential business services",
-      services: [] as string[],
+      enabledStacks: [] as string[],
     },
     beta: {
       name: "Beta",
       description: "Extended features",
-      services: [] as string[],
+      enabledStacks: [] as string[],
     },
     out_of_scope: {
       name: "Out of Scope",
       description: "Future releases",
-      services: [] as string[],
+      enabledStacks: [] as string[],
     },
   },
   optional_infra: {
@@ -211,7 +211,7 @@ export const projectCommand = new Command("project")
           const projectConfig = readProjectConfig(projectRoot);
           showSuccess("Project configuration is valid");
           showDetail(`Project: ${projectConfig.project.name}`, 3);
-          showDetail(`Stacks: ${Object.keys(projectConfig.stacks).join(", ")}`, 3);
+          showDetail(`Phases: ${Object.keys(projectConfig.phases).join(", ")}`, 3);
           process.exit(0);
         } else {
           console.log(chalk.yellow("⚠️  Project configuration incomplete:"));
@@ -240,12 +240,17 @@ export const projectCommand = new Command("project")
 
       if (projectJsonExists && !options.force) {
         showSuccess(".tdk/project.json exists");
+        const rawProjectConfig = JSON.parse(readFileSync(projectJsonPath, "utf-8")) as Record<string, unknown>;
         const projectConfig = readProjectConfig(projectRoot);
         const discoveredStacks = discoverExistingServiceStacks(projectRoot);
         const autoEnabledStacks = syncDiscoveredStacksToPreAlpha(projectConfig, discoveredStacks);
+        const shouldRewriteProjectConfig = autoEnabledStacks.length > 0 || !rawProjectConfig.phases;
+
+        if (shouldRewriteProjectConfig) {
+          writeJsonFile(projectJsonPath, projectConfig);
+        }
 
         if (autoEnabledStacks.length > 0) {
-          writeJsonFile(projectJsonPath, projectConfig);
           showDetail(
             `Auto-enabled discovered service stacks: ${autoEnabledStacks.join(", ")}`,
             0,
@@ -306,8 +311,8 @@ export const projectCommand = new Command("project")
           (f) => f.category === "core" && f.phase === "pre_alpha",
         );
         const corePreAlphaNames = new Set(corePreAlphaFeatures.map((f) => f.name));
-        const preAlphaServices = await promptMultiSelect({
-          message: "Select Pre-Alpha services (core infrastructure):",
+        const preAlphaStacks = await promptMultiSelect({
+          message: "Select Pre-Alpha enabled stacks (core infrastructure):",
           choices: [
             ...corePreAlphaFeatures.map((f) => ({
               title: f.description,
@@ -328,15 +333,15 @@ export const projectCommand = new Command("project")
               })),
           ],
         });
-        const alphaServices = await promptMultiSelect({
-          message: "Select Alpha services (core business):",
+        const alphaStacks = await promptMultiSelect({
+          message: "Select Alpha enabled stacks (core business):",
           choices: [
             { title: "api (Backend API)", value: "api" },
             { title: "app (Frontend app)", value: "app" },
           ],
         });
-        const betaServices = await promptMultiSelect({
-          message: "Select Beta services (extended features):",
+        const betaStacks = await promptMultiSelect({
+          message: "Select Beta enabled stacks (extended features):",
           choices: [
             { title: "worker (Background jobs)", value: "worker" },
             { title: "migrator (Database migrations)", value: "migrator" },
@@ -368,9 +373,9 @@ export const projectCommand = new Command("project")
         projectConfig = JSON.parse(JSON.stringify(DEFAULT_PROJECT_JSON));
         projectConfig.project.name = projectName;
         projectConfig.project.version = projectVersion;
-        projectConfig.stacks.pre_alpha.services = Array.from(new Set(preAlphaServices));
-        projectConfig.stacks.alpha.services = Array.from(new Set(alphaServices));
-        projectConfig.stacks.beta.services = Array.from(new Set(betaServices));
+        projectConfig.phases.pre_alpha.enabledStacks = Array.from(new Set(preAlphaStacks));
+        projectConfig.phases.alpha.enabledStacks = Array.from(new Set(alphaStacks));
+        projectConfig.phases.beta.enabledStacks = Array.from(new Set(betaStacks));
         projectConfig.optional_infra.monitoring = optionalInfra.includes("monitoring");
         projectConfig.optional_infra.elk = optionalInfra.includes("elk");
         projectConfig.optional_infra.debezium = optionalInfra.includes("debezium");

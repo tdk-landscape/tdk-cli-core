@@ -20,7 +20,7 @@ export type {
   ProjectConfig,
   ProjectDiscovery,
   ProjectOptionalInfra,
-  ProjectStackDefinition,
+  ProjectPhaseDefinition,
   ResourceConfig,
   ResourceFileType,
   ResourceMetadata,

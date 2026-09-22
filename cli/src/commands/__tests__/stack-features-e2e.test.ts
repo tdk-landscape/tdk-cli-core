@@ -38,7 +38,7 @@ describe("stack feature E2E", () => {
 
     const projectJson = JSON.parse(readFileSync(join(projectRoot, ".tdk", "project.json"), "utf-8"));
     expect(projectJson.stack_features).toBeUndefined();
-    expect(projectJson.stacks.pre_alpha.services).toContain("database-management");
+    expect(projectJson.phases.pre_alpha.enabledStacks).toContain("database-management");
 
     const composePath = join(
       projectRoot,
@@ -51,7 +51,7 @@ describe("stack feature E2E", () => {
 
     const compose = readFileSync(composePath, "utf-8");
     expect(compose).toContain("Stack feature: database-management");
-    expect(compose).toContain('Source: .tdk/project.json stacks.*.services includes "database-management"');
+    expect(compose).toContain('Source: .tdk/project.json phases.*.enabledStacks includes "database-management"');
     expect(compose).toContain("container_name: tdk_stack_feature_");
     expect(compose).toContain("_postgres");
     expect(compose).toContain("_database");
@@ -70,7 +70,7 @@ describe("stack feature E2E", () => {
 
     const projectJsonPath = join(projectRoot, ".tdk", "project.json");
     const projectJson = JSON.parse(readFileSync(projectJsonPath, "utf-8"));
-    projectJson.stacks.pre_alpha.services = projectJson.stacks.pre_alpha.services.filter(
+    projectJson.phases.pre_alpha.enabledStacks = projectJson.phases.pre_alpha.enabledStacks.filter(
       (service: string) => service !== "database-management",
     );
     writeFileSync(projectJsonPath, `${JSON.stringify(projectJson, null, 2)}\n`);
@@ -88,7 +88,7 @@ describe("stack feature E2E", () => {
 
     const projectJsonPath = join(projectRoot, ".tdk", "project.json");
     const projectJson = JSON.parse(readFileSync(projectJsonPath, "utf-8"));
-    projectJson.stacks.pre_alpha.services.push("database-management");
+    projectJson.phases.pre_alpha.enabledStacks.push("database-management");
     writeFileSync(projectJsonPath, `${JSON.stringify(projectJson, null, 2)}\n`);
 
     runTdk(["project"], projectRoot);
@@ -121,7 +121,7 @@ describe("stack feature E2E", () => {
     runTdk(["project", "--yes"], projectRoot);
 
     const projectJson = JSON.parse(readFileSync(join(projectRoot, ".tdk", "project.json"), "utf-8"));
-    expect(projectJson.stacks.pre_alpha.services).toContain("billing");
+    expect(projectJson.phases.pre_alpha.enabledStacks).toContain("billing");
 
     const spec = readFileSync(join(projectRoot, ".tdk", ".tdk-out", "spec.master"), "utf-8");
     expect(spec).toMatch(/"billing":\s*True/);

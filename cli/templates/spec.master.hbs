@@ -40,7 +40,7 @@
 # Core infrastructure services - minimal footprint for rapid development
 
 PRE_ALPHA_RESOURCES = {
-{{#each stacks.pre_alpha.services}}
+{{#each phases.pre_alpha.enabledStacks}}
 "{{this}}": True, # {{lookup ../serviceDescriptions this}}
 {{/each}}
 }
@@ -51,7 +51,7 @@ PRE_ALPHA_RESOURCES = {
 # Essential business services for alpha launch.
 
 ALPHA_RESOURCES = {
-{{#each stacks.alpha.services}}
+{{#each phases.alpha.enabledStacks}}
 "{{this}}": False, # {{lookup ../serviceDescriptions this}}
 {{/each}}
 }
@@ -62,7 +62,7 @@ ALPHA_RESOURCES = {
 # Additional services for beta release.
 
 BETA_RESOURCES = {
-{{#each stacks.beta.services}}
+{{#each phases.beta.enabledStacks}}
 "{{this}}": False, # {{lookup ../serviceDescriptions this}}
 {{/each}}
 }
@@ -74,7 +74,7 @@ BETA_RESOURCES = {
 # To enable, remove from this list and add to appropriate stack above.
 
 OUT_OF_SCOPE_RESOURCES = [
-{{#each stacks.out_of_scope.services}}
+{{#each phases.out_of_scope.enabledStacks}}
 "{{this}}", # {{lookup ../serviceDescriptions this}}
 {{/each}}
 ]
@@ -152,6 +152,13 @@ PROJECT = struct(
 NAME = "{{project.name}}",
 VERSION = "{{project.version}}",
 
+PHASES = struct(
+PRE_ALPHA = FOCUS_PRE_ALPHA,
+ALPHA = FOCUS_ALPHA,
+BETA = FOCUS_BETA,
+),
+
+# Backward compatibility for older extension code that reads PROJECT.STACKS.
 STACKS = struct(
 PRE_ALPHA = FOCUS_PRE_ALPHA,
 ALPHA = FOCUS_ALPHA,

@@ -125,8 +125,8 @@ describe.skipIf(!EXTENSION_SOURCE_AVAILABLE)("saas-starter cloning and discovery
     expect(existsSync(projectJsonPath)).toBe(true);
 
     const projectJson = JSON.parse(readFileSync(projectJsonPath, "utf-8"));
-    expect(projectJson.stacks.pre_alpha.services).toContain("app");
-    expect(projectJson.stacks.pre_alpha.services).toContain("billing");
+    expect(projectJson.phases.pre_alpha.enabledStacks).toContain("app");
+    expect(projectJson.phases.pre_alpha.enabledStacks).toContain("billing");
   }, 30000); // 30s: clones the real saas-starter repo over the network
 
   /**

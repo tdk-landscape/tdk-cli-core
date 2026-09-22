@@ -13,10 +13,10 @@ export const STACK_FEATURES: Record<string, StackFeature> = {
 };
 
 export interface StackFeaturePhaseConfig {
-  pre_alpha?: { services?: string[] };
-  alpha?: { services?: string[] };
-  beta?: { services?: string[] };
-  out_of_scope?: { services?: string[] };
+  pre_alpha?: { enabledStacks?: string[] };
+  alpha?: { enabledStacks?: string[] };
+  beta?: { enabledStacks?: string[] };
+  out_of_scope?: { enabledStacks?: string[] };
 }
 
 export function isStackFeatureEnabledInStacks(
@@ -25,6 +25,6 @@ export function isStackFeatureEnabledInStacks(
 ): boolean {
   if (!STACK_FEATURES[featureName]) return false;
   return ["pre_alpha", "alpha", "beta"].some((phase) =>
-    stacks[phase as keyof StackFeaturePhaseConfig]?.services?.includes(featureName),
+    stacks[phase as keyof StackFeaturePhaseConfig]?.enabledStacks?.includes(featureName),
   );
 }

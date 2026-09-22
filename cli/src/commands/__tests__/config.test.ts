@@ -9,11 +9,11 @@ describe("config command", () => {
           name: "test-project",
           version: "1.0.0",
         },
-        stacks: {
-          pre_alpha: { name: "pre-alpha", description: "Pre-alpha services", services: [] },
-          alpha: { name: "alpha", description: "Alpha services", services: [] },
-          beta: { name: "beta", description: "Beta services", services: [] },
-          out_of_scope: { name: "out-of-scope", description: "Future services", services: [] },
+        phases: {
+          pre_alpha: { name: "pre-alpha", description: "Pre-alpha phase", enabledStacks: [] },
+          alpha: { name: "alpha", description: "Alpha phase", enabledStacks: [] },
+          beta: { name: "beta", description: "Beta phase", enabledStacks: [] },
+          out_of_scope: { name: "out-of-scope", description: "Future phase", enabledStacks: [] },
         },
         optional_infra: {
           monitoring: false,
@@ -28,7 +28,7 @@ describe("config command", () => {
 
       expect(expectedConfig).toHaveProperty("version");
       expect(expectedConfig).toHaveProperty("project");
-      expect(expectedConfig).toHaveProperty("stacks");
+      expect(expectedConfig).toHaveProperty("phases");
       expect(expectedConfig).toHaveProperty("optional_infra");
       expect(expectedConfig).toHaveProperty("discovery");
 

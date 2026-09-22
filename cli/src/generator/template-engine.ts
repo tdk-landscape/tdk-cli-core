@@ -63,7 +63,7 @@ interface GeneratorContext {
   docker: typeof PLATFORM_STANDARDS.docker;
   runtime: typeof PLATFORM_STANDARDS.runtime;
   project: ProjectConfig["project"];
-  stacks: ProjectConfig["stacks"];
+  phases: ProjectConfig["phases"];
   alwaysEnabledInfra: string[];
   optionalInfra: ProjectConfig["optional_infra"];
   serviceDescriptions: Record<string, string>;
@@ -183,7 +183,7 @@ export class TemplateEngine {
       docker: PLATFORM_STANDARDS.docker,
       runtime: PLATFORM_STANDARDS.runtime,
       project: projectConfig.project,
-      stacks: dedupeStackServices(projectConfig.stacks),
+      phases: dedupePhaseEnabledStacks(projectConfig.phases),
       alwaysEnabledInfra: projectConfig.always_enabled_infra ?? [
         "database-management",
         "proxy",
@@ -244,17 +244,17 @@ export class TemplateEngine {
   }
 }
 
-// spec.master.hbs emits one Starlark dict entry per services[] item, so a
+// spec.master.hbs emits one Starlark dict entry per enabledStacks[] item, so a
 // duplicate name in project.json (e.g. from the interactive wizard offering
 // the same service as both a core feature and a discovered stack) becomes a
 // duplicate dict key, which fails Starlark parsing at `tdk up`. Dedupe here
 // so a bad project.json can't break generation.
-function dedupeStackServices(stacks: ProjectConfig["stacks"]): ProjectConfig["stacks"] {
-  const deduped = { ...stacks };
-  for (const key of Object.keys(deduped) as (keyof ProjectConfig["stacks"])[]) {
+function dedupePhaseEnabledStacks(phases: ProjectConfig["phases"]): ProjectConfig["phases"] {
+  const deduped = { ...phases };
+  for (const key of Object.keys(deduped) as (keyof ProjectConfig["phases"])[]) {
     deduped[key] = {
       ...deduped[key],
-      services: Array.from(new Set(deduped[key].services)),
+      enabledStacks: Array.from(new Set(deduped[key].enabledStacks)),
     };
   }
   return deduped;
@@ -269,7 +269,7 @@ export function generateDatabaseManagementCompose(projectConfig: ProjectConfig):
   return `###############################################################################
 # SYSTEM-GENERATED - DO NOT EDIT
 # Stack feature: database-management
-# Source: .tdk/project.json stacks.*.services includes "database-management"
+# Source: .tdk/project.json phases.*.enabledStacks includes "database-management"
 ###############################################################################
 
 services:
@@ -312,41 +312,72 @@ volumes:
  * - Each assertion is immediately followed by property type checks
  * - This pattern is standard for deep object validation in type guards
  */
-function isProjectConfig(value: unknown): value is ProjectConfig {
+function hasPhaseShape(value: unknown, fieldName: "enabledStacks" | "services"): boolean {
+  if (!value || typeof value !== "object") return false;
+  const phases = value as Record<string, unknown>;
+  for (const phaseName of ["pre_alpha", "alpha", "beta", "out_of_scope"]) {
+    const phase = phases[phaseName];
+    if (!phase || typeof phase !== "object") return false;
+    if (!Array.isArray((phase as Record<string, unknown>)[fieldName])) return false;
+  }
+  return true;
+}
+
+function normalizeProjectConfig(value: unknown): ProjectConfig | null {
   if (!value || typeof value !== "object") {
-    return false;
+    return null;
   }
 
   // Safe to assert as Record after null and object type checks
   const config = value as Record<string, unknown>;
 
   if (typeof config.version !== "string") {
-    return false;
+    return null;
   }
 
   if (!config.project || typeof config.project !== "object") {
-    return false;
+    return null;
   }
   const project = config.project as Record<string, unknown>;
   if (typeof project.name !== "string" || typeof project.version !== "string") {
-    return false;
+    return null;
   }
 
-  if (!config.stacks || typeof config.stacks !== "object") {
-    return false;
+  let phases: ProjectConfig["phases"] | null = null;
+  if (hasPhaseShape(config.phases, "enabledStacks")) {
+    phases = config.phases as ProjectConfig["phases"];
+  } else if (hasPhaseShape(config.stacks, "services")) {
+    const legacyStacks = config.stacks as NonNullable<ProjectConfig["stacks"]>;
+    phases = {
+      pre_alpha: {
+        name: legacyStacks.pre_alpha.name,
+        description: legacyStacks.pre_alpha.description,
+        enabledStacks: legacyStacks.pre_alpha.services,
+      },
+      alpha: {
+        name: legacyStacks.alpha.name,
+        description: legacyStacks.alpha.description,
+        enabledStacks: legacyStacks.alpha.services,
+      },
+      beta: {
+        name: legacyStacks.beta.name,
+        description: legacyStacks.beta.description,
+        enabledStacks: legacyStacks.beta.services,
+      },
+      out_of_scope: {
+        name: legacyStacks.out_of_scope.name,
+        description: legacyStacks.out_of_scope.description,
+        enabledStacks: legacyStacks.out_of_scope.services,
+      },
+    };
   }
-  const stacks = config.stacks as Record<string, unknown>;
-  if (
-    typeof stacks.pre_alpha !== "object" ||
-    typeof stacks.alpha !== "object" ||
-    typeof stacks.beta !== "object" ||
-    typeof stacks.out_of_scope !== "object"
-  ) {
-    return false;
+
+  if (!phases) {
+    return null;
   }
 
   if (!config.optional_infra || typeof config.optional_infra !== "object") {
-    return false;
+    return null;
   }
   const optionalInfra = config.optional_infra as Record<string, unknown>;
   if (
@@ -356,18 +387,26 @@ function isProjectConfig(value: unknown): value is ProjectConfig {
     typeof optionalInfra.golden_image !== "boolean" ||
     typeof optionalInfra.verdaccio !== "boolean"
   ) {
-    return false;
+    return null;
   }
 
   if (!config.discovery || typeof config.discovery !== "object") {
-    return false;
+    return null;
   }
   const discovery = config.discovery as Record<string, unknown>;
   if (!Array.isArray(discovery.paths)) {
-    return false;
+    return null;
   }
 
-  return true;
+  return {
+    version: config.version,
+    project: config.project as ProjectConfig["project"],
+    phases,
+    always_enabled_infra: config.always_enabled_infra as string[] | undefined,
+    optional_infra: config.optional_infra as ProjectConfig["optional_infra"],
+    discovery: config.discovery as ProjectConfig["discovery"],
+    overrides: config.overrides as ProjectConfig["overrides"],
+  };
 }
 
 export function readProjectConfig(projectRoot: string): ProjectConfig {
@@ -380,17 +419,18 @@ export function readProjectConfig(projectRoot: string): ProjectConfig {
   const jsonContent = fs.readFileSync(projectJsonPath, "utf-8");
   const parsed: unknown = JSON.parse(jsonContent);
 
-  if (!isProjectConfig(parsed)) {
+  const projectConfig = normalizeProjectConfig(parsed);
+  if (!projectConfig) {
     throw new Error(
       "Invalid project.json: missing or invalid required fields. " +
         "Expected: version (string), project (object with name/version), " +
-        "stacks (object with pre_alpha/alpha/beta/out_of_scope), " +
+        "phases (object with pre_alpha/alpha/beta/out_of_scope enabledStacks), " +
         "optional_infra (object with boolean flags), " +
         "discovery (object with paths array)",
     );
   }
 
-  return parsed;
+  return projectConfig;
 }
 
 export async function generateMasterConfigs(projectRoot: string): Promise<void> {
@@ -429,7 +469,7 @@ export async function generateMasterConfigs(projectRoot: string): Promise<void> 
     console.log(`✓ Generated: .tdk/.tdk-out/${filename}`);
   }
 
-  if (isStackFeatureEnabledInStacks(projectConfig.stacks, "database-management")) {
+  if (isStackFeatureEnabledInStacks(projectConfig.phases, "database-management")) {
     const composeDir = path.join(projectRoot, "services", "platform", "database-management");
     fs.mkdirSync(composeDir, { recursive: true });
     const composePath = path.join(
