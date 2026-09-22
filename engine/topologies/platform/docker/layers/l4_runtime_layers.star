@@ -54,10 +54,10 @@ GOLDEN_L4_FRONTEND_IMAGE = _docker_cfg.get('golden_l4_frontend_image', _GOLDEN_P
 _docker_health = get_docker_healthcheck_config()
 
 
-def L4_generate_backend_runtime(res_path, port = BASE_PORT_BACKEND, cmd = 'bun run start', use_infisical = True, resource_name = 'service', use_golden = True, has_prisma_config = False, manifest = None):
+def L4_generate_backend_runtime(res_path, port = BASE_PORT_BACKEND, cmd = 'bun run start', use_infisical = True, resource_name = 'service', use_golden = True, use_prisma = True, has_prisma_config = False, manifest = None):
     """
     Generate the backend runtime layer for deployed services.
-    
+
     Args:
         res_path: Resource path (service directory)
         port: Port to expose (default: BASE_PORT_BACKEND from master config)
@@ -65,7 +65,11 @@ def L4_generate_backend_runtime(res_path, port = BASE_PORT_BACKEND, cmd = 'bun r
         use_infisical: Enable Infisical secret management (default: True)
         resource_name: Service name for logging and configuration (default: 'service')
         use_golden: Whether to use golden L4-backend image (default: True)
-        has_prisma_config: Whether service has Prisma config (default: False)
+        use_prisma: Whether the service has the "prisma" feature enabled - gates copying
+            the .prisma/prisma dirs from the L3 build stage, which only exist there when
+            L3 itself ran prisma generate (default: True)
+        has_prisma_config: Whether service has a generated prisma.config.ts to copy in
+            (default: False)
         manifest: Service manifest dict for feature detection (default: None)
     
     Returns:
@@ -88,10 +92,10 @@ def L4_generate_backend_runtime(res_path, port = BASE_PORT_BACKEND, cmd = 'bun r
         # Bun isolated linker creates service symlinks that resolve through /app/node_modules/.bun.
         # Copy from production_purger to avoid dragging full dev dependency store into runtime.
         "COPY --from=l3_production_purger /app/" + res_path + "/node_modules/.bun /app/node_modules/.bun\n",
-        prisma_runtime_copy(res_path),
+        prisma_runtime_copy(res_path) if use_prisma else "",
         "COPY --from=l3_backend_build /app/" + res_path + "/dist ./dist\n",
         "COPY " + res_path_rel + "/package.json ./package.json\n",
-        prisma_bun_symlink_fix(),
+        prisma_bun_symlink_fix() if use_prisma else "",
         bun_hoisted_packages_symlink_fix(),
     ]
     

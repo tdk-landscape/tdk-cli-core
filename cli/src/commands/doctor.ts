@@ -1,11 +1,12 @@
 import { execSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import chalk from "chalk";
 import { Command } from "commander";
 import type { CheckResult } from "../types/index.js";
-import { MASTER_CONFIG_FILES, QUICKSTART_DOCS_URL } from "../utils/constants.js";
+import { MASTER_CONFIG_FILES, QUICKSTART_DOCS_URL, REQUIRED_PACKAGE_SCRIPTS } from "../utils/constants.js";
 import { findProjectRoot } from "../utils/paths.js";
+import { discoverResourcesFromRoot } from "../utils/services.js";
 import { validateEnvFile } from "../utils/env-validator.js";
 
 function createExecCheck(
@@ -157,6 +158,51 @@ function checkMasterConfigs(): CheckResult {
   };
 }
 
+function checkStartupScripts(): CheckResult {
+  const projectRoot = findProjectRoot() ?? process.cwd();
+  const resources = discoverResourcesFromRoot(projectRoot);
+
+  const problems: string[] = [];
+
+  for (const resource of resources) {
+    const packageJsonPath = join(resource.path, "package.json");
+    if (!existsSync(packageJsonPath)) {
+      continue;
+    }
+
+    const appType = resource.config?.appType ?? "backend";
+    const requiredScripts = REQUIRED_PACKAGE_SCRIPTS[appType] ?? REQUIRED_PACKAGE_SCRIPTS.backend;
+
+    let scripts: Record<string, string>;
+    try {
+      scripts = JSON.parse(readFileSync(packageJsonPath, "utf-8")).scripts ?? {};
+    } catch {
+      problems.push(`${resource.name} (package.json is invalid JSON)`);
+      continue;
+    }
+
+    const missing = requiredScripts.filter((script) => !scripts[script]);
+    if (missing.length > 0) {
+      problems.push(`${resource.name}: missing "${missing.join('", "')}"`);
+    }
+  }
+
+  if (problems.length === 0) {
+    return {
+      name: "Startup Scripts",
+      didPass: true,
+      message: "All services have required package.json scripts",
+    };
+  }
+
+  return {
+    name: "Startup Scripts",
+    didPass: false,
+    message: `Services missing required package.json scripts:\n    ${problems.join("\n    ")}`,
+    fix: 'Add the missing scripts to each service\'s package.json, e.g.:\n    "dev": "bun run src/index.ts",\n    "build": "tsc",\n    "start": "bun run dist/index.js"',
+  };
+}
+
 export const doctorCommand = new Command("doctor")
   .description("Check environment readiness for TDK")
   .action(async () => {
@@ -168,6 +214,7 @@ export const doctorCommand = new Command("doctor")
       checkTilt,
       checkDockerCompose,
       checkMasterConfigs,
+      checkStartupScripts,
       checkEnvironmentVariables,
     ];
 

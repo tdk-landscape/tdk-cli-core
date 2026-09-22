@@ -64,6 +64,7 @@ def L4_generate_orchestrator(res_path, res_type = 'backend', resource_name = 'se
                 use_infisical,
                 resource_name,
                 use_golden=use_golden,
+                use_prisma=use_prisma,
                 has_prisma_config=prisma_config_exists,
                 manifest=manifest,
             ),

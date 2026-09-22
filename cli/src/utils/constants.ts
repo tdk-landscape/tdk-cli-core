@@ -15,6 +15,18 @@ export const VALID_RESOURCE_TYPES: ResourceType[] = [
   "migrator",
 ] as const;
 
+// Frontend/library/sdk services are served statically or consumed as
+// packages, so they never need a "start" script - only backend/worker/
+// migrator processes are run in production via `<runtime> run start`.
+export const REQUIRED_PACKAGE_SCRIPTS: Record<ResourceType, readonly string[]> = {
+  backend: ["dev", "build", "start"],
+  worker: ["dev", "build", "start"],
+  migrator: ["dev", "build", "start"],
+  frontend: ["dev", "build"],
+  library: ["dev", "build"],
+  sdk: ["dev", "build"],
+} as const;
+
 export const OPTIONAL_INFRA_SERVICES = [
   "monitoring",
   "elk",
