@@ -53,16 +53,20 @@ describe("project and resource feature E2E", () => {
     expect(starlarkSection(spec, "PRE_ALPHA_RESOURCES")).not.toContain('"verdaccio": True');
     expect(starlarkSection(spec, "OPTIONAL_INFRA_RESOURCES")).toContain('"verdaccio": False');
 
-    runTdk(["config", "enable-infra", "verdaccio"], projectRoot);
-    runTdk(["project", "--yes"], projectRoot);
+    // Without TDK_LICENSE_KEY granting it, enabling verdaccio must be refused
+    // outright (config.ts:toggleInfraService) rather than silently accepted
+    // and then downgraded back to false by generateMasterConfigs.
+    expect(() => runTdk(["config", "enable-infra", "verdaccio"], projectRoot)).toThrow(
+      /Premium feature/,
+    );
 
     const updatedProjectJson = JSON.parse(readFileSync(projectJsonPath, "utf-8"));
     expect(updatedProjectJson.phases.pre_alpha.enabledStacks).not.toContain("verdaccio");
-    expect(updatedProjectJson.optional_infra.verdaccio).toBe(true);
+    expect(updatedProjectJson.optional_infra.verdaccio).toBe(false);
 
     spec = readFileSync(join(projectRoot, ".tdk", ".tdk-out", "spec.master"), "utf-8");
     expect(starlarkSection(spec, "PRE_ALPHA_RESOURCES")).not.toContain('"verdaccio": True');
-    expect(starlarkSection(spec, "OPTIONAL_INFRA_RESOURCES")).toContain('"verdaccio": True');
+    expect(starlarkSection(spec, "OPTIONAL_INFRA_RESOURCES")).toContain('"verdaccio": False');
   }, 10000);
 
   it("writes default resource-level features into generated service.json files", () => {
