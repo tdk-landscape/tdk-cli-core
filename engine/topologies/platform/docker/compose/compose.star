@@ -290,6 +290,10 @@ def _generate_single_backend_entry(resource_path, resource_name, res, manifest, 
       - TILT_NATS_URL={nats_url}
       - NODE_ENV=development
       - DATABASE_URL={db_url_for_tilt}
+      # Per-project escape hatch: set AUTO_MIGRATE=false in the project root .env
+      # to skip Prisma auto-migration at container boot (e.g. while diagnosing a
+      # migration/CLI issue) without touching the generator or any service code.
+      - AUTO_MIGRATE=${{AUTO_MIGRATE:-true}}
 {auth_env}
     labels:
 {traefik_labels}

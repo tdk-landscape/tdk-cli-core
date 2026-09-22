@@ -29,6 +29,9 @@ load(
     'PRISMA_DOT_DIR_REL_PATH',
     'PRISMA_DIR_NAME',
     'PRISMA_PACKAGE_REL_PATH',
+    'PRISMA_BIN_REL_PATH',
+    'NODE_MODULES_BIN_DIR',
+    'PRISMA_BIN_SYMLINK_TARGET',
     'ROOT_USER',
     'app_resource_dir',
     'resource_node_modules_dir',
@@ -80,6 +83,19 @@ def prisma_cli_runtime_copy(res_path):
         + "# migrations with it instead of `bunx prisma`, which would fetch prisma@latest.\n"
         + "COPY --from=" + L3_MIGRATION_BUILD_STAGE + " " + base + "/" + PRISMA_DIR_NAME
         + " ./" + PRISMA_PACKAGE_REL_PATH + "\n"
+        # bunx resolves a command against node_modules/.bin BEFORE considering a
+        # registry fetch - without this symlink it can't tell the CLI is already
+        # installed and falls back to `bun add prisma@latest` over the network.
+        # Needs root: at this point in the golden image we're already running
+        # as the unprivileged bun user, which doesn't own node_modules/.bin.
+        + "USER " + ROOT_USER + "\n"
+        # Relative to WORKDIR (/app/<res_path> here, unlike the migrator stage
+        # where WORKDIR is plain /app) - PRISMA_BIN_ABS_PATH assumes the latter
+        # and would point outside this service's node_modules entirely.
+        + "RUN mkdir -p " + NODE_MODULES_BIN_DIR
+        + " && ln -sf " + PRISMA_BIN_SYMLINK_TARGET + " ./" + PRISMA_BIN_REL_PATH
+        + " && chown -h " + BUN_USER + ":" + BUN_USER + " ./" + PRISMA_BIN_REL_PATH + "\n"
+        + "USER " + BUN_USER + "\n"
     )
 
 

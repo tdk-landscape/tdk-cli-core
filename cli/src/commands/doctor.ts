@@ -209,6 +209,94 @@ function checkStartupScripts(): CheckResult {
   };
 }
 
+const MEM_NEAR_LIMIT_PCT = 90;
+const CPU_HANGING_PCT = 80;
+
+interface ContainerStat {
+  name: string;
+  memPct: number;
+  cpuPct: number;
+}
+
+function parseDockerStats(raw: string): ContainerStat[] {
+  return raw
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [name, memPctRaw, cpuPctRaw] = line.split(",");
+      return {
+        name: name ?? "unknown",
+        memPct: Number.parseFloat((memPctRaw ?? "").replace("%", "")),
+        cpuPct: Number.parseFloat((cpuPctRaw ?? "").replace("%", "")),
+      };
+    })
+    .filter((stat) => Number.isFinite(stat.memPct) && Number.isFinite(stat.cpuPct));
+}
+
+/**
+ * Flags containers pinned near their memory limit while also burning CPU --
+ * the signature of a boot-time process stuck in a retry/fetch loop, not a
+ * genuine crash (which would just exit, not sit at ~100% resource usage).
+ *
+ * Caught in this workspace: a backend runtime image missing the local Prisma
+ * CLI fell back to `bunx prisma`, which re-fetched prisma@latest from npm on
+ * every container start. That pinned a 512MB container at ~100% memory and
+ * 100%+ CPU indefinitely, and it never became healthy. Neither `docker ps`
+ * (just shows "unhealthy") nor the healthcheck's own retry loop surfaces
+ * *why* -- only live resource stats catch this pattern before it's mistaken
+ * for a slow migration or a flaky healthcheck.
+ */
+function checkContainerResourceHealth(): CheckResult {
+  let raw: string;
+  try {
+    raw = execSync('docker stats --no-stream --format "{{.Name}},{{.MemPerc}},{{.CPUPerc}}"', {
+      stdio: "pipe",
+      encoding: "utf-8",
+    });
+  } catch {
+    return {
+      name: "Container Resource Health",
+      didPass: true,
+      isSkipped: true,
+      message: "Docker not running - skipped container resource check",
+    };
+  }
+
+  const stats = parseDockerStats(raw);
+  if (stats.length === 0) {
+    return {
+      name: "Container Resource Health",
+      didPass: true,
+      isSkipped: true,
+      message: "No running containers to check",
+    };
+  }
+
+  const hangers = stats.filter(
+    (stat) => stat.memPct >= MEM_NEAR_LIMIT_PCT && stat.cpuPct >= CPU_HANGING_PCT,
+  );
+
+  if (hangers.length === 0) {
+    return {
+      name: "Container Resource Health",
+      didPass: true,
+      message: `${formatCount(stats.length, "container")} within normal resource usage`,
+    };
+  }
+
+  const details = hangers
+    .map((stat) => `${stat.name} (mem ${stat.memPct.toFixed(0)}%, cpu ${stat.cpuPct.toFixed(0)}%)`)
+    .join("\n    ");
+
+  return {
+    name: "Container Resource Health",
+    didPass: false,
+    message: `${formatCount(hangers.length, "container")} pinned near its memory limit while burning CPU -- likely stuck in a boot-time retry/fetch loop, not a normal crash:\n    ${details}`,
+    fix: "Check the container's boot logs for a network fetch loop (e.g. `bunx <pkg>` re-downloading a CLI on every start instead of using one already installed): docker logs <container>. If a Prisma auto-migration is the cause, set AUTO_MIGRATE=false in the project's .env as a temporary unblock.",
+  };
+}
+
 const DEFAULT_PING_TIMEOUT_MS = 5000;
 
 /**
@@ -297,6 +385,8 @@ export const doctorCommand = new Command("doctor")
       checkMasterConfigs,
       checkStartupScripts,
       checkEnvironmentVariables,
+      // Runtime checks: skip gracefully if the stack isn't started yet.
+      checkContainerResourceHealth,
     ];
 
     // Runs last: it is the only check that needs the stack already started.
