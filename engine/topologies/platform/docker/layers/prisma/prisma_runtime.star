@@ -3,6 +3,7 @@ Prisma Runtime Layers - L4 Prisma Runtime Copy and Resolution
 
 Public API (preserved for backward compatibility with l4_runtime_layers.star):
   prisma_runtime_copy(res_path)       – copy .prisma artifacts from build stage
+  prisma_cli_runtime_copy(res_path)   – copy the pinned Prisma CLI into the runtime
   prisma_bun_symlink_fix()            – fix Bun linker resolution for .prisma/client
   prisma_config_copy(res_path)        – copy prisma.config.ts (Prisma v7)
   L4_generate_migrator_runtime(...)   – full migrator stage (delegates to sub-modules)
@@ -21,11 +22,13 @@ load(
     './constants.star',
     'APP_DIR',
     'BUN_USER',
+    'L3_MIGRATION_BUILD_STAGE',
     'DEFAULT_GOLDEN_L4_MIGRATOR_IMAGE',
     'MIGRATE_SH_ABS_PATH',
     'PRISMA_CONFIG_WORKDIR_PATH',
     'PRISMA_DOT_DIR_REL_PATH',
     'PRISMA_DIR_NAME',
+    'PRISMA_PACKAGE_REL_PATH',
     'ROOT_USER',
     'app_resource_dir',
     'resource_node_modules_dir',
@@ -51,6 +54,32 @@ def prisma_runtime_copy(res_path):
     return (
         "COPY --from=l3_backend_build " + base + "/" + PRISMA_DOT_DIR_REL_PATH + " ./" + PRISMA_DOT_DIR_REL_PATH + "\n"
         + "COPY --from=l3_backend_build " + base + "/" + PRISMA_DIR_NAME + " ./" + PRISMA_DIR_NAME + "\n"
+    )
+
+
+def prisma_cli_runtime_copy(res_path):
+    """
+    Copy the pinned Prisma CLI package into the backend runtime image.
+
+    The runtime node_modules come from l3_production_purger, which runs
+    `bun install --production` and then deletes every `.bin` directory, so the
+    Prisma CLI (a devDependency) is absent.  The entrypoint's auto-migration
+    would then fall back to `bunx prisma`, which downloads prisma@latest from
+    npm on every container start – slow at best, and a boot hang that fails the
+    healthcheck (and so blocks Traefik routing) on a slow network.
+
+    l3_migration_build already installs the CLI at the exact version pinned in
+    package.json, so reuse that instead of fetching at runtime.
+
+    Args:
+        res_path: Service directory relative to /app (e.g. 'services/app/dashboard-api')
+    """
+    base = resource_node_modules_dir(res_path)
+    return (
+        "# Prisma CLI at the version pinned in package.json - the entrypoint runs\n"
+        + "# migrations with it instead of `bunx prisma`, which would fetch prisma@latest.\n"
+        + "COPY --from=" + L3_MIGRATION_BUILD_STAGE + " " + base + "/" + PRISMA_DIR_NAME
+        + " ./" + PRISMA_PACKAGE_REL_PATH + "\n"
     )
 
 
