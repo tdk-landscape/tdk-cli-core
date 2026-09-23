@@ -95,7 +95,7 @@ describe("applyPremiumOverlay", () => {
 
     expect(applied).toBe(false);
     // Every known resource name gets a shot before giving up.
-    expect(fetchSpy).toHaveBeenCalledTimes(4);
+    expect(fetchSpy).toHaveBeenCalledTimes(6);
     for (const call of fetchSpy.mock.calls) {
       const url = call[0] as string;
       expect(url).toContain("key=tdk-fa411b");
@@ -114,7 +114,7 @@ describe("applyPremiumOverlay", () => {
 
     const fetchSpy = vi.fn().mockImplementation((url: string) => {
       if (url.includes("resource=playwright")) {
-        return Promise.resolve(new Response(fixtureTarball, { status: 200 }));
+        return Promise.resolve(new Response(new Uint8Array(fixtureTarball), { status: 200 }));
       }
       return Promise.resolve(new Response("not granted", { status: 403 }));
     });
@@ -161,7 +161,7 @@ describe("applyPremiumOverlay", () => {
     process.env.TDK_LICENSE_KEY = "tdk-fa411a";
     fixtureTarball ??= buildFixtureTarball();
 
-    const fetchSpy = vi.fn().mockResolvedValue(new Response(fixtureTarball, { status: 200 }));
+    const fetchSpy = vi.fn().mockResolvedValue(new Response(new Uint8Array(fixtureTarball), { status: 200 }));
     vi.stubGlobal("fetch", fetchSpy);
 
     const { applyPremiumOverlay } = await import("../extension-fetch.js");
@@ -178,7 +178,7 @@ describe("applyPremiumOverlay", () => {
     // A Response body can only be read once - mockResolvedValue would
     // reuse the same instance across both calls in this test, so build a
     // fresh Response per invocation instead.
-    const fetchSpy = vi.fn().mockImplementation(() => Promise.resolve(new Response(fixtureTarball, { status: 200 })));
+    const fetchSpy = vi.fn().mockImplementation(() => Promise.resolve(new Response(new Uint8Array(fixtureTarball), { status: 200 })));
     vi.stubGlobal("fetch", fetchSpy);
 
     const { applyPremiumOverlay } = await import("../extension-fetch.js");
@@ -197,7 +197,7 @@ describe("applyPremiumOverlay", () => {
     fixtureTarball ??= buildFixtureTarball();
 
     process.env.TDK_LICENSE_KEY = "tdk-fa411a";
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(fixtureTarball, { status: 200 })));
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(new Uint8Array(fixtureTarball), { status: 200 })));
     const { applyPremiumOverlay } = await import("../extension-fetch.js");
     await applyPremiumOverlay(projectRoot, destDir);
 

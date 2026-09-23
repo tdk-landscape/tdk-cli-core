@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import { QUICKSTART_DOCS_URL } from "./constants.js";
-import { isDockerAvailable } from "./docker.js";
+import { getContainerRuntimeStatus } from "./docker.js";
 import { findProjectRoot } from "./paths.js";
 import { isTiltAvailable } from "./tilt.js";
 
@@ -51,6 +51,11 @@ export const errorFactories = {
       "Or start Colima: `colima start`",
       "Or start the Docker service on Linux: `sudo systemctl start docker`",
       `Setup guide: ${QUICKSTART_DOCS_URL}`,
+    ]),
+  dockerNotResponding: () =>
+    new TdkError("Docker is running but not responding (`docker ps` hung for 10s)", [
+      "Quit and reopen Docker Desktop, or run `colima restart`",
+      "Then verify with: `docker ps`",
     ]),
   stackNotFound: (name: string) =>
     new TdkError(`Stack "${name}" not found`, [
@@ -113,7 +118,10 @@ export async function withTiltCheck<T>(
   options?: { verbose?: boolean },
 ): Promise<T | never> {
   const problems: TdkError[] = [];
-  if (!isDockerAvailable()) {
+  const runtime = getContainerRuntimeStatus();
+  if (runtime === "unresponsive") {
+    problems.push(errorFactories.dockerNotResponding());
+  } else if (runtime === "missing") {
     problems.push(errorFactories.dockerNotAvailable());
   }
   if (!(await isTiltAvailable())) {

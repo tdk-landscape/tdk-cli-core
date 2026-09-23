@@ -87,8 +87,8 @@ describe("resource command", () => {
 
     it("should have correct TYPE_SPECIFIC extensions for each resource type", () => {
       expect(TYPE_SPECIFIC.backend).toHaveProperty("healthCheck", "/health");
-      expect(TYPE_SPECIFIC.frontend.dev.watch).toContain("public/**/*");
-      expect(TYPE_SPECIFIC.worker.dev.command).toBe("bun run worker");
+      expect(TYPE_SPECIFIC.frontend.dev?.watch).toContain("public/**/*");
+      expect(TYPE_SPECIFIC.worker.dev?.command).toBe("bun run worker");
     });
 
     it("should have correct BASE_TEMPLATE structure", () => {

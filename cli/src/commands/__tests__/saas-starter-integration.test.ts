@@ -188,6 +188,7 @@ describe.skipIf(!EXTENSION_SOURCE_AVAILABLE)("saas-starter cloning and discovery
     const doctorResult = execSync(`cd "${starterRoot}" && bun "${CLI_BIN_PATH}" doctor`, {
       encoding: "utf-8",
       stdio: "pipe",
+      timeout: 60_000,
     });
 
     expect(doctorResult).toContain("Environment ready");

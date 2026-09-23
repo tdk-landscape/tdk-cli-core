@@ -15,6 +15,14 @@ import { findProjectRoot } from "../utils/paths.js";
 import { buildHealthTargets, pingHealthTargets } from "../utils/service-urls.js";
 import { discoverResourcesFromRoot } from "../utils/services.js";
 
+// A wedged Docker daemon makes `docker ps` block forever instead of failing,
+// and doctor is exactly the tool people run when their environment is broken.
+const EXEC_TIMEOUT_MS = 10_000;
+
+function isTimeout(err: unknown): boolean {
+  return (err as NodeJS.ErrnoException | undefined)?.code === "ETIMEDOUT";
+}
+
 function createExecCheck(
   name: string,
   command: string,
@@ -24,7 +32,7 @@ function createExecCheck(
 ): () => CheckResult {
   return () => {
     try {
-      execSync(command, { stdio: "pipe" });
+      execSync(command, { stdio: "pipe", timeout: EXEC_TIMEOUT_MS });
       return {
         name,
         didPass: true,
@@ -45,16 +53,24 @@ function createExecCheck(
 function checkDockerRuntime(): CheckResult {
   // Check for Docker
   try {
-    execSync("docker ps", { stdio: "pipe" });
+    execSync("docker ps", { stdio: "pipe", timeout: EXEC_TIMEOUT_MS });
     return {
       name: "Container Runtime",
       didPass: true,
       message: "Docker daemon is running",
     };
-  } catch {
+  } catch (err) {
+    if (isTimeout(err)) {
+      return {
+        name: "Container Runtime",
+        didPass: false,
+        message: `Docker daemon is not responding (\`docker ps\` hung for ${EXEC_TIMEOUT_MS / 1000}s)`,
+        fix: "Restart the runtime: quit and reopen Docker Desktop, or run `colima restart`",
+      };
+    }
     // Docker not running, check for Colima
     try {
-      execSync("colima status", { stdio: "pipe" });
+      execSync("colima status", { stdio: "pipe", timeout: EXEC_TIMEOUT_MS });
       // Colima is running
       return {
         name: "Container Runtime",
@@ -64,7 +80,7 @@ function checkDockerRuntime(): CheckResult {
     } catch {
       // Check if Colima is installed but not running
       try {
-        execSync("which colima", { stdio: "pipe" });
+        execSync("which colima", { stdio: "pipe", timeout: EXEC_TIMEOUT_MS });
         return {
           name: "Container Runtime",
           didPass: false,
@@ -74,7 +90,7 @@ function checkDockerRuntime(): CheckResult {
       } catch {
         // Check for Podman
         try {
-          execSync("podman ps", { stdio: "pipe" });
+          execSync("podman ps", { stdio: "pipe", timeout: EXEC_TIMEOUT_MS });
           return {
             name: "Container Runtime",
             didPass: true,
@@ -253,13 +269,16 @@ function checkContainerResourceHealth(): CheckResult {
     raw = execSync('docker stats --no-stream --format "{{.Name}},{{.MemPerc}},{{.CPUPerc}}"', {
       stdio: "pipe",
       encoding: "utf-8",
+      timeout: EXEC_TIMEOUT_MS,
     });
-  } catch {
+  } catch (err) {
     return {
       name: "Container Resource Health",
       didPass: true,
       isSkipped: true,
-      message: "Docker not running - skipped container resource check",
+      message: isTimeout(err)
+        ? "Docker not responding - skipped container resource check"
+        : "Docker not running - skipped container resource check",
     };
   }
 

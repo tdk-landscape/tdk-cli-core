@@ -1,8 +1,26 @@
 import { describe, expect, it } from "vitest";
 
+interface PhaseFixture {
+  name: string;
+  description: string;
+  enabledStacks: string[];
+}
+
+interface ProjectConfigFixture {
+  version: string;
+  project: { name: string; version: string };
+  phases: {
+    pre_alpha: PhaseFixture;
+    alpha: PhaseFixture;
+    beta: PhaseFixture;
+    out_of_scope: PhaseFixture;
+  };
+  always_enabled_infra?: string[];
+}
+
 describe("always_enabled_infra", () => {
   it("includes core infrastructure always enabled in pre_alpha", () => {
-    const projectConfig = {
+    const projectConfig: ProjectConfigFixture = {
       version: "1.0",
       project: { name: "checkout-app", version: "1.0.0" },
       phases: {
@@ -41,7 +59,7 @@ describe("always_enabled_infra", () => {
   });
 
   it("always_enabled_infra defaults when not specified", () => {
-    const projectConfig = {
+    const projectConfig: ProjectConfigFixture = {
       version: "1.0",
       project: { name: "my-project", version: "1.0.0" },
       phases: {

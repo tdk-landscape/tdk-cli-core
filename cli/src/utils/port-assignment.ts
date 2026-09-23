@@ -13,6 +13,13 @@ function isPortAvailable(port: number): Promise<boolean> {
     server.on("error", () => {
       resolve(true);
     });
+
+    // A connect that neither accepts nor refuses means something is holding
+    // the port (e.g. a firewall drop) - treat it as taken rather than wait.
+    server.setTimeout(1000, () => {
+      server.destroy();
+      resolve(false);
+    });
   });
 }
 

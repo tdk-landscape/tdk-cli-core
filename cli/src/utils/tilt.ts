@@ -10,6 +10,7 @@ export function runTilt(
     verbose?: boolean;
     quiet?: boolean;
     inheritStdio?: boolean;
+    timeoutMs?: number;
   } = {},
 ): Promise<TiltCommandResult> {
   return new Promise((resolve, reject) => {
@@ -22,6 +23,7 @@ export function runTilt(
     const child = spawn("tilt", tiltArgs, {
       stdio: options.inheritStdio ? "inherit" : "pipe",
       shell: false,
+      timeout: options.timeoutMs,
     });
 
     let stdout = "";
@@ -53,7 +55,7 @@ export function runTilt(
 
 export async function isTiltAvailable(): Promise<boolean> {
   try {
-    const result = await runTilt("version", [], { inheritStdio: false });
+    const result = await runTilt("version", [], { inheritStdio: false, timeoutMs: 10_000 });
     return result.exitCode === 0;
   } catch {
     // tilt binary not found (or not spawnable) - treat as unavailable

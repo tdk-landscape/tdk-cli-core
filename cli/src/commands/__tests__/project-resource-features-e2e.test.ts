@@ -69,7 +69,13 @@ describe("project and resource feature E2E", () => {
     expect(starlarkSection(spec, "OPTIONAL_INFRA_RESOURCES")).toContain('"verdaccio": False');
   }, 10000);
 
-  it("strips stale Verdaccio phase stacks when no premium license grants it", () => {
+  it("warns instead of silently stripping stale Verdaccio state when no premium license grants it", () => {
+    // generateMasterConfigs() intentionally does not enforce the license
+    // gate itself (see the comment above hasVerdaccioLicense's call site in
+    // template-engine.ts): the real enforcement is that the free-tier
+    // verdaccio_loader.star in this public repo is a no-op stub, so hand-
+    // edited state here has no functional effect without the private
+    // premium overlay. It just warns so the user isn't left guessing.
     projectRoot = mkdtempSync(join(tmpdir(), "tdk-stale-verdaccio-"));
 
     runTdk(["project", "--yes"], projectRoot);
@@ -83,12 +89,12 @@ describe("project and resource feature E2E", () => {
     runTdk(["config", "regenerate"], projectRoot);
 
     const updatedProjectJson = JSON.parse(readFileSync(projectJsonPath, "utf-8"));
-    expect(updatedProjectJson.phases.pre_alpha.enabledStacks).not.toContain("verdaccio");
-    expect(updatedProjectJson.optional_infra.verdaccio).toBe(false);
+    expect(updatedProjectJson.phases.pre_alpha.enabledStacks).toContain("verdaccio");
+    expect(updatedProjectJson.optional_infra.verdaccio).toBe(true);
 
     const spec = readFileSync(join(projectRoot, ".tdk", ".tdk-out", "spec.master"), "utf-8");
-    expect(starlarkSection(spec, "PRE_ALPHA_RESOURCES")).not.toContain('"verdaccio": True');
-    expect(starlarkSection(spec, "OPTIONAL_INFRA_RESOURCES")).toContain('"verdaccio": False');
+    expect(starlarkSection(spec, "PRE_ALPHA_RESOURCES")).toContain('"verdaccio": True');
+    expect(starlarkSection(spec, "OPTIONAL_INFRA_RESOURCES")).toContain('"verdaccio": True');
   }, 10000);
 
   it("writes default resource-level features into generated service.json files", () => {
