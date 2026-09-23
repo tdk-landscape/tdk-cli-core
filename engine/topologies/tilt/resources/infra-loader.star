@@ -20,6 +20,7 @@
 
 load("../../platform/docker/constants.star", "PlatformDockerConstants")
 load("../../platform/docker/compose/traefik_standalone.star", "generate_standalone_traefik_compose")
+load("../../platform/registries/verdaccio_loader.star", "load_verdaccio")
 
 # =============================================================================
 # 🗃️ DATABASE MANAGEMENT
@@ -129,38 +130,11 @@ def _load_database_management(should_enable, root_prefix="", env_file=None, writ
 # =============================================================================
 # 📦 VERDACCIO (NPM Registry)
 # =============================================================================
+# Loader lives in ../../platform/registries/verdaccio_loader.star (a free-tier
+# stub in this public repo; the paid CLI overlay swaps it for the real loader
+# — see that module's header comment).
 
-def _load_verdaccio(should_enable, root_prefix="", env_file=None):
-    """Load Verdaccio private npm registry (premium feature — requires TDK_LICENSE_KEY)."""
-    # Verdaccio is a premium feature. Skip entirely when no license key is set.
-    if not os.environ.get("TDK_LICENSE_KEY", ""):
-        print("ℹ️  Verdaccio skipped — TDK_LICENSE_KEY not set (premium feature)")
-        return
-    if not should_enable(PlatformDockerConstants.VERDACCIO_RESOURCE_NAME):
-        print("DEBUG INFRA: Verdaccio not enabled")
-        return
-    
-    # Use absolute path for docker-compose to ensure correct working directory
-    if root_prefix:
-        compose_file = root_prefix + 'docker-compose.verdaccio.yml'
-    else:
-        # Use project root from environment or relative path
-        project_root = os.environ.get('TDK_PROJECT_ROOT', '.')
-        compose_file = project_root + '/docker-compose.verdaccio.yml'
-    if not _file_exists(compose_file):
-        print("DEBUG INFRA: Skipping Verdaccio (compose file not found)")
-        return
-    print("DEBUG INFRA: Loading Verdaccio from {} with env_file={}".format(compose_file, env_file))
-    _docker_compose(compose_file, env_file)
-    print("DEBUG INFRA: Calling dc_resource for verdaccio")
-    dc_resource(PlatformDockerConstants.VERDACCIO_RESOURCE_NAME, labels=['infra.tools', 'registry'], resource_deps=['init-networks'], auto_init=True)
-    print("DEBUG INFRA: dc_resource for verdaccio completed")
-    local_resource(PlatformDockerConstants.VERDACCIO_CONNECT_NETWORK_RESOURCE,
-        cmd='docker network connect ' + PlatformDockerConstants.NETWORK_BACKEND + ' ' + PlatformDockerConstants.VERDACCIO_CONTAINER_NAME + ' 2>/dev/null || true',
-        labels=['infra.tools', 'registry'], 
-        resource_deps=[PlatformDockerConstants.VERDACCIO_RESOURCE_NAME, 'init-networks'], 
-        auto_init=True
-    )
+_load_verdaccio = load_verdaccio
 
 
 # =============================================================================

@@ -474,12 +474,17 @@ export async function generateMasterConfigs(projectRoot: string): Promise<void> 
 
   await warnIfSablierUnlicensed(projectRoot);
 
-  // Verdaccio is Premium - this is the one choke point every path funnels
-  // through (project init, config regenerate, and the wizard all call this
-  // before `tdk up` reads .tdk-out), so it's the real enforcement, not just
-  // the CLI's `config enable-infra` guard. A hand-edited project.json with
-  // optional_infra.verdaccio: true or a stale "verdaccio" stack in any phase
-  // can't skip the check; it gets downgraded before output is emitted.
+  // Verdaccio is Premium, but unlike the old posture here, this is NOT the
+  // enforcement - it's a friendly heads-up. The real gate is that
+  // engine/topologies/platform/registries/verdaccio_loader.star in this
+  // (public) repo is a free-tier stub that always skips; the working loader
+  // only exists in the private tdk-cli-extensions/premium/ bundle, applied
+  // by vendorTdkExtension()'s applyPremiumOverlay() below when a license
+  // grants it. Forking this repo and deleting a license check gets you
+  // nothing, because there's no check left to delete - the actual code
+  // simply isn't present without the overlay. This just tells a confused
+  // free-tier user why enabling Verdaccio silently did nothing, instead of
+  // leaving them to guess.
   const verdaccioInPhase = Object.values(projectConfig.phases).some((phase) =>
     phase.enabledStacks.includes("verdaccio"),
   );
@@ -487,17 +492,9 @@ export async function generateMasterConfigs(projectRoot: string): Promise<void> 
     const granted = await hasVerdaccioLicense(projectRoot);
     if (!granted) {
       console.warn(
-        "⚠️  Verdaccio is a Premium feature - no valid license key found. " +
-          "Disabling it for this generation. Set TDK_LICENSE_KEY to a key that grants it, " +
-          "or run `tdk config disable-infra verdaccio` to silence this warning.",
-      );
-      projectConfig.optional_infra.verdaccio = false;
-      for (const phase of Object.values(projectConfig.phases)) {
-        phase.enabledStacks = phase.enabledStacks.filter((stack) => stack !== "verdaccio");
-      }
-      fs.writeFileSync(
-        path.join(projectRoot, ".tdk", "project.json"),
-        `${JSON.stringify(projectConfig, null, 2)}\n`,
+        "⚠️  Verdaccio is a Premium feature - no valid license key found. It's enabled in " +
+          "this project's config, but will have no effect without a license. Set TDK_LICENSE_KEY " +
+          "to a key that grants it, or run `tdk config disable-infra verdaccio` to silence this warning.",
       );
     }
   }

@@ -1,14 +1,19 @@
 // Fetches the paid-tier "premium" resource bundle (playwright, c4-diagram,
-// logging, agents-md, and a few other extras - see tdk-cli-extensions/premium/) from
-// the gated distribution worker, when a license key is configured. The
-// free engine never needs this for its own resources - docker-compose,
-// npm, bun, etc. are already public in this repo, no key required.
-// Verdaccio, DDD (domain-driven-design scaffolding), and Sablier (on-demand
-// container start/stop) are NOT free: they're gated separately by
-// hasVerdaccioLicense()/hasDddLicense()/hasSablierLicense() below, via the
-// shared hasLiveResourceLicense() helper, since they're generated
-// code/live infra rather than a file overlay - see that helper's own
-// comment for why it can't just be added to KNOWN_RESOURCES.
+// logging, agents-md, sablier, verdaccio, and a few other extras - see
+// tdk-cli-extensions/premium/) from the gated distribution worker, when a
+// license key is configured. The free engine never needs this for its own
+// resources - docker-compose, npm, bun, etc. are already public in this
+// repo, no key required.
+//
+// DDD (domain-driven-design scaffolding) is the one paid feature that is
+// NOT a file overlay: it's gated separately by hasDddLicense() below, via
+// the shared hasLiveResourceLicense() helper, since its code stays in this
+// public repo and is turned on/off by a runtime check rather than swapped
+// in - see that helper's own comment for why it can't just be added to
+// KNOWN_RESOURCES. hasVerdaccioLicense()/hasSablierLicense() also use that
+// same helper, but only to print a "this needs a license" warning in
+// template-engine.ts - Verdaccio and Sablier's real gate is the file
+// overlay above (their public files are disabled stubs, not gated code).
 //
 // The worker (tdk-extension-dist) is the real access-control boundary: it
 // checks the key against BUNDLES_REPO/keys/*.json - existence, activation/
@@ -31,7 +36,7 @@ const DEFAULT_ENDPOINT = "https://tdk-extension-dist.oranguman.workers.dev/v1/pr
 // bundle on the first resource name a key is found to grant, since
 // premium.tar.gz ships all paid resources together. Keep in sync with
 // what issue-key.yml/update-key.yml accept as `resources` entries.
-const KNOWN_RESOURCES = ["playwright", "c4-diagram", "logging", "agents-md", "sablier"];
+const KNOWN_RESOURCES = ["playwright", "c4-diagram", "logging", "agents-md", "sablier", "verdaccio"];
 
 // Re-check the license periodically rather than trusting a local cache
 // forever - an expired or revoked key shouldn't keep unlocking premium
@@ -60,6 +65,7 @@ const PREMIUM_PATH_MAP: Record<string, string> = {
     "platform/services/platform/database-management/service.yaml",
   "networking/sablier_container_cycle.star":
     "engine/topologies/platform/docker/networking/sablier_container_cycle.star",
+  "registries/verdaccio_loader.star": "engine/topologies/platform/registries/verdaccio_loader.star",
 };
 
 function getLicenseKey(): string | null {
@@ -186,20 +192,22 @@ function liveResourceAccessCachePath(key: string, resource: string): string {
 
 /**
  * Checks whether the configured license key grants a given "live" premium
- * resource - one that's generated code or a Tilt/Docker resource baked into
- * the free engine rather than a file overlay, so there's nothing to swap on
- * disk (verdaccio, ddd, sablier). Can't reuse KNOWN_RESOURCES/fetchPremiumBundle
- * either: that loop stops at the FIRST resource the key grants and would
- * report false for a key that grants this resource but not, say, playwright
- * (or vice versa), since applyPremiumOverlay's success is measured by files
- * actually applied from PREMIUM_PATH_MAP - which has no entry for these.
+ * resource. Originally added for resources with nothing to swap on disk
+ * (ddd is still exactly that: gated code baked into the free engine, no
+ * file overlay). verdaccio and sablier also use this - not because they
+ * lack a PREMIUM_PATH_MAP entry (they have one now), but because their
+ * public files are already disabled stubs regardless of license, so this
+ * check only ever drives a "you need a license for this" warning in
+ * template-engine.ts, never an actual enable/disable decision. Can't reuse
+ * KNOWN_RESOURCES/fetchPremiumBundle for that warning either: that loop
+ * stops at the FIRST resource the key grants and would report false for a
+ * key that grants this resource but not, say, playwright (or vice versa).
  *
  * Best-effort: returns false (never throws) if there's no key, the fetch
  * fails, or the worker denies the resource - the caller decides what "not
- * licensed" means (currently: refuse to enable it). Caches the grant/deny
- * outcome (not the bundle itself, which we never need here) for
- * CACHE_TTL_MS so repeated checks don't re-download the full premium.tar.gz
- * just to read a status code.
+ * licensed" means. Caches the grant/deny outcome (not the bundle itself,
+ * which we never need here) for CACHE_TTL_MS so repeated checks don't
+ * re-download the full premium.tar.gz just to read a status code.
  */
 async function hasLiveResourceLicense(projectRoot: string, resource: string): Promise<boolean> {
   const key = getLicenseKey();
