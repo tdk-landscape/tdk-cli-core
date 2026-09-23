@@ -31,7 +31,7 @@ const DEFAULT_ENDPOINT = "https://tdk-extension-dist.oranguman.workers.dev/v1/pr
 // bundle on the first resource name a key is found to grant, since
 // premium.tar.gz ships all paid resources together. Keep in sync with
 // what issue-key.yml/update-key.yml accept as `resources` entries.
-const KNOWN_RESOURCES = ["playwright", "c4-diagram", "logging", "agents-md"];
+const KNOWN_RESOURCES = ["playwright", "c4-diagram", "logging", "agents-md", "sablier"];
 
 // Re-check the license periodically rather than trusting a local cache
 // forever - an expired or revoked key shouldn't keep unlocking premium
@@ -58,6 +58,8 @@ const PREMIUM_PATH_MAP: Record<string, string> = {
   "synthetic-monitor-topology.star": "engine/topologies/platform/services/synthetic-monitor.star",
   "database-management-service.yaml":
     "platform/services/platform/database-management/service.yaml",
+  "networking/sablier_container_cycle.star":
+    "engine/topologies/platform/docker/networking/sablier_container_cycle.star",
 };
 
 function getLicenseKey(): string | null {

@@ -442,12 +442,17 @@ export function readProjectConfig(projectRoot: string): ProjectConfig {
 }
 
 // Sablier ("sablier: {enable: true}" on a resource's own service.json) is
-// Premium, same enforcement posture as Verdaccio just above: this is the one
-// choke point every path funnels through, so it's the real check, not just
-// a nicety at the moment someone hand-edits a manifest. A stale/offline
-// license or a manifest copied from a licensed project can't skip it -
-// every resource opted in gets downgraded before output is emitted.
-async function enforceSablierLicense(projectRoot: string): Promise<void> {
+// Premium, but unlike Verdaccio below, this is NOT the enforcement - it's a
+// friendly heads-up. The real gate is that engine/.../sablier_container_cycle.star
+// in this (public) repo is a free-tier stub that always returns disabled; the
+// working implementation only exists in the private tdk-cli-extensions/premium/
+// bundle, applied by vendorTdkExtension()'s applyPremiumOverlay() below when a
+// license grants it. Forking this repo and deleting a license check (as you
+// could with Verdaccio/DDD) gets you nothing here, because there's no check to
+// delete - the actual code simply isn't present without the overlay. This just
+// tells a confused free-tier user why their `sablier` block silently does
+// nothing, instead of leaving them to guess.
+async function warnIfSablierUnlicensed(projectRoot: string): Promise<void> {
   const resources = discoverResourcesFromRoot(projectRoot).filter(
     (r) => r.config?.sablier?.enable === true,
   );
@@ -458,24 +463,16 @@ async function enforceSablierLicense(projectRoot: string): Promise<void> {
 
   console.warn(
     `⚠️  Sablier (on-demand scaling) is a Premium feature - no valid license key found. ` +
-      `Disabling it for ${resources.length} resource${resources.length === 1 ? "" : "s"} in this generation. ` +
-      "Set TDK_LICENSE_KEY to a key that grants it, or remove the `sablier` block from " +
-      "the affected service.json file(s) to silence this warning.",
+      `${resources.length} resource${resources.length === 1 ? " has" : "s have"} a \`sablier\` block, ` +
+      "but it will have no effect without a license. Set TDK_LICENSE_KEY to a key that grants it, " +
+      "or remove the `sablier` block from the affected service.json file(s) to silence this warning.",
   );
-
-  for (const resource of resources) {
-    const raw = JSON.parse(fs.readFileSync(resource.configPath, "utf-8"));
-    if (raw.sablier) {
-      raw.sablier.enable = false;
-    }
-    fs.writeFileSync(resource.configPath, `${JSON.stringify(raw, null, 2)}\n`);
-  }
 }
 
 export async function generateMasterConfigs(projectRoot: string): Promise<void> {
   const projectConfig = readProjectConfig(projectRoot);
 
-  await enforceSablierLicense(projectRoot);
+  await warnIfSablierUnlicensed(projectRoot);
 
   // Verdaccio is Premium - this is the one choke point every path funnels
   // through (project init, config regenerate, and the wizard all call this
