@@ -21,6 +21,12 @@ export interface ResourceConfig {
   basePath?: string;
   backendName?: string;
   apiPath?: string;
+  /** On-demand scaling via Sablier (Premium - requires TDK_LICENSE_KEY). See hasSablierLicense() in extension-fetch.ts. */
+  sablier?: {
+    enable?: boolean;
+    group?: string;
+    sessionDuration?: string;
+  };
 }
 
 export interface DiscoveredStack {

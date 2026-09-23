@@ -5,8 +5,9 @@ import Handlebars from "handlebars";
 import { PLATFORM_STANDARDS } from "../config/platform-standards.js";
 import type { JsonValue, ProjectConfig } from "../types/index.js";
 import { writeTextFile } from "../utils/file-helpers.js";
+import { discoverResourcesFromRoot } from "../utils/services.js";
 import { isStackFeatureEnabledInStacks } from "../utils/stack-features.js";
-import { hasVerdaccioLicense } from "./extension-fetch.js";
+import { hasSablierLicense, hasVerdaccioLicense } from "./extension-fetch.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -440,8 +441,41 @@ export function readProjectConfig(projectRoot: string): ProjectConfig {
   return projectConfig;
 }
 
+// Sablier ("sablier: {enable: true}" on a resource's own service.json) is
+// Premium, same enforcement posture as Verdaccio just above: this is the one
+// choke point every path funnels through, so it's the real check, not just
+// a nicety at the moment someone hand-edits a manifest. A stale/offline
+// license or a manifest copied from a licensed project can't skip it -
+// every resource opted in gets downgraded before output is emitted.
+async function enforceSablierLicense(projectRoot: string): Promise<void> {
+  const resources = discoverResourcesFromRoot(projectRoot).filter(
+    (r) => r.config?.sablier?.enable === true,
+  );
+  if (resources.length === 0) return;
+
+  const granted = await hasSablierLicense(projectRoot);
+  if (granted) return;
+
+  console.warn(
+    `⚠️  Sablier (on-demand scaling) is a Premium feature - no valid license key found. ` +
+      `Disabling it for ${resources.length} resource${resources.length === 1 ? "" : "s"} in this generation. ` +
+      "Set TDK_LICENSE_KEY to a key that grants it, or remove the `sablier` block from " +
+      "the affected service.json file(s) to silence this warning.",
+  );
+
+  for (const resource of resources) {
+    const raw = JSON.parse(fs.readFileSync(resource.configPath, "utf-8"));
+    if (raw.sablier) {
+      raw.sablier.enable = false;
+    }
+    fs.writeFileSync(resource.configPath, `${JSON.stringify(raw, null, 2)}\n`);
+  }
+}
+
 export async function generateMasterConfigs(projectRoot: string): Promise<void> {
   const projectConfig = readProjectConfig(projectRoot);
+
+  await enforceSablierLicense(projectRoot);
 
   // Verdaccio is Premium - this is the one choke point every path funnels
   // through (project init, config regenerate, and the wizard all call this

@@ -31,21 +31,10 @@ load("./traefik_helpers.star",
     "get_api_path",
     "project_backend_rule",
 )
-# load("./sablier_container_cycle.star",
-#     "_sablier_middleware_suffix",
-#     "_sablier_container_labels",
-# )
-
-def _sablier_middleware_suffix(_):
-    # Stub: no Sablier middleware needed
-    return "", "", False
-
-def _sablier_container_labels(_, __):
-    # Stub: no extra labels needed
-    return ""
-
-
-# Sablier functions imported from sablier_container_cycle.star
+load("./sablier_container_cycle.star",
+    "_sablier_middleware_suffix",
+    "_sablier_container_labels",
+)
 
 
 def get_frontend_traefik_labels(res_name, domain, base_path, port, traefik_host=None, manifest=None):
@@ -66,7 +55,7 @@ def get_frontend_traefik_labels(res_name, domain, base_path, port, traefik_host=
         maintenance_middleware = ",maintenance@file"
 
     # On-demand scaling: attach the Sablier middleware when opted in via the manifest
-    sablier_middleware, sablier_group, sablier_enabled = _sablier_middleware_suffix(manifest)
+    sablier_middleware, sablier_enabled = _sablier_middleware_suffix(manifest, res_name)
 
     labels = """        - "{traefik_enable_label}"
         - 'traefik.http.routers.{res_name}.rule={frontend_route_rule}'
@@ -90,7 +79,7 @@ def get_frontend_traefik_labels(res_name, domain, base_path, port, traefik_host=
     )
 
     if sablier_enabled:
-        labels += _sablier_container_labels(sablier_group, "        ")
+        labels += _sablier_container_labels(manifest, res_name, "        ")
 
     return labels
 
@@ -118,7 +107,7 @@ def get_backend_traefik_labels(
         maintenance_middleware = ",maintenance@file"
 
     # On-demand scaling: attach the Sablier middleware when opted in via the manifest
-    sablier_middleware, sablier_group, sablier_enabled = _sablier_middleware_suffix(manifest)
+    sablier_middleware, sablier_enabled = _sablier_middleware_suffix(manifest, resource_entry_name)
 
     # Build middleware config only if traefik_path is not empty
     if traefik_path:
@@ -161,7 +150,7 @@ def get_backend_traefik_labels(
 
     # Emit Sablier discovery labels so the Sablier container can wake/stop this workload
     if sablier_enabled:
-        labels += _sablier_container_labels(sablier_group, "      ")
+        labels += _sablier_container_labels(manifest, resource_entry_name, "      ")
 
     # Generate project localhost routing to match `tdk up` URLs:
     # http://api.{project}.localhost/api/{resource-name}
@@ -204,7 +193,7 @@ def get_backend_traefik_labels(
       - "traefik.http.routers.{resource_entry_name}-management.rule=Host(`{api_host}`) && PathPrefix(`{management_path}`)"
       - "traefik.http.routers.{resource_entry_name}-management.entrypoints={project_entrypoints}"
       - "traefik.http.routers.{resource_entry_name}-management.service={traefik_resource_name}"
-      - "traefik.http.routers.{resource_entry_name}-management.middlewares={middleware_name}-management"
+      - "traefik.http.routers.{resource_entry_name}-management.middlewares={middleware_name}-management{sablier_middleware}"
       - "traefik.http.middlewares.{middleware_name}-management.stripprefix.prefixes={management_path}"
       - "traefik.http.routers.{resource_entry_name}-management.priority={mgmt_priority}"
 """.format(
@@ -214,6 +203,7 @@ def get_backend_traefik_labels(
                 management_path=management_path,
                 project_entrypoints=project_entrypoints,
                 middleware_name=middleware_name,
+                sablier_middleware=sablier_middleware,
                 mgmt_priority=TRAEFIK_FRONTEND_PRIORITY_BASE + len(management_path),
             )
 

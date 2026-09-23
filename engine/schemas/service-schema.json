@@ -265,6 +265,26 @@
       ],
       "type": "string"
     },
+    "sablier": {
+      "description": "On-demand scaling: stop this container when idle, wake it on the next request.\nNot recommended for databases or other stateful resources with in-flight writes.\n(Premium - requires TDK_LICENSE_KEY; see hasSablierLicense() in extension-fetch.ts)",
+      "properties": {
+        "enable": {
+          "default": false,
+          "description": "Scale this resource to zero when idle",
+          "type": "boolean"
+        },
+        "group": {
+          "description": "Resources sharing a group wake and sleep together. Defaults to `stack`.",
+          "type": "string"
+        },
+        "sessionDuration": {
+          "default": "10m",
+          "description": "How long the resource stays up after its last request (Go duration, e.g. \"10m\", \"1h\").",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
     "syncs": {
       "description": "Directories to sync for hot-reload.\nAuto-computed if not specified:\n• backend: ['src', 'prisma']\n• frontend: ['src', 'public']",
       "items": {

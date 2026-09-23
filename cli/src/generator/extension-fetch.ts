@@ -3,8 +3,9 @@
 // the gated distribution worker, when a license key is configured. The
 // free engine never needs this for its own resources - docker-compose,
 // npm, bun, etc. are already public in this repo, no key required.
-// Verdaccio and DDD (domain-driven-design scaffolding) are NOT free: they're
-// gated separately by hasVerdaccioLicense()/hasDddLicense() below, via the
+// Verdaccio, DDD (domain-driven-design scaffolding), and Sablier (on-demand
+// container start/stop) are NOT free: they're gated separately by
+// hasVerdaccioLicense()/hasDddLicense()/hasSablierLicense() below, via the
 // shared hasLiveResourceLicense() helper, since they're generated
 // code/live infra rather than a file overlay - see that helper's own
 // comment for why it can't just be added to KNOWN_RESOURCES.
@@ -185,7 +186,7 @@ function liveResourceAccessCachePath(key: string, resource: string): string {
  * Checks whether the configured license key grants a given "live" premium
  * resource - one that's generated code or a Tilt/Docker resource baked into
  * the free engine rather than a file overlay, so there's nothing to swap on
- * disk (verdaccio, ddd). Can't reuse KNOWN_RESOURCES/fetchPremiumBundle
+ * disk (verdaccio, ddd, sablier). Can't reuse KNOWN_RESOURCES/fetchPremiumBundle
  * either: that loop stops at the FIRST resource the key grants and would
  * report false for a key that grants this resource but not, say, playwright
  * (or vice versa), since applyPremiumOverlay's success is measured by files
@@ -255,4 +256,14 @@ export async function hasVerdaccioLicense(projectRoot: string): Promise<boolean>
  */
 export async function hasDddLicense(projectRoot: string): Promise<boolean> {
   return hasLiveResourceLicense(projectRoot, "ddd");
+}
+
+/**
+ * Checks whether the configured license key grants the "sablier" resource
+ * (on-demand start/stop for idle resources via a `sablier: {enable: true}`
+ * manifest block - see sablier_container_cycle.star in
+ * engine/topologies/platform/docker/networking/).
+ */
+export async function hasSablierLicense(projectRoot: string): Promise<boolean> {
+  return hasLiveResourceLicense(projectRoot, "sablier");
 }

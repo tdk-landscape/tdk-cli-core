@@ -8,7 +8,7 @@
 
 # === INLINED CONSTANTS for pure extension loading ===
 VALID_STACKS = ()  # Stacks are project-specific, discovered dynamically
-VALID_FEATURES = "api-client", "env-config", "api-index", "prisma", "ddd", "nats", "redis", "infisical", "vitest", "traefik", "websocket", "graphql", "grpc", "vite-node", "maintenance"
+VALID_FEATURES = "api-client", "env-config", "api-index", "prisma", "ddd", "nats", "redis", "infisical", "vitest", "traefik", "websocket", "graphql", "grpc", "vite-node", "maintenance", "sablier"
 PORT_RANGES = {"frontend": {"min": 3000, "max": 5999}, "backend": {"min": 4000, "max": 5999}, "worker": {"min": 6000, "max": 6999}, "migrator": {"min": 7000, "max": 7999}, "sdk": {"min": 3000, "max": 9999}, "library": {"min": 3000, "max": 9999}}
 RUNTIME = "bun"
 TRAEFIK_CONFIG = {"entrypoint": "web", "network": "traefik-public", "default_host": "localhost", "default_port": 8080, "tls_enabled": False, "entrypoints": ["web"], "middlewares": [], "tls": {"enabled": False}, "healthcheck_path": "/health", "healthcheck_interval": "10s", "healthcheck_timeout": "5s", "frontend_priority_base": 100}
@@ -251,6 +251,34 @@ MANIFEST_SCHEMA = {
             },
         },
         'description': 'Traefik reverse proxy configuration',
+    },
+
+    # Sablier Configuration (on-demand start/stop for idle resources)
+    'sablier': {
+        'type': 'dict',
+        'required': False,
+        'schema': {
+            'enable': {
+                'type': 'boolean',
+                'required': False,
+                'default': False,
+                'description': 'Scale this resource to zero when idle; Sablier wakes it on the next request',
+            },
+            'group': {
+                'type': 'string',
+                'required': False,
+                'description': 'Resources sharing a group wake and sleep together (defaults to `stack`)',
+                'example': 'restaurant',
+            },
+            'sessionDuration': {
+                'type': 'string',
+                'required': False,
+                'default': '10m',
+                'description': 'How long the resource stays up after its last request, as a Go duration (e.g. "10m", "1h")',
+                'example': '10m',
+            },
+        },
+        'description': 'On-demand scaling via Sablier: stop idle containers, wake them on the next request. Not recommended for stateful resources (databases) with in-flight writes. (Premium - requires TDK_LICENSE_KEY; see hasSablierLicense() in extension-fetch.ts)',
     },
 }
 
