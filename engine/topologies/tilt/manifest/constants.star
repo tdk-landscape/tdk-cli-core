@@ -69,6 +69,7 @@ VALID_FEATURES = [
     "env-config",
     "api-index",
     "prisma",
+    "ddd",
     # Infrastructure features
     "nats",
     "redis",

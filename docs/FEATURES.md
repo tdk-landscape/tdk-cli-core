@@ -158,6 +158,12 @@ Default features for backend services (appType: "backend", "worker", "migrator")
 - **Usage**: `npx prisma generate`, `npx prisma migrate`, `npx prisma db push`
 - **Database**: Uses `DATABASE_URL` env var from project-level database
 
+#### `ddd` (Premium)
+- **Generates**: Domain-driven design folders and backend path aliases
+- **Purpose**: Scaffolds `domain`, `application`, `infrastructure`, and `presentation` layers
+- **License**: Premium (requires `TDK_LICENSE_KEY` with the `ddd` resource grant)
+- **Usage**: `tdk resource add <name> --type backend --ddd`
+
 ### Enable/Disable Features
 
 **To enable a feature**, add it to `features: []`:
@@ -217,6 +223,7 @@ These generators always run and don't have a feature flag:
 | Feature | Default | Customizable |
 |---------|---------|--------------|
 | prisma | ✅ | Yes |
+| ddd | ❌ | Yes (Premium) |
 | vite | ✅ (always) | No |
 | tsconfig | ✅ (always) | No |
 | dockerfile | ✅ (always) | No |
