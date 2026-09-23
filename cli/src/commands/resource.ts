@@ -398,7 +398,7 @@ export const resourceCommand = new Command("resource")
           if (!granted) {
             throw new Error(
               "DDD scaffolding is a Premium feature and requires a license key that grants it. " +
-                "Set export TDK_LICENSE_KEY=<key> (get one at https://tdk-landscape.github.io/#waitlist) and try again.",
+                "Set export TDK_LICENSE_KEY=<key> (request a Premium license at https://tdk-landscape.github.io/#waitlist) and try again.",
             );
           }
           dddEnabled = true;

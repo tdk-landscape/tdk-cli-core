@@ -249,7 +249,7 @@ async function toggleInfraService(service: string, enabled: boolean): Promise<vo
     if (!granted) {
       throw new Error(
         "Verdaccio is a Premium feature and requires a license key that grants it. " +
-          "Set export TDK_LICENSE_KEY=<key> (get one at https://tdk-landscape.github.io/#waitlist) and try again.",
+          "Set export TDK_LICENSE_KEY=<key> (request a Premium license at https://tdk-landscape.github.io/#waitlist) and try again.",
       );
     }
   }

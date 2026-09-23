@@ -447,9 +447,12 @@ export async function generateMasterConfigs(projectRoot: string): Promise<void> 
   // through (project init, config regenerate, and the wizard all call this
   // before `tdk up` reads .tdk-out), so it's the real enforcement, not just
   // the CLI's `config enable-infra` guard. A hand-edited project.json with
-  // optional_infra.verdaccio: true can't skip the check; it just gets
-  // silently downgraded back to false with a warning.
-  if (projectConfig.optional_infra.verdaccio) {
+  // optional_infra.verdaccio: true or a stale "verdaccio" stack in any phase
+  // can't skip the check; it gets downgraded before output is emitted.
+  const verdaccioInPhase = Object.values(projectConfig.phases).some((phase) =>
+    phase.enabledStacks.includes("verdaccio"),
+  );
+  if (projectConfig.optional_infra.verdaccio || verdaccioInPhase) {
     const granted = await hasVerdaccioLicense(projectRoot);
     if (!granted) {
       console.warn(
@@ -458,6 +461,13 @@ export async function generateMasterConfigs(projectRoot: string): Promise<void> 
           "or run `tdk config disable-infra verdaccio` to silence this warning.",
       );
       projectConfig.optional_infra.verdaccio = false;
+      for (const phase of Object.values(projectConfig.phases)) {
+        phase.enabledStacks = phase.enabledStacks.filter((stack) => stack !== "verdaccio");
+      }
+      fs.writeFileSync(
+        path.join(projectRoot, ".tdk", "project.json"),
+        `${JSON.stringify(projectConfig, null, 2)}\n`,
+      );
     }
   }
 

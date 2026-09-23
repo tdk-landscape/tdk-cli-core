@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -65,6 +65,28 @@ describe("project and resource feature E2E", () => {
     expect(updatedProjectJson.optional_infra.verdaccio).toBe(false);
 
     spec = readFileSync(join(projectRoot, ".tdk", ".tdk-out", "spec.master"), "utf-8");
+    expect(starlarkSection(spec, "PRE_ALPHA_RESOURCES")).not.toContain('"verdaccio": True');
+    expect(starlarkSection(spec, "OPTIONAL_INFRA_RESOURCES")).toContain('"verdaccio": False');
+  }, 10000);
+
+  it("strips stale Verdaccio phase stacks when no premium license grants it", () => {
+    projectRoot = mkdtempSync(join(tmpdir(), "tdk-stale-verdaccio-"));
+
+    runTdk(["project", "--yes"], projectRoot);
+
+    const projectJsonPath = join(projectRoot, ".tdk", "project.json");
+    const projectJson = JSON.parse(readFileSync(projectJsonPath, "utf-8"));
+    projectJson.phases.pre_alpha.enabledStacks.push("verdaccio");
+    projectJson.optional_infra.verdaccio = true;
+    writeFileSync(projectJsonPath, JSON.stringify(projectJson, null, 2));
+
+    runTdk(["config", "regenerate"], projectRoot);
+
+    const updatedProjectJson = JSON.parse(readFileSync(projectJsonPath, "utf-8"));
+    expect(updatedProjectJson.phases.pre_alpha.enabledStacks).not.toContain("verdaccio");
+    expect(updatedProjectJson.optional_infra.verdaccio).toBe(false);
+
+    const spec = readFileSync(join(projectRoot, ".tdk", ".tdk-out", "spec.master"), "utf-8");
     expect(starlarkSection(spec, "PRE_ALPHA_RESOURCES")).not.toContain('"verdaccio": True');
     expect(starlarkSection(spec, "OPTIONAL_INFRA_RESOURCES")).toContain('"verdaccio": False');
   }, 10000);
