@@ -265,7 +265,11 @@ export function checkTiltResourceHealth(exec: typeof execSync = execSync): Check
   const highlighted = critical.length > 0 ? critical : parsed.failures;
   const details = highlighted
     .map((failure) => {
-      const why = failure.error ? summarizePortBindError(failure.error) : failure.updateStatus;
+      const why = failure.error
+        ? summarizePortBindError(failure.error)
+        : failure.runtimeStatus === "error"
+          ? "runtime error (container crashed or unhealthy — check Tilt logs)"
+          : failure.updateStatus || failure.runtimeStatus || "unknown error";
       return `${failure.name}: ${why}`;
     })
     .join("\n    ");
