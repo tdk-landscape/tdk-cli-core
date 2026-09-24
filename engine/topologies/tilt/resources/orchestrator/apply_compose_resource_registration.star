@@ -90,7 +90,9 @@ def _resolve_dependency_to_resource(dep_name, all_services_map):
 
 
 def _build_resource_deps(res, res_name, manifest, resource_config, infra_deps, config_gen_resources, resource_manifests, runtime_flags, all_services_map=None):
-    res_deps = list(infra_deps)
+    # Drop self-deps: shared infra_deps always includes verdaccio when enabled, so
+    # registering verdaccio itself would otherwise produce resource_deps=['verdaccio'].
+    res_deps = [dep for dep in infra_deps if dep != res_name]
     if res_name in config_gen_resources:
         res_deps.append(config_gen_resources[res_name])
     if res.get('frontend', False):
@@ -106,7 +108,7 @@ def _build_resource_deps(res, res_name, manifest, resource_config, infra_deps, c
     internal_deps = manifest.get('dependsOn', [])
     for dep in internal_deps:
         resolved_dep = _resolve_dependency_to_resource(dep, all_services_map)
-        if resolved_dep and resolved_dep not in res_deps:
+        if resolved_dep and resolved_dep != res_name and resolved_dep not in res_deps:
             res_deps.append(resolved_dep)
     
     return res_deps
