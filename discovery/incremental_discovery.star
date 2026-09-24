@@ -4,8 +4,8 @@
 # Handles registration of newly detected services without full Tilt restart
 # =============================================================================
 
-load("./resource_registry.star", "CacheOps", "get_app_resources", "_DISCOVERY_CACHE")
-load("./discovery_orchestrator.star", "_normalize_manifest")
+load("./registry.star", "CacheOps", "get_app_resources")
+load("./discovery_orchestrator.star", "normalize_manifest")
 load("../resources/orchestrator/generators/manifest_resource.star", "ManifestResource")
 load("../../engine/topologies/tilt/manifest/loader.star", "ManifestLoader")
 load("../../specs/specs/TILT_RESOURCE_DEFAULTS.star", "BASE_PORT_BACKEND")
@@ -32,7 +32,7 @@ def register_new_resource(resource_path, manifest, ctx, auto_init=True, verbose=
         print("🚀 Registering new resource: {}".format(resource_name))
     
     # Normalize manifest to discovery format
-    resource = _normalize_manifest(manifest, resource_path)
+    resource = normalize_manifest(manifest, resource_path)
     
     # Build app resource structure
     app_resource_dict = {

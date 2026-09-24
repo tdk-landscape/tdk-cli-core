@@ -1,4 +1,4 @@
-load("../discovery/resource_registry.star", _DEFAULTS_EXPORT = "DEFAULTS_EXPORT")
+load("../../../../discovery/registry.star", _DEFAULTS_EXPORT = "DEFAULTS_EXPORT")
 
 def is_enabled(flag_name, cfg, fallback = True):
     if cfg.get(flag_name) != None:

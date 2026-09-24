@@ -32,8 +32,8 @@ load("./traefik_helpers.star",
     "project_backend_rule",
 )
 load("./sablier_container_cycle.star",
-    "_sablier_middleware_suffix",
-    "_sablier_container_labels",
+    "sablier_middleware_suffix",
+    "sablier_container_labels",
 )
 
 
@@ -55,7 +55,7 @@ def get_frontend_traefik_labels(res_name, domain, base_path, port, traefik_host=
         maintenance_middleware = ",maintenance@file"
 
     # On-demand scaling: attach the Sablier middleware when opted in via the manifest
-    sablier_middleware, sablier_enabled = _sablier_middleware_suffix(manifest, res_name)
+    sablier_middleware, sablier_enabled = sablier_middleware_suffix(manifest, res_name)
 
     labels = """        - "{traefik_enable_label}"
         - 'traefik.http.routers.{res_name}.rule={frontend_route_rule}'
@@ -79,7 +79,7 @@ def get_frontend_traefik_labels(res_name, domain, base_path, port, traefik_host=
     )
 
     if sablier_enabled:
-        labels += _sablier_container_labels(manifest, res_name, "        ")
+        labels += sablier_container_labels(manifest, res_name, "        ")
 
     return labels
 
@@ -107,7 +107,7 @@ def get_backend_traefik_labels(
         maintenance_middleware = ",maintenance@file"
 
     # On-demand scaling: attach the Sablier middleware when opted in via the manifest
-    sablier_middleware, sablier_enabled = _sablier_middleware_suffix(manifest, resource_entry_name)
+    sablier_middleware, sablier_enabled = sablier_middleware_suffix(manifest, resource_entry_name)
 
     # Build middleware config only if traefik_path is not empty
     if traefik_path:
@@ -150,7 +150,7 @@ def get_backend_traefik_labels(
 
     # Emit Sablier discovery labels so the Sablier container can wake/stop this workload
     if sablier_enabled:
-        labels += _sablier_container_labels(manifest, resource_entry_name, "      ")
+        labels += sablier_container_labels(manifest, resource_entry_name, "      ")
 
     # Generate project localhost routing to match `tdk up` URLs:
     # http://api.{project}.localhost/api/{resource-name}

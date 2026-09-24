@@ -66,7 +66,7 @@ def _determine_app_type(manifest, resource_path):
     # Default to backend
     return "backend"
 
-def _normalize_manifest(manifest, resource_path):
+def normalize_manifest(manifest, resource_path):
     """
     Normalize manifest to discovery resource format.
     Phase 5: Works with both legacy and new manifest system normalized manifests.

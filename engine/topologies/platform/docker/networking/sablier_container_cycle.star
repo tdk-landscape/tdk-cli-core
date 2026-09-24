@@ -19,11 +19,11 @@ def _sablier_config(_manifest):
     return False, "", ""
 
 
-def _sablier_middleware_suffix(_manifest, _res_name):
+def sablier_middleware_suffix(_manifest, _res_name):
     """Free-tier stub - see module header. Always disabled."""
     return "", False
 
 
-def _sablier_container_labels(_manifest, _res_name, _indent):
+def sablier_container_labels(_manifest, _res_name, _indent):
     """Free-tier stub - see module header. No labels to add."""
     return ""
