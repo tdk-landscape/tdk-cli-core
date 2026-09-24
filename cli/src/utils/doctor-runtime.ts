@@ -182,7 +182,18 @@ export function summarizeTiltBuildError(error: string): string {
     return "dependency install failed during ImageBuild — usually Verdaccio (:4873) unreachable or missing @scoped packages (ConnectionRefused downloading package manifest)";
   }
 
-  if (/ImageBuild:/i.test(normalized)) {
+  const missingImage =
+    normalized.match(/No such image:\s*([^:\s]+(?::[^\s]+)?)/i)?.[1] ||
+    normalized.match(/pull access denied for ([^,:\s]+)/i)?.[1];
+  if (missingImage || /docker compose .*\bup -d --no-build\b/i.test(normalized)) {
+    return `compose run failed because image is missing (${missingImage ?? "dev image not built yet"}) — wait for the matching ImageBuild resource, then re-trigger the *-run-only resource`;
+  }
+
+  if (/bun run build/i.test(normalized)) {
+    return "ImageBuild failed during `bun run build` (compile/typecheck) — open the resource logs in Tilt for the TypeScript/build error";
+  }
+
+  if (/ImageBuild:/i.test(normalized) || /^Command "/i.test(normalized)) {
     return normalized.slice(0, 220);
   }
 
