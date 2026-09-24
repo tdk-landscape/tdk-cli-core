@@ -183,10 +183,16 @@ export function summarizeTiltBuildError(error: string): string {
   }
 
   const missingImage =
-    normalized.match(/No such image:\s*([^:\s]+(?::[^\s]+)?)/i)?.[1] ||
-    normalized.match(/pull access denied for ([^,:\s]+)/i)?.[1];
-  if (missingImage || /docker compose .*\bup -d --no-build\b/i.test(normalized)) {
-    return `compose run failed because image is missing (${missingImage ?? "dev image not built yet"}) — wait for the matching ImageBuild resource, then re-trigger the *-run-only resource`;
+    normalized.match(/No such image:\s*([^\s]+)/i)?.[1] ??
+    normalized.match(/pull access denied for ([^,:\s]+)/i)?.[1] ??
+    undefined;
+  const composeService = normalized.match(
+    /\bup\s+-d\s+--no-build\s+([A-Za-z0-9._-]+)/i,
+  )?.[1];
+  if (missingImage || composeService || /docker compose .*\bup\s+-d\s+--no-build\b/i.test(normalized)) {
+    const imageLabel = missingImage ?? `${composeService ?? "service"}:dev`;
+    const serviceHint = composeService ? ` for ${composeService}` : "";
+    return `compose run failed because image is missing (${imageLabel})${serviceHint} — wait for the ImageBuild resource to finish, then re-trigger the *-run-only resource`;
   }
 
   if (/bun run build/i.test(normalized)) {
@@ -440,34 +446,39 @@ export function checkTiltResourceHealth(exec: typeof execSync = execSync): Check
     };
   }
 
-  const critical = parsed.failures.filter((failure) =>
-    /^(traefik|postgres|nats|infisical|verdaccio|proxy)/i.test(failure.name),
-  );
-  // Prefer infra failures; otherwise show every failure with a summarized cause
-  // (truncated ImageBuild exit lines previously hid ConnectionRefused root causes).
-  const highlighted = critical.length > 0 ? critical : parsed.failures;
-  const details = highlighted
-    .map((failure) => {
-      const why = failure.error
-        ? summarizeTiltBuildError(failure.error)
-        : failure.runtimeStatus === "error"
-          ? "runtime error (container crashed or unhealthy — check Tilt logs)"
-          : failure.updateStatus || failure.runtimeStatus || "unknown error";
-      return `${failure.name}: ${why}`;
-    })
+  // Always list every failed resource. Earlier logic showed only "critical"
+  // infra matches (e.g. nats-http-bridge) and hid the other ImageBuild/run-only
+  // failures, so doctor said "7 failed" while printing a single line.
+  const ordered = orderTiltFailures(parsed.failures);
+  const maxListed = 20;
+  const listed = ordered.slice(0, maxListed);
+  const omitted = ordered.length - listed.length;
+
+  const described = listed.map((failure) => ({
+    failure,
+    why: describeTiltFailure(failure, exec),
+  }));
+  const details = described
+    .map(({ failure, why }) => `${failure.name}: ${why}`)
     .join("\n    ");
+  const omittedNote =
+    omitted > 0 ? `\n    …and ${formatCount(omitted, "more failed resource")}` : "";
 
   const pendingNote =
     parsed.pendingCount > 0
       ? `\n    ${formatCount(parsed.pendingCount, "resource")} still pending/not started — often blocked by the failures above.`
       : "";
 
-  const hasPortConflict = highlighted.some((failure) =>
+  const hasPortConflict = ordered.some((failure) =>
     /port is already allocated/i.test(failure.error),
   );
-  const hasRegistryFailure = highlighted.some((failure) =>
-    isRegistryRelatedBuildError(failure.error) ||
+  const hasRegistryFailure = ordered.some(
+    (failure) =>
+      isRegistryRelatedBuildError(failure.error) ||
       isRegistryRelatedBuildError(summarizeTiltBuildError(failure.error)),
+  );
+  const hasKafkaRuntimeFailure = described.some(({ why }) =>
+    /Kafka broker unreachable|kafka:9092/i.test(why),
   );
 
   let fix =
@@ -478,12 +489,116 @@ export function checkTiltResourceHealth(exec: typeof execSync = execSync): Check
   } else if (hasRegistryFailure) {
     fix =
       "Start Verdaccio (`bun run verdaccio:start`), ensure packages are published (`bun run publish:all` or `bash scripts/build/publish-to-verdaccio.sh`), confirm `curl http://localhost:4873` works, then `tilt trigger` the failed resources.";
+  } else if (hasKafkaRuntimeFailure) {
+    fix =
+      "Kafka is not running (optional infra). Start it, point the bridge at a real broker, or disable Kafka-dependent resources until Kafka is enabled.";
   }
 
   return {
     name: "Tilt Resources",
     didPass: false,
-    message: `Tilt reports ${formatCount(parsed.failures.length, "failed resource")}:\n    ${details}${pendingNote}`,
+    message: `Tilt reports ${formatCount(parsed.failures.length, "failed resource")}:\n    ${details}${omittedNote}${pendingNote}`,
     fix,
   };
+}
+
+const INFRA_FAILURE_NAME =
+  /^(traefik|postgres|nats|infisical|verdaccio|proxy)([.-]|$)/i;
+
+export function isInfraTiltFailure(name: string): boolean {
+  return INFRA_FAILURE_NAME.test(name);
+}
+
+/** Critical infra first, then everything else — never drop failures. */
+export function orderTiltFailures(failures: TiltResourceFailure[]): TiltResourceFailure[] {
+  return [...failures].sort((a, b) => {
+    const aInfra = isInfraTiltFailure(a.name) ? 0 : 1;
+    const bInfra = isInfraTiltFailure(b.name) ? 0 : 1;
+    if (aInfra !== bInfra) return aInfra - bInfra;
+    return a.name.localeCompare(b.name);
+  });
+}
+
+/**
+ * Best-effort root cause for runtime crashes when buildHistory has no error.
+ * Reads recent docker logs for the matching container name.
+ */
+export function probeContainerRuntimeError(
+  resourceName: string,
+  exec: typeof execSync = execSync,
+): string | null {
+  try {
+    const names = exec("docker ps -a --format '{{.Names}}'", {
+      stdio: "pipe",
+      encoding: "utf-8",
+      timeout: EXEC_TIMEOUT_MS,
+    })
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    const match =
+      names.find((name) => name === resourceName) ??
+      names.find((name) => name.includes(resourceName));
+    if (!match) return null;
+
+    const logs = exec(`docker logs --tail 120 ${JSON.stringify(match)} 2>&1`, {
+      stdio: "pipe",
+      encoding: "utf-8",
+      timeout: EXEC_TIMEOUT_MS,
+    });
+
+    if (/getaddrinfo ENOTFOUND/i.test(logs) && /kafka:9092/i.test(logs)) {
+      return "runtime crash: Kafka broker unreachable (getaddrinfo ENOTFOUND kafka:9092)";
+    }
+    if (/ECONNREFUSED/i.test(logs) && /kafka/i.test(logs)) {
+      return "runtime crash: Kafka connection refused";
+    }
+    const refusedPkg = logs.match(
+      /ConnectionRefused downloading package manifest (@[A-Za-z0-9._/-]+)/i,
+    );
+    if (refusedPkg?.[1]) {
+      return `runtime/build log: private registry ConnectionRefused for ${refusedPkg[1]}`;
+    }
+
+    // Zod env/config validation: pull required field paths from the dump.
+    if (/ZodError/i.test(logs)) {
+      const requiredPaths = [
+        ...logs.matchAll(/"path"\s*:\s*\[\s*"([^"]+)"\s*\]/g),
+      ].map((match) => match[1]);
+      const uniquePaths = [...new Set(requiredPaths)].slice(0, 6);
+      if (uniquePaths.length > 0) {
+        return `runtime crash: ZodError missing required config/env: ${uniquePaths.join(", ")}`;
+      }
+      return "runtime crash: ZodError during config/env validation";
+    }
+
+    // Prefer structured app failures over random source lines that contain "error =".
+    const structured =
+      logs.match(/error:\s+Failed to [^:\n]+[^\n]{0,120}/i)?.[0] ??
+      logs.match(/Failed to (?:start|initialize) [^\n]{0,120}/i)?.[0] ??
+      logs.match(/^\s*error:\s+[^\n]{0,160}/im)?.[0];
+    if (structured) {
+      return `runtime crash: ${structured.replace(/\s+/g, " ").trim().slice(0, 180)}`;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+export function describeTiltFailure(
+  failure: TiltResourceFailure,
+  exec: typeof execSync = execSync,
+): string {
+  if (failure.error) {
+    return summarizeTiltBuildError(failure.error);
+  }
+  if (failure.runtimeStatus === "error") {
+    return (
+      probeContainerRuntimeError(failure.name, exec) ??
+      "runtime error (container crashed or unhealthy — check Tilt/docker logs)"
+    );
+  }
+  return failure.updateStatus || failure.runtimeStatus || "unknown error";
 }
