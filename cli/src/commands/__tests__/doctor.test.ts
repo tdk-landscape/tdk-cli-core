@@ -5,10 +5,12 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { checkFrontendDockerPreflight, checkStarlarkLoadExports } from "../doctor.js";
 import {
   checkIngressPorts,
+  checkPrivateNpmRegistry,
   checkTiltResourceHealth,
   findForeignIngressHolders,
   parsePublishedPortHolders,
   parseTiltResourceFailures,
+  summarizeTiltBuildError,
 } from "../../utils/doctor-runtime.js";
 
 describe("doctor frontend Docker preflight", () => {
@@ -256,5 +258,123 @@ describe("doctor ingress + tilt runtime checks", () => {
     }) as never);
     expect(result.isSkipped).toBe(true);
     expect(result.didPass).toBe(true);
+  });
+
+  it("summarizes ConnectionRefused package manifest errors from build logs", () => {
+    const raw = [
+      "error: ConnectionRefused downloading package manifest @tdk-landscape/eventing",
+      "error: ConnectionRefused downloading package manifest @beauty-crm/identity-js-sdk",
+      "error: ConnectionRefused downloading package manifest @tdk-landscape/observability",
+      'ImageBuild: process "/bin/sh -c bun install --production --cache-dir=/cache/bun" did not complete successfully: exit code: 1',
+    ].join("\n");
+
+    const summary = summarizeTiltBuildError(raw);
+    expect(summary).toContain("ConnectionRefused");
+    expect(summary).toContain("@tdk-landscape/eventing");
+    expect(summary).toContain("Verdaccio");
+  });
+
+  it("summarizes truncated bun install ImageBuild exits as registry failures", () => {
+    const summary = summarizeTiltBuildError(
+      'ImageBuild: process "/bin/sh -c bun install --production --cache-dir=/cache/bun" did not complete successfully: exit code: 1',
+    );
+    expect(summary).toMatch(/dependency install failed|Verdaccio|ConnectionRefused/i);
+  });
+
+  it("surfaces registry-oriented fix when ImageBuild dependency installs fail", () => {
+    const payload = {
+      items: [
+        {
+          metadata: { name: "appointment-management-backend" },
+          status: {
+            updateStatus: "error",
+            runtimeStatus: "unknown",
+            buildHistory: [
+              {
+                error:
+                  'ImageBuild: process "/bin/sh -c bun install --production --cache-dir=/cache/bun" did not complete successfully: exit code: 1',
+              },
+            ],
+          },
+        },
+        {
+          metadata: { name: "salon-management-frontend" },
+          status: { updateStatus: "pending", runtimeStatus: "pending" },
+        },
+      ],
+    };
+
+    const result = checkTiltResourceHealth((() => JSON.stringify(payload)) as never);
+    expect(result.didPass).toBe(false);
+    expect(result.message).toContain("appointment-management-backend");
+    expect(result.message).toMatch(/dependency install failed|Verdaccio|ConnectionRefused/i);
+    expect(result.fix).toMatch(/verdaccio:start|publish/i);
+  });
+
+  it("fails private registry check when Verdaccio is enabled but unreachable", () => {
+    const projectRoot = join(
+      tmpdir(),
+      `tdk-doctor-registry-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    );
+    mkdirSync(join(projectRoot, ".tdk"), { recursive: true });
+    writeFileSync(
+      join(projectRoot, ".tdk", "project.json"),
+      JSON.stringify({
+        project: { name: "demo" },
+        optional_infra: { verdaccio: true },
+        phases: {},
+      }),
+    );
+
+    const execDown = ((command: string) => {
+      if (command.startsWith("docker ps")) {
+        return "";
+      }
+      if (command.includes("curl")) {
+        throw new Error("Failed to connect to localhost port 4873");
+      }
+      return "";
+    }) as typeof import("node:child_process").execSync;
+
+    const result = checkPrivateNpmRegistry(execDown, projectRoot, "http://localhost:4873");
+
+    expect(result.didPass).toBe(false);
+    expect(result.message).toContain("ConnectionRefused");
+    expect(result.fix).toMatch(/verdaccio:start/);
+
+    rmSync(projectRoot, { recursive: true, force: true });
+  });
+
+  it("passes private registry check when Verdaccio responds", () => {
+    const projectRoot = join(
+      tmpdir(),
+      `tdk-doctor-registry-ok-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    );
+    mkdirSync(join(projectRoot, ".tdk"), { recursive: true });
+    writeFileSync(
+      join(projectRoot, ".tdk", "project.json"),
+      JSON.stringify({
+        project: { name: "demo" },
+        optional_infra: { verdaccio: true },
+        phases: {},
+      }),
+    );
+
+    const execUp = ((command: string) => {
+      if (command.startsWith("docker ps")) {
+        return "beauty-crm-verdaccio\n";
+      }
+      if (command.includes("curl")) {
+        return "200";
+      }
+      return "";
+    }) as typeof import("node:child_process").execSync;
+
+    const result = checkPrivateNpmRegistry(execUp, projectRoot, "http://localhost:4873");
+
+    expect(result.didPass).toBe(true);
+    expect(result.message).toContain("reachable");
+
+    rmSync(projectRoot, { recursive: true, force: true });
   });
 });
