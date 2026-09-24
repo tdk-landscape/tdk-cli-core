@@ -3,6 +3,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { checkFrontendDockerPreflight, checkStarlarkLoadExports } from "../doctor.js";
+import {
+  checkIngressPorts,
+  checkTiltResourceHealth,
+  findForeignIngressHolders,
+  parsePublishedPortHolders,
+  parseTiltResourceFailures,
+} from "../../utils/doctor-runtime.js";
 
 describe("doctor frontend Docker preflight", () => {
   let testDir: string;
@@ -170,6 +177,84 @@ describe("doctor frontend Docker preflight", () => {
 
     const result = checkStarlarkLoadExports();
 
+    expect(result.didPass).toBe(true);
+  });
+});
+
+describe("doctor ingress + tilt runtime checks", () => {
+  it("detects a foreign Traefik holding host port 80", () => {
+    const dockerPs = [
+      "tdk_saas_starter_traefik\t0.0.0.0:80->80/tcp,:::80->80/tcp,0.0.0.0:8080->8080/tcp",
+      "beauty_crm_postgres\t0.0.0.0:5432->5432/tcp",
+    ].join("\n");
+
+    const holders = parsePublishedPortHolders(dockerPs, [80, 443]);
+    expect(holders).toHaveLength(1);
+    expect(holders[0]?.name).toBe("tdk_saas_starter_traefik");
+    expect(holders[0]?.publishedPorts).toContain(80);
+
+    const foreign = findForeignIngressHolders(holders, "beauty_crm");
+    expect(foreign).toHaveLength(1);
+
+    const result = checkIngressPorts((() => dockerPs) as never, "beauty-crm");
+    expect(result.didPass).toBe(false);
+    expect(result.message).toContain("tdk_saas_starter_traefik");
+    expect(result.fix).toContain("docker stop");
+  });
+
+  it("passes when this project's Traefik owns the ingress ports", () => {
+    const dockerPs =
+      "beauty_crm_traefik\t0.0.0.0:80->80/tcp,:::80->80/tcp,0.0.0.0:443->443/tcp";
+    const result = checkIngressPorts((() => dockerPs) as never, "beauty-crm");
+    expect(result.didPass).toBe(true);
+    expect(result.message).toContain("beauty_crm_traefik");
+  });
+
+  it("fails doctor when Tilt reports Traefik update errors that block apps", () => {
+    const payload = {
+      items: [
+        {
+          metadata: { name: "traefik" },
+          status: {
+            updateStatus: "error",
+            runtimeStatus: "unknown",
+            buildHistory: [
+              {
+                error:
+                  'Bind for 0.0.0.0:80 failed: port is already allocated\nerror: exit status 1',
+              },
+            ],
+          },
+        },
+        {
+          metadata: { name: "salon-management-frontend" },
+          status: { updateStatus: "pending", runtimeStatus: "pending" },
+        },
+        {
+          metadata: { name: "postgres" },
+          status: { updateStatus: "ok", runtimeStatus: "ok" },
+        },
+      ],
+    };
+
+    const parsed = parseTiltResourceFailures(JSON.stringify(payload));
+    expect(parsed.failures).toHaveLength(1);
+    expect(parsed.failures[0]?.name).toBe("traefik");
+    expect(parsed.pendingCount).toBe(1);
+
+    const result = checkTiltResourceHealth((() => JSON.stringify(payload)) as never);
+    expect(result.didPass).toBe(false);
+    expect(result.message).toContain("traefik");
+    expect(result.message).toContain("port 80");
+    expect(result.message).toContain("pending");
+    expect(result.fix).toMatch(/docker ps --filter publish=80|Free the conflicting/);
+  });
+
+  it("skips tilt resource check when tilt is not running", () => {
+    const result = checkTiltResourceHealth((() => {
+      throw new Error("tilt not running");
+    }) as never);
+    expect(result.isSkipped).toBe(true);
     expect(result.didPass).toBe(true);
   });
 });

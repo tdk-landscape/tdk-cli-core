@@ -38,8 +38,10 @@ GOLDEN_L2_IMAGE = GLOBAL_CONFIG['docker'].get('golden_l2_image', _GOLDEN_PREFIX 
 def normalize_res_path(res_path):
     """Normalize resource path for Docker COPY commands.
     
-    Docker COPY requires paths relative to the build context.
-    If res_path starts with '/', remove it to make it relative.
+    Docker COPY requires paths relative to the build context (project root).
+    Absolute filesystem paths must become project-relative (including ../sibling).
+    Never strip only the leading '/' — that turns
+    `/private/var/.../platform/verdaccio` into a fake in-repo path.
     
     Args:
         res_path: Resource path (may be absolute or relative)
@@ -47,9 +49,25 @@ def normalize_res_path(res_path):
     Returns:
         Normalized relative path for Docker COPY
     """
-    if res_path.startswith('/'):
-        return res_path[1:]  # Remove leading slash
-    return res_path
+    if not res_path:
+        return res_path
+    if not res_path.startswith('/'):
+        return res_path
+    project_root = os.environ.get('TDK_PROJECT_ROOT', '.')
+    cmd = (
+        "python3 -c \"import os; print(os.path.relpath(os.path.realpath('''" +
+        res_path +
+        "'''), os.path.realpath('''" +
+        project_root +
+        "''')))\""
+    )
+    relative = str(local(cmd, quiet=True, echo_off=True)).strip()
+    if relative:
+        return relative
+    root_prefix = project_root.rstrip('/') + '/'
+    if res_path.startswith(root_prefix):
+        return res_path[len(root_prefix):]
+    return res_path[1:]
 
 
 def L2_generate_dependency_manifest(res_path, manager = RUNTIME, use_golden = True):

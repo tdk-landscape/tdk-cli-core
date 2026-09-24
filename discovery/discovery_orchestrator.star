@@ -39,6 +39,35 @@ def _validate_scan_roots(roots):
             if other_normalized.startswith(root_normalized):
                 print("⚠️  Warning: {} is subdirectory of {}".format(other, root))
 
+def _to_project_relative_path(path, project_root):
+    """Return path relative to project_root (supports ../ out-of-tree siblings).
+
+    Absolute find() results used to be "normalized" by stripping a leading '/',
+    which turned `/private/var/.../platform/verdaccio` into a fake in-repo path
+    `private/var/.../platform/verdaccio` and broke Docker COPY checksums.
+    """
+    if not path:
+        return path
+    root = project_root if project_root else os.environ.get("TDK_PROJECT_ROOT", ".")
+    # Already project-relative (including ../sibling/...)
+    if not path.startswith("/"):
+        return path
+    cmd = (
+        "python3 -c \"import os; print(os.path.relpath(os.path.realpath('''" +
+        path +
+        "'''), os.path.realpath('''" +
+        root +
+        "''')))\""
+    )
+    relative = str(local(cmd, quiet=True, echo_off=True)).strip()
+    if relative:
+        return relative
+    # Fallback: strip project_root prefix if present
+    root_prefix = root.rstrip("/") + "/"
+    if path.startswith(root_prefix):
+        return path[len(root_prefix):]
+    return path.lstrip("/")
+
 # Built-in functions available in Tilt (no load needed)
 # read_json, local are built-in
 
@@ -244,20 +273,23 @@ def _scan_resources():
     if not manifest_paths:
         return resources
     
+    project_root = os.environ.get("TDK_PROJECT_ROOT", ".")
+
     for manifest_path in manifest_paths:
-        # manifest_path already stripped by json_manifest_scanner
+        # manifest_path may be absolute (legacy find) or project-relative.
+        # Always rewrite to a path relative to the TDK project root first.
+        manifest_path = _to_project_relative_path(manifest_path, project_root)
         
         # Parse manifest using proper loader (handles JSON and YAML)
         # First, extract service path from manifest path
         full_resource_path = manifest_path.rsplit("/", 1)[0]
         
-        # Normalize path to be relative (strip leading / if present)
-        # Docker build context requires relative paths
-        if full_resource_path.startswith('/'):
-            full_resource_path = full_resource_path[1:]
-        
         # Use the loader which handles both JSON and YAML and normalizes format
-        load_result = ManifestLoader.load_from_file(manifest_path)
+        # Loader needs a filesystem path: keep absolute for reads when needed.
+        load_path = manifest_path
+        if not load_path.startswith("/"):
+            load_path = project_root.rstrip("/") + "/" + load_path
+        load_result = ManifestLoader.load_from_file(load_path)
         if load_result.error:
             print("Error loading manifest: " + load_result.error)
             continue
@@ -332,12 +364,10 @@ def _scan_resources():
         else:
             base_path = path_parts[0] if path_parts else ""
         resource_path = base_path  # This is the DOMAIN path
-        full_resource_path = project_relative_path.rsplit("/", 1)[0]  # Full path to service
-        
-        # Normalize path to be relative (strip leading / if present)
-        # Docker build context requires relative paths
-        if full_resource_path.startswith('/'):
-            full_resource_path = full_resource_path[1:]
+        full_resource_path = _to_project_relative_path(
+            project_relative_path.rsplit("/", 1)[0],
+            project_root,
+        )  # Full path to service
         
         # BUG FIX: Normalize worktree paths to project-relative paths
         # Worktrees create paths like .worktrees/task1-dry/services/platform/...

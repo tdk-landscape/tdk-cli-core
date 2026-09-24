@@ -9,11 +9,14 @@ import {
   QUICKSTART_DOCS_URL,
   REQUIRED_PACKAGE_SCRIPTS,
 } from "../utils/constants.js";
+import { checkIngressPorts, checkTiltResourceHealth } from "../utils/doctor-runtime.js";
 import { validateEnvFile } from "../utils/env-validator.js";
 import { formatCount } from "../utils/formatting.js";
 import { findProjectRoot } from "../utils/paths.js";
 import { buildHealthTargets, pingHealthTargets } from "../utils/service-urls.js";
 import { discoverResourcesFromRoot } from "../utils/services.js";
+
+export { checkIngressPorts, checkTiltResourceHealth } from "../utils/doctor-runtime.js";
 
 // A wedged Docker daemon makes `docker ps` block forever instead of failing,
 // and doctor is exactly the tool people run when their environment is broken.
@@ -621,15 +624,17 @@ async function checkServiceHealth(timeoutMs: number): Promise<CheckResult> {
   const reachable = probes.filter((probe) => probe.ok);
   const failed = probes.filter((probe) => !probe.ok);
 
-  // Nothing answered at all: the stack is almost certainly not started yet,
-  // which is the normal state for `tdk doctor` before `tdk up`.
+  // Nothing answered at all: either the stack was never started, or ingress
+  // never came up (Traefik port conflict). Prefer failing via
+  // checkTiltResourceHealth / checkIngressPorts when Tilt is up; here we only
+  // skip when there is truly nothing to probe yet.
   if (reachable.length === 0) {
     return {
       name: "Service Health",
       didPass: true,
       isSkipped: true,
-      message: `Services not running - skipped ping of ${formatCount(targets.length, "service")}`,
-      fix: "Start them with: tdk up",
+      message: `No services responded - skipped ping of ${formatCount(targets.length, "service")} (stack may be down, or Traefik never bound :80)`,
+      fix: "If `tdk up` is already running, check Traefik/port 80 in the Tilt UI. Otherwise start with: tdk up",
     };
   }
 
@@ -683,11 +688,15 @@ export const doctorCommand = new Command("doctor")
       checkStartupScripts,
       checkFrontendDockerPreflight,
       checkEnvironmentVariables,
+      // Preflight: catch "port 80 already allocated" BEFORE claiming ready.
+      checkIngressPorts,
       // Runtime checks: skip gracefully if the stack isn't started yet.
       checkContainerResourceHealth,
+      // When Tilt is up, surface red resources (Traefik/apps never started).
+      checkTiltResourceHealth,
     ];
 
-    // Runs last: it is the only check that needs the stack already started.
+    // Runs last: needs routable services (and working Traefik) to mean anything.
     if (options.ping) {
       checks.push(() => checkServiceHealth(pingTimeout));
     }

@@ -30,14 +30,18 @@ def discover_json_manifests(root_path):
         cmd = "cd " + project_root + " && bash -c 'for dir in " + root_path + "; do if [ -d \"$dir\" ]; then find \"$dir\" -maxdepth 3 -type f -name \"" + MANIFEST_FILENAME + "\" 2>/dev/null; fi; done'"
         result = str(local(cmd, quiet=True, echo_off=True))
     else:
-        # Construct absolute path from project root
+        # Keep discovery results project-relative whenever possible.
+        # Running `find` on an absolute `project_root/../sibling` path makes find
+        # emit absolute paths; stripping the leading "/" later produces bogus
+        # Docker context paths like `private/var/www/.../platform/verdaccio`.
         if root_path.startswith('/'):
-            full_path = root_path
+            cmd = "find " + root_path + " -type f -name '" + MANIFEST_FILENAME + "' 2>/dev/null | sort"
         else:
-            full_path = project_root + "/" + root_path
-        
-        # Search for service.json files (silent)
-        cmd = "find " + full_path + " -type f -name '" + MANIFEST_FILENAME + "' 2>/dev/null | sort"
+            cmd = (
+                "cd " + project_root +
+                " && find " + root_path +
+                " -type f -name '" + MANIFEST_FILENAME + "' 2>/dev/null | sort"
+            )
         result = str(local(cmd, quiet=True, echo_off=True))
     
     manifests = []

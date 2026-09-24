@@ -373,9 +373,12 @@ def register_compose_resources(resource_config, ctx, runtime_flags, manifest_sta
         full_res_path = res.get('_resource_path', resource_path + '/' + res['name'])
         manifest = resource_manifests.get(res['name'], {})
         
-        # Skip library/sdk type resources - they don't have Docker builds
+        # Skip non-app resources - they don't use the golden app Dockerfile pipeline.
+        # infra (e.g. verdaccio) is loaded via registries/verdaccio_loader.star instead.
+        # Building verdaccio as a backend produced broken COPY paths and missing package.json.
         app_type = manifest.get('appType', 'backend')
-        if app_type in ['library', 'sdk']:
+        if app_type in ['library', 'sdk', 'infra']:
+            print("DEBUG COMPOSE: Skipping '{}' appType='{}' (not an app container)".format(res.get('name', ''), app_type))
             continue
         
         if res.get('frontend', False):

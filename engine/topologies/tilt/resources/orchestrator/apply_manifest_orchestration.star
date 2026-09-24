@@ -49,9 +49,16 @@ def prepare_resource_manifests(resource_config, ctx):
     # Second pass: create config generation resources.
     for resource in resource_config.get('resources', []):
         manifest = resource_manifests.get(resource['name'], {})
+        app_type = manifest.get('appType', 'backend')
+        # infra services (verdaccio, etc.) are loaded by dedicated infra loaders —
+        # do not generate golden app Dockerfiles/configs for them.
+        if app_type in ['library', 'sdk', 'infra']:
+            print("   [Tilt] ⏭  Skipping config-gen for {} (appType={})".format(resource['name'], app_type))
+            continue
+
         backend_manifest = None
 
-        if resource.get('frontend', False) or manifest.get('appType') == 'frontend':
+        if resource.get('frontend', False) or app_type == 'frontend':
             backend_name = manifest.get('backendName', resource['name'].replace('-frontend', '-backend'))
             backend_manifest = backend_manifest_cache.get(backend_name)
             if not backend_manifest:
