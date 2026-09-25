@@ -25,7 +25,7 @@ load('../layers/l4_runtime_layers.star',
     'L4_generate_frontend_runtime',
 )
 
-def L4_generate_orchestrator(res_path, res_type = 'backend', resource_name = 'service', use_nginx = False, port = 3000, target_path = '/app/dist', build_cmd = 'bun run build', cmd = 'bun run start', use_infisical = True, use_shared_libs = True, use_prisma = True, use_golden = True, manifest = None):
+def L4_generate_orchestrator(res_path, res_type = 'backend', resource_name = 'service', use_nginx = False, port = 3000, target_path = '/app/dist', build_cmd = 'bun run build', cmd = 'bun run start', use_infisical = False, use_shared_libs = True, use_prisma = True, use_golden = True, manifest = None):
     parts = []
     migrator_name_match = (
         resource_name == 'migrator'

@@ -55,7 +55,7 @@ GOLDEN_L4_FRONTEND_IMAGE = _docker_cfg.get('golden_l4_frontend_image', _GOLDEN_P
 _docker_health = get_docker_healthcheck_config()
 
 
-def L4_generate_backend_runtime(res_path, port = BASE_PORT_BACKEND, cmd = 'bun run start', use_infisical = True, resource_name = 'service', use_golden = True, use_prisma = True, has_prisma_config = False, manifest = None):
+def L4_generate_backend_runtime(res_path, port = BASE_PORT_BACKEND, cmd = 'bun run start', use_infisical = False, resource_name = 'service', use_golden = True, use_prisma = True, has_prisma_config = False, manifest = None):
     """
     Generate the backend runtime layer for deployed services.
 

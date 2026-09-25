@@ -195,7 +195,6 @@ export class TemplateEngine {
       alwaysEnabledInfra: projectConfig.always_enabled_infra ?? [
         "database-management",
         "proxy",
-        "infisical",
       ],
       optionalInfra: projectConfig.optional_infra,
       serviceDescriptions: RESOURCE_DESCRIPTIONS,

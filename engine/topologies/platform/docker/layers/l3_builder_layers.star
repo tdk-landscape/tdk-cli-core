@@ -50,7 +50,7 @@ GOLDEN_L3_BACKEND_IMAGE = _docker_cfg.get('golden_l3_backend_image', _GOLDEN_PRE
 GOLDEN_L3_FRONTEND_IMAGE = _docker_cfg.get('golden_l3_frontend_image', _GOLDEN_PREFIX + '-l3-frontend:latest')
 
 
-def L3_generate_backend_compiler(res_path, build_cmd = RUNTIME_CONFIG["bun"]["backend_start_command"], use_prisma = True, use_shared_libs = True, use_infisical = True, use_golden = True, has_prisma_config = False):
+def L3_generate_backend_compiler(res_path, build_cmd = RUNTIME_CONFIG["bun"]["backend_start_command"], use_prisma = True, use_shared_libs = True, use_infisical = False, use_golden = True, has_prisma_config = False):
     """
     Generate the backend compiler layer for TypeScript services.
 
