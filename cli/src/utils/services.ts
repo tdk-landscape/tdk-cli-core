@@ -73,7 +73,8 @@ function parseResource(serviceJsonPath: string): DiscoveredResource {
   const parsedConfig = parsed as unknown as ResourceConfig;
   const config: ResourceConfig = {
     ...parsedConfig,
-    appType: (parsedConfig.appType || (parsedConfig as any).type) as ResourceConfig["appType"],
+    appType: (parsedConfig.appType ||
+      (parsedConfig as unknown as { type?: string }).type) as ResourceConfig["appType"],
   };
   const resourceDir = dirname(serviceJsonPath);
 

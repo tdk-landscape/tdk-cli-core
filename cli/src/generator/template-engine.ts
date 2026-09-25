@@ -33,7 +33,7 @@ export function loadTemplate(filename: string): string {
     triedPaths.push(templatePath);
     try {
       return fs.readFileSync(templatePath, "utf-8");
-    } catch (error) {}
+    } catch (_error) {}
   }
 
   throw new Error(

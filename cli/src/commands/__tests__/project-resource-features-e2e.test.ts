@@ -34,7 +34,7 @@ describe("project and resource feature E2E", () => {
   let projectRoot = "";
 
   afterEach(() => {
-    if (projectRoot && projectRoot.startsWith(tmpdir())) {
+    if (projectRoot?.startsWith(tmpdir())) {
       rmSync(projectRoot, { recursive: true, force: true });
     }
   });

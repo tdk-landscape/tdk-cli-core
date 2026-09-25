@@ -155,7 +155,7 @@ describe("applyPremiumOverlay", () => {
     process.env.TDK_LICENSE_KEY = "tdk-fa411b";
     const seenProjectIds: string[] = [];
     const fetchSpy = vi.fn().mockImplementation((url: string) => {
-      seenProjectIds.push(new URL(url).searchParams.get("projectId")!);
+      seenProjectIds.push(new URL(url).searchParams.get("projectId") ?? "");
       return Promise.resolve(new Response("not granted", { status: 403 }));
     });
     vi.stubGlobal("fetch", fetchSpy);

@@ -47,8 +47,7 @@ describe.skipIf(!EXTENSION_SOURCE_AVAILABLE)("saas-starter cloning and discovery
     try {
       // Safety: only delete if path is under tmpdir and contains our test marker
       if (
-        testDir &&
-        testDir.startsWith(tmpdir()) &&
+        testDir?.startsWith(tmpdir()) &&
         testDir.includes("tdk-saas-test-") &&
         testDir.length > 20
       ) {

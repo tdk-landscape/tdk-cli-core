@@ -93,7 +93,7 @@ function getOrCreateProjectId(projectRoot: string): string {
   }
   const id = randomUUID();
   mkdirSync(join(projectRoot, ".tdk"), { recursive: true });
-  writeFileSync(idPath, id + "\n");
+  writeFileSync(idPath, `${id}\n`);
   return id;
 }
 
