@@ -155,7 +155,7 @@ const REQUIRED_DOCKER_TEMPLATE_FILES = [
     "prisma-bun-client-link-fix.sh",
     "prisma-normalize-client.sh",
 ];
-function checkGeneratedProjectRuntimeAssets() {
+export function checkGeneratedProjectRuntimeAssets() {
     const projectRoot = findProjectRoot() ?? process.cwd();
     const problems = [];
     if (!existsSync(join(projectRoot, "package.json"))) {

@@ -199,7 +199,7 @@ const REQUIRED_DOCKER_TEMPLATE_FILES = [
   "prisma-normalize-client.sh",
 ] as const;
 
-function checkGeneratedProjectRuntimeAssets(): CheckResult {
+export function checkGeneratedProjectRuntimeAssets(): CheckResult {
   const projectRoot = findProjectRoot() ?? process.cwd();
   const problems: string[] = [];
 

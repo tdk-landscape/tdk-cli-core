@@ -69,7 +69,7 @@ def register_migrators(resource_config, ctx, runtime_flags, compose_project_name
         target_path='/app/dist',
         build_cmd='echo "No build needed for migrator"',
         cmd='bun run db:migrate',
-        use_infisical=True,
+        use_infisical=False,
         use_shared_libs=True,
         use_prisma=True,
         use_golden=should_enable('golden-image'),

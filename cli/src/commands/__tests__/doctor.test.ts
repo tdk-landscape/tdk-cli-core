@@ -2,7 +2,11 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { checkFrontendDockerPreflight, checkStarlarkLoadExports } from "../doctor.js";
+import {
+  checkFrontendDockerPreflight,
+  checkGeneratedProjectRuntimeAssets,
+  checkStarlarkLoadExports,
+} from "../doctor.js";
 import {
   checkIngressPorts,
   checkPrivateNpmRegistry,
@@ -182,6 +186,85 @@ describe("doctor frontend Docker preflight", () => {
     const result = checkStarlarkLoadExports();
 
     expect(result.didPass).toBe(true);
+  });
+});
+
+describe("doctor generated runtime asset preflight", () => {
+  let testDir: string;
+  let originalCwd: string;
+
+  beforeEach(() => {
+    originalCwd = process.cwd();
+    testDir = join(
+      tmpdir(),
+      `tdk-doctor-runtime-assets-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    );
+    mkdirSync(join(testDir, ".tdk"), { recursive: true });
+    writeFileSync(
+      join(testDir, ".tdk", "project.json"),
+      JSON.stringify({
+        version: "1.0",
+        project: { name: "asset-check", version: "1.0.0" },
+        phases: {
+          pre_alpha: { name: "Pre-Alpha", description: "", enabledStacks: [] },
+          alpha: { name: "Alpha", description: "", enabledStacks: [] },
+          beta: { name: "Beta", description: "", enabledStacks: [] },
+          out_of_scope: { name: "Out of Scope", description: "", enabledStacks: [] },
+        },
+        optional_infra: {
+          monitoring: false,
+          elk: false,
+          debezium: false,
+          golden_image: true,
+          verdaccio: false,
+        },
+        discovery: { paths: ["services/*/*"] },
+        overrides: {},
+      }),
+    );
+    process.chdir(testDir);
+  });
+
+  afterEach(() => {
+    process.chdir(originalCwd);
+    if (testDir && existsSync(testDir)) {
+      rmSync(testDir, { recursive: true, force: true });
+    }
+  });
+
+  function writeRequiredRuntimeAssets() {
+    const templateDir = join(testDir, "shared-platform-engineering", "docker-templates");
+    mkdirSync(templateDir, { recursive: true });
+    for (const file of [
+      "install-deps.sh",
+      "bun-hoisted-symlink-fix.sh",
+      "prisma-bun-client-link-fix.sh",
+      "prisma-normalize-client.sh",
+    ]) {
+      writeFileSync(join(templateDir, file), "#!/bin/sh\n");
+    }
+  }
+
+  it("fails when the root workspace package.json and Docker template scripts are missing", () => {
+    const result = checkGeneratedProjectRuntimeAssets();
+
+    expect(result.didPass).toBe(false);
+    expect(result.message).toContain("package.json");
+    expect(result.message).toContain("install-deps.sh");
+    expect(result.fix).toContain("tdk project");
+  });
+
+  it("passes when generated Docker runtime assets are present", () => {
+    writeFileSync(
+      join(testDir, "package.json"),
+      JSON.stringify({ name: "asset-check", private: true, workspaces: ["services/*/*"] }),
+    );
+    writeRequiredRuntimeAssets();
+
+    const result = checkGeneratedProjectRuntimeAssets();
+
+    expect(result.didPass).toBe(true);
+    expect(result.message).toContain("runtime assets are present");
   });
 });
 

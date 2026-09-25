@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -11,7 +11,7 @@ const repoRoot = resolve(__dirname, "../../../..");
 const cliBin = join(repoRoot, "cli", "bin", "tdk.js");
 
 function runTdk(args: string[], cwd: string, input?: string): string {
-  return execFileSync("bun", [cliBin, ...args], {
+  return execFileSync(process.execPath, [cliBin, ...args], {
     cwd,
     encoding: "utf-8",
     input,
@@ -95,6 +95,70 @@ describe("project and resource feature E2E", () => {
     const spec = readFileSync(join(projectRoot, ".tdk", ".tdk-out", "spec.master"), "utf-8");
     expect(starlarkSection(spec, "PRE_ALPHA_RESOURCES")).toContain('"verdaccio": True');
     expect(starlarkSection(spec, "OPTIONAL_INFRA_RESOURCES")).toContain('"verdaccio": True');
+  }, 10000);
+
+  it("copies Docker runtime assets and creates the root workspace manifest during project generation", () => {
+    projectRoot = mkdtempSync(join(tmpdir(), "tdk-project-runtime-assets-"));
+
+    runTdk(["project", "--yes"], projectRoot);
+
+    const rootPackageJson = JSON.parse(readFileSync(join(projectRoot, "package.json"), "utf-8"));
+    expect(rootPackageJson.private).toBe(true);
+    expect(rootPackageJson.workspaces).toEqual(["services/*/*"]);
+
+    for (const file of [
+      "install-deps.sh",
+      "bun-hoisted-symlink-fix.sh",
+      "prisma-bun-client-link-fix.sh",
+      "prisma-normalize-client.sh",
+    ]) {
+      expect(
+        existsSync(
+          join(projectRoot, "shared-platform-engineering", "docker-templates", file),
+        ),
+      ).toBe(true);
+    }
+  }, 10000);
+
+  it("vendors free env injection instead of Infisical credentials by default", () => {
+    projectRoot = mkdtempSync(join(tmpdir(), "tdk-project-env-injection-"));
+
+    runTdk(["project", "--yes"], projectRoot);
+
+    const envGenerator = readFileSync(
+      join(
+        projectRoot,
+        ".tdk",
+        ".tdk-out",
+        "tdk-cli-ext",
+        "engine",
+        "topologies",
+        "platform",
+        "docker",
+        "secrets",
+        "infisical.star",
+      ),
+      "utf-8",
+    );
+    expect(envGenerator).toContain("TDK_SECRET_PROVIDER");
+    expect(envGenerator).not.toContain("INFISICAL_CLIENT_SECRET");
+
+    const dockerfileGenerator = readFileSync(
+      join(
+        projectRoot,
+        ".tdk",
+        ".tdk-out",
+        "tdk-cli-ext",
+        "engine",
+        "topologies",
+        "platform",
+        "docker",
+        "dockerfile",
+        "dockerfile.star",
+      ),
+      "utf-8",
+    );
+    expect(dockerfileGenerator).toContain("use_infisical=False");
   }, 10000);
 
   it("writes default resource-level features into generated service.json files", () => {
