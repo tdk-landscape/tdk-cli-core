@@ -206,7 +206,10 @@ def _register_run_only_resource(config, resource_path, compose_project_name, aut
             + ' up -d --no-build '
             + config['res_name'],
         labels=config['labels'] + ['run-only'],
-        resource_deps=config['res_deps'],
+        # The run-only Compose command uses the image produced by the main
+        # resource. Keep it behind that resource so --no-build cannot race
+        # the ImageBuild and fail with a missing image.
+        resource_deps=config['res_deps'] + [config['res_name']],
         auto_init=auto_init_apps,
         allow_parallel=True,
     )
