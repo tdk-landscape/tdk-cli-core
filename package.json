@@ -1,11 +1,15 @@
 {
   "name": "tdk-cli-monorepo",
-  "version": "1.3.44",
+  "version": "1.3.45",
   "description": "TDK CLI - Tilt Development Kit (monorepo)",
-  "private": true,
+  "private": false,
   "workspaces": [
     "cli"
   ],
+  "bin": {
+    "tdk": "cli/bin/tdk.js",
+    "tdk-cli": "cli/bin/tdk.js"
+  },
   "scripts": {
     "build": "cd cli && npm run build",
     "build:watch": "cd cli && npm run build:watch",
@@ -16,7 +20,7 @@
     "clean": "cd cli && npm run clean",
     "release:binaries": "scripts/release-binaries.sh",
     "release:binaries:publish": "scripts/release-binaries.sh --publish",
-    "prepare": "scripts/install-git-hooks.sh",
+    "prepare": "scripts/install-git-hooks.sh && cd cli && npm run build",
     "cli": "cd cli && node bin/tdk.js",
     "tdk": "cd cli && node bin/tdk.js"
   },
