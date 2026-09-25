@@ -12,6 +12,7 @@ export declare function buildTiltUpArgs(serviceNames: string[], options?: {
     quiet?: boolean;
     force?: boolean;
     watch?: boolean;
+    focusTargets?: string[];
 }): string[];
 export declare function buildTiltDownArgs(options?: {
     force?: boolean;

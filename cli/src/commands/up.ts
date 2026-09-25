@@ -97,7 +97,7 @@ export const upCommand = new Command("up")
       }
 
       const dryRunCommand = stackName
-        ? `tilt up --focus=${stackName} ${focusServiceNames.join(" ")}`
+        ? `tilt up -- --focus=${stackName} ${focusServiceNames.join(" ")}`
         : "tilt up";
       if (handleDryRun(options, "not starting services", dryRunCommand)) {
         return;

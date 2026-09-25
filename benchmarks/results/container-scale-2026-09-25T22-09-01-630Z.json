@@ -1,0 +1,77 @@
+{
+  "date": "2026-09-25T22:09:01.631Z",
+  "hostMemGiB": 16,
+  "dockerMemMiB": 7934,
+  "perServiceBudgetMiB": 74,
+  "options": {
+    "mode": "compose",
+    "project": "/Users/katerynaburym/Developer/Codex/tdk-erp-system",
+    "tiers": [
+      5
+    ],
+    "gate": 5,
+    "timeoutSeconds": 240,
+    "interval": 30,
+    "startInterval": 2,
+    "settleSeconds": 5
+  },
+  "images": 107,
+  "imageStats": {
+    "backend": {
+      "count": 100,
+      "min": 176,
+      "avg": 242,
+      "max": 263
+    },
+    "frontend": {
+      "count": 7,
+      "min": 89,
+      "avg": 89,
+      "max": 89
+    },
+    "backendSingleProcess": {
+      "count": 26,
+      "min": 176,
+      "avg": 183,
+      "max": 263
+    },
+    "backendWrapper": {
+      "count": 74,
+      "min": 263,
+      "avg": 263,
+      "max": 263
+    }
+  },
+  "diskUsage": "Images 6.56GB",
+  "singleProcessImageShare": 0.308411214953271,
+  "results": [
+    {
+      "tier": 5,
+      "launchSeconds": 2.2,
+      "firstHealthySeconds": 3.8,
+      "allHealthySeconds": 4.9,
+      "healthy": 5,
+      "unhealthy": 0,
+      "starting": 0,
+      "crashed": 0,
+      "oomKilled": 0,
+      "crashes": [],
+      "totalMemMiB": 75,
+      "avgMemMiB": 14.9,
+      "totalCpuPct": 2.4,
+      "dockerPsMs": 101,
+      "requestMsP50": 3.1,
+      "loadAvg1m": 5.12,
+      "hostFreeMiB": 148,
+      "singleProcessShare": 1,
+      "routed": {
+        "200": 5
+      },
+      "restarts": 0
+    }
+  ],
+  "gate": {
+    "tier": 5,
+    "passed": true
+  }
+}

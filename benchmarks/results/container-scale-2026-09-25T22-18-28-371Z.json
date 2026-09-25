@@ -1,0 +1,202 @@
+{
+  "date": "2026-09-25T22:18:28.372Z",
+  "hostMemGiB": 16,
+  "dockerMemMiB": 7934,
+  "perServiceBudgetMiB": 74,
+  "options": {
+    "mode": "compose",
+    "project": "/Users/katerynaburym/Developer/Codex/tdk-erp-system",
+    "tiers": [
+      5,
+      10,
+      20,
+      50,
+      80,
+      100
+    ],
+    "gate": 100,
+    "timeoutSeconds": 240,
+    "interval": 30,
+    "startInterval": 2,
+    "settleSeconds": 15
+  },
+  "images": 107,
+  "imageStats": {
+    "backend": {
+      "count": 100,
+      "min": 176,
+      "avg": 242,
+      "max": 263
+    },
+    "frontend": {
+      "count": 7,
+      "min": 89,
+      "avg": 89,
+      "max": 89
+    },
+    "backendSingleProcess": {
+      "count": 26,
+      "min": 176,
+      "avg": 183,
+      "max": 263
+    },
+    "backendWrapper": {
+      "count": 74,
+      "min": 263,
+      "avg": 263,
+      "max": 263
+    }
+  },
+  "diskUsage": "Images 6.56GB",
+  "singleProcessImageShare": 0.308411214953271,
+  "results": [
+    {
+      "tier": 5,
+      "launchSeconds": 2.4,
+      "firstHealthySeconds": 3.8,
+      "allHealthySeconds": 5,
+      "healthy": 5,
+      "unhealthy": 0,
+      "starting": 0,
+      "crashed": 0,
+      "oomKilled": 0,
+      "crashes": [],
+      "totalMemMiB": 74,
+      "avgMemMiB": 14.7,
+      "totalCpuPct": 1.7,
+      "dockerPsMs": 81,
+      "requestMsP50": 2.8,
+      "loadAvg1m": 5.59,
+      "hostFreeMiB": 149,
+      "singleProcessShare": 1,
+      "routed": {
+        "200": 5
+      },
+      "restarts": 0
+    },
+    {
+      "tier": 10,
+      "launchSeconds": 5.4,
+      "firstHealthySeconds": 5.8,
+      "allHealthySeconds": 8.2,
+      "healthy": 10,
+      "unhealthy": 0,
+      "starting": 0,
+      "crashed": 0,
+      "oomKilled": 0,
+      "crashes": [],
+      "totalMemMiB": 157,
+      "avgMemMiB": 15.7,
+      "totalCpuPct": 3.7,
+      "dockerPsMs": 101,
+      "requestMsP50": 4.5,
+      "loadAvg1m": 6.29,
+      "hostFreeMiB": 163,
+      "singleProcessShare": 1,
+      "routed": {
+        "200": 10
+      },
+      "restarts": 0
+    },
+    {
+      "tier": 20,
+      "launchSeconds": 10.6,
+      "firstHealthySeconds": 11,
+      "allHealthySeconds": 13.6,
+      "healthy": 20,
+      "unhealthy": 0,
+      "starting": 0,
+      "crashed": 0,
+      "oomKilled": 0,
+      "crashes": [],
+      "totalMemMiB": 309,
+      "avgMemMiB": 15.5,
+      "totalCpuPct": 6.2,
+      "dockerPsMs": 181,
+      "requestMsP50": 3.1,
+      "loadAvg1m": 6.69,
+      "hostFreeMiB": 86,
+      "singleProcessShare": 1,
+      "routed": {
+        "200": 20
+      },
+      "restarts": 0
+    },
+    {
+      "tier": 50,
+      "launchSeconds": 57.4,
+      "firstHealthySeconds": 57.9,
+      "allHealthySeconds": 61,
+      "healthy": 50,
+      "unhealthy": 0,
+      "starting": 0,
+      "crashed": 0,
+      "oomKilled": 0,
+      "crashes": [],
+      "totalMemMiB": 834,
+      "avgMemMiB": 16.7,
+      "totalCpuPct": 73.1,
+      "dockerPsMs": 1541,
+      "requestMsP50": 6.5,
+      "loadAvg1m": 17.68,
+      "hostFreeMiB": 93,
+      "singleProcessShare": 0.5,
+      "routed": {
+        "200": 50
+      },
+      "restarts": 0
+    },
+    {
+      "tier": 80,
+      "launchSeconds": 77.4,
+      "firstHealthySeconds": 78.3,
+      "allHealthySeconds": 82.6,
+      "healthy": 80,
+      "unhealthy": 0,
+      "starting": 0,
+      "crashed": 0,
+      "oomKilled": 0,
+      "crashes": [],
+      "totalMemMiB": 1353,
+      "avgMemMiB": 16.9,
+      "totalCpuPct": 56.2,
+      "dockerPsMs": 585,
+      "requestMsP50": 7.5,
+      "loadAvg1m": 23.96,
+      "hostFreeMiB": 80,
+      "singleProcessShare": 0.4,
+      "routed": {
+        "200": 80
+      },
+      "restarts": 0
+    },
+    {
+      "tier": 100,
+      "launchSeconds": 68.9,
+      "firstHealthySeconds": 69.8,
+      "allHealthySeconds": 73.9,
+      "healthy": 100,
+      "unhealthy": 0,
+      "starting": 0,
+      "crashed": 0,
+      "oomKilled": 0,
+      "crashes": [],
+      "totalMemMiB": 1668,
+      "avgMemMiB": 16.7,
+      "totalCpuPct": 48,
+      "dockerPsMs": 584,
+      "requestMsP50": 5.6,
+      "loadAvg1m": 13.59,
+      "hostFreeMiB": 68,
+      "singleProcessShare": 0.3,
+      "routed": {
+        "200": 100
+      },
+      "restarts": 0
+    }
+  ],
+  "gate": {
+    "tier": 100,
+    "passed": true
+  }
+}

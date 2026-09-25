@@ -98,8 +98,14 @@ export function buildTiltUpArgs(
   // "pre-alpha" phase and built every stack in that phase, not just the one asked
   // for. Passing the stack name via `--focus` reuses the Tiltfile's own (already
   // dependency-aware) domain expansion instead of re-deriving it here.
+  //
+  // `--focus=...` needs a `--` before it: Tilt's own `tilt up` only accepts its own
+  // fixed flag set directly (see `tilt up --help`) and rejects anything else with
+  // "unknown flag" - `--` is what routes a token through to the Tiltfile's own
+  // config.parse(). Bare words like a service name aren't flag-shaped, so they don't
+  // need `--` to reach the Tiltfile's positional `args` catch-all.
   if (options.focusTargets && options.focusTargets.length > 0) {
-    args.push(`--focus=${options.focusTargets.join(",")}`);
+    args.push("--", `--focus=${options.focusTargets.join(",")}`);
   }
 
   args.push(...serviceNames);

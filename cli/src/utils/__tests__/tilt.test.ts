@@ -105,14 +105,18 @@ describe("buildTiltUpArgs", () => {
     expect(findProjectRoot).toHaveBeenCalledTimes(1);
   });
 
-  it("should include --focus=<stack> before service names when focusTargets is set", async () => {
+  it("should include -- --focus=<stack> before service names when focusTargets is set", async () => {
     // Regression test: `tdk up <stack>` used to pass only bare positional service
     // names, which the generated Tiltfile's focus filter never reads (it only reads
     // --focus), so it silently fell back to building every stack instead of the one
-    // requested. --focus must be present and carry the stack name.
+    // requested. --focus must be present, carry the stack name, and be preceded by
+    // `--` (tilt up rejects "--focus" as an unrecognized top-level flag otherwise -
+    // `--` is what routes it to the Tiltfile's own config.parse()).
     const { buildTiltUpArgs } = await import("../tilt.js");
     const args = buildTiltUpArgs(["finance-api", "finance-app"], { focusTargets: ["finance"] });
-    expect(args).toContain("--focus=finance");
+    const dashDashIndex = args.indexOf("--");
+    expect(dashDashIndex).toBeGreaterThanOrEqual(0);
+    expect(args[dashDashIndex + 1]).toBe("--focus=finance");
     expect(args.indexOf("--focus=finance")).toBeLessThan(args.indexOf("finance-api"));
   });
 
