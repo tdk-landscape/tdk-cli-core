@@ -68,7 +68,6 @@ RUN apk add --no-cache \
     ca-certificates \
     tzdata \
     curl \
-    file \
     bash \
     openssl
 

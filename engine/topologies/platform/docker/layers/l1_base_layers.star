@@ -61,7 +61,7 @@ def L1_generate_os_base(base_image = None, maintainer = None, use_golden = True)
         "# ---- L1: os_base (" + base_image + ") ----\n"
         + "FROM " + base_image + " AS l1_os_base\n"
         + "LABEL maintainer=\"" + maintainer + "\"\n"
-        + "RUN apk add --no-cache ca-certificates tzdata curl file bash openssl \\\n"
+        + "RUN apk add --no-cache ca-certificates tzdata curl bash openssl \\\n"
         + "    && addgroup -S app && adduser -S app -G app\n"
         + "WORKDIR /app\n"
     )
