@@ -139,9 +139,6 @@ def L4_generate_backend_runtime(res_path, port = BASE_PORT_BACKEND, cmd = 'bun r
         "ARG SKIP_INFISICAL_SETUP=0\n",
         "ENV NODE_ENV=production\n",
         "COPY --from=l3_production_purger /app/" + res_path + "/node_modules ./node_modules\n",
-        # Bun isolated linker creates service symlinks that resolve through /app/node_modules/.bun.
-        # Copy from production_purger to avoid dragging full dev dependency store into runtime.
-        "COPY --from=l3_production_purger /app/" + res_path + "/node_modules/.bun /app/node_modules/.bun\n",
         prisma_runtime_copy(res_path) if use_prisma else "",
         prisma_cli_runtime_copy(res_path) if use_prisma else "",
         "COPY --from=l3_backend_build /app/" + res_path + "/dist ./dist\n",
