@@ -1,6 +1,7 @@
 name: Release binaries and npm package
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
