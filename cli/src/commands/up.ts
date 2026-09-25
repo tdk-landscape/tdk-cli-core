@@ -1,10 +1,12 @@
 import { execSync } from "node:child_process";
 import chalk from "chalk";
 import { Command } from "commander";
+import { ensureProjectRuntimeAssets } from "../generator/template-engine.js";
 import { handleDryRun } from "../utils/command-helpers.js";
 import { errorFactories, handleTiltFailure, withTiltCheck } from "../utils/errors.js";
 import { formatCount } from "../utils/formatting.js";
 import { findAvailablePort } from "../utils/port-assignment.js";
+import { findProjectRoot } from "../utils/paths.js";
 import { appendHealthPath, resolveSubdomainBases } from "../utils/service-urls.js";
 import {
   discoverResources,
@@ -24,6 +26,12 @@ export const upCommand = new Command("up")
   .option("-f, --force", "Kill existing Tilt process before starting", false)
   .action(async (stackName, options) => {
     await withTiltCheck(async () => {
+      const projectRoot = findProjectRoot() ?? process.cwd();
+      const copiedAssets = ensureProjectRuntimeAssets(projectRoot);
+      if (copiedAssets.length > 0 && options.verbose && !options.quiet) {
+        console.log(chalk.gray(`Refreshed runtime assets: ${copiedAssets.join(", ")}`));
+      }
+
       let servicesToStart: Awaited<ReturnType<typeof discoverResources>>;
       let stackDescription: string;
       let focusServiceNames: string[] = [];

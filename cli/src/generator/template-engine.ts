@@ -533,6 +533,11 @@ export async function generateMasterConfigs(projectRoot: string): Promise<void> 
     console.log(`✓ Copied: .tiltignore → project root`);
   }
 
+  const copiedAssets = ensureProjectRuntimeAssets(projectRoot);
+  for (const asset of copiedAssets) {
+    console.log(`✓ Copied: ${asset} → project root`);
+  }
+
   await vendorTdkExtension(projectRoot);
 
   console.log("");

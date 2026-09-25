@@ -192,6 +192,44 @@ function checkMasterConfigs(): CheckResult {
   };
 }
 
+const REQUIRED_DOCKER_TEMPLATE_FILES = [
+  "install-deps.sh",
+  "bun-hoisted-symlink-fix.sh",
+  "prisma-bun-client-link-fix.sh",
+  "prisma-normalize-client.sh",
+] as const;
+
+function checkGeneratedProjectRuntimeAssets(): CheckResult {
+  const projectRoot = findProjectRoot() ?? process.cwd();
+  const problems: string[] = [];
+
+  if (!existsSync(join(projectRoot, "package.json"))) {
+    problems.push("package.json (workspace root manifest)");
+  }
+
+  const templateDir = join(projectRoot, "shared-platform-engineering", "docker-templates");
+  for (const file of REQUIRED_DOCKER_TEMPLATE_FILES) {
+    if (!existsSync(join(templateDir, file))) {
+      problems.push(`shared-platform-engineering/docker-templates/${file}`);
+    }
+  }
+
+  if (problems.length === 0) {
+    return {
+      name: "Generated Runtime Assets",
+      didPass: true,
+      message: "Generated Docker runtime assets are present",
+    };
+  }
+
+  return {
+    name: "Generated Runtime Assets",
+    didPass: false,
+    message: `Generated Dockerfiles reference missing project runtime assets:\n    ${problems.join("\n    ")}`,
+    fix: "Run `tdk project --yes` (or `tdk config regenerate`) with an updated TDK. `tdk up` also refreshes these assets before starting Tilt.",
+  };
+}
+
 function findPrivateStarlarkLoadExports(content: string): string[] {
   const privateExports = new Set<string>();
   const loadCallPattern = /^load\s*\(([\s\S]*?)\)/gm;
@@ -693,6 +731,7 @@ export const doctorCommand = new Command("doctor")
       checkTilt,
       checkDockerCompose,
       checkMasterConfigs,
+      checkGeneratedProjectRuntimeAssets,
       checkStarlarkLoadExports,
       checkStartupScripts,
       checkFrontendDockerPreflight,
