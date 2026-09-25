@@ -30,13 +30,21 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { extractTarball } from "../utils/tar.js";
 
-const DEFAULT_ENDPOINT = "https://tdk-extension-dist.oranguman.workers.dev/v1/premium/bundle.tar.gz";
+const DEFAULT_ENDPOINT =
+  "https://tdk-extension-dist.oranguman.workers.dev/v1/premium/bundle.tar.gz";
 
 // Tried in order until one is granted - the worker unlocks the whole
 // bundle on the first resource name a key is found to grant, since
 // premium.tar.gz ships all paid resources together. Keep in sync with
 // what issue-key.yml/update-key.yml accept as `resources` entries.
-const KNOWN_RESOURCES = ["playwright", "c4-diagram", "logging", "agents-md", "sablier", "verdaccio"];
+const KNOWN_RESOURCES = [
+  "playwright",
+  "c4-diagram",
+  "logging",
+  "agents-md",
+  "sablier",
+  "verdaccio",
+];
 
 // Re-check the license periodically rather than trusting a local cache
 // forever - an expired or revoked key shouldn't keep unlocking premium
@@ -61,8 +69,7 @@ const PREMIUM_PATH_MAP: Record<string, string> = {
     "engine/topologies/tilt/generators/typescript/fixed_frontend_tsconfig.star",
   "synthetic_monitor.star": "engine/resources/synthetic_monitor.star",
   "synthetic-monitor-topology.star": "engine/topologies/platform/services/synthetic-monitor.star",
-  "database-management-service.yaml":
-    "platform/services/platform/database-management/service.yaml",
+  "database-management-service.yaml": "platform/services/platform/database-management/service.yaml",
   "networking/sablier_container_cycle.star":
     "engine/topologies/platform/docker/networking/sablier_container_cycle.star",
   "registries/verdaccio_loader.star": "engine/topologies/platform/registries/verdaccio_loader.star",

@@ -156,9 +156,7 @@ export function summarizeTiltBuildError(error: string): string {
   }
 
   const refusedPackages = [
-    ...normalized.matchAll(
-      /ConnectionRefused downloading package manifest (@[A-Za-z0-9._/-]+)/gi,
-    ),
+    ...normalized.matchAll(/ConnectionRefused downloading package manifest (@[A-Za-z0-9._/-]+)/gi),
   ].map((match) => match[1]);
   if (refusedPackages.length > 0) {
     const unique = [...new Set(refusedPackages)];
@@ -167,7 +165,11 @@ export function summarizeTiltBuildError(error: string): string {
     return `private registry ConnectionRefused for ${shown}${more} — Verdaccio (:4873) is down or unreachable from the build`;
   }
 
-  if (/failed to resolve source metadata for docker\.io\/library\/(beauty-crm-[^:\s]+)/i.test(normalized)) {
+  if (
+    /failed to resolve source metadata for docker\.io\/library\/(beauty-crm-[^:\s]+)/i.test(
+      normalized,
+    )
+  ) {
     const image = normalized.match(
       /failed to resolve source metadata for docker\.io\/library\/(beauty-crm-[^:\s]+)/i,
     )?.[1];
@@ -186,10 +188,12 @@ export function summarizeTiltBuildError(error: string): string {
     normalized.match(/No such image:\s*([^\s]+)/i)?.[1] ??
     normalized.match(/pull access denied for ([^,:\s]+)/i)?.[1] ??
     undefined;
-  const composeService = normalized.match(
-    /\bup\s+-d\s+--no-build\s+([A-Za-z0-9._-]+)/i,
-  )?.[1];
-  if (missingImage || composeService || /docker compose .*\bup\s+-d\s+--no-build\b/i.test(normalized)) {
+  const composeService = normalized.match(/\bup\s+-d\s+--no-build\s+([A-Za-z0-9._-]+)/i)?.[1];
+  if (
+    missingImage ||
+    composeService ||
+    /docker compose .*\bup\s+-d\s+--no-build\b/i.test(normalized)
+  ) {
     const imageLabel = missingImage ?? `${composeService ?? "service"}:dev`;
     const serviceHint = composeService ? ` for ${composeService}` : "";
     return `compose run failed because image is missing (${imageLabel})${serviceHint} — wait for the ImageBuild resource to finish, then re-trigger the *-run-only resource`;
@@ -212,7 +216,9 @@ export function isRegistryRelatedBuildError(error: string): boolean {
   );
 }
 
-export function projectExpectsVerdaccio(projectRoot: string = findProjectRoot() ?? process.cwd()): boolean {
+export function projectExpectsVerdaccio(
+  projectRoot: string = findProjectRoot() ?? process.cwd(),
+): boolean {
   const projectJsonPath = join(projectRoot, ".tdk", "project.json");
   if (existsSync(projectJsonPath)) {
     try {
@@ -236,10 +242,7 @@ export function projectExpectsVerdaccio(projectRoot: string = findProjectRoot() 
   }
 
   // Heuristic: scoped private registry pointed at :4873
-  for (const candidate of [
-    join(projectRoot, ".npmrc"),
-    join(projectRoot, "package.json"),
-  ]) {
+  for (const candidate of [join(projectRoot, ".npmrc"), join(projectRoot, "package.json")]) {
     if (!existsSync(candidate)) continue;
     try {
       const text = readFileSync(candidate, "utf-8");
@@ -458,9 +461,7 @@ export function checkTiltResourceHealth(exec: typeof execSync = execSync): Check
     failure,
     why: describeTiltFailure(failure, exec),
   }));
-  const details = described
-    .map(({ failure, why }) => `${failure.name}: ${why}`)
-    .join("\n    ");
+  const details = described.map(({ failure, why }) => `${failure.name}: ${why}`).join("\n    ");
   const omittedNote =
     omitted > 0 ? `\n    …and ${formatCount(omitted, "more failed resource")}` : "";
 
@@ -502,8 +503,7 @@ export function checkTiltResourceHealth(exec: typeof execSync = execSync): Check
   };
 }
 
-const INFRA_FAILURE_NAME =
-  /^(traefik|postgres|nats|infisical|verdaccio|proxy)([.-]|$)/i;
+const INFRA_FAILURE_NAME = /^(traefik|postgres|nats|infisical|verdaccio|proxy)([.-]|$)/i;
 
 export function isInfraTiltFailure(name: string): boolean {
   return INFRA_FAILURE_NAME.test(name);
@@ -563,9 +563,9 @@ export function probeContainerRuntimeError(
 
     // Zod env/config validation: pull required field paths from the dump.
     if (/ZodError/i.test(logs)) {
-      const requiredPaths = [
-        ...logs.matchAll(/"path"\s*:\s*\[\s*"([^"]+)"\s*\]/g),
-      ].map((match) => match[1]);
+      const requiredPaths = [...logs.matchAll(/"path"\s*:\s*\[\s*"([^"]+)"\s*\]/g)].map(
+        (match) => match[1],
+      );
       const uniquePaths = [...new Set(requiredPaths)].slice(0, 6);
       if (uniquePaths.length > 0) {
         return `runtime crash: ZodError missing required config/env: ${uniquePaths.join(", ")}`;

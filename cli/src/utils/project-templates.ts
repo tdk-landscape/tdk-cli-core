@@ -11,7 +11,8 @@ export const PROJECT_TEMPLATES: Record<string, ProjectTemplate> = {
   },
   saas: {
     repo: "https://github.com/tdk-landscape/tdk-saas-starter.git",
-    description: "SaaS starter: account dashboard and a working checkout button (Hono + Vite + Bun)",
+    description:
+      "SaaS starter: account dashboard and a working checkout button (Hono + Vite + Bun)",
   },
   erp: {
     repo: "https://github.com/tdk-landscape/tdk-erp-system.git",

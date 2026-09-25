@@ -62,7 +62,11 @@ const COMMAND_GROUPS = [
     emoji: "🌐",
     color: chalk.blueBright,
     commands: [
-      { name: "networks, traefik", desc: "Show Traefik-routed URLs for all services", alias: "--stack, --json" },
+      {
+        name: "networks, traefik",
+        desc: "Show Traefik-routed URLs for all services",
+        alias: "--stack, --json",
+      },
     ],
   },
   {
@@ -71,7 +75,11 @@ const COMMAND_GROUPS = [
     color: chalk.cyan,
     commands: [
       { name: "ui, interactive", desc: "Interactive TUI for managing services", alias: "" },
-      { name: "config", desc: "Manage project configuration and regenerate master files", alias: "regenerate, verify, edit" },
+      {
+        name: "config",
+        desc: "Manage project configuration and regenerate master files",
+        alias: "regenerate, verify, edit",
+      },
       { name: "doctor", desc: "Check environment readiness", alias: "" },
       { name: "completion", desc: "Generate shell completions", alias: "--install --shell zsh" },
       { name: "upgrade, update", desc: "Self-update to latest version", alias: "--force" },
@@ -144,7 +152,9 @@ export function showHelp(): void {
   );
   console.log(chalk.gray(`  ${"═".repeat(50)}`));
   console.log(chalk.gray(`  For more help: ${chalk.cyan("tdk help [command]}")}`));
-  console.log(chalk.gray(`  GitHub: ${chalk.cyan("https://github.com/tdk-landscape/tdk-cli-core")}`));
+  console.log(
+    chalk.gray(`  GitHub: ${chalk.cyan("https://github.com/tdk-landscape/tdk-cli-core")}`),
+  );
   console.log();
   console.log(chalk.green.bold("  Happy coding! 🚀\n"));
 }

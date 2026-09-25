@@ -113,9 +113,7 @@ describe("project and resource feature E2E", () => {
       "prisma-normalize-client.sh",
     ]) {
       expect(
-        existsSync(
-          join(projectRoot, "shared-platform-engineering", "docker-templates", file),
-        ),
+        existsSync(join(projectRoot, "shared-platform-engineering", "docker-templates", file)),
       ).toBe(true);
     }
   }, 10000);
@@ -166,30 +164,12 @@ describe("project and resource feature E2E", () => {
     runTdk(["project", "--yes"], projectRoot);
 
     runTdk(
-      [
-        "resource",
-        "api",
-        "--type",
-        "backend",
-        "--stack",
-        "alpha",
-        "--path",
-        "services/alpha/api",
-      ],
+      ["resource", "api", "--type", "backend", "--stack", "alpha", "--path", "services/alpha/api"],
       projectRoot,
       "\n",
     );
     runTdk(
-      [
-        "resource",
-        "web",
-        "--type",
-        "frontend",
-        "--stack",
-        "alpha",
-        "--path",
-        "services/alpha/web",
-      ],
+      ["resource", "web", "--type", "frontend", "--stack", "alpha", "--path", "services/alpha/web"],
       projectRoot,
       "\n",
     );

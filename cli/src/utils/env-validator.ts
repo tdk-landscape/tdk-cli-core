@@ -107,7 +107,7 @@ export function validateEnvFile(projectRoot: string): {
       .split("\n")
       .filter((line) => !line.startsWith("#") && line.includes("="))
       .map((line) => line.split("=")[0])
-      .filter((name) => name.length > 0)
+      .filter((name) => name.length > 0),
   );
 
   for (const envVar of REQUIRED_ENV_VARS) {

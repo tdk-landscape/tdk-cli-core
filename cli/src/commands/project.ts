@@ -1,11 +1,13 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { cwd } from "node:process";
 import chalk from "chalk";
 import { Command } from "commander";
 import { generateMasterConfigs, readProjectConfig } from "../generator/template-engine.js";
+import type { ProjectConfig } from "../types/index.js";
 import { MASTER_CONFIG_FILES } from "../utils/constants.js";
+import { ensureEnvFile, validateEnvFile } from "../utils/env-validator.js";
 import { errorFactories, runCommand, showErrorAndExit } from "../utils/errors.js";
 import { ensureDirectory, writeJsonFile } from "../utils/file-helpers.js";
 import {
@@ -16,13 +18,11 @@ import {
   showSuccess,
 } from "../utils/formatting.js";
 import { findProjectRoot } from "../utils/paths.js";
+import { PROJECT_FEATURES } from "../utils/project-features.js";
 import { PROJECT_TEMPLATES } from "../utils/project-templates.js";
+import { promptConfirm, promptMultiSelect, promptText } from "../utils/prompt.js";
 import { discoverStackNames } from "../utils/services.js";
 import { isPathSafe } from "../utils/validation.js";
-import { ensureEnvFile, validateEnvFile } from "../utils/env-validator.js";
-import { PROJECT_FEATURES } from "../utils/project-features.js";
-import { promptConfirm, promptMultiSelect, promptText } from "../utils/prompt.js";
-import type { ProjectConfig } from "../types/index.js";
 
 /**
  * Stack names discovered from service.json files already in the repo (e.g. a
@@ -63,10 +63,7 @@ function syncDiscoveredStacksToPreAlpha(
   }
 
   projectConfig.phases.pre_alpha.enabledStacks = Array.from(
-    new Set([
-      ...projectConfig.phases.pre_alpha.enabledStacks,
-      ...missingStacks,
-    ]),
+    new Set([...projectConfig.phases.pre_alpha.enabledStacks, ...missingStacks]),
   );
 
   return missingStacks;
@@ -240,7 +237,10 @@ export const projectCommand = new Command("project")
 
       if (projectJsonExists && !options.force) {
         showSuccess(".tdk/project.json exists");
-        const rawProjectConfig = JSON.parse(readFileSync(projectJsonPath, "utf-8")) as Record<string, unknown>;
+        const rawProjectConfig = JSON.parse(readFileSync(projectJsonPath, "utf-8")) as Record<
+          string,
+          unknown
+        >;
         const projectConfig = readProjectConfig(projectRoot);
         const discoveredStacks = discoverExistingServiceStacks(projectRoot);
         const autoEnabledStacks = syncDiscoveredStacksToPreAlpha(projectConfig, discoveredStacks);
@@ -251,10 +251,7 @@ export const projectCommand = new Command("project")
         }
 
         if (autoEnabledStacks.length > 0) {
-          showDetail(
-            `Auto-enabled discovered service stacks: ${autoEnabledStacks.join(", ")}`,
-            0,
-          );
+          showDetail(`Auto-enabled discovered service stacks: ${autoEnabledStacks.join(", ")}`, 0);
         }
 
         showStep("\n📋 Regenerating master configuration files...\n");

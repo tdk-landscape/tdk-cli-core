@@ -5,8 +5,8 @@ import { ensureProjectRuntimeAssets } from "../generator/template-engine.js";
 import { handleDryRun } from "../utils/command-helpers.js";
 import { errorFactories, handleTiltFailure, withTiltCheck } from "../utils/errors.js";
 import { formatCount } from "../utils/formatting.js";
-import { findAvailablePort } from "../utils/port-assignment.js";
 import { findProjectRoot } from "../utils/paths.js";
+import { findAvailablePort } from "../utils/port-assignment.js";
 import { appendHealthPath, resolveSubdomainBases } from "../utils/service-urls.js";
 import {
   discoverResources,

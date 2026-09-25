@@ -45,10 +45,7 @@ describe("always_enabled_infra", () => {
           enabledStacks: [],
         },
       },
-      always_enabled_infra: [
-        "database-management",
-        "proxy",
-      ],
+      always_enabled_infra: ["database-management", "proxy"],
     };
 
     expect(projectConfig.always_enabled_infra).toContain("database-management");
@@ -85,10 +82,7 @@ describe("always_enabled_infra", () => {
     };
 
     // TemplateEngine uses ?? operator to default when undefined/null
-    const defaults = projectConfig.always_enabled_infra ?? [
-      "database-management",
-      "proxy",
-    ];
+    const defaults = projectConfig.always_enabled_infra ?? ["database-management", "proxy"];
 
     expect(defaults).toContain("database-management");
     expect(defaults).toContain("proxy");

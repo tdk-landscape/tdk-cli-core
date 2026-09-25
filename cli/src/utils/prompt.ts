@@ -1,5 +1,5 @@
-import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
+import { createInterface } from "node:readline/promises";
 
 type ValidationResult = true | string;
 
@@ -67,9 +67,7 @@ export async function promptConfirm(options: ConfirmPromptOptions): Promise<bool
   }
 }
 
-export async function promptSelect<T extends string>(
-  options: ChoicePromptOptions<T>,
-): Promise<T> {
+export async function promptSelect<T extends string>(options: ChoicePromptOptions<T>): Promise<T> {
   console.log(options.message);
   options.choices.forEach((choice, index) => {
     console.log(`  ${index + 1}. ${choice.title}`);
