@@ -1,0 +1,45 @@
+{
+  "date": "2026-09-25T20:54:49.736Z",
+  "hostMemGiB": 16,
+  "dockerMemMiB": 7934,
+  "perServiceBudgetMiB": 74,
+  "options": {
+    "project": "/Users/katerynaburym/Developer/Codex/tdk-erp-system",
+    "tiers": [
+      5
+    ],
+    "gate": 5,
+    "timeoutSeconds": 240,
+    "interval": 30,
+    "startInterval": 2,
+    "settleSeconds": 5
+  },
+  "images": 107,
+  "singleProcessImageShare": 0.24299065420560748,
+  "results": [
+    {
+      "tier": 5,
+      "launchSeconds": 2.1,
+      "firstHealthySeconds": 3.3,
+      "allHealthySeconds": 4.4,
+      "healthy": 5,
+      "unhealthy": 0,
+      "starting": 0,
+      "crashed": 0,
+      "oomKilled": 0,
+      "crashes": [],
+      "totalMemMiB": 87,
+      "avgMemMiB": 17.4,
+      "totalCpuPct": 2.1,
+      "dockerPsMs": 101,
+      "requestMsP50": 2.2,
+      "loadAvg1m": 13.4,
+      "hostFreeMiB": 76,
+      "singleProcessShare": 0.2
+    }
+  ],
+  "gate": {
+    "tier": 5,
+    "passed": true
+  }
+}
