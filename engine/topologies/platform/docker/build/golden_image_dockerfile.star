@@ -68,7 +68,6 @@ RUN apk add --no-cache \
     ca-certificates \
     tzdata \
     curl \
-    file \
     bash \
     openssl
 
@@ -172,6 +171,8 @@ LABEL layer="l4-backend-bun" \
       maintainer="{prefix}"
 
 ENV NODE_ENV=production
+# Smaller heap growth and more frequent GC: idle services dominate a 100-service landscape.
+ENV BUN_OPTIONS=--smol
 
 # Service-specific tooling (e.g. hugo) is installed per service by the L4 runtime
 # layer when the manifest lists it in featuresEnabled - not here for every backend.
