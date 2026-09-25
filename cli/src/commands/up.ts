@@ -96,8 +96,9 @@ export const upCommand = new Command("up")
         }
       }
 
-      const dryRunCommand =
-        focusServiceNames.length > 0 ? `tilt up ${focusServiceNames.join(" ")}` : "tilt up";
+      const dryRunCommand = stackName
+        ? `tilt up --focus=${stackName} ${focusServiceNames.join(" ")}`
+        : "tilt up";
       if (handleDryRun(options, "not starting services", dryRunCommand)) {
         return;
       }
@@ -130,6 +131,7 @@ export const upCommand = new Command("up")
         verbose: options.verbose,
         quiet: options.quiet,
         force: options.force,
+        focusTargets: stackName ? [stackName] : undefined,
       });
 
       if (!options.quiet) {

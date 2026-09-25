@@ -104,6 +104,31 @@ describe("buildTiltUpArgs", () => {
     buildTiltUpArgs([], {});
     expect(findProjectRoot).toHaveBeenCalledTimes(1);
   });
+
+  it("should include --focus=<stack> before service names when focusTargets is set", async () => {
+    // Regression test: `tdk up <stack>` used to pass only bare positional service
+    // names, which the generated Tiltfile's focus filter never reads (it only reads
+    // --focus), so it silently fell back to building every stack instead of the one
+    // requested. --focus must be present and carry the stack name.
+    const { buildTiltUpArgs } = await import("../tilt.js");
+    const args = buildTiltUpArgs(["finance-api", "finance-app"], { focusTargets: ["finance"] });
+    expect(args).toContain("--focus=finance");
+    expect(args.indexOf("--focus=finance")).toBeLessThan(args.indexOf("finance-api"));
+  });
+
+  it("should join multiple focusTargets with commas in a single --focus flag", async () => {
+    const { buildTiltUpArgs } = await import("../tilt.js");
+    const args = buildTiltUpArgs([], { focusTargets: ["finance", "hr"] });
+    expect(args).toContain("--focus=finance,hr");
+  });
+
+  it("should NOT include --focus when focusTargets is empty or omitted", async () => {
+    const { buildTiltUpArgs } = await import("../tilt.js");
+    const withEmpty = buildTiltUpArgs(["svc"], { focusTargets: [] });
+    const withOmitted = buildTiltUpArgs(["svc"], {});
+    expect(withEmpty.some((a) => a.startsWith("--focus"))).toBe(false);
+    expect(withOmitted.some((a) => a.startsWith("--focus"))).toBe(false);
+  });
 });
 
 describe("buildTiltDownArgs", () => {
