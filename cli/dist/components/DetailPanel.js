@@ -1,0 +1,18 @@
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+import { Box, Text } from "ink";
+import { formatDate, getStatusColor, getStatusIcon } from "../utils/formatting.js";
+export const DetailPanel = ({ stack, service, stackMetadata, visible, }) => {
+    if (!visible) {
+        return _jsx(Box, { width: 0 });
+    }
+    if (service) {
+        return (_jsxs(Box, { width: 40, flexDirection: "column", borderStyle: "single", borderColor: "gray", paddingX: 1, paddingY: 1, children: [_jsx(Box, { marginBottom: 1, justifyContent: "center", children: _jsxs(Text, { color: "cyan", bold: true, children: ["\u250C\u2500 ", service.name.toUpperCase(), " \u2500\u2510"] }) }), _jsxs(Box, { flexDirection: "column", marginY: 1, children: [_jsxs(Box, { children: [_jsx(Text, { color: "gray", children: "Name: " }), _jsx(Text, { color: "white", children: service.name })] }), _jsxs(Box, { children: [_jsx(Text, { color: "gray", children: "Stack: " }), _jsx(Text, { color: "white", children: service.stack || "unknown" })] }), _jsxs(Box, { children: [_jsx(Text, { color: "gray", children: "Type: " }), _jsx(Text, { color: "yellow", children: (service.stack || "") === "platform" ? "PLATFORM" : "PRODUCT" })] })] }), _jsx(Box, { marginTop: 2, children: _jsxs(Text, { color: "gray", dimColor: true, children: ["Press ", _jsx(Text, { color: "cyan", children: "[Esc]" }), " to close"] }) })] }));
+    }
+    if (stack && stackMetadata) {
+        const statusColor = getStatusColor(stackMetadata.overallStatus);
+        const statusIcon = getStatusIcon(stackMetadata.overallStatus);
+        return (_jsxs(Box, { width: 40, flexDirection: "column", borderStyle: "single", borderColor: "gray", paddingX: 1, paddingY: 1, children: [_jsx(Box, { marginBottom: 1, justifyContent: "center", children: _jsxs(Text, { color: "cyan", bold: true, children: ["\u250C\u2500 ", stack.name.toUpperCase(), " \u2500\u2510"] }) }), _jsx(Box, { borderStyle: "single", borderColor: statusColor, paddingX: 1, paddingY: 1, marginY: 1, justifyContent: "center", children: _jsxs(Text, { color: statusColor, bold: true, children: [statusIcon, " ", stackMetadata.overallStatus.toUpperCase()] }) }), _jsxs(Box, { flexDirection: "column", marginY: 1, children: [_jsxs(Box, { children: [_jsx(Text, { color: "gray", children: "Created: " }), _jsx(Text, { color: "white", children: formatDate(stackMetadata.createdAt) })] }), _jsxs(Box, { children: [_jsx(Text, { color: "gray", children: "Resources: " }), _jsx(Text, { color: "cyan", children: stackMetadata.resourceCount })] })] }), _jsx(Box, { marginTop: 1, marginBottom: 1, children: _jsx(Text, { color: "gray", underline: true, children: "Resources" }) }), _jsx(Box, { flexDirection: "column", children: stack.resources.map((svc, index) => (_jsxs(Box, { children: [_jsx(Text, { color: "gray", children: index === stack.resources.length - 1 ? "└─ " : "├─ " }), _jsx(Text, { color: "white", children: svc.name })] }, svc.name))) }), _jsx(Box, { marginTop: 2, children: _jsxs(Text, { color: "gray", dimColor: true, children: ["Press ", _jsx(Text, { color: "cyan", children: "[Esc]" }), " to close"] }) })] }));
+    }
+    return (_jsxs(Box, { width: 40, borderStyle: "single", borderColor: "gray", paddingX: 2, paddingY: 2, flexDirection: "column", children: [_jsx(Box, { marginBottom: 1, justifyContent: "center", children: _jsx(Text, { color: "gray", dimColor: true, children: "Select a stack or service" }) }), _jsx(Box, { justifyContent: "center", children: _jsx(Text, { color: "gray", dimColor: true, children: "to view details" }) })] }));
+};
+//# sourceMappingURL=DetailPanel.js.map
