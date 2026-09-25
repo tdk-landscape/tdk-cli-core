@@ -1,12 +1,13 @@
 # =============================================================================
-# 🔐 INFISICAL ENVIRONMENT GENERATOR (Refactored)
+# 🔐 LOCAL ENVIRONMENT GENERATOR
 # =============================================================================
-# Uses Starlark generators for consistent secret management
+# Free-tier service env injection. Premium overlays may replace this module with
+# Infisical-backed secret injection.
 # =============================================================================
 #
 # This module provides:
-#   - Environment variable generation for Infisical integration
-#   - Uses SecretsGenerator for consistent configuration
+#   - Environment variable generation for docker-compose/.env injection
+#   - No external secret manager required in the public/free engine
 #
 # Usage:
 #   load("../secrets/infisical.star", "InfisicalEnv")
@@ -14,8 +15,6 @@
 # =============================================================================
 
 load("../constants.star", "PlatformDockerConstants")
-load("../../../tilt/generators/infisical/secrets_generator.star", "SecretsGenerator")
-load("../../../tilt/generators/infisical/path_manager.star", "PathManager")
 
 def _get_infisical_base_url():
     """Get the Infisical base URL."""
@@ -23,9 +22,11 @@ def _get_infisical_base_url():
 
 def get_infisical_environment_vars(as_array=True, resource_name=None, resource_type="backend"):
     """
-    Generate environment variables for Infisical integration.
-    
-    Uses Starlark generators for consistent configuration.
+    Generate environment variables for local Compose/.env injection.
+
+    Kept under the historical function name so existing Starlark callers do not
+    break. The free engine intentionally avoids Infisical credentials; premium
+    overlays can replace this implementation with a real secret-provider bridge.
     
     Args:
         as_array: If True, return as YAML array format; else as dict format
@@ -35,52 +36,23 @@ def get_infisical_environment_vars(as_array=True, resource_name=None, resource_t
     Returns:
         String with environment variables in YAML format
     """
-    infisical_url = _get_infisical_base_url()
-    
-    if resource_name:
-        # Use generator for service-specific configuration
-        secret_path = PathManager.get_known_resource_path(resource_name)
-        if not secret_path:
-            path_plan = PathManager.plan_resource_path(resource_name, resource_type)
-            secret_path = path_plan["full_path"]
-        
-        config = SecretsGenerator.generate_for_service(
-            resource_name=resource_name,
-            secret_path=secret_path,
-            resource_type=resource_type,
-        )
-        
-        env = config["docker_compose"]["environment"]
-        
-        if as_array:
-            lines = []
-            for key, value in env.items():
-                lines.append("      - {}={}".format(key, value))
-            return "\n".join(lines)
-        else:
-            lines = []
-            for key, value in env.items():
-                lines.append("      {}: {}".format(key, value))
-            return "\n".join(lines)
-    
-    # Fallback to base configuration (no service-specific paths)
-    base_env = {
-        "INFISICAL_CLIENT_ID": "${INFISICAL_CLIENT_ID:-}",
-        "INFISICAL_CLIENT_SECRET": "${INFISICAL_CLIENT_SECRET:-}",
-        "INFISICAL_PROJECT_ID": "${INFISICAL_PROJECT_ID:-}",
-        "INFISICAL_SITE_URL": "${INFISICAL_SITE_URL:-" + infisical_url + "}",
-        "INFISICAL_ENV": "${INFISICAL_ENV:-dev}",
-        "INFISICAL_ENABLED": "${INFISICAL_ENABLED:-true}",
+    env = {
+        "TDK_SECRET_PROVIDER": "${TDK_SECRET_PROVIDER:-env-file}",
+        "TDK_ENV": "${TILT_ENV:-development}",
     }
+
+    if resource_name:
+        env["TDK_RESOURCE_NAME"] = resource_name
+        env["TDK_RESOURCE_TYPE"] = resource_type
     
     if as_array:
         lines = []
-        for key, value in base_env.items():
+        for key, value in env.items():
             lines.append("      - {}={}".format(key, value))
         return "\n".join(lines)
     else:
         lines = []
-        for key, value in base_env.items():
+        for key, value in env.items():
             lines.append("      {}: {}".format(key, value))
         return "\n".join(lines)
 

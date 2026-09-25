@@ -601,10 +601,7 @@ function findSelfContainedEngineRoot(): string | null {
 function findCliAssetRoot(): string | null {
   let dir = import.meta.dirname || process.cwd();
   for (let i = 0; i < 8; i++) {
-    if (
-      fs.existsSync(path.join(dir, "shared-platform-engineering", "docker-templates")) ||
-      (fs.existsSync(path.join(dir, "engine")) && fs.existsSync(path.join(dir, "Tiltfile")))
-    ) {
+    if (fs.existsSync(path.join(dir, "shared-platform-engineering", "docker-templates"))) {
       return dir;
     }
     const parent = path.dirname(dir);

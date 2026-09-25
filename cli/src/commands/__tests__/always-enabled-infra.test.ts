@@ -48,13 +48,11 @@ describe("always_enabled_infra", () => {
       always_enabled_infra: [
         "database-management",
         "proxy",
-        "infisical",
       ],
     };
 
     expect(projectConfig.always_enabled_infra).toContain("database-management");
     expect(projectConfig.always_enabled_infra).toContain("proxy");
-    expect(projectConfig.always_enabled_infra).toContain("infisical");
     expect(projectConfig.phases.pre_alpha.enabledStacks).toContain("proxy");
   });
 
@@ -90,15 +88,13 @@ describe("always_enabled_infra", () => {
     const defaults = projectConfig.always_enabled_infra ?? [
       "database-management",
       "proxy",
-      "infisical",
     ];
 
     expect(defaults).toContain("database-management");
     expect(defaults).toContain("proxy");
-    expect(defaults).toContain("infisical");
   });
 
-  it("always_enabled_infra + enabledStacks can overlap", () => {
+  it("always_enabled_infra + enabledStacks can overlap, including explicit premium infra", () => {
     const projectConfig = {
       version: "1.0",
       project: { name: "test-project", version: "1.0.0" },
