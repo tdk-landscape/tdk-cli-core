@@ -1,10 +1,9 @@
-import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import { execSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { dirname } from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 // Get the CLI bin path dynamically
 const __filename = fileURLToPath(import.meta.url);
@@ -48,8 +47,7 @@ describe.skipIf(!EXTENSION_SOURCE_AVAILABLE)("saas-starter cloning and discovery
     try {
       // Safety: only delete if path is under tmpdir and contains our test marker
       if (
-        testDir &&
-        testDir.startsWith(tmpdir()) &&
+        testDir?.startsWith(tmpdir()) &&
         testDir.includes("tdk-saas-test-") &&
         testDir.length > 20
       ) {
@@ -117,7 +115,7 @@ describe.skipIf(!EXTENSION_SOURCE_AVAILABLE)("saas-starter cloning and discovery
     // Generate project config
     execSync(
       `cd "${starterRoot}" && TDK_EXTENSION_SOURCE="${EXTENSION_SOURCE}" bun "${CLI_BIN_PATH}" project --yes`,
-      { stdio: "pipe" }
+      { stdio: "pipe" },
     );
 
     // Verify project.json has services populated
@@ -148,7 +146,7 @@ describe.skipIf(!EXTENSION_SOURCE_AVAILABLE)("saas-starter cloning and discovery
 
     execSync(
       `cd "${starterRoot}" && TDK_EXTENSION_SOURCE="${EXTENSION_SOURCE}" bun ${CLI_BIN_PATH} project --yes`,
-      { stdio: "pipe" }
+      { stdio: "pipe" },
     );
 
     const specPath = join(starterRoot, ".tdk", ".tdk-out", "spec.master");
@@ -158,10 +156,10 @@ describe.skipIf(!EXTENSION_SOURCE_AVAILABLE)("saas-starter cloning and discovery
 
     // Before fix: PRE_ALPHA_RESOURCES = { }
     // After fix: PRE_ALPHA_RESOURCES = { "app": True, "billing": True, }
-    expect(specContent).toContain('PRE_ALPHA_RESOURCES = {');
+    expect(specContent).toContain("PRE_ALPHA_RESOURCES = {");
     expect(specContent).toMatch(/"app":\s*True/);
     expect(specContent).toMatch(/"billing":\s*True/);
-    expect(specContent).toContain('FOCUS_PRE_ALPHA = list(PRE_ALPHA_RESOURCES.keys())');
+    expect(specContent).toContain("FOCUS_PRE_ALPHA = list(PRE_ALPHA_RESOURCES.keys())");
   });
 
   /**
@@ -181,7 +179,7 @@ describe.skipIf(!EXTENSION_SOURCE_AVAILABLE)("saas-starter cloning and discovery
 
     execSync(
       `cd "${starterRoot}" && TDK_EXTENSION_SOURCE="${EXTENSION_SOURCE}" bun ${CLI_BIN_PATH} project --yes`,
-      { stdio: "pipe" }
+      { stdio: "pipe" },
     );
 
     // Doctor should pass (all master configs present)

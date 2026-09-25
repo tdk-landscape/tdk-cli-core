@@ -3,13 +3,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
-  checkDockerVersions,
-  checkFrontendDockerPreflight,
-  checkGeneratedProjectRuntimeAssets,
-  checkStarlarkLoadExports,
-  checkTypeScriptTypeDependencies,
-} from "../doctor.js";
-import {
   checkIngressPorts,
   checkPrivateNpmRegistry,
   checkTiltResourceHealth,
@@ -20,6 +13,13 @@ import {
   probeContainerRuntimeError,
   summarizeTiltBuildError,
 } from "../../utils/doctor-runtime.js";
+import {
+  checkDockerVersions,
+  checkFrontendDockerPreflight,
+  checkGeneratedProjectRuntimeAssets,
+  checkStarlarkLoadExports,
+  checkTypeScriptTypeDependencies,
+} from "../doctor.js";
 
 describe("doctor frontend Docker preflight", () => {
   let testDir: string;
@@ -364,8 +364,7 @@ describe("doctor ingress + tilt runtime checks", () => {
   });
 
   it("passes when this project's Traefik owns the ingress ports", () => {
-    const dockerPs =
-      "beauty_crm_traefik\t0.0.0.0:80->80/tcp,:::80->80/tcp,0.0.0.0:443->443/tcp";
+    const dockerPs = "beauty_crm_traefik\t0.0.0.0:80->80/tcp,:::80->80/tcp,0.0.0.0:443->443/tcp";
     const result = checkIngressPorts((() => dockerPs) as never, "beauty-crm");
     expect(result.didPass).toBe(true);
     expect(result.message).toContain("beauty_crm_traefik");
@@ -382,7 +381,7 @@ describe("doctor ingress + tilt runtime checks", () => {
             buildHistory: [
               {
                 error:
-                  'Bind for 0.0.0.0:80 failed: port is already allocated\nerror: exit status 1',
+                  "Bind for 0.0.0.0:80 failed: port is already allocated\nerror: exit status 1",
               },
             ],
           },

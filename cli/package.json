@@ -63,8 +63,7 @@
   "devDependencies": {
     "@biomejs/biome": "^2.5.13",
     "@types/react": "^19.2.14",
-    "@types/inquirer": "^9.0.0",
-    "@types/node": "^20.0.0",
+    "@types/node": "^22.0.0",
     "knip": "^6.35.1",
     "react-devtools-core": "^6.1.1",
     "typescript": "^7.0.2",

@@ -75,9 +75,7 @@ describe("Project → Phase → Stack → Resource model", () => {
   });
 
   it("deduplicates enabledStacks per phase", () => {
-    const enabledStacks = Array.from(
-      new Set(["proxy", "billing", "checkout-app", "billing"]),
-    );
+    const enabledStacks = Array.from(new Set(["proxy", "billing", "checkout-app", "billing"]));
 
     expect(enabledStacks).toEqual(["proxy", "billing", "checkout-app"]);
     expect(enabledStacks.filter((s) => s === "billing")).toHaveLength(1);
@@ -142,7 +140,7 @@ describe("Project → Phase → Stack → Resource model", () => {
     const resourceEntries = enabledStacks.map((stack) => `"${stack}": True`);
     const specMaster = `PRE_ALPHA_RESOURCES = {\n${resourceEntries.join(",\n")}\n}`;
 
-    expect(specMaster).toContain('PRE_ALPHA_RESOURCES = {');
+    expect(specMaster).toContain("PRE_ALPHA_RESOURCES = {");
     expect(specMaster).toContain('"billing": True');
     expect(specMaster).toContain('"checkout-app": True');
     expect(specMaster).not.toContain('"services"');

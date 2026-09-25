@@ -25,7 +25,7 @@ describe("stack feature E2E", () => {
   let projectRoot = "";
 
   afterEach(() => {
-    if (projectRoot && projectRoot.startsWith(tmpdir())) {
+    if (projectRoot?.startsWith(tmpdir())) {
       rmSync(projectRoot, { recursive: true, force: true });
     }
   });
@@ -36,7 +36,9 @@ describe("stack feature E2E", () => {
     const output = runTdk(["project", "--yes"], projectRoot);
     expect(output).toContain("Generated: services/platform/database-management/docker-compose.yml");
 
-    const projectJson = JSON.parse(readFileSync(join(projectRoot, ".tdk", "project.json"), "utf-8"));
+    const projectJson = JSON.parse(
+      readFileSync(join(projectRoot, ".tdk", "project.json"), "utf-8"),
+    );
     expect(projectJson.stack_features).toBeUndefined();
     expect(projectJson.phases.pre_alpha.enabledStacks).toContain("database-management");
 
@@ -51,7 +53,9 @@ describe("stack feature E2E", () => {
 
     const compose = readFileSync(composePath, "utf-8");
     expect(compose).toContain("Stack feature: database-management");
-    expect(compose).toContain('Source: .tdk/project.json phases.*.enabledStacks includes "database-management"');
+    expect(compose).toContain(
+      'Source: .tdk/project.json phases.*.enabledStacks includes "database-management"',
+    );
     expect(compose).toContain("container_name: tdk_stack_feature_");
     expect(compose).toContain("_postgres");
     expect(compose).toContain("_database");
@@ -120,7 +124,9 @@ describe("stack feature E2E", () => {
 
     runTdk(["project", "--yes"], projectRoot);
 
-    const projectJson = JSON.parse(readFileSync(join(projectRoot, ".tdk", "project.json"), "utf-8"));
+    const projectJson = JSON.parse(
+      readFileSync(join(projectRoot, ".tdk", "project.json"), "utf-8"),
+    );
     expect(projectJson.phases.pre_alpha.enabledStacks).toContain("billing");
 
     const spec = readFileSync(join(projectRoot, ".tdk", ".tdk-out", "spec.master"), "utf-8");

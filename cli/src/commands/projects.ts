@@ -1,11 +1,11 @@
 import { existsSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import chalk from "chalk";
 import { Command } from "commander";
+import { MASTER_CONFIG_FILES } from "../utils/constants.js";
 import { createDiscoveryContext } from "../utils/discovery-context.js";
 import { requireProjectRoot, runCommand } from "../utils/errors.js";
 import { formatCount } from "../utils/formatting.js";
-import { MASTER_CONFIG_FILES } from "../utils/constants.js";
 
 export const projectsCommand = new Command("projects")
   .description("Show project information and configuration status")

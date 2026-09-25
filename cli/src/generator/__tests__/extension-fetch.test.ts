@@ -8,7 +8,15 @@
 // so this exercises the same code path `tdk project` actually runs.
 
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  utimesSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -23,7 +31,7 @@ function buildFixtureTarball(): Buffer {
   mkdirSync(join(src, "typescript"), { recursive: true });
   writeFileSync(
     join(src, "typescript", "playwright_config.star"),
-    "# REAL premium playwright config\ndef generate_playwright_config(): pass\n"
+    "# REAL premium playwright config\ndef generate_playwright_config(): pass\n",
   );
   writeFileSync(join(src, "c4_diagram.star"), "# REAL premium c4 diagram generator\n");
 
@@ -49,7 +57,7 @@ beforeEach(() => {
   mkdirSync(join(destDir, "engine/topologies/tilt/generators/typescript"), { recursive: true });
   writeFileSync(
     join(destDir, "engine/topologies/tilt/generators/typescript/playwright_config.star"),
-    "# unlicensed stub\n"
+    "# unlicensed stub\n",
   );
 
   process.env.HOME = fakeHome;
@@ -79,15 +87,17 @@ describe("applyPremiumOverlay", () => {
     expect(
       readFileSync(
         join(destDir, "engine/topologies/tilt/generators/typescript/playwright_config.star"),
-        "utf-8"
-      )
+        "utf-8",
+      ),
     ).toBe("# unlicensed stub\n");
   });
 
   it("scenario 2: invalid/ungranted key -> tries every known resource, then falls back to free tier", async () => {
     process.env.TDK_LICENSE_KEY = "tdk-fa411b"; // the mistyped key from the real session
 
-    const fetchSpy = vi.fn().mockResolvedValue(new Response("key does not grant resource", { status: 403 }));
+    const fetchSpy = vi
+      .fn()
+      .mockResolvedValue(new Response("key does not grant resource", { status: 403 }));
     vi.stubGlobal("fetch", fetchSpy);
 
     const { applyPremiumOverlay } = await import("../extension-fetch.js");
@@ -103,8 +113,8 @@ describe("applyPremiumOverlay", () => {
     expect(
       readFileSync(
         join(destDir, "engine/topologies/tilt/generators/typescript/playwright_config.star"),
-        "utf-8"
-      )
+        "utf-8",
+      ),
     ).toBe("# unlicensed stub\n");
   });
 
@@ -129,12 +139,15 @@ describe("applyPremiumOverlay", () => {
 
     const playwrightOut = readFileSync(
       join(destDir, "engine/topologies/tilt/generators/typescript/playwright_config.star"),
-      "utf-8"
+      "utf-8",
     );
     expect(playwrightOut).toContain("REAL premium playwright config");
     expect(playwrightOut).not.toContain("unlicensed stub");
 
-    const c4Out = readFileSync(join(destDir, "engine/topologies/tilt/generators/c4_diagram.star"), "utf-8");
+    const c4Out = readFileSync(
+      join(destDir, "engine/topologies/tilt/generators/c4_diagram.star"),
+      "utf-8",
+    );
     expect(c4Out).toContain("REAL premium c4 diagram generator");
   });
 
@@ -142,7 +155,7 @@ describe("applyPremiumOverlay", () => {
     process.env.TDK_LICENSE_KEY = "tdk-fa411b";
     const seenProjectIds: string[] = [];
     const fetchSpy = vi.fn().mockImplementation((url: string) => {
-      seenProjectIds.push(new URL(url).searchParams.get("projectId")!);
+      seenProjectIds.push(new URL(url).searchParams.get("projectId") ?? "");
       return Promise.resolve(new Response("not granted", { status: 403 }));
     });
     vi.stubGlobal("fetch", fetchSpy);
@@ -161,7 +174,9 @@ describe("applyPremiumOverlay", () => {
     process.env.TDK_LICENSE_KEY = "tdk-fa411a";
     fixtureTarball ??= buildFixtureTarball();
 
-    const fetchSpy = vi.fn().mockResolvedValue(new Response(new Uint8Array(fixtureTarball), { status: 200 }));
+    const fetchSpy = vi
+      .fn()
+      .mockResolvedValue(new Response(new Uint8Array(fixtureTarball), { status: 200 }));
     vi.stubGlobal("fetch", fetchSpy);
 
     const { applyPremiumOverlay } = await import("../extension-fetch.js");
@@ -178,7 +193,11 @@ describe("applyPremiumOverlay", () => {
     // A Response body can only be read once - mockResolvedValue would
     // reuse the same instance across both calls in this test, so build a
     // fresh Response per invocation instead.
-    const fetchSpy = vi.fn().mockImplementation(() => Promise.resolve(new Response(new Uint8Array(fixtureTarball), { status: 200 })));
+    const fetchSpy = vi
+      .fn()
+      .mockImplementation(() =>
+        Promise.resolve(new Response(new Uint8Array(fixtureTarball), { status: 200 })),
+      );
     vi.stubGlobal("fetch", fetchSpy);
 
     const { applyPremiumOverlay } = await import("../extension-fetch.js");
@@ -197,7 +216,10 @@ describe("applyPremiumOverlay", () => {
     fixtureTarball ??= buildFixtureTarball();
 
     process.env.TDK_LICENSE_KEY = "tdk-fa411a";
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(new Uint8Array(fixtureTarball), { status: 200 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(new Response(new Uint8Array(fixtureTarball), { status: 200 })),
+    );
     const { applyPremiumOverlay } = await import("../extension-fetch.js");
     await applyPremiumOverlay(projectRoot, destDir);
 

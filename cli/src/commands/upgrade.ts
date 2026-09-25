@@ -70,7 +70,8 @@ function detectInstallation(): InstallInfo {
 const BINARY_RELEASE_REPO = "tdk-landscape/tdk-cli-releases";
 
 function binaryAssetName(): string | null {
-  const osName = process.platform === "darwin" ? "darwin" : process.platform === "linux" ? "linux" : null;
+  const osName =
+    process.platform === "darwin" ? "darwin" : process.platform === "linux" ? "linux" : null;
   const archName = process.arch === "arm64" ? "arm64" : process.arch === "x64" ? "amd64" : null;
   if (!osName || !archName) return null;
   return `tdk-${osName}-${archName}`;
@@ -174,7 +175,9 @@ export async function upgradeViaBinary(tdkPath: string, release: BinaryRelease):
     console.log(chalk.cyan(`   chmod +x ${tdkPath}`));
     console.log(chalk.cyan(`   rm -rf ${engineDir} && mkdir -p ${engineDir}`));
     console.log(
-      chalk.cyan(`   curl -fsSL ${release.engineDownloadUrl} | tar -xzf - -C ${engineDir} --strip-components=1`),
+      chalk.cyan(
+        `   curl -fsSL ${release.engineDownloadUrl} | tar -xzf - -C ${engineDir} --strip-components=1`,
+      ),
     );
     return false;
   } finally {
@@ -442,8 +445,12 @@ export const upgradeCommand = new Command("upgrade")
           chalk.gray("   Action: git pull origin main && bun install && bun link --force"),
         );
       } else if (installInfo.method === "binary" && binaryRelease) {
-        console.log(chalk.gray(`   Action: Download and replace with ${binaryRelease.downloadUrl}`));
-        console.log(chalk.gray(`   Action: Refresh bundled engine from ${binaryRelease.engineDownloadUrl}`));
+        console.log(
+          chalk.gray(`   Action: Download and replace with ${binaryRelease.downloadUrl}`),
+        );
+        console.log(
+          chalk.gray(`   Action: Refresh bundled engine from ${binaryRelease.engineDownloadUrl}`),
+        );
       } else {
         console.log(chalk.gray(`   Action: Upgrade to ${latestVersion}`));
       }

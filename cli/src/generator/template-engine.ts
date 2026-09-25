@@ -33,13 +33,12 @@ export function loadTemplate(filename: string): string {
     triedPaths.push(templatePath);
     try {
       return fs.readFileSync(templatePath, "utf-8");
-    } catch (error) {
-      // Try next path
-      continue;
-    }
+    } catch (_error) {}
   }
 
-  throw new Error(`Failed to load template ${filename} from any of these paths: ${triedPaths.join(", ")}`);
+  throw new Error(
+    `Failed to load template ${filename} from any of these paths: ${triedPaths.join(", ")}`,
+  );
 }
 
 // Templates used to be loaded eagerly here, at module initialization. That
@@ -192,10 +191,7 @@ export class TemplateEngine {
       runtime: PLATFORM_STANDARDS.runtime,
       project: projectConfig.project,
       phases: dedupePhaseEnabledStacks(projectConfig.phases),
-      alwaysEnabledInfra: projectConfig.always_enabled_infra ?? [
-        "database-management",
-        "proxy",
-      ],
+      alwaysEnabledInfra: projectConfig.always_enabled_infra ?? ["database-management", "proxy"],
       optionalInfra: projectConfig.optional_infra,
       serviceDescriptions: RESOURCE_DESCRIPTIONS,
       infraDescriptions: INFRA_DESCRIPTIONS,
@@ -538,10 +534,7 @@ export async function generateMasterConfigs(projectRoot: string): Promise<void> 
   if (isStackFeatureEnabledInStacks(projectConfig.phases, "database-management")) {
     const composeDir = path.join(projectRoot, "services", "platform", "database-management");
     fs.mkdirSync(composeDir, { recursive: true });
-    const composePath = path.join(
-      composeDir,
-      "docker-compose.yml",
-    );
+    const composePath = path.join(composeDir, "docker-compose.yml");
     writeTextFile(composePath, generateDatabaseManagementCompose(projectConfig));
     console.log("✓ Generated: services/platform/database-management/docker-compose.yml");
   }
@@ -571,9 +564,7 @@ export async function generateMasterConfigs(projectRoot: string): Promise<void> 
 // This makes `tdk up` work offline and on any machine - no hardcoded paths,
 // no dependency on a private GitHub repo.
 const TDK_EXTENSION_DIRS = ["engine", "discovery", "specs", "ext"] as string[];
-const PROJECT_RUNTIME_ASSET_DIRS = [
-  ["shared-platform-engineering", "docker-templates"],
-] as const;
+const PROJECT_RUNTIME_ASSET_DIRS = [["shared-platform-engineering", "docker-templates"]] as const;
 const REQUIRED_DOCKER_TEMPLATE_FILES = [
   "install-deps.sh",
   "bun-hoisted-symlink-fix.sh",
@@ -615,9 +606,11 @@ function findCliAssetRoot(): string | null {
     path.join(process.cwd(), "node_modules", "@tdk-landscape", "tdk-cli-core"),
   ];
 
-  return candidates.find((candidate) =>
-    fs.existsSync(path.join(candidate, "shared-platform-engineering", "docker-templates")),
-  ) ?? null;
+  return (
+    candidates.find((candidate) =>
+      fs.existsSync(path.join(candidate, "shared-platform-engineering", "docker-templates")),
+    ) ?? null
+  );
 }
 
 export function ensureProjectRuntimeAssets(projectRoot: string): string[] {
@@ -645,7 +638,12 @@ export function ensureProjectRuntimeAssets(projectRoot: string): string[] {
   }
 
   for (const file of REQUIRED_DOCKER_TEMPLATE_FILES) {
-    const filePath = path.join(projectRoot, "shared-platform-engineering", "docker-templates", file);
+    const filePath = path.join(
+      projectRoot,
+      "shared-platform-engineering",
+      "docker-templates",
+      file,
+    );
     if (!fs.existsSync(filePath)) {
       console.warn(`⚠️  Missing runtime asset after copy: ${filePath}`);
     }
@@ -663,7 +661,7 @@ async function vendorTdkExtension(projectRoot: string): Promise<void> {
   //   2. Self-contained repo (engine/ ships next to cli/ - public tdk-cli-core)
   //   3. Executable-adjacent checkout (bundled installs)
   //   4. Relative ../tdk-cli sibling (monorepo maintainer layout)
-  let sources: string[] = [];
+  const sources: string[] = [];
   if (process.env.TDK_EXTENSION_SOURCE) {
     sources.push(process.env.TDK_EXTENSION_SOURCE);
   }

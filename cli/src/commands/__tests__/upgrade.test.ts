@@ -9,6 +9,7 @@ vi.mock("node:child_process", () => ({
 }));
 
 const { upgradeViaBinary, isWritable } = await import("../upgrade.js");
+
 import type { BinaryRelease } from "../upgrade.js";
 
 // Regression coverage for: `tdk upgrade` used to only swap the `tdk` binary
@@ -56,7 +57,8 @@ describe("upgradeViaBinary", () => {
     expect(commands.some((c) => c.startsWith("mkdir -p") && c.includes(engineDir))).toBe(true);
     expect(
       commands.some(
-        (c) => c.includes("tar -xzf") && c.includes(engineDir) && c.includes("--strip-components=1"),
+        (c) =>
+          c.includes("tar -xzf") && c.includes(engineDir) && c.includes("--strip-components=1"),
       ),
     ).toBe(true);
   });
@@ -77,19 +79,27 @@ describe("upgradeViaBinary", () => {
     expect(tarIndex).toBeGreaterThan(engineCurlIndex);
   });
 
-  it("never shells out to sudo, and fails fast without touching the network when the install dir isn't writable", async () => {
-    chmodSync(installDir, 0o555);
-    try {
-      const ok = await upgradeViaBinary(tdkPath, release);
-      expect(ok).toBe(false);
-      expect(execSyncMock).not.toHaveBeenCalled();
-      expect(commandsRun().some((c) => c.includes("sudo"))).toBe(false);
-    } finally {
-      chmodSync(installDir, 0o755);
-    }
-  });
+  // root ignores the write-permission bit (accessSync(W_OK) legitimately
+  // returns true even on a 0o555 dir), so these checks only hold for
+  // non-root users.
+  const isRoot = process.getuid?.() === 0;
 
-  it("isWritable reflects actual filesystem permissions", () => {
+  it.skipIf(isRoot)(
+    "never shells out to sudo, and fails fast without touching the network when the install dir isn't writable",
+    async () => {
+      chmodSync(installDir, 0o555);
+      try {
+        const ok = await upgradeViaBinary(tdkPath, release);
+        expect(ok).toBe(false);
+        expect(execSyncMock).not.toHaveBeenCalled();
+        expect(commandsRun().some((c) => c.includes("sudo"))).toBe(false);
+      } finally {
+        chmodSync(installDir, 0o755);
+      }
+    },
+  );
+
+  it.skipIf(isRoot)("isWritable reflects actual filesystem permissions", () => {
     expect(isWritable(installDir)).toBe(true);
     chmodSync(installDir, 0o555);
     try {
