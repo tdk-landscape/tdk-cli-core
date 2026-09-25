@@ -469,10 +469,32 @@ async function warnIfSablierUnlicensed(projectRoot: string): Promise<void> {
   );
 }
 
+function ensureRootWorkspaceManifest(projectRoot: string, projectConfig: ProjectConfig): boolean {
+  const packageJsonPath = path.join(projectRoot, "package.json");
+  if (fs.existsSync(packageJsonPath)) {
+    return false;
+  }
+
+  const manifest = {
+    name: projectConfig.project.name || path.basename(projectRoot),
+    version: projectConfig.project.version || "1.0.0",
+    private: true,
+    type: "module",
+    workspaces: projectConfig.discovery.paths,
+  };
+
+  writeTextFile(packageJsonPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  return true;
+}
+
 export async function generateMasterConfigs(projectRoot: string): Promise<void> {
   const projectConfig = readProjectConfig(projectRoot);
 
   await warnIfSablierUnlicensed(projectRoot);
+
+  if (ensureRootWorkspaceManifest(projectRoot, projectConfig)) {
+    console.log("✓ Generated: package.json (workspace root)");
+  }
 
   // Verdaccio is Premium, but unlike the old posture here, this is NOT the
   // enforcement - it's a friendly heads-up. The real gate is that
