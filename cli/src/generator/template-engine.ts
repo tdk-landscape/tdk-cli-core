@@ -545,6 +545,15 @@ export async function generateMasterConfigs(projectRoot: string): Promise<void> 
 // This makes `tdk up` work offline and on any machine - no hardcoded paths,
 // no dependency on a private GitHub repo.
 const TDK_EXTENSION_DIRS = ["engine", "discovery", "specs", "ext"] as string[];
+const PROJECT_RUNTIME_ASSET_DIRS = [
+  ["shared-platform-engineering", "docker-templates"],
+] as const;
+const REQUIRED_DOCKER_TEMPLATE_FILES = [
+  "install-deps.sh",
+  "bun-hoisted-symlink-fix.sh",
+  "prisma-bun-client-link-fix.sh",
+  "prisma-normalize-client.sh",
+] as const;
 
 // Walk up from this module's own location looking for a directory that has
 // both Tiltfile and engine/ next to it - true when cli/ and engine/ ship
@@ -561,6 +570,65 @@ function findSelfContainedEngineRoot(): string | null {
     dir = parent;
   }
   return null;
+}
+
+function findCliAssetRoot(): string | null {
+  let dir = import.meta.dirname || process.cwd();
+  for (let i = 0; i < 8; i++) {
+    if (
+      fs.existsSync(path.join(dir, "shared-platform-engineering", "docker-templates")) ||
+      (fs.existsSync(path.join(dir, "engine")) && fs.existsSync(path.join(dir, "Tiltfile")))
+    ) {
+      return dir;
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+
+  const exeDir = path.dirname(process.execPath);
+  const candidates = [
+    path.join(exeDir, "tdk-cli"),
+    path.join(process.cwd(), "node_modules", "@tdk-landscape", "tdk-cli-core"),
+  ];
+
+  return candidates.find((candidate) =>
+    fs.existsSync(path.join(candidate, "shared-platform-engineering", "docker-templates")),
+  ) ?? null;
+}
+
+export function ensureProjectRuntimeAssets(projectRoot: string): string[] {
+  const sourceRoot = findCliAssetRoot();
+  const copied: string[] = [];
+
+  if (!sourceRoot) {
+    console.warn(
+      "⚠️  TDK runtime assets not found - generated Dockerfiles may fail. " +
+        "Reinstall or upgrade TDK, then re-run `tdk project`.",
+    );
+    return copied;
+  }
+
+  for (const parts of PROJECT_RUNTIME_ASSET_DIRS) {
+    const source = path.join(sourceRoot, ...parts);
+    const target = path.join(projectRoot, ...parts);
+    if (!fs.existsSync(source)) {
+      continue;
+    }
+
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.cpSync(source, target, { recursive: true });
+    copied.push(parts.join("/"));
+  }
+
+  for (const file of REQUIRED_DOCKER_TEMPLATE_FILES) {
+    const filePath = path.join(projectRoot, "shared-platform-engineering", "docker-templates", file);
+    if (!fs.existsSync(filePath)) {
+      console.warn(`⚠️  Missing runtime asset after copy: ${filePath}`);
+    }
+  }
+
+  return copied;
 }
 
 async function vendorTdkExtension(projectRoot: string): Promise<void> {

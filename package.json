@@ -1,6 +1,6 @@
 {
-  "name": "tdk-cli-monorepo",
-  "version": "1.3.45",
+  "name": "@tdk-landscape/tdk-cli-core",
+  "version": "1.3.46",
   "description": "TDK CLI - Tilt Development Kit (monorepo)",
   "private": false,
   "workspaces": [

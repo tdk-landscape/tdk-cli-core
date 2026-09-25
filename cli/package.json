@@ -1,6 +1,6 @@
 {
-  "name": "@tdk-landscape/tdk-cli-core",
-  "version": "1.3.45",
+  "name": "tdk-cli-internal",
+  "version": "1.3.46",
   "description": "TDK CLI - Tilt Development Kit command line interface",
   "keywords": [
     "tdk",
@@ -36,7 +36,8 @@
     "engine",
     "discovery",
     "specs",
-    "ext"
+    "ext",
+    "shared-platform-engineering/docker-templates"
   ],
   "scripts": {
     "build": "tsc",

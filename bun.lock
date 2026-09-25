@@ -11,7 +11,7 @@
     },
     "cli": {
       "name": "@tdk-landscape/tdk-cli-core",
-      "version": "1.3.45",
+      "version": "1.3.46",
       "bin": {
         "tdk": "bin/tdk.js",
         "tdk-cli": "bin/tdk.js",
