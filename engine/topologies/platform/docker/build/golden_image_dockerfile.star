@@ -2,16 +2,8 @@
 # 🏗️ TILT SDK - GOLDEN IMAGE DOCKERFILE GENERATOR
 # =============================================================================
 
-# === INLINED CONSTANTS for pure extension loading ===
-get_docker_healthcheck_config = lambda: {"path": "/health", "interval_seconds": 10, "timeout_seconds": 5, "start_period_seconds": 30, "retries": 3, "frontend_start_period_seconds": 30}
-# === END INLINED CONSTANTS ===
-
-
 load('../../../tilt/common/utils.star', 'Utils')
-
-
-# Load centralized healthcheck configuration
-_docker_health = get_docker_healthcheck_config()
+load('../config/healthcheck.star', 'DOCKER_HEALTHCHECK', 'dockerfile_healthcheck_flags')
 
 
 # Load project name for dynamic naming
@@ -181,8 +173,8 @@ LABEL layer="l4-backend-bun" \
 
 ENV NODE_ENV=production
 
-# Install hugo for services that require static site generation (specified via manifest features)
-RUN apk add --no-cache hugo
+# Service-specific tooling (e.g. hugo) is installed per service by the L4 runtime
+# layer when the manifest lists it in featuresEnabled - not here for every backend.
 
 # ⚠️ Infisical CLI is NOT installed in golden L4 images
 # Services use TypeScript SDK (fetch API) or read from env vars - no CLI needed
@@ -192,7 +184,7 @@ RUN apk add --no-cache hugo
 USER bun
 
 # Backend-specific healthcheck (checks Bun runtime)
-HEALTHCHECK --interval={interval}s --timeout={timeout}s --start-period={start_period}s --retries={retries} \
+HEALTHCHECK {hc_flags} \
   CMD bun --version || exit 1
 
 WORKDIR /app
@@ -221,7 +213,7 @@ RUN addgroup -S app && adduser -S app -G app
 USER app
 
 # Backend-specific healthcheck (checks Node.js runtime)
-HEALTHCHECK --interval={interval}s --timeout={timeout}s --start-period={start_period}s --retries={retries} \
+HEALTHCHECK {hc_flags} \
   CMD node --version || exit 1
 
 WORKDIR /app
@@ -246,7 +238,7 @@ ENV NODE_ENV=production
 RUN apk add --no-cache curl
 
 # Frontend-specific healthcheck (checks Nginx)
-HEALTHCHECK --interval={interval}s --timeout={timeout}s --start-period={frontend_start_period}s --retries={retries} \
+HEALTHCHECK {hc_flags_frontend} \
   CMD curl -f http://localhost/ || exit 1
 
 WORKDIR /usr/share/nginx/html
@@ -276,16 +268,13 @@ RUN mkdir -p /cache/bun && chown -R bun:bun /cache/bun
 
 USER bun
 
-# Migrator-specific healthcheck (checks Prisma CLI)
-HEALTHCHECK --interval={interval}s --timeout={timeout}s --start-period={start_period}s --retries={retries} \
-  CMD bunx prisma --version || exit 1
+# Migrators are one-shot jobs (migrate.sh runs to completion), so no healthcheck.
+# The per-service l4_migrator_runtime stage sets HEALTHCHECK NONE as well.
+HEALTHCHECK NONE
 
 WORKDIR /app
 """.format(
-    interval=_docker_health["interval_seconds"],
-    timeout=_docker_health["timeout_seconds"],
-    start_period=_docker_health["start_period_seconds"],
-    retries=_docker_health["retries"],
-    frontend_start_period=_docker_health["frontend_start_period_seconds"],
+    hc_flags=dockerfile_healthcheck_flags(),
+    hc_flags_frontend=dockerfile_healthcheck_flags(DOCKER_HEALTHCHECK["frontend_start_period_seconds"]),
     prefix=_GOLDEN_PREFIX,
 )

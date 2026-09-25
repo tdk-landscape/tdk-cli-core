@@ -29,7 +29,7 @@ A generated Bun backend or Bun-static frontend runtime container SHALL run its a
 
 ### Requirement: Healthchecks Are Low-Cost And Low-Frequency
 
-Container healthchecks generated for services and golden images SHALL default to an interval of 30 seconds, and the interval MUST remain configurable through the TDK healthcheck configuration. A healthcheck command MUST NOT download packages or start a package-runner process (such as `bunx` or `npx`).
+Container healthchecks generated for services and golden images SHALL default to an interval of 30 seconds, and the timing MUST be overridable per run through `TDK_HEALTHCHECK_*` environment variables. A healthcheck command MUST NOT download packages or start a package-runner process (such as `bunx` or `npx`).
 
 #### Scenario: Default service healthcheck interval
 
@@ -44,8 +44,8 @@ Container healthchecks generated for services and golden images SHALL default to
 
 #### Scenario: Configured interval is honoured
 
-- **WHEN** a project overrides the healthcheck interval in its TDK configuration
-- **THEN** the generated compose files and golden images use the configured interval
+- **WHEN** `tdk up` runs with `TDK_HEALTHCHECK_INTERVAL_SECONDS` set (e.g. `15`)
+- **THEN** the generated compose files and golden images use that interval
 
 #### Scenario: One-shot migrator images carry no healthcheck
 

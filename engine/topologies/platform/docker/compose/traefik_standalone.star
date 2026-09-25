@@ -6,6 +6,7 @@
 # skip Traefik entirely and api.{project}.localhost never served.
 
 load("../constants.star", "PlatformDockerConstants")
+load("../config/healthcheck.star", "compose_healthcheck_timing")
 
 
 def generate_standalone_traefik_compose():
@@ -48,11 +49,7 @@ services:
       - traefik-public
     healthcheck:
       test: ["CMD", "traefik", "healthcheck", "--ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 6
-      start_period: 10s
-
+{healthcheck_timing}
   sablier:
     image: sablierapp/sablier:1.18.0
     container_name: {name}_sablier
@@ -70,4 +67,4 @@ networks:
   traefik-public:
     name: {network}
     external: true
-""".format(name=name, network=network)
+""".format(name=name, network=network, healthcheck_timing=compose_healthcheck_timing(10))

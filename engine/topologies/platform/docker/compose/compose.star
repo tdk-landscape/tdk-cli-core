@@ -23,6 +23,7 @@ load("../secrets/infisical.star", "get_infisical_environment_vars")
 load("../auth/auth.star", "AuthConfig")
 
 load("../constants.star", "PlatformDockerConstants")
+load("../config/healthcheck.star", "DOCKER_HEALTHCHECK", "compose_healthcheck_timing")
 
 # Load project name for dynamic host naming
 # Use TDK_PROJECT_ROOT env var set by Tilt, fallback to current directory
@@ -125,6 +126,7 @@ def generate_frontend_compose(resource_path, resource_name, res, manifest=None):
     
     return """  {res_name}:
     image: {image_name}
+    init: true
 {build_config}
     <<: *frontend-memory-limit
     env_file:
@@ -138,12 +140,7 @@ def generate_frontend_compose(resource_path, resource_name, res, manifest=None):
         - {network_backend}
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:{port}"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      # STORY 4 FIX: 30s grace period to prevent 504 errors on startup
-      start_period: 30s
-""".format(
+{healthcheck_timing}""".format(
         res_name=res_name, 
         image_name=image_name,
         build_config=build_config,
@@ -152,6 +149,7 @@ def generate_frontend_compose(resource_path, resource_name, res, manifest=None):
         port=port,
         network_traefik_public=PlatformDockerConstants.NETWORK_TRAEFIK_PUBLIC,
         network_backend=PlatformDockerConstants.NETWORK_BACKEND,
+        healthcheck_timing=compose_healthcheck_timing(DOCKER_HEALTHCHECK["frontend_start_period_seconds"]),
     )
 
 
@@ -261,13 +259,7 @@ def _generate_single_backend_entry(resource_path, resource_name, res, manifest, 
         )
         healthcheck_section = """    healthcheck:
       test: ["CMD", "curl", "-f", "--max-time", "5", "http://localhost:{internal_port}{health_path}"]
-      interval: 10s
-      timeout: 5s
-      retries: 6
-      # STORY 4 FIX: 30s grace period to prevent 504 errors during startup
-      # Services get 30s to initialize before health checks begin
-      start_period: 30s
-""".format(internal_port=internal_port, health_path=health_path)
+""".format(internal_port=internal_port, health_path=health_path) + compose_healthcheck_timing()
     infisical_env = get_infisical_environment_vars(as_array=True, resource_name=res_name)
     
     # Build auth environment variables section using centralized auth utilities
@@ -275,6 +267,7 @@ def _generate_single_backend_entry(resource_path, resource_name, res, manifest, 
     return """
   {resource_entry_name}:
     image: {image_name}
+    init: true
     restart: unless-stopped
 {build_config}
 {ports_section}

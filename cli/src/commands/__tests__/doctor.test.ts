@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  checkDockerVersions,
   checkFrontendDockerPreflight,
   checkGeneratedProjectRuntimeAssets,
   checkStarlarkLoadExports,
@@ -626,5 +627,45 @@ describe("doctor ingress + tilt runtime checks", () => {
     expect(result.message).toContain("reachable");
 
     rmSync(projectRoot, { recursive: true, force: true });
+  });
+});
+
+describe("doctor Docker version check", () => {
+  function fakeExec(engine: string, compose: string) {
+    return ((command: string) =>
+      command.startsWith("docker compose") ? `${compose}\n` : `${engine}\n`) as never;
+  }
+
+  it("passes on Docker Engine 25+ and Compose 2.20.2+", () => {
+    const result = checkDockerVersions(fakeExec("29.8.0", "2.39.1"));
+
+    expect(result.didPass).toBe(true);
+    expect(result.isSkipped).toBeFalsy();
+    expect(result.message).toContain("29.8.0");
+  });
+
+  it("fails with an upgrade hint when the engine is older than 25", () => {
+    const result = checkDockerVersions(fakeExec("24.0.7", "2.39.1"));
+
+    expect(result.didPass).toBe(false);
+    expect(result.message).toContain("Docker Engine 24.0.7");
+    expect(result.message).toContain("start_interval");
+    expect(result.fix).toContain("Update Docker");
+  });
+
+  it("fails when Compose is older than 2.20.2", () => {
+    const result = checkDockerVersions(fakeExec("27.1.1", "v2.20.1"));
+
+    expect(result.didPass).toBe(false);
+    expect(result.message).toContain("Docker Compose v2.20.1");
+  });
+
+  it("skips instead of failing when versions cannot be read", () => {
+    const result = checkDockerVersions((() => {
+      throw new Error("docker not found");
+    }) as never);
+
+    expect(result.didPass).toBe(true);
+    expect(result.isSkipped).toBe(true);
   });
 });

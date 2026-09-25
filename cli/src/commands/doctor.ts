@@ -130,6 +130,81 @@ const checkDockerCompose = createExecCheck(
   "Install Docker Compose: https://docs.docker.com/compose/install/",
 );
 
+// Generated healthchecks use `start_interval`, which older engines/compose reject.
+const MIN_DOCKER_ENGINE_VERSION = [25, 0, 0] as const;
+const MIN_DOCKER_COMPOSE_VERSION = [2, 20, 2] as const;
+
+function parseVersion(raw: string): number[] | null {
+  const match = raw.trim().match(/(\d+)\.(\d+)(?:\.(\d+))?/);
+  if (!match) {
+    return null;
+  }
+  return [Number(match[1]), Number(match[2]), Number(match[3] ?? 0)];
+}
+
+function isAtLeast(version: number[], minimum: readonly number[]): boolean {
+  for (const [index, required] of minimum.entries()) {
+    const actual = version[index] ?? 0;
+    if (actual !== required) {
+      return actual > required;
+    }
+  }
+  return true;
+}
+
+export function checkDockerVersions(exec: typeof execSync = execSync): CheckResult {
+  const run = (command: string): string =>
+    String(exec(command, { stdio: "pipe", encoding: "utf-8", timeout: EXEC_TIMEOUT_MS })).trim();
+
+  let engineRaw: string;
+  let composeRaw: string;
+  try {
+    engineRaw = run("docker version --format '{{.Server.Version}}'");
+    composeRaw = run("docker compose version --short");
+  } catch {
+    return {
+      name: "Docker Versions",
+      didPass: true,
+      isSkipped: true,
+      message: "Could not read Docker Engine/Compose versions - skipped version check",
+    };
+  }
+
+  const engine = parseVersion(engineRaw);
+  const compose = parseVersion(composeRaw);
+  if (!engine || !compose) {
+    return {
+      name: "Docker Versions",
+      didPass: true,
+      isSkipped: true,
+      message: `Unrecognized Docker version output (engine "${engineRaw}", compose "${composeRaw}") - skipped version check`,
+    };
+  }
+
+  const problems: string[] = [];
+  if (!isAtLeast(engine, MIN_DOCKER_ENGINE_VERSION)) {
+    problems.push(`Docker Engine ${engineRaw} (need 25.0+)`);
+  }
+  if (!isAtLeast(compose, MIN_DOCKER_COMPOSE_VERSION)) {
+    problems.push(`Docker Compose ${composeRaw} (need 2.20.2+)`);
+  }
+
+  if (problems.length === 0) {
+    return {
+      name: "Docker Versions",
+      didPass: true,
+      message: `Docker Engine ${engineRaw} and Compose ${composeRaw} support generated healthchecks`,
+    };
+  }
+
+  return {
+    name: "Docker Versions",
+    didPass: false,
+    message: `Docker is too old for generated healthchecks (they use start_interval):\n    ${problems.join("\n    ")}`,
+    fix: "Update Docker Desktop, or on Linux update docker-ce and the docker-compose-plugin package",
+  };
+}
+
 const checkTilt = createExecCheck(
   "Tilt CLI",
   "tilt version",
@@ -789,6 +864,7 @@ export const doctorCommand = new Command("doctor")
       checkDockerRuntime,
       checkTilt,
       checkDockerCompose,
+      checkDockerVersions,
       checkMasterConfigs,
       checkGeneratedProjectRuntimeAssets,
       checkStarlarkLoadExports,
