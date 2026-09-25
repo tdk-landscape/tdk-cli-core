@@ -1,5 +1,5 @@
 import { execSync } from "node:child_process";
-import { accessSync, constants, existsSync } from "node:fs";
+import { accessSync, constants, existsSync, realpathSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import chalk from "chalk";
@@ -30,7 +30,9 @@ function detectInstallation(): InstallInfo {
   try {
     const tdkPath = execSync("which tdk", { encoding: "utf-8" }).trim();
 
-    const realPath = execSync(`readlink -f ${tdkPath}`, { encoding: "utf-8" }).trim();
+    // `readlink -f` is not available on macOS. Use Node's cross-platform
+    // realpath implementation so standalone binaries are detected there too.
+    const realPath = realpathSync(tdkPath);
     // If the real path contains tdk-cli and has .git, it's a linked git install
     if (realPath.includes("tdk-cli")) {
       const possibleGitRoot = resolve(realPath, "..", "..", "..");
