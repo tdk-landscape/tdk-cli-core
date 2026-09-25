@@ -619,7 +619,7 @@ services:
   {migrator_name}:
     image: {image_name}
     build:
-      context: ../../../../.
+      context: ../../../.
       dockerfile: {dockerfile_ref}
       target: migrator
     environment:

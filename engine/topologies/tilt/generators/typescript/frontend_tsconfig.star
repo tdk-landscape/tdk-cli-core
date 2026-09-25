@@ -93,7 +93,7 @@ def generate_frontend_tsconfig(resource_path, write_fn, internal_deps=None, is_d
             # (including Docker's isolated linker), while @types/node (when only pulled in
             # transitively, e.g. via bun-types) isn't hoisted under the isolated linker and
             # "types": ["node"] fails to resolve there even though it works locally.
-            "types": ["bun"],
+            "types": ["node"],
         },
         "exclude": [
             "node_modules",

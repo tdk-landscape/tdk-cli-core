@@ -64,7 +64,7 @@ def generate_backend_tsconfig(resource_path, prisma_path, write_fn, internal_dep
         # isolated linker), while @types/node is only a transitive dependency of
         # bun-types and isn't hoisted to the top level under the isolated linker -
         # "types": ["node"] fails to resolve there even though it works locally.
-        "types": ["bun"],
+        "types": ["node"],
     }
     content = {
         "compilerOptions": compiler_options,
@@ -114,7 +114,7 @@ def generate_backend_tsconfig(resource_path, prisma_path, write_fn, internal_dep
             "outDir": "./dist",
             "rootDir": docker_root_dir,
             # See note above: "bun" resolves under the isolated linker, "node" doesn't.
-            "types": ["bun"],
+            "types": ["node"],
         }
         docker_content = {
             "compilerOptions": docker_compiler_options,

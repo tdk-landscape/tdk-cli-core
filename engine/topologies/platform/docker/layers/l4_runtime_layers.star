@@ -143,7 +143,9 @@ def L4_generate_backend_runtime(res_path, port = BASE_PORT_BACKEND, cmd = 'bun r
         )
         parts.append(infisical_setup)
     else:
-        parts.append("CMD [\"" + cmd + "\"]\n")
+        cmd_parts = cmd.split()
+        cmd_json = ", ".join(["\"" + part + "\"" for part in cmd_parts])
+        parts.append("CMD [" + cmd_json + "]\n")
 
     # Provide build targets that match external tooling (e.g. --target production/ development)
     parts.append("\nFROM l4_backend_runtime AS production\nFROM l4_backend_runtime AS development\n")

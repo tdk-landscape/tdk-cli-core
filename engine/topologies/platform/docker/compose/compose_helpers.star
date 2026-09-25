@@ -40,7 +40,7 @@ def compose_build_config(resource_path, res_name, dockerfile=OUTPUT.AUTOGENERATE
         )
     
     base_config = """    build:
-      context: ../../../../.
+      context: ../../../.
       dockerfile: {full_dockerfile_path}""".format(
         full_dockerfile_path=full_dockerfile_path
     )
