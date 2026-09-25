@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
     paths:
+      - "package.json"
       - "cli/package.json"
 
 permissions:
@@ -36,13 +37,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.BINARY_RELEASE_TOKEN }}
 
-      # cli/package.json's prepack script (scripts/stage-npm-engine.sh) copies
-      # Tiltfile/engine/discovery/specs/ext into cli/ before packing, so the
-      # published tarball is self-contained the same way the binary release
-      # is. npm can't overwrite an already-published version, so skip instead
-      # of failing when this run didn't bump the version.
+      # The root package is the public package. It owns the tdk bin entry and
+      # already contains the compiled CLI plus the bundled engine assets.
       - name: Publish to npm
-        working-directory: cli
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
