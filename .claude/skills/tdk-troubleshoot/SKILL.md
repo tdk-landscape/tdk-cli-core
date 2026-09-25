@@ -186,6 +186,8 @@ tr '\n' '\0' < cmds.txt | xargs -0 -n1 -P8 sh -c
 
 ## Environment traps
 
+- **`.tdk/.project-id` is not gitignored by default and is easy to accidentally stage.** It's created the first time anything checks a Premium license (`getOrCreateProjectId` in `cli/src/generator/extension-fetch.ts`) - a random UUID sent alongside `TDK_LICENSE_KEY` to the license server for per-project tracking, not itself a secret credential, but it's local machine state that has no business in a shared repo. Found staged (`git status`, not yet committed - caught before it reached `origin/main`) in `tdk-erp-system` on 2026-09-26; `tdk-saas-starter` and `tdk-restaurant-example` had the same `.gitignore` gap with no file yet; `tdk-user-management` has **no `.gitignore` at all** (currently harmless - only 35 minimal tracked files, nothing sensitive - but unprotected the moment real development starts there). The CLI has no `.gitignore` template of its own to fix at the source (`tdk project` doesn't generate one; each starter repo ships its own) - check every project's `.gitignore` for `.tdk/.project-id` individually, and `git status`/`git log --all -- .tdk/.project-id` before assuming it's fine.
+
 - **Auto-commit tool.** Something outside Claude commits and pushes edits in `~/Developer/Codex/*` repos to `origin/main` within about a minute, with messages like "skill" or "specs". Do experiments in a worktree outside that folder:
 
   ```bash
