@@ -114,6 +114,18 @@ def _build_resource_deps(res, res_name, manifest, resource_config, infra_deps, c
     return res_deps
 
 
+def resource_defers_start(manifest):
+    """True when a manifest opts into `sablier.enable` + `sablier.deferStart`.
+
+    A deferred resource's image still builds (docker_build has no auto_init
+    gate), but its dc_resource/run-only/replica resources are held back with
+    auto_init=False: no container is created or started until the Traefik
+    static route wakes it on first request (see openspec/changes/
+    prioritized-cold-start)."""
+    sablier = manifest.get('sablier', {}) if manifest else {}
+    return bool(sablier.get('enable', False)) and bool(sablier.get('deferStart', False))
+
+
 def _register_replicas(config, auto_init_apps):
     """Register additional replica resources for high-availability services."""
     replicas = config.get('replicas', 1)
@@ -219,9 +231,15 @@ def _register_single_resource(config, resource_path, compose_project_name, auto_
     """Register a single dc_resource with optional docker_build and run-only resource."""
     app_type = config.get('app_type', 'backend')
     res_name = config['res_name']
-    
-    print("DEBUG REGISTER: Registering '{}' app_type='{}' auto_init={}".format(res_name, app_type, auto_init_apps))
-    
+
+    # A sablier.enable + sablier.deferStart resource is held back from tdk up's
+    # normal bring-up: its container is never created or started here, only via
+    # the Traefik wake path on first request. docker_build below is unaffected
+    # (it has no auto_init gate), so the image still builds either way.
+    effective_auto_init = auto_init_apps and not resource_defers_start(config.get('manifest', {}))
+
+    print("DEBUG REGISTER: Registering '{}' app_type='{}' auto_init={}".format(res_name, app_type, effective_auto_init))
+
     # Skip docker_build for libraries and SDKs - they don't have Dockerfiles
     if app_type not in ['library', 'sdk'] and config.get('syncs'):
         print("DEBUG REGISTER: '{}' has syncs, calling docker_build".format(res_name))
@@ -239,12 +257,12 @@ def _register_single_resource(config, resource_path, compose_project_name, auto_
         config['res_name'],
         labels=config['labels'],
         resource_deps=config['res_deps'],
-        auto_init=auto_init_apps,
+        auto_init=effective_auto_init,
     )
     print("DEBUG REGISTER: dc_resource completed for '{}'".format(res_name))
 
-    _register_run_only_resource(config, resource_path, compose_project_name, auto_init_apps)
-    _register_replicas(config, auto_init_apps)
+    _register_run_only_resource(config, resource_path, compose_project_name, effective_auto_init)
+    _register_replicas(config, effective_auto_init)
 
 
 def _register_dc_resources(resource_configs, resource_path, compose_project_name, auto_init_apps):
@@ -322,6 +340,7 @@ def _build_resource_config(res, manifest, resource_config, full_res_path, infra_
         'res_path': full_res_path,
         'env': env_vars,
         'project_root': project_root,
+        'manifest': manifest,
     }
 
 

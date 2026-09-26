@@ -388,6 +388,22 @@ def _validate_cross_field(manifest, context):
         else:
             stats['rules_passed'] += 1
     
+    # sablier.deferStart requires sablier.enable
+    sablier = manifest.get('sablier', {}) or {}
+    if sablier.get('deferStart', False):
+        stats['fields_checked'] += 1
+
+        if not sablier.get('enable', False):
+            errors.append(ManifestErrors.new(
+                message="sablier.deferStart requires sablier.enable to also be true",
+                category=ManifestErrors.CATEGORY['VALIDATION'],
+                severity=ManifestErrors.SEVERITY['ERROR'],
+                context={'field': 'sablier.deferStart', 'sablier': sablier},
+            ))
+            stats['rules_failed'] += 1
+        else:
+            stats['rules_passed'] += 1
+
     # Backend should have Traefik config
     if app_type == 'backend':
         stats['fields_checked'] += 1
