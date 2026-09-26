@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-09-26
+goal: Requests to a not-yet-running resource trigger and prioritize its startup
+  instead of waiting behind the full dependency graph
