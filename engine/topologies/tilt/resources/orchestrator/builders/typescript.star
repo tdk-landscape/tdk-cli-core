@@ -84,14 +84,20 @@ def _get_resource_only_paths(resource_path):
         
         # Shared runtime scripts copied in generated Dockerfiles.
         'shared-platform-engineering/docker-templates',
-
-        # Common DDD layers used by backend Dockerfiles.
-        'shared-ddd-layers/domain',
-        'shared-ddd-layers/infrastructure',
     ]
 
-    # Include only internal libraries referenced by this service package.json.
-    # This prevents unrelated library changes from triggering global rebuilds.
+    # Include only internal libraries referenced by this service package.json
+    # (covers shared-ddd-layers/<lib> too, via resolve_lib_path's 'ddd' root -
+    # no Dockerfile ever COPYs a bare shared-ddd-layers/domain or /infrastructure
+    # path, so hardcoding those two here was pure dead weight: every one of a
+    # large landscape's docker_build resources got its own Tilt watch
+    # registration on paths most projects don't even have on disk. At 107
+    # resources that's 107 duplicate watchers on the same couple of
+    # nonexistent paths - real amplification if anything ever touches them,
+    # and a plausible contributor to "fsnotify: queue or buffer overflow" at
+    # this scale, on top of being wasted watch overhead regardless).
+    # This also prevents unrelated library changes from triggering rebuilds
+    # of services that don't use them.
     deps_map = Utils.build_deps_mapping(resource_path)
     for dep_path in deps_map.values():
         if dep_path not in only_paths:

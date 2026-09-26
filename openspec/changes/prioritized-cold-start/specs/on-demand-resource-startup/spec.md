@@ -49,19 +49,19 @@ The first request to a deferred resource's route SHALL start that resource's con
 - **WHEN** a request is made to a deferred resource's route after `tdk up` has finished bringing up the rest of the landscape
 - **THEN** the deferred resource starts immediately in response to that request
 
-### Requirement: Waking A Resource Also Wakes Its Dependency Chain
+### Requirement: Waking A Resource Also Wakes Its Required Dependencies
 
-Waking a deferred resource SHALL also wake any of its own declared dependencies that are themselves deferred and not yet running, unless a dependency explicitly declares a different wake group.
+Waking a deferred resource SHALL also wake any of its required startup dependencies (the same dependencies already used to sequence Tilt's own bring-up, e.g. its database or messaging broker) that are not currently running, and SHALL wait for each to be ready before evaluating the resource's own health.
 
 #### Scenario: Deferred resource depends on a cold database
 
-- **WHEN** a request wakes a deferred resource whose declared dependencies include another deferred, not-yet-started resource
+- **WHEN** a request wakes a deferred resource whose required dependencies include another resource that is not currently running
 - **THEN** that dependency is also started as part of the same wake, and the requesting resource's health checks are not evaluated against a still-cold dependency
 
-#### Scenario: Dependency explicitly opts out of the shared wake
+#### Scenario: Unrelated resource is not woken
 
-- **WHEN** a deferred resource's dependency declares its own, different wake group
-- **THEN** waking the resource does not also start that dependency
+- **WHEN** a request wakes a deferred resource
+- **THEN** resources that are not among its required startup dependencies are not started as a side effect of that wake
 
 ### Requirement: A Waking Request Waits For Health, Not Just Start
 
