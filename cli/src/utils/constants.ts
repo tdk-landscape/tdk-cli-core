@@ -27,6 +27,10 @@ export const REQUIRED_PACKAGE_SCRIPTS: Record<ResourceType, readonly string[]> =
   sdk: ["dev", "build"],
 } as const;
 
+// Version specifiers that pin nothing at all - a fresh `bun install`/`npm install`
+// can pull a different (possibly breaking) version on every run.
+export const UNPINNED_DEPENDENCY_VERSIONS = new Set(["latest", "*"]);
+
 export const OPTIONAL_INFRA_SERVICES = [
   "monitoring",
   "elk",
