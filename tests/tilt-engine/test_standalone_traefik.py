@@ -1,5 +1,8 @@
 """Standalone TDK projects must serve api.{project}.localhost via Traefik."""
 
+import json
+import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -7,6 +10,22 @@ import pytest
 pytestmark = [pytest.mark.fast, pytest.mark.generator]
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+COMPOSE_DIR = REPO_ROOT / "engine" / "topologies" / "platform" / "docker" / "compose"
+RESULT_MARKER = "Error in fail: RESULT"
+
+
+def _run_starlark(tmp_path: Path, body: str) -> dict:
+    tiltfile = tmp_path / "Tiltfile"
+    tiltfile.write_text(body.replace("@COMPOSE", str(COMPOSE_DIR)) + "\nfail('RESULT' + encode_json(r))\n")
+    proc = subprocess.run(
+        ["tilt", "alpha", "tiltfile-result", "-f", str(tiltfile)],
+        capture_output=True,
+        text=True,
+        timeout=180,
+    )
+    output = proc.stdout + proc.stderr
+    assert RESULT_MARKER in output, output[-3000:]
+    return json.loads(output.split(RESULT_MARKER, 1)[1].strip())
 
 
 def test_standalone_traefik_compose_generator_exists():
@@ -106,3 +125,23 @@ def test_traefik_conflict_takeover_stops_other_project_and_logs_it():
     # instead of just erroring out.
     assert "docker stop" in stop_body
     assert "print(" in stop_body
+
+
+@pytest.mark.skipif(shutil.which("tilt") is None, reason="tilt CLI not installed")
+def test_standalone_compose_enables_file_provider_and_wake_gateway(tmp_path):
+    """openspec/changes/prioritized-cold-start (D4): a `sablier.deferStart`
+    resource's static route needs Traefik's file provider enabled and a wake
+    gateway running, even in a landscape with no such resource yet (harmless:
+    an empty dynamic directory yields zero extra routes)."""
+    r = _run_starlark(
+        tmp_path,
+        "load('@COMPOSE/traefik_standalone.star', 'generate_standalone_traefik_compose')\n"
+        "r = {'yaml': generate_standalone_traefik_compose()}\n",
+    )
+    yaml_text = r["yaml"]
+    assert "--providers.file.directory=/etc/traefik/dynamic" in yaml_text
+    assert "--providers.file.watch=true" in yaml_text
+    assert "/etc/traefik/dynamic:ro" in yaml_text
+    assert "wake-gateway:" in yaml_text
+    assert "/root/.tilt-dev:ro" in yaml_text
+    assert "--provider.docker.honor-restart-policy=true" in yaml_text

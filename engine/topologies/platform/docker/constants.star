@@ -62,6 +62,13 @@ NETWORK_DATABASE = PROJECT_NAME + "_database"
 NETWORK_INFISICAL = PROJECT_NAME + "_infisical-network"
 NETWORK_PROXY = PROJECT_NAME + "_proxy"
 
+# Traefik file-provider dynamic config: one generated YAML per `sablier.deferStart`
+# resource's static route (see openspec/changes/prioritized-cold-start), mounted
+# read-only into the standalone Traefik container at /etc/traefik/dynamic.
+TRAEFIK_DYNAMIC_DIR_REL = ".tdk/.tdk-out/traefik-dynamic"
+TRAEFIK_WAKE_GATEWAY_CONTAINER = PROJECT_NAME_HYPHEN + "-wake-gateway"
+TRAEFIK_WAKE_GATEWAY_PORT = 9999
+
 # NATS constants
 NATS_HOST = PROJECT_NAME + "_nats"
 NATS_PORT = "4222"
@@ -146,6 +153,9 @@ PlatformDockerConstants = struct(
     NETWORK_DATABASE = NETWORK_DATABASE,
     NETWORK_INFISICAL = NETWORK_INFISICAL,
     NETWORK_PROXY = NETWORK_PROXY,
+    TRAEFIK_DYNAMIC_DIR_REL = TRAEFIK_DYNAMIC_DIR_REL,
+    TRAEFIK_WAKE_GATEWAY_CONTAINER = TRAEFIK_WAKE_GATEWAY_CONTAINER,
+    TRAEFIK_WAKE_GATEWAY_PORT = TRAEFIK_WAKE_GATEWAY_PORT,
     NATS_HOST = NATS_HOST,
     NATS_PORT = NATS_PORT,
     NATS_URL = NATS_URL,
