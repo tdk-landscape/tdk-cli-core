@@ -172,9 +172,9 @@ export const RESOURCE_FEATURES: Record<string, ResourceFeature> = {
       "On-demand scaling: stop this resource when idle, wake it on the next request via a " +
       "`sablier: {enable: true}` manifest block (not the featuresEnabled array). Add " +
       "`deferStart: true` to also skip this resource during `tdk up` entirely — no container " +
-      "is created or started, and a Traefik static route wakes it (and its database/NATS/migrator " +
-      "dependencies) on the first request instead, so it doesn't wait behind the rest of a large " +
-      "landscape's bring-up. Requires `enable: true`. " +
+      "is created or started, and a Traefik static route wakes it on the first request instead " +
+      "(backends only for now), so it doesn't wait behind the rest of a large landscape's " +
+      "bring-up. Requires `enable: true`. " +
       "(Premium - requires TDK_LICENSE_KEY; free tier writes a disabled stub; see " +
       "hasSablierLicense() in extension-fetch.ts KNOWN_RESOURCES/PREMIUM_PATH_MAP)",
     applies_to: ["backend", "frontend"],

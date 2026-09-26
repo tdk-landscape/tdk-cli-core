@@ -144,4 +144,3 @@ def test_standalone_compose_enables_file_provider_and_wake_gateway(tmp_path):
     assert "/etc/traefik/dynamic:ro" in yaml_text
     assert "wake-gateway:" in yaml_text
     assert "/root/.tilt-dev:ro" in yaml_text
-    assert "--provider.docker.honor-restart-policy=true" in yaml_text

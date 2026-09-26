@@ -5,6 +5,7 @@ import type { CheckResult } from "../types/index.js";
 import { formatCount } from "./formatting.js";
 import { findProjectRoot } from "./paths.js";
 import { getProjectName } from "./service-urls.js";
+import { discoverResources } from "./services.js";
 
 const EXEC_TIMEOUT_MS = 10_000;
 const REGISTRY_PROBE_TIMEOUT_MS = 3_000;
@@ -89,11 +90,40 @@ interface TiltUiResourceItem {
 }
 
 /**
- * Extract failing UIResources from `tilt get uiresources -o json`.
+ * Resource names with `sablier: {enable: true, deferStart: true}` in their
+ * manifest (openspec/changes/prioritized-cold-start): these are expected to
+ * sit at `runtimeStatus: none` until their first request, not a sign of
+ * anything stuck. Best-effort — returns an empty set if discovery fails
+ * (e.g. not run from inside a project), so callers degrade to today's
+ * behavior rather than erroring.
  */
-export function parseTiltResourceFailures(jsonText: string): {
+export function getDeferredResourceNames(): Set<string> {
+  try {
+    return new Set(
+      discoverResources()
+        .filter((svc) => svc.config?.sablier?.enable && svc.config?.sablier?.deferStart)
+        .map((svc) => svc.name),
+    );
+  } catch {
+    return new Set();
+  }
+}
+
+/**
+ * Extract failing UIResources from `tilt get uiresources -o json`.
+ *
+ * `deferredNames` (typically from getDeferredResourceNames()) separates a
+ * `sablier.deferStart` resource's expected `none`/`pending` status into its
+ * own count so it's never described as "blocked" or otherwise lumped in with
+ * genuinely stuck resources.
+ */
+export function parseTiltResourceFailures(
+  jsonText: string,
+  deferredNames: Set<string> = new Set(),
+): {
   failures: TiltResourceFailure[];
   pendingCount: number;
+  deferredCount: number;
   okCount: number;
   total: number;
 } {
@@ -101,6 +131,7 @@ export function parseTiltResourceFailures(jsonText: string): {
   const items = parsed.items ?? [];
   const failures: TiltResourceFailure[] = [];
   let pendingCount = 0;
+  let deferredCount = 0;
   let okCount = 0;
 
   for (const item of items) {
@@ -133,11 +164,15 @@ export function parseTiltResourceFailures(jsonText: string): {
         updateStatus === "none" ||
         runtimeStatus === "none")
     ) {
-      pendingCount += 1;
+      if (deferredNames.has(name)) {
+        deferredCount += 1;
+      } else {
+        pendingCount += 1;
+      }
     }
   }
 
-  return { failures, pendingCount, okCount, total: items.length };
+  return { failures, pendingCount, deferredCount, okCount, total: items.length };
 }
 
 /**
@@ -422,7 +457,7 @@ export function checkTiltResourceHealth(exec: typeof execSync = execSync): Check
 
   let parsed: ReturnType<typeof parseTiltResourceFailures>;
   try {
-    parsed = parseTiltResourceFailures(jsonText);
+    parsed = parseTiltResourceFailures(jsonText, getDeferredResourceNames());
   } catch {
     return {
       name: "Tilt Resources",
@@ -442,10 +477,11 @@ export function checkTiltResourceHealth(exec: typeof execSync = execSync): Check
   }
 
   if (parsed.failures.length === 0) {
+    const deferredNote = parsed.deferredCount > 0 ? `, ${parsed.deferredCount} deferred` : "";
     return {
       name: "Tilt Resources",
       didPass: true,
-      message: `Tilt resources healthy (${parsed.okCount} ok, ${parsed.pendingCount} pending)`,
+      message: `Tilt resources healthy (${parsed.okCount} ok, ${parsed.pendingCount} pending${deferredNote})`,
     };
   }
 
@@ -468,6 +504,10 @@ export function checkTiltResourceHealth(exec: typeof execSync = execSync): Check
   const pendingNote =
     parsed.pendingCount > 0
       ? `\n    ${formatCount(parsed.pendingCount, "resource")} still pending/not started — often blocked by the failures above.`
+      : "";
+  const deferredNote =
+    parsed.deferredCount > 0
+      ? `\n    ${formatCount(parsed.deferredCount, "resource")} intentionally deferred (sablier.deferStart) — not started until first request, unrelated to the failures above.`
       : "";
 
   const hasPortConflict = ordered.some((failure) =>
@@ -498,7 +538,7 @@ export function checkTiltResourceHealth(exec: typeof execSync = execSync): Check
   return {
     name: "Tilt Resources",
     didPass: false,
-    message: `Tilt reports ${formatCount(parsed.failures.length, "failed resource")}:\n    ${details}${omittedNote}${pendingNote}`,
+    message: `Tilt reports ${formatCount(parsed.failures.length, "failed resource")}:\n    ${details}${omittedNote}${pendingNote}${deferredNote}`,
     fix,
   };
 }

@@ -98,16 +98,25 @@ def resource_defers_start(tmp_path: Path, sablier: dict | None) -> bool:
 
 
 @pytest.mark.parametrize(
-    ("sablier", "expected"),
+    "sablier",
     [
-        (None, False),
-        ({}, False),
-        ({"enable": False}, False),
-        ({"enable": True}, False),
-        ({"enable": False, "deferStart": True}, False),
-        ({"enable": True, "deferStart": False}, False),
-        ({"enable": True, "deferStart": True}, True),
+        None,
+        {},
+        {"enable": False},
+        {"enable": True},
+        {"enable": False, "deferStart": True},
+        {"enable": True, "deferStart": False},
+        {"enable": True, "deferStart": True},
     ],
 )
-def test_resource_defers_start_predicate(tmp_path, sablier, expected):
-    assert resource_defers_start(tmp_path, sablier) == expected
+def test_resource_defers_start_stays_off_without_a_license(tmp_path, sablier):
+    """deferStart stays behind the same TDK_LICENSE_KEY gate as the rest of
+    `sablier` (an explicit product decision -- see openspec/changes/
+    prioritized-cold-start's design.md). This repo ships only the free-tier
+    `sablier_container_cycle.star` stub, whose sablier_middleware_suffix()
+    always reports disabled regardless of the manifest -- so every case here
+    must resolve to False, including {"enable": True, "deferStart": True}.
+    The corresponding "licensed and enabled" True case can only be exercised
+    where the real premium module is actually vendored (tdk-cli-extensions),
+    not from this repo's stub."""
+    assert resource_defers_start(tmp_path, sablier) is False

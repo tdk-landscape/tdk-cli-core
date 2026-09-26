@@ -89,8 +89,15 @@ export const upCommand = new Command("up")
           backends.forEach((svc) => {
             const servicePathName = svc.name.replace(/-api$/, "");
             const apiPath = svc.config?.apiPath ?? `/api/${servicePathName}`;
+            const sablier = svc.config?.sablier;
+            const deferredTag =
+              sablier?.enable && sablier?.deferStart
+                ? chalk.dim(" (deferred — starts on first request)")
+                : "";
             console.log(
-              chalk.gray(`  - ${svc.name}: ${apiBase}${chalk.cyan(appendHealthPath(apiPath))}`),
+              chalk.gray(
+                `  - ${svc.name}: ${apiBase}${chalk.cyan(appendHealthPath(apiPath))}${deferredTag}`,
+              ),
             );
           });
         }

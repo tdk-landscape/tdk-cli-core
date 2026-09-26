@@ -410,6 +410,66 @@ describe("doctor ingress + tilt runtime checks", () => {
     expect(result.fix).toMatch(/docker ps --filter publish=80|Free the conflicting/);
   });
 
+  it("separates sablier.deferStart resources from genuinely pending ones", () => {
+    const payload = {
+      items: [
+        {
+          metadata: { name: "data-governance-api" },
+          status: { updateStatus: "none", runtimeStatus: "none" },
+        },
+        {
+          metadata: { name: "some-other-stuck-resource" },
+          status: { updateStatus: "pending", runtimeStatus: "pending" },
+        },
+        {
+          metadata: { name: "postgres" },
+          status: { updateStatus: "ok", runtimeStatus: "ok" },
+        },
+      ],
+    };
+
+    const parsed = parseTiltResourceFailures(
+      JSON.stringify(payload),
+      new Set(["data-governance-api"]),
+    );
+    expect(parsed.failures).toHaveLength(0);
+    expect(parsed.deferredCount).toBe(1);
+    expect(parsed.pendingCount).toBe(1);
+
+    const result = checkTiltResourceHealth((() => JSON.stringify(payload)) as never);
+    expect(result.didPass).toBe(true);
+    // Without an injected deferredNames set (checkTiltResourceHealth computes
+    // its own via discoverResources(), best-effort empty outside a project),
+    // this specific resource isn't classified as deferred here -- covered by
+    // the direct parseTiltResourceFailures assertions above instead.
+  });
+
+  it("does not describe deferred resources as blocked by unrelated failures", () => {
+    const payload = {
+      items: [
+        {
+          metadata: { name: "traefik" },
+          status: {
+            updateStatus: "error",
+            runtimeStatus: "unknown",
+            buildHistory: [{ error: "Bind for 0.0.0.0:80 failed: port is already allocated" }],
+          },
+        },
+        {
+          metadata: { name: "data-governance-api" },
+          status: { updateStatus: "none", runtimeStatus: "none" },
+        },
+      ],
+    };
+
+    const parsed = parseTiltResourceFailures(
+      JSON.stringify(payload),
+      new Set(["data-governance-api"]),
+    );
+    expect(parsed.deferredCount).toBe(1);
+    expect(parsed.pendingCount).toBe(0);
+  });
+
   it("skips tilt resource check when tilt is not running", () => {
     const result = checkTiltResourceHealth((() => {
       throw new Error("tilt not running");

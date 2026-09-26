@@ -66,10 +66,6 @@ services:
     command:
       - "start"
       - "--provider.name=docker"
-      # D5: honors a one-shot migrator's exit code 0 as `completed` rather
-      # than `stopped`, needed for a deferStart resource's generated
-      # `depends_on: {{..., condition: service_completed_successfully}}`.
-      - "--provider.docker.honor-restart-policy=true"
     volumes:
       # Read-write: Sablier stops/starts containers via the Docker API.
       - /var/run/docker.sock:/var/run/docker.sock
