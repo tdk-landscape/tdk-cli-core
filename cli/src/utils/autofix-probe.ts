@@ -1,1 +1,1 @@
-export const autofixProbe   =    1
+export const autofixProbe = 1;
