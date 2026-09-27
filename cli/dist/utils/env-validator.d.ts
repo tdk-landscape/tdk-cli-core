@@ -5,7 +5,7 @@ export interface EnvVariable {
     default?: string;
     example?: string;
 }
-export declare function generateEnvFile(_projectRoot: string): string;
+export declare function generateEnvFile(projectRoot: string): string;
 export declare function validateEnvFile(projectRoot: string): {
     missing: string[];
     invalid: string[];

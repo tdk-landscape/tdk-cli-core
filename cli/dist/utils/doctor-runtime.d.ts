@@ -22,26 +22,11 @@ export interface TiltResourceFailure {
     error: string;
 }
 /**
- * Resource names with `sablier: {enable: true, deferStart: true}` in their
- * manifest (openspec/changes/prioritized-cold-start): these are expected to
- * sit at `runtimeStatus: none` until their first request, not a sign of
- * anything stuck. Best-effort — returns an empty set if discovery fails
- * (e.g. not run from inside a project), so callers degrade to today's
- * behavior rather than erroring.
- */
-export declare function getDeferredResourceNames(): Set<string>;
-/**
  * Extract failing UIResources from `tilt get uiresources -o json`.
- *
- * `deferredNames` (typically from getDeferredResourceNames()) separates a
- * `sablier.deferStart` resource's expected `none`/`pending` status into its
- * own count so it's never described as "blocked" or otherwise lumped in with
- * genuinely stuck resources.
  */
-export declare function parseTiltResourceFailures(jsonText: string, deferredNames?: Set<string>): {
+export declare function parseTiltResourceFailures(jsonText: string): {
     failures: TiltResourceFailure[];
     pendingCount: number;
-    deferredCount: number;
     okCount: number;
     total: number;
 };

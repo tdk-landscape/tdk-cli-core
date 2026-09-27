@@ -2,7 +2,6 @@ import type { ResourceType } from "../types/index.js";
 export declare const MASTER_CONFIG_FILES: readonly ["TILT_TECH_STACK.star", "TILT_RESOURCE_DEFAULTS.star", "spec.master"];
 export declare const VALID_RESOURCE_TYPES: ResourceType[];
 export declare const REQUIRED_PACKAGE_SCRIPTS: Record<ResourceType, readonly string[]>;
-export declare const UNPINNED_DEPENDENCY_VERSIONS: Set<string>;
 export declare const OPTIONAL_INFRA_SERVICES: readonly ["monitoring", "elk", "debezium", "golden_image", "verdaccio"];
 export declare const PORT_RANGES: {
     readonly frontend: {

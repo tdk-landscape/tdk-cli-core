@@ -47,8 +47,7 @@ function parseResource(serviceJsonPath) {
     const parsedConfig = parsed;
     const config = {
         ...parsedConfig,
-        appType: (parsedConfig.appType ||
-            parsedConfig.type),
+        appType: (parsedConfig.appType || parsedConfig.type),
     };
     const resourceDir = dirname(serviceJsonPath);
     return {

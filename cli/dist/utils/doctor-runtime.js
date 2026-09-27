@@ -4,7 +4,6 @@ import { join } from "node:path";
 import { formatCount } from "./formatting.js";
 import { findProjectRoot } from "./paths.js";
 import { getProjectName } from "./service-urls.js";
-import { discoverResources } from "./services.js";
 const EXEC_TIMEOUT_MS = 10_000;
 const REGISTRY_PROBE_TIMEOUT_MS = 3_000;
 const DEFAULT_VERDACCIO_URL = "http://localhost:4873";
@@ -51,37 +50,13 @@ export function findForeignIngressHolders(holders, projectPrefix) {
     return holders.filter((holder) => !isOwnIngressContainer(holder.name, projectPrefix));
 }
 /**
- * Resource names with `sablier: {enable: true, deferStart: true}` in their
- * manifest (openspec/changes/prioritized-cold-start): these are expected to
- * sit at `runtimeStatus: none` until their first request, not a sign of
- * anything stuck. Best-effort — returns an empty set if discovery fails
- * (e.g. not run from inside a project), so callers degrade to today's
- * behavior rather than erroring.
- */
-export function getDeferredResourceNames() {
-    try {
-        return new Set(discoverResources()
-            .filter((svc) => svc.config?.sablier?.enable && svc.config?.sablier?.deferStart)
-            .map((svc) => svc.name));
-    }
-    catch {
-        return new Set();
-    }
-}
-/**
  * Extract failing UIResources from `tilt get uiresources -o json`.
- *
- * `deferredNames` (typically from getDeferredResourceNames()) separates a
- * `sablier.deferStart` resource's expected `none`/`pending` status into its
- * own count so it's never described as "blocked" or otherwise lumped in with
- * genuinely stuck resources.
  */
-export function parseTiltResourceFailures(jsonText, deferredNames = new Set()) {
+export function parseTiltResourceFailures(jsonText) {
     const parsed = JSON.parse(jsonText);
     const items = parsed.items ?? [];
     const failures = [];
     let pendingCount = 0;
-    let deferredCount = 0;
     let okCount = 0;
     for (const item of items) {
         const name = item.metadata?.name ?? "unknown";
@@ -108,15 +83,10 @@ export function parseTiltResourceFailures(jsonText, deferredNames = new Set()) {
                 runtimeStatus === "pending" ||
                 updateStatus === "none" ||
                 runtimeStatus === "none")) {
-            if (deferredNames.has(name)) {
-                deferredCount += 1;
-            }
-            else {
-                pendingCount += 1;
-            }
+            pendingCount += 1;
         }
     }
-    return { failures, pendingCount, deferredCount, okCount, total: items.length };
+    return { failures, pendingCount, okCount, total: items.length };
 }
 /**
  * Turn noisy Tilt/Docker build errors into an actionable one-liner.
@@ -153,9 +123,7 @@ export function summarizeTiltBuildError(error) {
         normalized.match(/pull access denied for ([^,:\s]+)/i)?.[1] ??
         undefined;
     const composeService = normalized.match(/\bup\s+-d\s+--no-build\s+([A-Za-z0-9._-]+)/i)?.[1];
-    if (missingImage ||
-        composeService ||
-        /docker compose .*\bup\s+-d\s+--no-build\b/i.test(normalized)) {
+    if (missingImage || composeService || /docker compose .*\bup\s+-d\s+--no-build\b/i.test(normalized)) {
         const imageLabel = missingImage ?? `${composeService ?? "service"}:dev`;
         const serviceHint = composeService ? ` for ${composeService}` : "";
         return `compose run failed because image is missing (${imageLabel})${serviceHint} — wait for the ImageBuild resource to finish, then re-trigger the *-run-only resource`;
@@ -188,7 +156,10 @@ export function projectExpectsVerdaccio(projectRoot = findProjectRoot() ?? proce
         }
     }
     // Heuristic: scoped private registry pointed at :4873
-    for (const candidate of [join(projectRoot, ".npmrc"), join(projectRoot, "package.json")]) {
+    for (const candidate of [
+        join(projectRoot, ".npmrc"),
+        join(projectRoot, "package.json"),
+    ]) {
         if (!existsSync(candidate))
             continue;
         try {
@@ -347,7 +318,7 @@ export function checkTiltResourceHealth(exec = execSync) {
     }
     let parsed;
     try {
-        parsed = parseTiltResourceFailures(jsonText, getDeferredResourceNames());
+        parsed = parseTiltResourceFailures(jsonText);
     }
     catch {
         return {
@@ -366,11 +337,10 @@ export function checkTiltResourceHealth(exec = execSync) {
         };
     }
     if (parsed.failures.length === 0) {
-        const deferredNote = parsed.deferredCount > 0 ? `, ${parsed.deferredCount} deferred` : "";
         return {
             name: "Tilt Resources",
             didPass: true,
-            message: `Tilt resources healthy (${parsed.okCount} ok, ${parsed.pendingCount} pending${deferredNote})`,
+            message: `Tilt resources healthy (${parsed.okCount} ok, ${parsed.pendingCount} pending)`,
         };
     }
     // Always list every failed resource. Earlier logic showed only "critical"
@@ -384,13 +354,12 @@ export function checkTiltResourceHealth(exec = execSync) {
         failure,
         why: describeTiltFailure(failure, exec),
     }));
-    const details = described.map(({ failure, why }) => `${failure.name}: ${why}`).join("\n    ");
+    const details = described
+        .map(({ failure, why }) => `${failure.name}: ${why}`)
+        .join("\n    ");
     const omittedNote = omitted > 0 ? `\n    …and ${formatCount(omitted, "more failed resource")}` : "";
     const pendingNote = parsed.pendingCount > 0
         ? `\n    ${formatCount(parsed.pendingCount, "resource")} still pending/not started — often blocked by the failures above.`
-        : "";
-    const deferredNote = parsed.deferredCount > 0
-        ? `\n    ${formatCount(parsed.deferredCount, "resource")} intentionally deferred (sablier.deferStart) — not started until first request, unrelated to the failures above.`
         : "";
     const hasPortConflict = ordered.some((failure) => /port is already allocated/i.test(failure.error));
     const hasRegistryFailure = ordered.some((failure) => isRegistryRelatedBuildError(failure.error) ||
@@ -412,7 +381,7 @@ export function checkTiltResourceHealth(exec = execSync) {
     return {
         name: "Tilt Resources",
         didPass: false,
-        message: `Tilt reports ${formatCount(parsed.failures.length, "failed resource")}:\n    ${details}${omittedNote}${pendingNote}${deferredNote}`,
+        message: `Tilt reports ${formatCount(parsed.failures.length, "failed resource")}:\n    ${details}${omittedNote}${pendingNote}`,
         fix,
     };
 }
@@ -465,7 +434,9 @@ export function probeContainerRuntimeError(resourceName, exec = execSync) {
         }
         // Zod env/config validation: pull required field paths from the dump.
         if (/ZodError/i.test(logs)) {
-            const requiredPaths = [...logs.matchAll(/"path"\s*:\s*\[\s*"([^"]+)"\s*\]/g)].map((match) => match[1]);
+            const requiredPaths = [
+                ...logs.matchAll(/"path"\s*:\s*\[\s*"([^"]+)"\s*\]/g),
+            ].map((match) => match[1]);
             const uniquePaths = [...new Set(requiredPaths)].slice(0, 6);
             if (uniquePaths.length > 0) {
                 return `runtime crash: ZodError missing required config/env: ${uniquePaths.join(", ")}`;

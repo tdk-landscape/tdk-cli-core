@@ -60,11 +60,7 @@ const COMMAND_GROUPS = [
         emoji: "🌐",
         color: chalk.blueBright,
         commands: [
-            {
-                name: "networks, traefik",
-                desc: "Show Traefik-routed URLs for all services",
-                alias: "--stack, --json",
-            },
+            { name: "networks, traefik", desc: "Show Traefik-routed URLs for all services", alias: "--stack, --json" },
         ],
     },
     {
@@ -73,11 +69,7 @@ const COMMAND_GROUPS = [
         color: chalk.cyan,
         commands: [
             { name: "ui, interactive", desc: "Interactive TUI for managing services", alias: "" },
-            {
-                name: "config",
-                desc: "Manage project configuration and regenerate master files",
-                alias: "regenerate, verify, edit",
-            },
+            { name: "config", desc: "Manage project configuration and regenerate master files", alias: "regenerate, verify, edit" },
             { name: "doctor", desc: "Check environment readiness", alias: "" },
             { name: "completion", desc: "Generate shell completions", alias: "--install --shell zsh" },
             { name: "upgrade, update", desc: "Self-update to latest version", alias: "--force" },
