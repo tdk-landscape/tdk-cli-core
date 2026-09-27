@@ -8,6 +8,10 @@
 
 ---
 
+![tdk scaffolding a backend and a frontend, then listing the stack](../docs/demo.svg)
+
+---
+
 ## 🎯 What is TDK?
 
 TDK CLI organizes your microservices using a clear **Project-Stack-Resource (PSR)** hierarchy:
