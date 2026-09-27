@@ -4,6 +4,8 @@ Notable changes to the `tdk` CLI. Versions match [npm](https://www.npmjs.com/pac
 
 ## Unreleased
 
+- The npm package ships only what the CLI needs at runtime: 294 files and 458 kB, down from 678 files and 888 kB. Repo tooling, tests, source maps, CI config and the openspec docs are no longer included.
+
 ## 1.3.53 (2026-09-27)
 
 - The "requires a license key" errors link to the working request form (`tdk-landscape.github.io/tdk-website/#waitlist`); the old link pointed at a page without it.

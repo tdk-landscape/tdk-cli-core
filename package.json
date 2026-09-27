@@ -18,6 +18,21 @@
     "tdk": "cli/bin/tdk.js",
     "tdk-cli": "cli/bin/tdk.js"
   },
+  "files": [
+    "Tiltfile",
+    "engine",
+    "!engine/docs",
+    "discovery",
+    "specs",
+    "ext",
+    "shared-platform-engineering/docker-templates",
+    "cli/bin",
+    "cli/dist/**/*.js",
+    "cli/templates",
+    "cli/package.json",
+    "cli/shared-platform-engineering/docker-templates",
+    "CHANGELOG.md"
+  ],
   "scripts": {
     "build": "cd cli && npm run build",
     "build:watch": "cd cli && npm run build:watch",
