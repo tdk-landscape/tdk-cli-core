@@ -1,5 +1,6 @@
 import { execSync } from "node:child_process";
-import { accessSync, constants, existsSync, realpathSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { accessSync, constants, existsSync, readFileSync, realpathSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import chalk from "chalk";
@@ -78,12 +79,48 @@ function binaryAssetName(): string | null {
 }
 
 const ENGINE_ASSET_NAME = "tdk-cli-engine.tar.gz";
+const CHECKSUMS_ASSET_NAME = "checksums.txt";
 
 export interface BinaryRelease {
   tag: string;
   assetName: string;
   downloadUrl: string;
   engineDownloadUrl: string;
+  checksumsUrl: string;
+}
+
+/** Parses `shasum -a 256` / `sha256sum` output ("<hash>  <name>" or "<hash> *<name>"). */
+export function parseChecksums(text: string): Map<string, string> {
+  const sums = new Map<string, string>();
+  for (const line of text.split("\n")) {
+    const match = line.trim().match(/^([0-9a-f]{64})\s+\*?(.+)$/i);
+    if (match) sums.set(match[2].trim(), match[1].toLowerCase());
+  }
+  return sums;
+}
+
+/**
+ * Throws unless `filePath` hashes to the checksum listed for `assetName`.
+ * A missing entry is an error when `required`; otherwise it is skipped, so
+ * releases published before an asset was added to checksums.txt (the engine
+ * tarball was added after 1.3.51) still install.
+ */
+function verifyChecksum(
+  filePath: string,
+  assetName: string,
+  sums: Map<string, string>,
+  required: boolean,
+): void {
+  const expected = sums.get(assetName);
+  if (!expected) {
+    if (required) throw new Error(`${CHECKSUMS_ASSET_NAME} has no entry for ${assetName}`);
+    logVerbose(`${CHECKSUMS_ASSET_NAME} has no entry for ${assetName}; skipping verification`);
+    return;
+  }
+  const actual = createHash("sha256").update(readFileSync(filePath)).digest("hex");
+  if (actual !== expected) {
+    throw new Error(`Checksum mismatch for ${assetName} (expected ${expected}, got ${actual})`);
+  }
 }
 
 async function getLatestBinaryRelease(): Promise<BinaryRelease | null> {
@@ -103,6 +140,7 @@ async function getLatestBinaryRelease(): Promise<BinaryRelease | null> {
       assetName,
       downloadUrl: `https://github.com/${BINARY_RELEASE_REPO}/releases/download/${data.tag_name}/${assetName}`,
       engineDownloadUrl: `https://github.com/${BINARY_RELEASE_REPO}/releases/download/${data.tag_name}/${ENGINE_ASSET_NAME}`,
+      checksumsUrl: `https://github.com/${BINARY_RELEASE_REPO}/releases/download/${data.tag_name}/${CHECKSUMS_ASSET_NAME}`,
     };
   } catch (err: unknown) {
     logVerbose("Binary release lookup error", err);
@@ -157,6 +195,19 @@ export async function upgradeViaBinary(tdkPath: string, release: BinaryRelease):
       `curl -fsSL -o ${JSON.stringify(engineTmpPath)} ${JSON.stringify(release.engineDownloadUrl)}`,
       { stdio: "pipe", timeout: 120000 },
     );
+
+    // Verify both downloads against the release's checksums.txt before
+    // touching the installed binary or engine.
+    spinner.text = `Verifying checksums (${release.tag})...`;
+    const sums = parseChecksums(
+      execSync(`curl -fsSL ${JSON.stringify(release.checksumsUrl)}`, {
+        encoding: "utf-8",
+        stdio: "pipe",
+        timeout: 30000,
+      }),
+    );
+    verifyChecksum(tmpPath, release.assetName, sums, true);
+    verifyChecksum(engineTmpPath, ENGINE_ASSET_NAME, sums, false);
 
     execSync(`mv ${JSON.stringify(tmpPath)} ${JSON.stringify(tdkPath)}`);
     execSync(`rm -rf ${JSON.stringify(engineDir)}`);
