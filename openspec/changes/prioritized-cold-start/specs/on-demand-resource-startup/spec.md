@@ -13,7 +13,7 @@ A resource with a `sablier` manifest block SHALL be able to mark itself deferred
 #### Scenario: Deferred resource is not started during tdk up
 
 - **WHEN** `tdk up` runs a landscape containing a resource with deferred start enabled
-- **THEN** that resource's image build completes during the run
+- **THEN** that resource's image build completes during the run, under the image tag its compose service declares, so its first request can start it without building
 - **AND** the resource's container is not started, and `tdk up` does not wait on it to become healthy before finishing bring-up of the rest of the landscape
 
 #### Scenario: Non-opted-in resource is unaffected
@@ -65,12 +65,18 @@ Waking a deferred resource SHALL also wake any of its required startup dependenc
 
 ### Requirement: A Waking Request Waits For Health, Not Just Start
 
-A request that triggers a deferred resource's startup SHALL be held until the resource passes its health check or until a bounded timeout elapses, rather than being answered as soon as the container process starts.
+A request that triggers a deferred resource's startup SHALL be held until the resource passes its health check, until a bounded hold window elapses, or until a bounded timeout elapses, rather than being answered as soon as the container process starts. The caller SHALL always receive a response; the connection SHALL NOT be dropped silently.
 
 #### Scenario: Client receives the real response
 
-- **WHEN** a request wakes a deferred resource
+- **WHEN** a request wakes a deferred resource that becomes healthy within the hold window
 - **THEN** the client's request is held and then answered by the resource once it is healthy, rather than receiving an immediate "starting" response with no real answer
+
+#### Scenario: Startup outlasts the hold window
+
+- **WHEN** a request wakes a deferred resource that is still not healthy when the hold window ends (e.g. the Docker daemon is saturated by a full `tdk up` bring-up)
+- **THEN** the request is answered with `503` and a `Retry-After` header while the start continues in the background
+- **AND** a retry, or any other request that arrives meanwhile, joins that same start instead of starting the resource again, and is answered by the resource once it is healthy
 
 #### Scenario: Startup exceeds the timeout
 
