@@ -5,8 +5,8 @@ import { ensureProjectRuntimeAssets } from "../generator/template-engine.js";
 import { handleDryRun } from "../utils/command-helpers.js";
 import { errorFactories, handleTiltFailure, withTiltCheck } from "../utils/errors.js";
 import { formatCount } from "../utils/formatting.js";
-import { findAvailablePort } from "../utils/port-assignment.js";
 import { findProjectRoot } from "../utils/paths.js";
+import { findAvailablePort } from "../utils/port-assignment.js";
 import { appendHealthPath, resolveSubdomainBases } from "../utils/service-urls.js";
 import { discoverResources, discoverStacks, getResourcesForStack, stackExists, } from "../utils/services.js";
 import { buildTiltUpArgs, runTilt } from "../utils/tilt.js";
@@ -65,7 +65,11 @@ export const upCommand = new Command("up")
                 backends.forEach((svc) => {
                     const servicePathName = svc.name.replace(/-api$/, "");
                     const apiPath = svc.config?.apiPath ?? `/api/${servicePathName}`;
-                    console.log(chalk.gray(`  - ${svc.name}: ${apiBase}${chalk.cyan(appendHealthPath(apiPath))}`));
+                    const sablier = svc.config?.sablier;
+                    const deferredTag = sablier?.enable && sablier?.deferStart
+                        ? chalk.dim(" (deferred — starts on first request)")
+                        : "";
+                    console.log(chalk.gray(`  - ${svc.name}: ${apiBase}${chalk.cyan(appendHealthPath(apiPath))}${deferredTag}`));
                 });
             }
         }

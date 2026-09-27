@@ -17,6 +17,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -29,10 +31,14 @@ jobs:
           package-manager-cache: false
 
       - name: Update npm for trusted publishing
-        run: npm install -g npm@latest
+        run: npm install -g npm@latest # zizmor: ignore[adhoc-packages] trusted publishing needs a current npm
 
       - run: bun install --frozen-lockfile
         working-directory: cli
+
+      # cli/bin/tdk.js loads cli/dist/cli.js, so the npm package is broken
+      # unless the CLI is compiled before `npm publish`.
+      - run: npm run build
 
       - run: scripts/release-binaries.sh --publish
         env:

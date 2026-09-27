@@ -22,6 +22,9 @@ export const REQUIRED_PACKAGE_SCRIPTS = {
     library: ["dev", "build"],
     sdk: ["dev", "build"],
 };
+// Version specifiers that pin nothing at all - a fresh `bun install`/`npm install`
+// can pull a different (possibly breaking) version on every run.
+export const UNPINNED_DEPENDENCY_VERSIONS = new Set(["latest", "*"]);
 export const OPTIONAL_INFRA_SERVICES = [
     "monitoring",
     "elk",

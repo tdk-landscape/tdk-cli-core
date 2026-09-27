@@ -1,0 +1,9 @@
+# Config for zizmor, the GitHub Actions security linter run by ci.yml's
+# Workflow Audit job whenever a workflow changes. Run locally with:
+#   zizmor .github/workflows/
+#
+# unpinned-uses is off: we only use official or widely used actions by
+# major version tag, and hash pins would need updating for every release.
+rules:
+  unpinned-uses:
+    disable: true
