@@ -28,6 +28,7 @@ export declare function createPackageJson(name: string, type: string): {
     scripts: {
         dev: string;
         build: string;
+        start?: string | undefined;
         test: string;
         lint: string;
         "lint:fix": string;

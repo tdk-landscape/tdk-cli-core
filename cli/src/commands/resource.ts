@@ -94,6 +94,8 @@ export function createPackageJson(name: string, type: string) {
     scripts: {
       dev: isFrontend ? "vite" : "bun run --watch src/index.ts",
       build: isFrontend ? "tsc && vite build" : "tsc",
+      // Backends and workers run `start` in their production image; doctor checks for it.
+      ...(isFrontend ? {} : { start: "bun run dist/index.js" }),
       test: "vitest",
       lint: "biome check .",
       "lint:fix": "biome check . --write",
@@ -102,7 +104,7 @@ export function createPackageJson(name: string, type: string) {
       ...(isFrontend ? {} : { hono: "^4.0.0" }),
     },
     devDependencies: {
-      "@types/bun": "latest",
+      "@types/bun": "^1.4.2",
       typescript: "^7.0.2",
       vitest: "^5.0.0",
       "@biomejs/biome": "^2.5.13",
