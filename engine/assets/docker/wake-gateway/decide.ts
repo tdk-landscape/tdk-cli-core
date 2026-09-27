@@ -20,11 +20,26 @@ export interface WakeRequestSnapshot {
   resourceContainerName: string;
   resourceState: ContainerState;
   dependencies: DependencySnapshot[];
+  /**
+   * Whether the route carried enough compose detail (project, files, image)
+   * for the gateway to create the resource's container itself.
+   */
+  hasComposeInvocation?: boolean;
 }
 
 export interface WakeAction {
   /** Resources to `tilt trigger` (task 1.5: Tilt never cascades this on its own). */
   tiltTriggerNames: string[];
+  /**
+   * Whether to create/start the resource's container directly with
+   * `docker compose up --no-build` instead of `tilt trigger`. `tilt trigger`
+   * only queues the resource: with Tilt's build slots busy (e.g. 100+
+   * resources rebuilding after a re-vendor), a triggered resource waited
+   * behind them and the request timed out (observed live against
+   * tdk-erp-system, see tasks.md 7.2). server.ts falls back to `tilt trigger`
+   * when no image exists yet to start from.
+   */
+  useComposeStart: boolean;
   /**
    * Whether to also try Sablier's own Docker-level start for the resource.
    * Only meaningful when the resource's container already exists (D2/D3):
@@ -39,8 +54,9 @@ export interface WakeAction {
  */
 export function decideWakeAction(snapshot: WakeRequestSnapshot): WakeAction {
   const tiltTriggerNames: string[] = [];
+  const useComposeStart = snapshot.resourceState === "absent" && snapshot.hasComposeInvocation === true;
 
-  if (snapshot.resourceState !== "running") {
+  if (snapshot.resourceState !== "running" && !useComposeStart) {
     tiltTriggerNames.push(snapshot.resourceContainerName);
   }
   for (const dep of snapshot.dependencies) {
@@ -51,7 +67,21 @@ export function decideWakeAction(snapshot: WakeRequestSnapshot): WakeAction {
 
   const useSablierStart = snapshot.resourceState === "exited" || snapshot.resourceState === "created";
 
-  return { tiltTriggerNames, useSablierStart };
+  return { tiltTriggerNames, useComposeStart, useSablierStart };
+}
+
+/** Wait budget when the gateway starts an existing image itself (boot + healthcheck only). */
+export const COMPOSE_START_TIMEOUT_MS = 180_000;
+/**
+ * Wait budget when the resource has to go through `tilt trigger` (image build
+ * included). Kept under Bun.serve's 255s idleTimeout cap in server.ts.
+ */
+export const TILT_TRIGGER_TIMEOUT_MS = 240_000;
+
+/** The wait budget for a wake: an explicit X-Wake-Timeout-Ms wins, else by start path. */
+export function wakeTimeoutMs(startedViaCompose: boolean, overrideMs?: number): number {
+  if (overrideMs && overrideMs > 0) return overrideMs;
+  return startedViaCompose ? COMPOSE_START_TIMEOUT_MS : TILT_TRIGGER_TIMEOUT_MS;
 }
 
 export interface WaitOutcome {

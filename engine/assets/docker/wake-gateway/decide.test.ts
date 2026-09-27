@@ -1,5 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { decideWakeAction, evaluateReadiness } from "./decide";
+import {
+  COMPOSE_START_TIMEOUT_MS,
+  TILT_TRIGGER_TIMEOUT_MS,
+  decideWakeAction,
+  evaluateReadiness,
+  wakeTimeoutMs,
+} from "./decide";
 
 describe("decideWakeAction", () => {
   test("never-created resource: tilt trigger only, no Sablier start", () => {
@@ -56,6 +62,31 @@ describe("decideWakeAction", () => {
     ]);
   });
 
+  test("never-created resource with compose details: started directly, not queued in Tilt", () => {
+    const action = decideWakeAction({
+      resourceContainerName: "data-governance-api",
+      resourceState: "absent",
+      dependencies: [{ name: "peer-api", state: "absent" }],
+      hasComposeInvocation: true,
+    });
+    expect(action.useComposeStart).toBe(true);
+    // Dependencies carry no compose details, so they still go through Tilt.
+    expect(action.tiltTriggerNames).toEqual(["peer-api"]);
+    expect(action.useSablierStart).toBe(false);
+  });
+
+  test("existing (exited) container keeps the Sablier path even with compose details", () => {
+    const action = decideWakeAction({
+      resourceContainerName: "data-governance-api",
+      resourceState: "exited",
+      dependencies: [],
+      hasComposeInvocation: true,
+    });
+    expect(action.useComposeStart).toBe(false);
+    expect(action.tiltTriggerNames).toEqual(["data-governance-api"]);
+    expect(action.useSablierStart).toBe(true);
+  });
+
   test("running dependency is not re-triggered", () => {
     const action = decideWakeAction({
       resourceContainerName: "data-governance-api",
@@ -63,6 +94,21 @@ describe("decideWakeAction", () => {
       dependencies: [{ name: "postgres", state: "running" }],
     });
     expect(action.tiltTriggerNames).toEqual([]);
+  });
+});
+
+describe("wakeTimeoutMs", () => {
+  test("a direct compose start only waits for boot + healthcheck", () => {
+    expect(wakeTimeoutMs(true)).toBe(COMPOSE_START_TIMEOUT_MS);
+  });
+
+  test("the tilt trigger path allows for an image build, under Bun's 255s idle cap", () => {
+    expect(wakeTimeoutMs(false)).toBe(TILT_TRIGGER_TIMEOUT_MS);
+    expect(TILT_TRIGGER_TIMEOUT_MS).toBeLessThan(255_000);
+  });
+
+  test("an explicit X-Wake-Timeout-Ms wins", () => {
+    expect(wakeTimeoutMs(false, 5_000)).toBe(5_000);
   });
 });
 

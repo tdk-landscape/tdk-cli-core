@@ -30,10 +30,7 @@ export function loadTemplate(filename) {
         try {
             return fs.readFileSync(templatePath, "utf-8");
         }
-        catch (error) {
-            // Try next path
-            continue;
-        }
+        catch (_error) { }
     }
     throw new Error(`Failed to load template ${filename} from any of these paths: ${triedPaths.join(", ")}`);
 }
@@ -150,10 +147,7 @@ export class TemplateEngine {
             runtime: PLATFORM_STANDARDS.runtime,
             project: projectConfig.project,
             phases: dedupePhaseEnabledStacks(projectConfig.phases),
-            alwaysEnabledInfra: projectConfig.always_enabled_infra ?? [
-                "database-management",
-                "proxy",
-            ],
+            alwaysEnabledInfra: projectConfig.always_enabled_infra ?? ["database-management", "proxy"],
             optionalInfra: projectConfig.optional_infra,
             serviceDescriptions: RESOURCE_DESCRIPTIONS,
             infraDescriptions: INFRA_DESCRIPTIONS,
@@ -475,9 +469,7 @@ export async function generateMasterConfigs(projectRoot) {
 // This makes `tdk up` work offline and on any machine - no hardcoded paths,
 // no dependency on a private GitHub repo.
 const TDK_EXTENSION_DIRS = ["engine", "discovery", "specs", "ext"];
-const PROJECT_RUNTIME_ASSET_DIRS = [
-    ["shared-platform-engineering", "docker-templates"],
-];
+const PROJECT_RUNTIME_ASSET_DIRS = [["shared-platform-engineering", "docker-templates"]];
 const REQUIRED_DOCKER_TEMPLATE_FILES = [
     "install-deps.sh",
     "bun-hoisted-symlink-fix.sh",
@@ -517,7 +509,7 @@ function findCliAssetRoot() {
         path.join(exeDir, "tdk-cli"),
         path.join(process.cwd(), "node_modules", "@tdk-landscape", "tdk-cli-core"),
     ];
-    return candidates.find((candidate) => fs.existsSync(path.join(candidate, "shared-platform-engineering", "docker-templates"))) ?? null;
+    return (candidates.find((candidate) => fs.existsSync(path.join(candidate, "shared-platform-engineering", "docker-templates"))) ?? null);
 }
 export function ensureProjectRuntimeAssets(projectRoot) {
     const sourceRoot = findCliAssetRoot();
@@ -553,7 +545,7 @@ async function vendorTdkExtension(projectRoot) {
     //   2. Self-contained repo (engine/ ships next to cli/ - public tdk-cli-core)
     //   3. Executable-adjacent checkout (bundled installs)
     //   4. Relative ../tdk-cli sibling (monorepo maintainer layout)
-    let sources = [];
+    const sources = [];
     if (process.env.TDK_EXTENSION_SOURCE) {
         sources.push(process.env.TDK_EXTENSION_SOURCE);
     }

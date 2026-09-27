@@ -25,6 +25,29 @@ load("./traefik_constants.star",
 STATIC_ROUTE_PRIORITY = 1
 
 
+def normalize_abs_path(path):
+    """Absolute path with `.`/`..` segments collapsed, or "" for "".
+
+    Tilt's os.path.abspath does not collapse `..` (confirmed:
+    abspath("/a/.tdk/.tdk-out/../..") comes back unchanged), and the
+    generated Tiltfile's project root is exactly that shape
+    (config.main_dir + "/../.."). The gateway's project mount and the compose
+    paths in its route headers must match byte-for-byte, so both go through here.
+    """
+    if not path:
+        return ""
+    parts = []
+    for segment in os.path.abspath(path).split("/"):
+        if segment == "" or segment == ".":
+            continue
+        if segment == "..":
+            if parts:
+                parts.pop()
+            continue
+        parts.append(segment)
+    return "/" + "/".join(parts)
+
+
 def _container_name(compose_project_name, res_name):
     """Docker Compose's own naming convention: <project>-<service>-<replica>.
 
@@ -43,6 +66,9 @@ def generate_static_wake_route(
     gateway_host,
     gateway_port,
     dependencies=None,
+    compose_files=None,
+    env_file="",
+    image="",
 ):
     """YAML for one resource's Traefik file-provider dynamic-config entry.
 
@@ -50,6 +76,11 @@ def generate_static_wake_route(
     the resource's required startup dependencies (D5) -- each may live in a
     different compose project than the resource itself, so the project name
     travels alongside the resource name rather than being assumed shared.
+
+    `compose_files` (absolute paths), `env_file` and `image` let the gateway
+    create the container itself with `docker compose up --no-build` when the
+    image already exists, instead of waiting in Tilt's build queue behind
+    `tilt trigger`. Omitted headers make the gateway use `tilt trigger` only.
 
     Written to the directory PlatformDockerConstants.TRAEFIK_DYNAMIC_DIR_REL
     mounts into the standalone Traefik container (traefik_standalone.star).
@@ -66,6 +97,14 @@ def generate_static_wake_route(
         dep_res_name + "=" + _container_name(dep_project_name, dep_res_name)
         for dep_res_name, dep_project_name in dependencies
     ])
+    compose_headers = ""
+    if compose_files and image:
+        compose_headers = (
+            '\n          X-Wake-Compose-Project: "' + compose_project_name + '"'
+            + '\n          X-Wake-Compose-Files: "' + ",".join(compose_files) + '"'
+            + '\n          X-Wake-Env-File: "' + env_file + '"'
+            + '\n          X-Wake-Image: "' + image + '"'
+        )
 
     return """# SYSTEM-GENERATED - DO NOT EDIT (sablier.deferStart static wake route)
 http:
@@ -85,7 +124,7 @@ http:
           X-Wake-Resource: "{resource_entry_name}"
           X-Wake-Container: "{container_name}"
           X-Wake-Deps: "{deps_header}"
-          X-Wake-Proxy-Port: "{internal_port}"
+          X-Wake-Proxy-Port: "{internal_port}"{compose_headers}
   services:
     {service_name}:
       loadBalancer:
@@ -102,6 +141,7 @@ http:
         container_name=container_name,
         deps_header=deps_header,
         internal_port=internal_port,
+        compose_headers=compose_headers,
         gateway_host=gateway_host,
         gateway_port=gateway_port,
     )

@@ -33,7 +33,14 @@ const DEFAULT_ENDPOINT = "https://tdk-extension-dist.oranguman.workers.dev/v1/pr
 // bundle on the first resource name a key is found to grant, since
 // premium.tar.gz ships all paid resources together. Keep in sync with
 // what issue-key.yml/update-key.yml accept as `resources` entries.
-const KNOWN_RESOURCES = ["playwright", "c4-diagram", "logging", "agents-md", "sablier", "verdaccio"];
+const KNOWN_RESOURCES = [
+    "playwright",
+    "c4-diagram",
+    "logging",
+    "agents-md",
+    "sablier",
+    "verdaccio",
+];
 // Re-check the license periodically rather than trusting a local cache
 // forever - an expired or revoked key shouldn't keep unlocking premium
 // content indefinitely just because it worked once.
@@ -72,7 +79,7 @@ function getOrCreateProjectId(projectRoot) {
     }
     const id = randomUUID();
     mkdirSync(join(projectRoot, ".tdk"), { recursive: true });
-    writeFileSync(idPath, id + "\n");
+    writeFileSync(idPath, `${id}\n`);
     return id;
 }
 function cacheTarballPath(key) {

@@ -25,6 +25,8 @@ export interface ResourceConfig {
         enable?: boolean;
         group?: string;
         sessionDuration?: string;
+        /** Skip this resource during `tdk up` entirely; a Traefik static route wakes it on first request. Requires enable: true. */
+        deferStart?: boolean;
     };
 }
 export interface DiscoveredStack {

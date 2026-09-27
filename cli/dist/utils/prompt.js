@@ -1,5 +1,5 @@
-import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
+import { createInterface } from "node:readline/promises";
 async function question(prompt) {
     const rl = createInterface({ input, output });
     try {

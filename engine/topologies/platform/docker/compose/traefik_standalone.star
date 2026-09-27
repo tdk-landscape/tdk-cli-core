@@ -7,6 +7,7 @@
 
 load("../constants.star", "PlatformDockerConstants")
 load("../config/healthcheck.star", "compose_healthcheck_timing")
+load("../networking/traefik_static_routes.star", "normalize_abs_path")
 
 
 def generate_standalone_traefik_compose():
@@ -91,7 +92,7 @@ services:
       - PORT={gateway_port}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - {tilt_dev_dir}:/root/.tilt-dev:ro
+      - {tilt_dev_dir}:/root/.tilt-dev:ro{project_root_mount}
     networks:
       - traefik-public
 
@@ -108,4 +109,25 @@ networks:
         gateway_container=PlatformDockerConstants.TRAEFIK_WAKE_GATEWAY_CONTAINER,
         gateway_port=PlatformDockerConstants.TRAEFIK_WAKE_GATEWAY_PORT,
         tilt_dev_dir=os.environ.get("HOME", "") + "/.tilt-dev",
+        project_root_mount=_project_root_mount(),
     )
+
+
+def _project_root_mount():
+    """Read-only mount of the project at its own absolute host path.
+
+    The gateway runs `docker compose up --no-build` for a deferred resource
+    itself (bypassing Tilt's build queue), using the compose files Tilt uses.
+    Compose resolves relative paths in them (env_file etc.) client-side, so
+    they must exist at the same absolute paths inside the gateway container.
+    Empty when TDK_PROJECT_ROOT is unset (the generated Tiltfile sets it).
+    """
+    root = project_root_abspath()
+    if not root:
+        return ""
+    return "\n      - " + root + ":" + root + ":ro"
+
+
+def project_root_abspath():
+    """Absolute, normalized project root (TDK_PROJECT_ROOT), or "" when unset."""
+    return normalize_abs_path(os.environ.get("TDK_PROJECT_ROOT", ""))

@@ -144,3 +144,17 @@ def test_standalone_compose_enables_file_provider_and_wake_gateway(tmp_path):
     assert "/etc/traefik/dynamic:ro" in yaml_text
     assert "wake-gateway:" in yaml_text
     assert "/root/.tilt-dev:ro" in yaml_text
+
+
+@pytest.mark.skipif(shutil.which("tilt") is None, reason="tilt CLI not installed")
+def test_wake_gateway_mounts_project_root_at_its_own_absolute_path(tmp_path):
+    """The gateway runs `docker compose up --no-build` with the same compose
+    files Tilt uses; relative paths inside them resolve client-side, so the
+    project must exist at the same absolute path in the gateway container."""
+    r = _run_starlark(
+        tmp_path,
+        "os.environ['TDK_PROJECT_ROOT'] = '/Users/dev/tdk-erp-system/.tdk/.tdk-out/../..'\n"
+        "load('@COMPOSE/traefik_standalone.star', 'generate_standalone_traefik_compose')\n"
+        "r = {'yaml': generate_standalone_traefik_compose()}\n",
+    )
+    assert "- /Users/dev/tdk-erp-system:/Users/dev/tdk-erp-system:ro" in r["yaml"]
