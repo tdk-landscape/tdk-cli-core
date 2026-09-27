@@ -58,7 +58,7 @@ jobs:
           version="$current"
           while npm view "@tdk-landscape/tdk-cli-core@${version}" version >/dev/null 2>&1 \
             || gh release view "v${version}" --repo tdk-landscape/tdk-cli-releases >/dev/null 2>&1; do
-            version=$(node -p 'const [a, b, c] = process.argv[1].split(".").map(Number); `${a}.${b}.${c + 1}`' "$version")
+            version=$(node -p 'const [a, b, c] = process.argv[1].split(".").map(Number); [a, b, c + 1].join(".")' "$version")
           done
           if [ "$version" = "$current" ]; then
             echo "Releasing ${version}."
@@ -71,8 +71,8 @@ jobs:
               const fs = require("fs");
               for (const file of ["package.json", "cli/package.json"]) {
                 const before = fs.readFileSync(file, "utf8");
-                const after = before.replace(/("version":\s*")[^"]+"/, `$1${process.argv[1]}"`);
-                if (after === before) throw new Error(`no version field in ${file}`);
+                const after = before.replace(/("version":\s*")[^"]+"/, (_, key) => key + process.argv[1] + "\"");
+                if (after === before) throw new Error("no version field in " + file);
                 fs.writeFileSync(file, after);
               }
             ' "$version"
@@ -124,7 +124,7 @@ jobs:
             let end = lines.findIndex((l, i) => i > start && l.startsWith("## "));
             if (end === -1) end = lines.length;
             if (!lines.slice(start + 1, end).some((l) => l.trim())) process.exit(0);
-            lines.splice(start + 1, 0, "", `## ${version} (${date})`);
+            lines.splice(start + 1, 0, "", "## " + version + " (" + date + ")");
             fs.writeFileSync("CHANGELOG.md", lines.join("\n"));
           ' "$VERSION" "$(date -u +%F)"
           git add package.json cli/package.json
