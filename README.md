@@ -7,12 +7,10 @@
 One CLI that scaffolds your services and runs the whole landscape locally with hot reload, health checks, a proxy, and Postgres, all built on [Tilt](https://tilt.dev).
 
 [![npm version](https://img.shields.io/npm/v/@tdk-landscape/tdk-cli-core.svg?style=flat&color=blue)](https://www.npmjs.com/package/@tdk-landscape/tdk-cli-core)
-[![npm downloads](https://img.shields.io/npm/dm/@tdk-landscape/tdk-cli-core.svg?style=flat)](https://www.npmjs.com/package/@tdk-landscape/tdk-cli-core)
 [![CI](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/ci.yml/badge.svg)](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/ci.yml)
 [![Known Vulnerabilities](https://snyk.io/test/github/tdk-landscape/tdk-cli-core/badge.svg)](https://snyk.io/test/github/tdk-landscape/tdk-cli-core)
 [![Socket Badge](https://badge.socket.dev/npm/package/@tdk-landscape/tdk-cli-core/latest)](https://socket.dev/npm/package/@tdk-landscape/tdk-cli-core/overview)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![GitHub stars](https://img.shields.io/github/stars/tdk-landscape/tdk-cli-core?style=flat&logo=github)](https://github.com/tdk-landscape/tdk-cli-core/stargazers)
 
 [Website](https://tdk-landscape.github.io/tdk-website) · [Quickstart](https://tdk-landscape.github.io/tdk-website/docs/quickstart/) · [Examples](https://tdk-landscape.github.io/tdk-website/docs/examples/) · [Demo](https://tdk-landscape.github.io/tdk-demo-animation/) · [Report a bug](https://github.com/tdk-landscape/tdk-cli-core/issues/new/choose)
 
@@ -20,6 +18,7 @@ One CLI that scaffolds your services and runs the whole landscape locally with h
 
 ```bash
 npm install -g @tdk-landscape/tdk-cli-core
+mkdir shop && cd shop                                   # tdk writes files into the current directory
 tdk project --yes                                       # set up the project
 tdk resource orders-api --type backend --stack shop     # scaffold a service
 tdk up shop                                             # run it with hot reload
@@ -27,7 +26,7 @@ tdk up shop                                             # run it with hot reload
 
 ![tdk scaffolding a backend and a frontend, then listing the stack](docs/demo.svg)
 
-> ⭐ **If TDK saves you from writing another `docker-compose.yml`, please [star the repo](https://github.com/tdk-landscape/tdk-cli-core/stargazers).** Stars help other developers find it.
+**Requirements:** Docker (Desktop, OrbStack or Colima; Engine 25+, Compose 2.20+), [Tilt](https://docs.tilt.dev/install.html), [Bun](https://bun.sh) for the generated services, and Node.js 22.12+ for the CLI. macOS and Linux are supported. Windows is untested (WSL2 may work). Run `tdk doctor` to check all of it.
 
 This is the core monorepo for TDK: the `tdk` CLI, the Starlark-based Tilt orchestration engine that powers it, and the discovery system that turns a directory of services into a running local landscape.
 
@@ -37,10 +36,12 @@ This is the core monorepo for TDK: the `tdk` CLI, the Starlark-based Tilt orches
 |---|---|---|---|---|
 | Scaffold a new service in one command | ❌ | ❌ | ❌ | ✅ `tdk resource` |
 | Hot reload on file change | ⚠️ `compose watch` config | ⚠️ extra tooling | ✅ | ✅ |
-| Health-checked startup order | ⚠️ `depends_on` only | ✅ | ⚠️ write it yourself | ✅ |
+| Health-checked startup order | ✅ `depends_on: condition: service_healthy` | ✅ | ⚠️ write it yourself | ✅ |
 | Proxy, Postgres, monitoring included | ❌ | ❌ | ❌ | ✅ |
 | Needs a cluster | No | Yes | Optional | **No** |
 | Start only one stack of a large system | ⚠️ profiles | ⚠️ | ⚠️ | ✅ `tdk up <stack>` |
+
+TDK is not a replacement for Tilt: it generates the Tiltfile, Dockerfiles and compose files and then runs Tilt. If you already have a hand-written Tiltfile or compose setup you're happy with, TDK mostly saves you the boilerplate for the next service.
 
 ## Benchmark: 100 services on one laptop
 
@@ -52,16 +53,23 @@ Measured with [`scripts/benchmark/container-scale.ts`](scripts/benchmark/README.
 | 50 | 24 s | 829 MiB | 17 MiB | 0 / 0 |
 | 100 | 112 s | 1.6 GiB | 17 MiB | 0 / 0 |
 
+What this does and doesn't measure:
+
+- The ERP services are small generated Bun HTTP services (about 20 lines each) answering `/health`. Real services with real dependencies use more memory; the point is that TDK's per-service overhead (runtime image, healthchecks, proxy routing) stays small.
+- Images were already built. Build time isn't included, and a first `tdk up` of 100 services takes much longer.
+- The script starts the service containers with the settings `tdk up` generates (512 MiB / 0.5 CPU limits, healthchecks), without Tilt running. The memory column counts only the service containers, not Postgres or Traefik.
+- Numbers vary between runs (a later run reached 100 healthy in 74 s). Run it yourself with `bun scripts/benchmark/container-scale.ts`.
+
 ## What is TDK?
 
 TDK organizes microservices using a **Project → Stack → Resource** hierarchy, then uses Tilt to build, run, and hot-reload them locally:
 
 ```
-📁 Project (1 per repo)
+Project (1 per repo)
 ├── TILT_RESOURCE_DEFAULTS.star   # Ports, health checks, memory
 ├── TILT_TECH_STACK.star          # Bun, Vite, Prisma, NATS
 │
-└── 📦 Stacks (deployment groups)
+└── Stacks (deployment groups)
     ├── api-stack
     │   ├── api-backend      # Resource
     │   └── web-frontend     # Resource
@@ -70,6 +78,8 @@ TDK organizes microservices using a **Project → Stack → Resource** hierarchy
         ├── worker-backend
         └── web-frontend
 ```
+
+`.tdk/project.json` also groups stacks into phases (`pre_alpha`, `alpha`, `beta`, `out_of_scope`) so a large system can be brought up in stages. `tdk up` runs stacks from the first three and adds any new stack to `pre_alpha`.
 
 Running `tdk resource` scaffolds a service (Dockerfile, TypeScript config, starter code, tests); `tdk up` hands the whole landscape to Tilt for orchestration, live-reload, and health checking — sized to fit dozens of services on a single laptop.
 
@@ -92,12 +102,13 @@ Premium features don't need a different install: set `TDK_LICENSE_KEY` and any o
 ## Quick start
 
 ```bash
-cd my-project
-tdk project                                          # initialize master configs
-tdk resource api-api --type backend --stack api      # scaffold a backend
-tdk resource api-app --type frontend --stack api     # scaffold a frontend
-tdk up api                                            # start the stack via Tilt
-tdk status                                            # check what's running
+mkdir shop && cd shop
+tdk project --yes                                     # writes .tdk/project.json and generated configs
+tdk resource orders-api --type backend --stack shop   # asks you to confirm, then scaffolds services/shop/orders-api
+tdk resource storefront --type frontend --stack shop
+tdk up shop                                           # starts Tilt; UI at http://localhost:10350
+tdk networks                                          # lists the *.localhost URLs Traefik routes
+tdk down                                              # stops everything
 ```
 
 See the [CLI reference](cli/README.md) for the full command set (`stack`, `resources`, `doctor`, `ui`, and more).
@@ -121,6 +132,28 @@ This is a monorepo — most day-to-day CLI work happens under `cli/`, while `eng
 ## Features
 
 TDK ships a set of always-on infrastructure services (Traefik proxy, PostgreSQL) plus opt-in features — monitoring, ELK, Debezium CDC, a local npm registry, and more. Enable/disable them per-project via `.tdk/project.json`, or per-resource via each service's `service.json`. Full reference: [docs/FEATURES.md](docs/FEATURES.md).
+
+## Free and paid features
+
+The CLI, engine and everything in this repository are MIT-licensed and work without an account or key. A few extras are paid and need a `TDK_LICENSE_KEY`: on-demand start/stop of idle services (Sablier), a local npm registry (Verdaccio), DDD scaffolding, Playwright config, C4 diagrams, synthetic monitoring, and a few generators (see `KNOWN_RESOURCES` in [extension-fetch.ts](cli/src/generator/extension-fetch.ts)). In this repo those are disabled stubs; with a key set, the CLI downloads the real implementations. [docs/FEATURES.md](docs/FEATURES.md) marks which features are which. To ask about a key, [open an issue](https://github.com/tdk-landscape/tdk-cli-core/issues/new/choose).
+
+## Network access and telemetry
+
+TDK has no telemetry or analytics. The CLI only goes online when you ask it to:
+
+- `tdk upgrade` checks the latest release on GitHub.
+- With `TDK_LICENSE_KEY` set, `tdk project` and `tdk up` download the paid bundle from `tdk-extension-dist.oranguman.workers.dev` and re-check the key every 12 hours. Without a key, nothing is sent.
+- Docker and Tilt pull images and packages as they normally would.
+
+## FAQ
+
+**Why not just docker compose?** For a handful of services, compose is fine. TDK generates the compose files for you. It adds hot reload through Tilt, one-command scaffolding with matching Dockerfiles, and a stack-level `tdk up` for large systems where starting everything is too slow.
+
+**How is this different from Skaffold, Garden, DevSpace or Tilt itself?** Skaffold, Garden and DevSpace are built around Kubernetes, and plain Tilt leaves the Tiltfile to you. TDK runs on plain Docker with no cluster, and generates both the services and the Tilt config from a `service.json` per service.
+
+**Do I need 100 microservices?** No. Two services work the same way. The 100-service example is a stress test to show the overhead stays flat.
+
+**Is TDK affiliated with Tilt or Docker?** No. TDK is an independent project built on top of [Tilt](https://tilt.dev), which is maintained by Docker, Inc.
 
 ## Development
 
@@ -147,8 +180,6 @@ Verifies Docker, Bun, Tilt, required ports, and master config files are all in p
 - **Contributing:** see [CONTRIBUTING.md](CONTRIBUTING.md). Issues labeled [`good first issue`](https://github.com/tdk-landscape/tdk-cli-core/labels/good%20first%20issue) are a good place to start.
 - **Security:** see [SECURITY.md](SECURITY.md). Please don't report vulnerabilities in public issues.
 - **Examples:** [ERP system (100 services)](https://github.com/tdk-landscape/tdk-erp-system), [SaaS starter](https://github.com/tdk-landscape/tdk-saas-starter), [restaurant](https://github.com/tdk-landscape/tdk-restaurant-example).
-
-If TDK is useful to you, a ⭐ helps more than you'd think.
 
 ## License
 
