@@ -920,7 +920,9 @@ export const doctorCommand = new Command("doctor")
     console.log("");
 
     if (allPassed && !inProject) {
-      console.log(`${chalk.gray("○")} ${chalk.gray("Not in a TDK project, so project checks were skipped")}`);
+      console.log(
+        `${chalk.gray("○")} ${chalk.gray("Not in a TDK project, so project checks were skipped")}`,
+      );
       console.log("");
       console.log(`${chalk.green(chalk.bold("✓"))} This machine is ready for TDK`);
       console.log("");
