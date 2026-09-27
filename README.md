@@ -23,6 +23,8 @@ tdk resource orders-api --type backend --stack shop     # scaffold a service
 tdk up shop                                             # run it with hot reload
 ```
 
+![tdk scaffolding a backend and a frontend, then listing the stack](docs/demo.svg)
+
 > ⭐ **If TDK saves you from writing another `docker-compose.yml`, please [star the repo](https://github.com/tdk-landscape/tdk-cli-core/stargazers).** Stars help other developers find it.
 
 This is the core monorepo for TDK: the `tdk` CLI, the Starlark-based Tilt orchestration engine that powers it, and the discovery system that turns a directory of services into a running local landscape.
