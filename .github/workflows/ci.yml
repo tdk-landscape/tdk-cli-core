@@ -101,6 +101,19 @@ jobs:
           bun install --frozen-lockfile
           npm run build
 
+      # cli/dist is committed so `npm install -g github:tdk-landscape/tdk-cli-core`
+      # works without a build step. Fail if a source change was committed
+      # without rebuilding it.
+      - name: Check committed cli/dist is up to date
+        run: |
+          # --ignored: cli/dist/ is gitignored, so a newly compiled file only
+          # shows up with it.
+          if [ -n "$(git status --porcelain --ignored -- cli/dist)" ]; then
+            git status --short --ignored -- cli/dist
+            echo "::error::cli/dist is stale. Run 'npm run build' and commit cli/dist (new files need 'git add -f')."
+            exit 1
+          fi
+
       - name: Pack and install globally
         run: | # zizmor: ignore[adhoc-packages] installs our own freshly packed tarball
           npm pack --pack-destination "$RUNNER_TEMP"

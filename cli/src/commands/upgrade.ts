@@ -102,8 +102,8 @@ export function parseChecksums(text: string): Map<string, string> {
 /**
  * Throws unless `filePath` hashes to the checksum listed for `assetName`.
  * A missing entry is an error when `required`; otherwise it is skipped, so
- * releases published before an asset was added to checksums.txt (the engine
- * tarball was added after 1.3.51) still install.
+ * releases published before an asset was added to checksums.txt (older
+ * releases list only the binaries, not the engine tarball) still install.
  */
 function verifyChecksum(
   filePath: string,

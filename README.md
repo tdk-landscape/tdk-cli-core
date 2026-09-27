@@ -81,11 +81,13 @@ npm install -g @tdk-landscape/tdk-cli-core
 bun install -g @tdk-landscape/tdk-cli-core
 ```
 
-Or via the installer script:
+Or install the prebuilt binary (no Node or Bun needed; verified against the release checksums):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/tdk-landscape/tdk-cli-core/main/install.sh | bash
+curl -fsSL https://tdk-landscape.github.io/install.sh | sh
 ```
+
+Premium features don't need a different install: set `TDK_LICENSE_KEY` and any of these installs unlocks them. See [docs/FEATURES.md](docs/FEATURES.md).
 
 ## Quick start
 
@@ -114,7 +116,7 @@ This is a monorepo — most day-to-day CLI work happens under `cli/`, while `eng
 | [`benchmarks/`](benchmarks) | Container/landscape scale benchmarks. |
 | [`docs/`](docs) | Reference docs, including [FEATURES.md](docs/FEATURES.md) for project- and resource-level feature flags. |
 | [`Tiltfile`](Tiltfile) | Entry point that wires the engine into `tilt up`. |
-| [`install.sh`](install.sh) | Standalone installer used by the `curl \| bash` flow above. |
+| [`install.sh`](install.sh) | Legacy installer URL; hands off to the official installer at `tdk-landscape.github.io/install.sh`. |
 
 ## Features
 
