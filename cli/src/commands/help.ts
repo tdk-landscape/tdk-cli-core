@@ -1,24 +1,13 @@
 import chalk from "chalk";
+import pkg from "../../package.json" with { type: "json" };
 
 const TDK_BANNER = `
-${chalk.cyan("╔════════════════════════════════════════════════════════════╗")}
-${chalk.cyan("║")}                                                            ${chalk.cyan("║")}
-${chalk.cyan("║")}     ${chalk.bold.white("████████╗██████╗ ██╗  ██╗")}    ${chalk.bold.white("██████╗██╗     ██╗")}            ${chalk.cyan("║")}
-${chalk.cyan("║")}     ${chalk.bold.white("╚══██╔══╝██╔══██╗██║ ██╔╝")}   ${chalk.bold.white("██╔════╝██║     ██║")}            ${chalk.cyan("║")}
-${chalk.cyan("║")}        ${chalk.bold.white("██║   ██║  ██║█████╔╝")}    ${chalk.bold.white("██║     ██║     ██║")}            ${chalk.cyan("║")}
-${chalk.cyan("║")}        ${chalk.bold.white("██║   ██║  ██║██╔═██╗")}    ${chalk.bold.white("██║     ██║     ██║")}            ${chalk.cyan("║")}
-${chalk.cyan("║")}        ${chalk.bold.white("██║   ██████╔╝██║  ██╗")}${chalk.yellow("██╗")}${chalk.bold.white("╚██████╗███████╗██║")}            ${chalk.cyan("║")}
-${chalk.cyan("║")}        ${chalk.white("╚═╝   ╚═════╝ ╚═╝  ╚═╝╚═╝")} ${chalk.white("╚═════╝╚══════╝╚═╝")}            ${chalk.cyan("║")}
-${chalk.cyan("║")}                                                            ${chalk.cyan("║")}
-${chalk.cyan("║")}          ${chalk.bold.yellow("🚀 Tilt Development Kit - Local Microservices")}             ${chalk.cyan("║")}
-${chalk.cyan("║")}                                                            ${chalk.cyan("║")}
-${chalk.cyan("╚════════════════════════════════════════════════════════════╝")}
+  ${chalk.bold.cyan("tdk")} ${chalk.gray(`v${pkg.version}`)}  ${chalk.white("Tilt Development Kit: run your microservices locally")}
 `;
 
 const COMMAND_GROUPS = [
   {
-    title: "🌍 Project Level",
-    emoji: "📁",
+    title: "Project Level",
     color: chalk.blue,
     commands: [
       {
@@ -30,8 +19,7 @@ const COMMAND_GROUPS = [
     ],
   },
   {
-    title: "📦 Stack Level",
-    emoji: "📦",
+    title: "Stack Level",
     color: chalk.magenta,
     commands: [
       { name: "stack", desc: "Organize resources into stacks (interactive)", alias: "" },
@@ -39,8 +27,7 @@ const COMMAND_GROUPS = [
     ],
   },
   {
-    title: "⚡ Resource Level",
-    emoji: "⚡",
+    title: "Resource Level",
     color: chalk.yellow,
     commands: [
       { name: "resource", desc: "Create new resource with templates", alias: "" },
@@ -48,8 +35,7 @@ const COMMAND_GROUPS = [
     ],
   },
   {
-    title: "🔄 Lifecycle",
-    emoji: "🔄",
+    title: "Lifecycle",
     color: chalk.green,
     commands: [
       { name: "up, deploy", desc: "Start services (optionally by stack)", alias: "[stack-name]" },
@@ -58,8 +44,7 @@ const COMMAND_GROUPS = [
     ],
   },
   {
-    title: "🌐 Networking",
-    emoji: "🌐",
+    title: "Networking",
     color: chalk.blueBright,
     commands: [
       {
@@ -70,8 +55,7 @@ const COMMAND_GROUPS = [
     ],
   },
   {
-    title: "🛠️ Utilities",
-    emoji: "🛠️",
+    title: "Utilities",
     color: chalk.cyan,
     commands: [
       { name: "ui, interactive", desc: "Interactive TUI for managing services", alias: "" },
@@ -84,7 +68,7 @@ const COMMAND_GROUPS = [
       { name: "completion", desc: "Generate shell completions", alias: "--install --shell zsh" },
       { name: "upgrade, update", desc: "Self-update to latest version", alias: "--force" },
       { name: "version, -v", desc: "Display version number", alias: "" },
-      { name: "help", desc: "Show this colorful help", alias: "[command]" },
+      { name: "help", desc: "Show help", alias: "[command]" },
     ],
   },
 ];
@@ -104,7 +88,7 @@ function formatCommand(
 export function showHelp(): void {
   console.log(TDK_BANNER);
 
-  console.log(chalk.bold.white("\n  Project → Phase → Stack → Resource (PPSR) Model\n"));
+  console.log(chalk.bold.white("\n  Project → Phase → Stack → Resource\n"));
 
   console.log(chalk.gray("  Usage: tdk [command] [options]\n"));
 
@@ -117,7 +101,7 @@ export function showHelp(): void {
   console.log();
 
   for (const group of COMMAND_GROUPS) {
-    console.log(group.color.bold(`${group.emoji} ${group.title}`));
+    console.log(group.color.bold(`  ${group.title}`));
     console.log(group.color(`  ${"─".repeat(50)}`));
 
     for (const cmd of group.commands) {
@@ -126,7 +110,7 @@ export function showHelp(): void {
 
     console.log();
   }
-  console.log(chalk.bold.yellow("  🚀 Quick Start:"));
+  console.log(chalk.bold.yellow("  Quick start:"));
   console.log(chalk.gray(`  ${"─".repeat(50)}`));
   console.log(
     chalk.white(`
@@ -136,25 +120,24 @@ export function showHelp(): void {
   ${chalk.cyan("4.")} Start development:         ${chalk.green("tdk up my-stack")}
   `),
   );
-  console.log(chalk.bold.yellow("  💡 Examples:"));
+  console.log(chalk.bold.yellow("  Examples:"));
   console.log(chalk.gray(`  ${"─".repeat(50)}`));
   console.log(
     chalk.white(`
-  ${chalk.cyan("$")} tdk project                          # Create master configs
-  ${chalk.cyan("$")} tdk resource api --type backend      # Create backend service
-  ${chalk.cyan("$")} tdk resource app --type frontend       # Create frontend app
-  ${chalk.cyan("$")} tdk stacks --services                  # List stacks with resources
-  ${chalk.cyan("$")} tdk up my-stack                        # Start a stack
-  ${chalk.cyan("$")} tdk networks                          # Show Traefik-routed URLs
-  ${chalk.cyan("$")} tdk doctor                           # Check environment
-  ${chalk.cyan("$")} tdk upgrade                          # Self-update
+  ${chalk.cyan("$")} tdk project                       # Create master configs
+  ${chalk.cyan("$")} tdk resource api --type backend   # Create a backend service
+  ${chalk.cyan("$")} tdk resource app --type frontend  # Create a frontend app
+  ${chalk.cyan("$")} tdk stacks --services             # List stacks with their resources
+  ${chalk.cyan("$")} tdk up my-stack                   # Start a stack
+  ${chalk.cyan("$")} tdk networks                      # Show Traefik-routed URLs
+  ${chalk.cyan("$")} tdk doctor                        # Check your environment
+  ${chalk.cyan("$")} tdk upgrade                       # Self-update
   `),
   );
   console.log(chalk.gray(`  ${"═".repeat(50)}`));
-  console.log(chalk.gray(`  For more help: ${chalk.cyan("tdk help [command]}")}`));
+  console.log(chalk.gray(`  For more help: ${chalk.cyan("tdk help [command]")}`));
   console.log(
     chalk.gray(`  GitHub: ${chalk.cyan("https://github.com/tdk-landscape/tdk-cli-core")}`),
   );
   console.log();
-  console.log(chalk.green.bold("  Happy coding! 🚀\n"));
 }

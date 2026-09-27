@@ -32,7 +32,14 @@ interface MultiSelectPromptOptions<T extends string> extends ChoicePromptOptions
 async function question(prompt: string): Promise<string> {
   const rl = createInterface({ input, output });
   try {
-    return (await rl.question(prompt)).trim();
+    // Without this, a closed stdin (CI, `< /dev/null`, a pipe) leaves the
+    // question pending forever and Node exits 0 having done nothing.
+    return await new Promise<string>((resolve, reject) => {
+      rl.once("close", () =>
+        reject(new Error("No input available to answer the prompt. Run this in a terminal.")),
+      );
+      rl.question(prompt).then((answer) => resolve(answer.trim()), reject);
+    });
   } finally {
     rl.close();
   }
