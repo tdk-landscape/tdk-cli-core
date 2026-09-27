@@ -4,6 +4,9 @@ Notable changes to the `tdk` CLI. Versions match [npm](https://www.npmjs.com/pac
 
 ## Unreleased
 
+- The "requires a license key" errors link to the working request form (`tdk-landscape.github.io/tdk-website/#waitlist`); the old link pointed at a page without it.
+- New issue template for Premium license requests.
+
 ## 1.3.52 (2026-09-27)
 
 - `tdk up` works in a fresh project. The Tiltfile no longer aborts when a stack listed in `project.json` has no directory yet, and stacks created after `tdk project` are added to the `pre_alpha` phase so they actually start.
