@@ -42,6 +42,29 @@ cp -R "${ROOT_DIR}/specs" "${RELEASE_DIR}/tdk-cli/specs"
 cp -R "${ROOT_DIR}/ext" "${RELEASE_DIR}/tdk-cli/ext"
 mkdir -p "${RELEASE_DIR}/tdk-cli/cli"
 cp -R "${ROOT_DIR}/cli/templates" "${RELEASE_DIR}/tdk-cli/cli/templates"
+# `tdk project` copies these into every project; generated Dockerfiles run them.
+mkdir -p "${RELEASE_DIR}/tdk-cli/shared-platform-engineering"
+cp -R "${ROOT_DIR}/shared-platform-engineering/docker-templates" \
+  "${RELEASE_DIR}/tdk-cli/shared-platform-engineering/docker-templates"
+
+# Smoke-test the binary for this machine the way users install it (binary with
+# tdk-cli/ next to it): `tdk project` must find the engine and runtime assets.
+host_binary="tdk-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')"
+if [ -x "${RELEASE_DIR}/${host_binary}" ]; then
+  smoke_dir="$(mktemp -d)"
+  smoke_log="$(cd "${smoke_dir}" && "${RELEASE_DIR}/${host_binary}" project --yes </dev/null 2>&1)" || {
+    echo "${smoke_log}" >&2
+    echo "Smoke test failed: ${host_binary} project --yes exited non-zero" >&2
+    exit 1
+  }
+  rm -rf "${smoke_dir}"
+  if echo "${smoke_log}" | grep -qE "not found"; then
+    echo "${smoke_log}" >&2
+    echo "Smoke test failed: ${host_binary} could not find its bundled files" >&2
+    exit 1
+  fi
+  echo "Smoke test passed: ${host_binary} project --yes"
+fi
 
 (
   cd "${RELEASE_DIR}"
