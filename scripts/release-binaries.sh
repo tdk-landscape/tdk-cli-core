@@ -45,14 +45,17 @@ cp -R "${ROOT_DIR}/cli/templates" "${RELEASE_DIR}/tdk-cli/cli/templates"
 
 (
   cd "${RELEASE_DIR}"
-  shasum -a 256 tdk-linux-amd64 tdk-linux-arm64 tdk-darwin-amd64 tdk-darwin-arm64 > checksums.txt
+  # Fixed filename (no version/tag in the name) so install.sh can always
+  # find it via the stable /releases/latest/download/ URL, unlike the zip
+  # below whose name embeds the tag and changes every release.
+  tar -czf tdk-cli-engine.tar.gz tdk-cli
+  # install.sh and `tdk upgrade` verify the binary and the engine tarball
+  # against this file before installing them.
+  shasum -a 256 tdk-linux-amd64 tdk-linux-arm64 tdk-darwin-amd64 tdk-darwin-arm64 \
+    tdk-cli-engine.tar.gz > checksums.txt
   zip -qr "tdk-cli-${RELEASE_TAG}-binaries.zip" \
     tdk-linux-amd64 tdk-linux-arm64 tdk-darwin-amd64 tdk-darwin-arm64 \
     tdk-cli checksums.txt
-  # Fixed filename (no version/tag in the name) so install.sh can always
-  # find it via the stable /releases/latest/download/ URL, unlike the zip
-  # above whose name embeds the tag and changes every release.
-  tar -czf tdk-cli-engine.tar.gz tdk-cli
 )
 
 echo "Built release assets in ${RELEASE_DIR}"
