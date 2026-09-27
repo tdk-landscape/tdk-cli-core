@@ -26,7 +26,7 @@ tdk up shop                                             # run it with hot reload
 
 ![tdk scaffolding a backend and a frontend, then listing the stack](docs/demo.svg)
 
-**Requirements:** Docker (Desktop, OrbStack or Colima; Engine 25+, Compose 2.20+), [Tilt](https://docs.tilt.dev/install.html), [Bun](https://bun.sh) for the generated services, and Node.js 22.12+ for the CLI. macOS and Linux are supported. Windows is untested (WSL2 may work). Run `tdk doctor` to check all of it.
+**Requirements:** Docker (Desktop, OrbStack or Colima; Engine 25+, Compose 2.20+), [Tilt](https://docs.tilt.dev/install.html), [Bun](https://bun.sh) for the generated services, and Node.js 22.12+ for the CLI. Ports 80, 443 and 5432 must be free (a local Postgres is the usual conflict). macOS and Linux are supported. Windows is untested (WSL2 may work). Run `tdk doctor` to check all of it.
 
 This is the core monorepo for TDK: the `tdk` CLI, the Starlark-based Tilt orchestration engine that powers it, and the discovery system that turns a directory of services into a running local landscape.
 
@@ -144,6 +144,7 @@ TDK has no telemetry or analytics. The CLI only goes online when you ask it to:
 - `tdk upgrade` checks the latest release on GitHub.
 - With `TDK_LICENSE_KEY` set, `tdk project` and `tdk up` download the paid bundle from `tdk-extension-dist.oranguman.workers.dev` and re-check the key every 12 hours. Without a key, nothing is sent.
 - Docker and Tilt pull images and packages as they normally would.
+- Tilt, which TDK runs, has its own anonymous usage analytics. Turn them off with `tilt analytics opt out`.
 
 ## FAQ
 

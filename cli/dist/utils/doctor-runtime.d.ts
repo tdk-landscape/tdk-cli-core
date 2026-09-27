@@ -63,6 +63,21 @@ export declare function checkPrivateNpmRegistry(exec?: typeof execSync, projectR
  * previously reported "Environment ready".
  */
 export declare function checkIngressPorts(exec?: typeof execSync, projectName?: string): CheckResult;
+/** Host ports the generated stack publishes: Traefik (80, 443) and Postgres (5432). */
+export declare const HOST_PORTS: Record<number, string>;
+type PortState = "free" | "in-use" | "unknown";
+/**
+ * Probes both the wildcard and loopback address: a Homebrew Postgres listens on
+ * 127.0.0.1 only, which a wildcard bind alone doesn't detect.
+ */
+export declare function probeHostPort(port: number): Promise<PortState>;
+/**
+ * Catches host ports taken by something other than this project's containers,
+ * most often a local Postgres on 5432 or a web server on 80. Docker-held 80/443
+ * are reported by checkIngressPorts, so only 5432 is checked against other
+ * containers here.
+ */
+export declare function checkHostPorts(exec?: typeof execSync, projectName?: string, probe?: (port: number) => Promise<PortState>): Promise<CheckResult>;
 /**
  * When a Tilt session is active, surface resource update errors (Traefik port
  * binds, image builds, etc.) instead of claiming the environment is ready
@@ -78,4 +93,5 @@ export declare function orderTiltFailures(failures: TiltResourceFailure[]): Tilt
  */
 export declare function probeContainerRuntimeError(resourceName: string, exec?: typeof execSync): string | null;
 export declare function describeTiltFailure(failure: TiltResourceFailure, exec?: typeof execSync): string;
+export {};
 //# sourceMappingURL=doctor-runtime.d.ts.map

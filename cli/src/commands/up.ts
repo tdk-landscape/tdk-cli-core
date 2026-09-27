@@ -3,6 +3,7 @@ import chalk from "chalk";
 import { Command } from "commander";
 import { ensureProjectRuntimeAssets } from "../generator/template-engine.js";
 import { handleDryRun } from "../utils/command-helpers.js";
+import { checkHostPorts } from "../utils/doctor-runtime.js";
 import { errorFactories, handleTiltFailure, withTiltCheck } from "../utils/errors.js";
 import { formatCount } from "../utils/formatting.js";
 import { findProjectRoot } from "../utils/paths.js";
@@ -118,6 +119,14 @@ export const upCommand = new Command("up")
         : "tilt up";
       if (handleDryRun(options, "not starting services", dryRunCommand)) {
         return;
+      }
+
+      // Warn rather than block: a stale local Postgres on 5432 makes Tilt fail
+      // halfway through startup with a bind error that's hard to read.
+      const hostPorts = await checkHostPorts();
+      if (!hostPorts.didPass && !options.quiet) {
+        console.log(chalk.yellow(`\n⚠️  ${hostPorts.message}`));
+        if (hostPorts.fix) console.log(chalk.gray(`   ${hostPorts.fix}\n`));
       }
 
       if (options.force && !options.quiet) {
