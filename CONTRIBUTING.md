@@ -10,7 +10,7 @@ Thanks for helping. Bug reports, docs fixes, and code changes are all welcome.
 
 ## Development setup
 
-You need [Bun](https://bun.sh), Node.js 20+, Docker, and [Tilt](https://docs.tilt.dev/install.html).
+You need [Bun](https://bun.sh), Node.js 22.12+, Docker, and [Tilt](https://docs.tilt.dev/install.html).
 
 ```bash
 git clone https://github.com/tdk-landscape/tdk-cli-core.git
