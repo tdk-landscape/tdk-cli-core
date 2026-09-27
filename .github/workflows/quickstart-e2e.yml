@@ -26,7 +26,7 @@ jobs:
         run: curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash
 
       - name: Install TDK from npm
-        run: npm install -g @tdk-landscape/tdk-cli-core@latest && tdk --version
+        run: npm install -g @tdk-landscape/tdk-cli-core@latest && tdk --version # zizmor: ignore[adhoc-packages] the point is to test what users install
 
       - name: tdk doctor (machine only)
         run: tdk doctor
