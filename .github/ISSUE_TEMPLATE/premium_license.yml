@@ -1,0 +1,43 @@
+name: Premium license request
+description: Ask for a TDK_LICENSE_KEY for the paid features
+title: "Premium license request: "
+labels: [premium]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Issues are public. Don't post email addresses, keys or anything private here: we'll reply in this issue and arrange delivery of the key privately.
+        You can also use the [request form on the website](https://tdk-landscape.github.io/tdk-website/#waitlist).
+  - type: checkboxes
+    id: features
+    attributes:
+      label: Which paid features do you need?
+      options:
+        - label: On-demand start/stop of idle services (Sablier)
+        - label: Local npm registry (Verdaccio)
+        - label: DDD scaffolding
+        - label: Playwright E2E config
+        - label: C4 diagrams
+        - label: Structured logging / synthetic monitoring
+        - label: Not sure yet
+  - type: dropdown
+    id: team
+    attributes:
+      label: Team size
+      options:
+        - Just me
+        - 2-10 developers
+        - 11-50 developers
+        - More than 50
+    validations:
+      required: true
+  - type: input
+    id: projects
+    attributes:
+      label: How many TDK projects (repos) would use the key?
+      placeholder: "e.g. 2"
+  - type: textarea
+    id: usecase
+    attributes:
+      label: What are you building with TDK?
+      description: Roughly how many services, and what's missing from the free version for you.

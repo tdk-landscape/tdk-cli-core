@@ -135,7 +135,7 @@ TDK ships a set of always-on infrastructure services (Traefik proxy, PostgreSQL)
 
 ## Free and paid features
 
-The CLI, engine and everything in this repository are MIT-licensed and work without an account or key. A few extras are paid and need a `TDK_LICENSE_KEY`: on-demand start/stop of idle services (Sablier), a local npm registry (Verdaccio), DDD scaffolding, Playwright config, C4 diagrams, synthetic monitoring, and a few generators (see `KNOWN_RESOURCES` in [extension-fetch.ts](cli/src/generator/extension-fetch.ts)). In this repo those are disabled stubs; with a key set, the CLI downloads the real implementations. [docs/FEATURES.md](docs/FEATURES.md) marks which features are which. To ask about a key, [open an issue](https://github.com/tdk-landscape/tdk-cli-core/issues/new/choose).
+The CLI, engine and everything in this repository are MIT-licensed and work without an account or key. A few extras are paid and need a `TDK_LICENSE_KEY`: on-demand start/stop of idle services (Sablier), a local npm registry (Verdaccio), DDD scaffolding, Playwright config, C4 diagrams, synthetic monitoring, and a few generators (see `KNOWN_RESOURCES` in [extension-fetch.ts](cli/src/generator/extension-fetch.ts)). In this repo those are disabled stubs; with a key set, the CLI downloads the real implementations. [docs/FEATURES.md](docs/FEATURES.md) marks which features are which. To get a key, use the [request form on the website](https://tdk-landscape.github.io/tdk-website/#waitlist) or open a [Premium license request](https://github.com/tdk-landscape/tdk-cli-core/issues/new?template=premium_license.yml).
 
 ## Network access and telemetry
 

@@ -105,6 +105,8 @@ export TDK_LICENSE_KEY=<your-premium-key>
 tdk up
 ```
 
+To get a key, use the [request form on the website](https://tdk-landscape.github.io/tdk-website/#waitlist) or open a [Premium license request](https://github.com/tdk-landscape/tdk-cli-core/issues/new?template=premium_license.yml).
+
 ---
 
 ## Resource-Level Features
