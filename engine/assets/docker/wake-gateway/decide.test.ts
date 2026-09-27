@@ -1,8 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import {
   COMPOSE_START_TIMEOUT_MS,
+  EARLY_RESPONSE_MS,
+  MAX_EARLY_RESPONSE_MS,
+  RETRY_AFTER_SECONDS,
   TILT_TRIGGER_TIMEOUT_MS,
   decideWakeAction,
+  earlyResponseMs,
   evaluateReadiness,
   wakeTimeoutMs,
 } from "./decide";
@@ -109,6 +113,27 @@ describe("wakeTimeoutMs", () => {
 
   test("an explicit X-Wake-Timeout-Ms wins", () => {
     expect(wakeTimeoutMs(false, 5_000)).toBe(5_000);
+  });
+});
+
+describe("earlyResponseMs", () => {
+  test("holds a waking request for EARLY_RESPONSE_MS by default", () => {
+    expect(earlyResponseMs()).toBe(EARLY_RESPONSE_MS);
+  });
+
+  test("the default answers well before Bun's 255s idle cap drops the connection", () => {
+    expect(EARLY_RESPONSE_MS).toBeLessThan(255_000);
+  });
+
+  test("an explicit X-Wake-Respond-Within-Ms wins, but is capped under Bun's idle limit", () => {
+    expect(earlyResponseMs(5_000)).toBe(5_000);
+    expect(earlyResponseMs(600_000)).toBe(MAX_EARLY_RESPONSE_MS);
+    expect(MAX_EARLY_RESPONSE_MS).toBeLessThan(255_000);
+  });
+
+  test("tells the caller to retry soon", () => {
+    expect(RETRY_AFTER_SECONDS).toBeGreaterThan(0);
+    expect(RETRY_AFTER_SECONDS * 1000).toBeLessThan(EARLY_RESPONSE_MS);
   });
 });
 

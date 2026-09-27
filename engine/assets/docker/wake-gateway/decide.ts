@@ -84,6 +84,25 @@ export function wakeTimeoutMs(startedViaCompose: boolean, overrideMs?: number): 
   return startedViaCompose ? COMPOSE_START_TIMEOUT_MS : TILT_TRIGGER_TIMEOUT_MS;
 }
 
+/**
+ * How long a waking request is held before the gateway answers
+ * `503` + `Retry-After` while the start keeps going in the background.
+ * Found live (task 7.2): during a full `tdk up` bring-up the Docker daemon
+ * took ~5 min to start one container, and Bun.serve's 255s idle cap dropped
+ * the held connection with no response at all.
+ */
+export const EARLY_RESPONSE_MS = 60_000;
+/** Largest hold allowed: stays under Bun.serve's 255s idle cap. */
+export const MAX_EARLY_RESPONSE_MS = 240_000;
+/** The `Retry-After` value sent with the early 503. */
+export const RETRY_AFTER_SECONDS = 10;
+
+/** How long to hold a request: an explicit X-Wake-Respond-Within-Ms wins, capped under Bun's idle limit. */
+export function earlyResponseMs(overrideMs?: number): number {
+  if (overrideMs && overrideMs > 0) return Math.min(overrideMs, MAX_EARLY_RESPONSE_MS);
+  return EARLY_RESPONSE_MS;
+}
+
 export interface WaitOutcome {
   ready: boolean;
   /** Names still not running/healthy when the wait ended (empty when ready). */

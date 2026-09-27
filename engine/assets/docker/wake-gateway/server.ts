@@ -32,9 +32,14 @@
  *   X-Wake-Image           The image the compose service declares
  *                          (<service>_<resource>:dev).
  *   X-Wake-Timeout-Ms, X-Wake-Proxy-Port, X-Wake-Session-Duration
+ *   X-Wake-Respond-Within-Ms  How long to hold the request before answering
+ *                          503 + Retry-After while the start continues in the
+ *                          background (default decide.ts EARLY_RESPONSE_MS).
  */
 import {
+  RETRY_AFTER_SECONDS,
   decideWakeAction,
+  earlyResponseMs,
   evaluateReadiness,
   wakeTimeoutMs,
   type ContainerState,
@@ -168,6 +173,7 @@ function parseRequest(req: Request) {
   const container = req.headers.get("X-Wake-Container") || resource;
   const deps = parseDeps(req.headers.get("X-Wake-Deps") || "");
   const timeoutOverrideMs = Number(req.headers.get("X-Wake-Timeout-Ms")) || undefined;
+  const respondWithinOverrideMs = Number(req.headers.get("X-Wake-Respond-Within-Ms")) || undefined;
   const proxyPort = req.headers.get("X-Wake-Proxy-Port") || "80";
   const sessionDuration = req.headers.get("X-Wake-Session-Duration") || "10m";
   const composeFiles = (req.headers.get("X-Wake-Compose-Files") || "").split(",").filter(Boolean);
@@ -178,16 +184,62 @@ function parseRequest(req: Request) {
     image: req.headers.get("X-Wake-Image") || "",
   };
   const hasCompose = Boolean(compose.project && compose.files.length && compose.image);
-  return { resource, container, deps, timeoutOverrideMs, proxyPort, sessionDuration, compose, hasCompose };
+  return {
+    resource,
+    container,
+    deps,
+    timeoutOverrideMs,
+    respondWithinOverrideMs,
+    proxyPort,
+    sessionDuration,
+    compose,
+    hasCompose,
+  };
+}
+
+type WakeParams = ReturnType<typeof parseRequest>;
+type WakeOutcome = { ready: true } | { ready: false; timeoutMs: number };
+
+// One wake per resource at a time: a caller that got an early 503 and retries,
+// or a second caller arriving meanwhile, joins the wake already in progress
+// instead of starting the container again.
+const inflight = new Map<string, Promise<WakeOutcome>>();
+
+function wakeOnce(params: WakeParams): Promise<WakeOutcome> {
+  let wake = inflight.get(params.resource);
+  if (!wake) {
+    wake = runWake(params).finally(() => inflight.delete(params.resource));
+    inflight.set(params.resource, wake);
+  }
+  return wake;
 }
 
 async function handleWake(req: Request): Promise<Response> {
-  const { resource, container, deps, timeoutOverrideMs, proxyPort, sessionDuration, compose, hasCompose } =
-    parseRequest(req);
-  if (!resource) {
+  const params = parseRequest(req);
+  if (!params.resource) {
     return new Response("wake gateway: missing X-Wake-Resource header (set by the generated Traefik static route)", { status: 400 });
   }
 
+  const holdMs = earlyResponseMs(params.respondWithinOverrideMs);
+  const outcome = await Promise.race([wakeOnce(params), Bun.sleep(holdMs).then(() => null)]);
+  if (outcome === null) {
+    console.log(`wake ${params.resource}: still starting after ${holdMs}ms, answering 503`);
+    return new Response(
+      `wake gateway: ${params.resource} is starting; retry in ${RETRY_AFTER_SECONDS}s`,
+      { status: 503, headers: { "Retry-After": String(RETRY_AFTER_SECONDS) } },
+    );
+  }
+  if (outcome.ready) {
+    return proxyThrough(req, params.container, params.proxyPort);
+  }
+  return new Response(
+    `wake gateway: timed out after ${outcome.timeoutMs}ms waiting for ${params.resource} and its dependencies to become healthy`,
+    { status: 504 },
+  );
+}
+
+async function runWake(params: WakeParams): Promise<WakeOutcome> {
+  const { resource, container, deps, timeoutOverrideMs, sessionDuration, compose, hasCompose } = params;
   const resourceState = await containerState(container);
   const dependencies = await Promise.all(
     deps.map(async (dep) => ({ name: dep.resourceName, state: await containerState(dep.containerName) })),
@@ -225,8 +277,6 @@ async function handleWake(req: Request): Promise<Response> {
   ]);
 
   const requiredNames = [resource, ...deps.map((d) => d.resourceName)];
-  const containerByName: Record<string, string> = { [resource]: container };
-  for (const dep of deps) containerByName[dep.resourceName] = dep.containerName;
 
   while (Date.now() < deadline) {
     const healthy: Record<string, boolean> = {};
@@ -236,17 +286,12 @@ async function handleWake(req: Request): Promise<Response> {
     for (const dep of deps) {
       healthy[dep.resourceName] = await isHealthy(dep.containerName);
     }
-    const outcome = evaluateReadiness(requiredNames, healthy);
-    if (outcome.ready) {
-      return proxyThrough(req, container, proxyPort);
+    if (evaluateReadiness(requiredNames, healthy).ready) {
+      return { ready: true };
     }
     await Bun.sleep(POLL_INTERVAL_MS);
   }
-
-  return new Response(
-    `wake gateway: timed out after ${timeoutMs}ms waiting for ${resource} and its dependencies to become healthy`,
-    { status: 504 },
-  );
+  return { ready: false, timeoutMs };
 }
 
 // Headers that must not be forwarded verbatim to the upstream fetch: Host
@@ -258,6 +303,7 @@ const STRIPPED_REQUEST_HEADERS = new Set([
   "x-wake-container",
   "x-wake-deps",
   "x-wake-timeout-ms",
+  "x-wake-respond-within-ms",
   "x-wake-proxy-port",
   "x-wake-session-duration",
   "x-wake-compose-project",
