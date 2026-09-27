@@ -5,11 +5,11 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import chalk from "chalk";
 import { Command } from "commander";
-import ora from "ora";
 import { getErrorMessage, logVerbose, showErrorAndExit } from "../utils/errors.js";
 import { showCancelled } from "../utils/formatting.js";
 import { getPackageVersion } from "../utils/paths.js";
 import { promptConfirm } from "../utils/prompt.js";
+import { startSpinner } from "../utils/spinner.js";
 function isStandaloneBinary(tdkPath) {
     try {
         const fileInfo = execSync(`file -b ${JSON.stringify(tdkPath)}`, { encoding: "utf-8" });
@@ -138,7 +138,7 @@ export async function upgradeViaBinary(tdkPath, release) {
         console.log(chalk.cyan(`   chmod +x ${tdkPath}`));
         return false;
     }
-    const spinner = ora(`Downloading ${release.assetName} (${release.tag})...`).start();
+    const spinner = startSpinner(`Downloading ${release.assetName} (${release.tag})...`);
     // Download to /tmp first (both the binary and the engine bundle below) so a
     // failed network step can't leave a half-written binary at tdkPath.
     const tmpPath = `/tmp/tdk-upgrade-${release.assetName}`;
@@ -204,7 +204,7 @@ function getCurrentVersion() {
     }
 }
 async function getLatestVersion() {
-    const spinner = ora("Checking for latest version...").start();
+    const spinner = startSpinner("Checking for latest version...");
     try {
         const result = execSync("npm view @tdk-landscape/tdk-cli-core version", {
             encoding: "utf-8",
@@ -224,7 +224,7 @@ async function getLatestVersion() {
     }
 }
 async function upgradeViaNpm() {
-    const spinner = ora("Upgrading via npm...").start();
+    const spinner = startSpinner("Upgrading via npm...");
     try {
         execSync("npm install -g @tdk-landscape/tdk-cli-core@latest", {
             stdio: "inherit",
@@ -252,7 +252,7 @@ async function upgradeViaNpm() {
     }
 }
 async function upgradeViaBun() {
-    const spinner = ora("Upgrading via bun...").start();
+    const spinner = startSpinner("Upgrading via bun...");
     try {
         execSync("bun install -g @tdk-landscape/tdk-cli-core@latest", {
             stdio: "inherit",
@@ -280,7 +280,7 @@ async function upgradeViaBun() {
     }
 }
 async function upgradeViaGit(path) {
-    const spinner = ora("Pulling latest changes from git...").start();
+    const spinner = startSpinner("Pulling latest changes from git...");
     try {
         execSync("git rev-parse --git-dir", {
             cwd: path,
@@ -492,7 +492,7 @@ export const upgradeCommand = new Command("upgrade")
         process.exit(1);
     }
     console.log();
-    const verifySpinner = ora("Verifying upgrade...").start();
+    const verifySpinner = startSpinner("Verifying upgrade...");
     try {
         const newVersion = execSync("tdk version", { encoding: "utf-8" }).trim();
         verifySpinner.succeed(`Verified: now running ${chalk.green(newVersion)}`);
