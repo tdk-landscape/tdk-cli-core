@@ -1,0 +1,62 @@
+# Runs the README quickstart against the published npm package on a clean
+# machine: install, scaffold a backend, `tdk up`, and wait for its /health
+# URL to answer through Traefik. Nightly and on demand from the Actions tab.
+name: 🧭 Quickstart E2E
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  quickstart:
+    name: 🧭 README quickstart on a clean machine
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install Tilt
+        run: curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash
+
+      - name: Install TDK from npm
+        run: npm install -g @tdk-landscape/tdk-cli-core@latest && tdk --version
+
+      - name: tdk doctor (machine only)
+        run: tdk doctor
+
+      - name: Scaffold the quickstart project
+        run: |
+          mkdir -p "$RUNNER_TEMP/shop" && cd "$RUNNER_TEMP/shop"
+          tdk project --yes
+          printf 'y\n' | tdk resource orders-api --type backend --stack shop
+          tdk doctor
+
+      - name: tdk up and wait for /health
+        run: |
+          cd "$RUNNER_TEMP/shop"
+          tdk up shop > up.log 2>&1 &
+          for _ in $(seq 1 60); do
+            url="$(grep -oE 'https?://[^ ]*orders[^ ]*/health' up.log | head -1 || true)"
+            [ -n "$url" ] && break
+            sleep 2
+          done
+          [ -n "$url" ] || { cat up.log; echo "::error::tdk up never printed the orders-api URL"; exit 1; }
+          echo "Waiting for $url"
+          for _ in $(seq 1 120); do
+            if curl -fsS --max-time 5 "$url"; then echo; echo "Healthy: $url"; exit 0; fi
+            sleep 10
+          done
+          tail -200 up.log
+          echo "::error::$url did not become healthy within 20 minutes"
+          exit 1
+
+      - name: tdk down
+        if: always()
+        run: cd "$RUNNER_TEMP/shop" && tdk down || true
