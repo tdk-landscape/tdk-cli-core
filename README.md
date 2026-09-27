@@ -1,13 +1,52 @@
-# TDK CLI Core
+<div align="center">
 
-> **T**ilt **D**evelopment **K**it — an all-in-one local development platform for microservices, built on [Tilt](https://tilt.dev).
+# TDK — Tilt Development Kit
+
+**Run 100 microservices on a 16 GB laptop. No Kubernetes.**
+
+One CLI that scaffolds your services and runs the whole landscape locally with hot reload, health checks, a proxy, and Postgres, all built on [Tilt](https://tilt.dev).
 
 [![npm version](https://img.shields.io/npm/v/@tdk-landscape/tdk-cli-core.svg?style=flat&color=blue)](https://www.npmjs.com/package/@tdk-landscape/tdk-cli-core)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![npm downloads](https://img.shields.io/npm/dm/@tdk-landscape/tdk-cli-core.svg?style=flat)](https://www.npmjs.com/package/@tdk-landscape/tdk-cli-core)
+[![CI](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/ci.yml/badge.svg)](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/tdk-landscape/tdk-cli-core?style=flat&logo=github)](https://github.com/tdk-landscape/tdk-cli-core/stargazers)
+
+[Website](https://tdk-landscape.github.io/tdk-website) · [Quickstart](https://tdk-landscape.github.io/tdk-website/docs/quickstart/) · [Examples](https://tdk-landscape.github.io/tdk-website/docs/examples/) · [Demo](https://tdk-landscape.github.io/tdk-demo-animation/) · [Report a bug](https://github.com/tdk-landscape/tdk-cli-core/issues/new/choose)
+
+</div>
+
+```bash
+npm install -g @tdk-landscape/tdk-cli-core
+tdk project --yes                                       # set up the project
+tdk resource orders-api --type backend --stack shop     # scaffold a service
+tdk up shop                                             # run it with hot reload
+```
+
+> ⭐ **If TDK saves you from writing another `docker-compose.yml`, please [star the repo](https://github.com/tdk-landscape/tdk-cli-core/stargazers).** Stars help other developers find it.
 
 This is the core monorepo for TDK: the `tdk` CLI, the Starlark-based Tilt orchestration engine that powers it, and the discovery system that turns a directory of services into a running local landscape.
 
-- Website & docs: https://tdk-landscape.github.io/tdk-website
+## Why TDK?
+
+| | docker-compose | Local Kubernetes (kind, minikube) | Plain Tilt | **TDK** |
+|---|---|---|---|---|
+| Scaffold a new service in one command | ❌ | ❌ | ❌ | ✅ `tdk resource` |
+| Hot reload on file change | ⚠️ `compose watch` config | ⚠️ extra tooling | ✅ | ✅ |
+| Health-checked startup order | ⚠️ `depends_on` only | ✅ | ⚠️ write it yourself | ✅ |
+| Proxy, Postgres, monitoring included | ❌ | ❌ | ❌ | ✅ |
+| Needs a cluster | No | Yes | Optional | **No** |
+| Start only one stack of a large system | ⚠️ profiles | ⚠️ | ⚠️ | ✅ `tdk up <stack>` |
+
+## Benchmark: 100 services on one laptop
+
+Measured with [`scripts/benchmark/container-scale.ts`](scripts/benchmark/README.md) against the 100-service [ERP example](https://github.com/tdk-landscape/tdk-erp-system) on a 16 GB machine (Docker VM: 7.75 GiB). Raw results are in [`benchmarks/results/`](benchmarks/results).
+
+| Services | All healthy after | Total memory | Avg memory / service | Crashes / OOM kills |
+|---:|---:|---:|---:|---:|
+| 10 | 8 s | 161 MiB | 16 MiB | 0 / 0 |
+| 50 | 24 s | 829 MiB | 17 MiB | 0 / 0 |
+| 100 | 112 s | 1.6 GiB | 17 MiB | 0 / 0 |
 
 ## What is TDK?
 
@@ -96,6 +135,15 @@ tdk doctor
 
 Verifies Docker, Bun, Tilt, required ports, and master config files are all in place before you run `tdk up`.
 
+## Community
+
+- **Questions and ideas:** [open an issue](https://github.com/tdk-landscape/tdk-cli-core/issues/new/choose).
+- **Contributing:** see [CONTRIBUTING.md](CONTRIBUTING.md). Issues labeled [`good first issue`](https://github.com/tdk-landscape/tdk-cli-core/labels/good%20first%20issue) are a good place to start.
+- **Security:** see [SECURITY.md](SECURITY.md). Please don't report vulnerabilities in public issues.
+- **Examples:** [ERP system (100 services)](https://github.com/tdk-landscape/tdk-erp-system), [SaaS starter](https://github.com/tdk-landscape/tdk-saas-starter), [restaurant](https://github.com/tdk-landscape/tdk-restaurant-example).
+
+If TDK is useful to you, a ⭐ helps more than you'd think.
+
 ## License
 
-MIT © [TDK Landscape](https://github.com/tdk-landscape)
+[MIT](LICENSE) © [TDK Landscape](https://github.com/tdk-landscape)
