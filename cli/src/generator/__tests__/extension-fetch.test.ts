@@ -106,9 +106,12 @@ describe("applyPremiumOverlay", () => {
     expect(applied).toBe(false);
     // Every known resource name gets a shot before giving up.
     expect(fetchSpy).toHaveBeenCalledTimes(6);
-    for (const call of fetchSpy.mock.calls) {
-      const url = call[0] as string;
-      expect(url).toContain("key=tdk-fa411b");
+    // The key goes in the Authorization header, never the URL (a 403 from a
+    // current worker means it read the key, so there's no ?key= retry).
+    for (const [url, init] of fetchSpy.mock.calls as [string, RequestInit][]) {
+      expect(url).not.toContain("key=");
+      expect(url).not.toContain("tdk-fa411b");
+      expect(init.headers).toEqual({ Authorization: "Bearer tdk-fa411b" });
     }
     expect(
       readFileSync(
@@ -238,5 +241,48 @@ describe("applyPremiumOverlay", () => {
 
     const { applyPremiumOverlay } = await import("../extension-fetch.js");
     await expect(applyPremiumOverlay(projectRoot, destDir)).resolves.toBe(false);
+  });
+});
+
+describe("license key transport", () => {
+  it("retries once with ?key= when a worker that predates the header answers 401", async () => {
+    process.env.TDK_LICENSE_KEY = "tdk-fa411a";
+    fixtureTarball ??= buildFixtureTarball();
+    // An old worker only reads ?key=: header-only requests look keyless (401).
+    const fetchSpy = vi
+      .fn()
+      .mockImplementation((url: string) =>
+        Promise.resolve(
+          url.includes("key=tdk-fa411a")
+            ? new Response(new Uint8Array(fixtureTarball), { status: 200 })
+            : new Response("missing key", { status: 401 }),
+        ),
+      );
+    vi.stubGlobal("fetch", fetchSpy);
+
+    const { applyPremiumOverlay } = await import("../extension-fetch.js");
+    const applied = await applyPremiumOverlay(projectRoot, destDir);
+
+    expect(applied).toBe(true);
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    const [first, second] = fetchSpy.mock.calls as [string, RequestInit | undefined][];
+    expect(first[0]).not.toContain("key=");
+    expect(first[1]?.headers).toEqual({ Authorization: "Bearer tdk-fa411a" });
+    expect(second[0]).toContain("key=tdk-fa411a");
+  });
+
+  it("license checks (hasDddLicense) send the key in the header too", async () => {
+    process.env.TDK_LICENSE_KEY = "tdk-fa411a";
+    const fetchSpy = vi.fn().mockResolvedValue(new Response("ok", { status: 200 }));
+    vi.stubGlobal("fetch", fetchSpy);
+
+    const { hasDddLicense } = await import("../extension-fetch.js");
+
+    expect(await hasDddLicense(projectRoot)).toBe(true);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain("resource=ddd");
+    expect(url).not.toContain("key=");
+    expect(init.headers).toEqual({ Authorization: "Bearer tdk-fa411a" });
   });
 });

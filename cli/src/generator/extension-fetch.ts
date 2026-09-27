@@ -110,17 +110,26 @@ function isCacheFresh(path: string): boolean {
   return Date.now() - statSync(path).mtimeMs < CACHE_TTL_MS;
 }
 
-async function fetchPremiumBundle(key: string, projectId: string): Promise<Buffer | null> {
-  const endpoint = getEndpoint();
-  for (const resource of KNOWN_RESOURCES) {
-    const url =
-      `${endpoint}?key=${encodeURIComponent(key)}` +
-      `&resource=${encodeURIComponent(resource)}` +
-      `&projectId=${encodeURIComponent(projectId)}`;
+// Sends the key as `Authorization: Bearer`, never in the URL, where request
+// logs and proxies record it. A worker deployed before it read the header
+// answers 401 "missing key" (a current one only returns 401 when it gets no
+// key at all), so retry that once with the old `?key=` - premium keeps
+// working until the worker is updated. Drop the retry once it is.
+async function fetchPremium(key: string, resource: string, projectId: string): Promise<Response> {
+  const url =
+    `${getEndpoint()}?resource=${encodeURIComponent(resource)}` +
+    `&projectId=${encodeURIComponent(projectId)}`;
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${key}` } });
+  if (res.status !== 401) return res;
+  await res.arrayBuffer().catch(() => undefined);
+  return fetch(`${url}&key=${encodeURIComponent(key)}`);
+}
 
+async function fetchPremiumBundle(key: string, projectId: string): Promise<Buffer | null> {
+  for (const resource of KNOWN_RESOURCES) {
     let res: Response;
     try {
-      res = await fetch(url);
+      res = await fetchPremium(key, resource, projectId);
     } catch (err) {
       console.warn(`⚠️  Premium fetch failed (network error): ${(err as Error).message}`);
       return null;
@@ -231,14 +240,10 @@ async function hasLiveResourceLicense(projectRoot: string, resource: string): Pr
   }
 
   const projectId = getOrCreateProjectId(projectRoot);
-  const endpoint = getEndpoint();
-  const url =
-    `${endpoint}?key=${encodeURIComponent(key)}` +
-    `&resource=${encodeURIComponent(resource)}&projectId=${encodeURIComponent(projectId)}`;
 
   let granted = false;
   try {
-    const res = await fetch(url);
+    const res = await fetchPremium(key, resource, projectId);
     granted = res.ok;
     // Drain the body (a full premium.tar.gz on success) so we don't leave
     // it dangling - we only need the status, not the content.
