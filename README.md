@@ -172,7 +172,7 @@ make pre-commit-run # run pre-commit hooks on all files
 tdk doctor
 ```
 
-Verifies Docker, Bun, Tilt, required ports, and master config files are all in place before you run `tdk up`.
+Checks Docker, Compose and Tilt. Inside a project it also checks the generated configs, `.env`, service scripts and that the ingress ports are free, before you run `tdk up`.
 
 ## Community
 

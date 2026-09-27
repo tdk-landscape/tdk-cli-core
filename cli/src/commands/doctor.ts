@@ -860,11 +860,13 @@ export const doctorCommand = new Command("doctor")
       process.exit(1);
     }
 
-    const checks: Array<() => CheckResult | Promise<CheckResult>> = [
+    const machineChecks: Array<() => CheckResult | Promise<CheckResult>> = [
       checkDockerRuntime,
       checkTilt,
       checkDockerCompose,
       checkDockerVersions,
+    ];
+    const projectChecks: Array<() => CheckResult | Promise<CheckResult>> = [
       checkMasterConfigs,
       checkGeneratedProjectRuntimeAssets,
       checkStarlarkLoadExports,
@@ -884,8 +886,14 @@ export const doctorCommand = new Command("doctor")
 
     // Runs last: needs routable services (and working Traefik) to mean anything.
     if (options.ping) {
-      checks.push(() => checkServiceHealth(pingTimeout));
+      projectChecks.push(() => checkServiceHealth(pingTimeout));
     }
+
+    // Right after installing, people run `tdk doctor` before they have a
+    // project. Only the machine checks mean anything there; the project checks
+    // would all fail with "run tdk project".
+    const inProject = Boolean(findProjectRoot());
+    const checks = inProject ? [...machineChecks, ...projectChecks] : machineChecks;
 
     let allPassed = true;
 
@@ -911,7 +919,19 @@ export const doctorCommand = new Command("doctor")
 
     console.log("");
 
-    if (allPassed) {
+    if (allPassed && !inProject) {
+      console.log(
+        `${chalk.gray("○")} ${chalk.gray("Not in a TDK project, so project checks were skipped")}`,
+      );
+      console.log("");
+      console.log(`${chalk.green(chalk.bold("✓"))} This machine is ready for TDK`);
+      console.log("");
+      console.log("Next steps:");
+      console.log("  1. mkdir my-app && cd my-app");
+      console.log("  2. tdk project --yes");
+      console.log("  3. tdk resource api --type backend --stack my-app");
+      console.log("  4. tdk up my-app");
+    } else if (allPassed) {
       console.log(`${chalk.green(chalk.bold("✓"))} Environment ready for TDK`);
       console.log("");
       console.log("Next steps:");
