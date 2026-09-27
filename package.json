@@ -1,6 +1,6 @@
 {
   "name": "@tdk-landscape/tdk-cli-core",
-  "version": "1.3.58",
+  "version": "1.3.59",
   "description": "Run 100 microservices on a 16 GB laptop without Kubernetes. Scaffold services and run them locally with hot reload, built on Tilt.",
   "homepage": "https://tdk-landscape.github.io/tdk-website",
   "repository": {
