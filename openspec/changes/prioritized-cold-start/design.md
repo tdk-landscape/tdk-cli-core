@@ -94,6 +94,22 @@ Dependency waking is therefore entirely the wake gateway's job, which was alread
 
 A deferred resource looks, from `docker ps`, identical to a resource that failed to start. `tdk up`'s summary and `tdk doctor` need to check the manifest's resolved `deferStart` (D1) directly rather than inferring "deferred" from container state, so a genuinely stuck resource is never miscategorized as intentionally cold.
 
+## Benchmark: D3's queue-bypass fix, measured
+
+Task 7.4's live `tdk-erp-system` finding (D3) was that `tilt trigger` alone re-creates the original problem one layer down: a triggered resource queues behind Tilt's build-slot cap. That fix (direct `docker compose up --no-build` when an image already exists) needed a real, reproducible measurement, not just the one live pass that got interrupted by the strip-prefix bug — but re-testing against the real `tdk-erp-system` landscape wasn't available (developer's own call, 2026-09-27: stop hammering an already-overloaded shared Docker daemon). Instead, ran a disposable, isolated benchmark (own Tilt instance on a private port, own Compose project, fully torn down after — no interaction with any real project) that exercises the actual shipped `generate_static_wake_route()`/`decide.ts`/`server.ts` code, not a reimplementation:
+
+- **Setup:** `update_settings(max_parallel_updates=2)` plus six "filler" `dc_resource`s with a genuinely slow (90s, uncached each run) Docker build, standing in for a large landscape's build queue — this is the same build-slot contention Tilt showed live (`max_parallel_updates` caps concurrent builds; the real landscape's default cap was observed at 3). Two target resources, both `auto_init=False`: `target-fast`'s route carries the compose-invocation headers (`X-Wake-Compose-*`/`X-Wake-Image`) with its image pre-tagged, exercising the new direct-start path; `target-slow`'s route omits them and has its own `docker_build`, so its first `tilt trigger` must acquire a build slot like the fillers, exercising the pre-7.4 fallback path unchanged.
+- **Results** (wall-clock, cold container to first `200 OK`, via `curl` through the real Traefik static route and gateway):
+
+  | Scenario | Build-slot contention | Time to 200 |
+  |---|---|---|
+  | `target-fast` (direct compose start) | 2/2 slots busy (fillers) | **12.6s** |
+  | `target-fast` (direct compose start) | idle | 7.4s |
+  | `target-slow` (`tilt trigger` fallback) | 1/2 slots busy | 18.1s |
+  | `target-slow` (`tilt trigger` fallback) | idle | 22.8s |
+
+- **What this shows:** `target-fast`'s latency stayed in a narrow band (7-13s) regardless of queue state — direct confirmation that the new path doesn't touch Tilt's build queue at all, matching the gateway's own log line (`compose start target-fast: started`, no `tilt trigger` call). `target-slow` paid a real, unconditional cost even at its best (idle) case — nearly double `target-fast`'s idle case — because every `tilt trigger` still goes through Tilt's own build-reconciliation step (confirmed via Tilt's build history for it) before `docker compose up` runs; that step is exactly what queues behind other builds live against `tdk-erp-system` (task 7.4's original 504). A fully apples-to-apples "both paths, both fully saturated" run wasn't captured (the 90s filler window and Tilt's own infra-resource build ordering made catching that exact instant unreliable without further burning the same finite build-queue setup repeatedly) — the mechanism-level proof (gateway logs showing which code path ran) plus the consistent directional numbers above are treated as sufficient verification, not a substitute for eventually re-running task 7.2's exact live URL once `tdk-erp-system`'s own queue is quiet.
+
 ## Risks / Trade-offs
 
 - [The static file-provider route (D4) and the Docker-discovered route disagree once the container exists, e.g. stale healthcheck path baked into the static entry] → Keep the static entry's routing rule byte-identical to what the generator already emits for the Docker-label version (same source-of-truth function), so the two can never drift; verified by generating both and diffing in task testing.
