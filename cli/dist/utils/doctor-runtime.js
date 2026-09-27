@@ -1,5 +1,6 @@
 import { execSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
+import { createServer } from "node:net";
 import { join } from "node:path";
 import { formatCount } from "./formatting.js";
 import { findProjectRoot } from "./paths.js";
@@ -320,6 +321,90 @@ export function checkIngressPorts(exec = execSync, projectName = getProjectName(
         didPass: false,
         message: `Traefik cannot bind ingress ports because another container already owns them:\n    ${details}`,
         fix: `Stop the foreign container(s), e.g. \`docker stop ${foreign[0]?.name}\`, or shut down the other TDK/Tilt project using that Traefik. Then re-run \`tdk up\`.`,
+    };
+}
+/** Host ports the generated stack publishes: Traefik (80, 443) and Postgres (5432). */
+export const HOST_PORTS = { 80: "HTTP", 443: "HTTPS", 5432: "Postgres" };
+function probeAddress(port, host) {
+    return new Promise((resolve) => {
+        const server = createServer();
+        server.once("error", (err) => 
+        // EACCES: ports below 1024 need root on Linux, so we can't tell.
+        resolve(err.code === "EADDRINUSE" ? "in-use" : "unknown"));
+        server.once("listening", () => server.close(() => resolve("free")));
+        server.listen(port, host);
+    });
+}
+/**
+ * Probes both the wildcard and loopback address: a Homebrew Postgres listens on
+ * 127.0.0.1 only, which a wildcard bind alone doesn't detect.
+ */
+export async function probeHostPort(port) {
+    const results = await Promise.all([
+        probeAddress(port, "0.0.0.0"),
+        probeAddress(port, "127.0.0.1"),
+    ]);
+    if (results.includes("in-use"))
+        return "in-use";
+    return results.includes("free") ? "free" : "unknown";
+}
+/**
+ * Catches host ports taken by something other than this project's containers,
+ * most often a local Postgres on 5432 or a web server on 80. Docker-held 80/443
+ * are reported by checkIngressPorts, so only 5432 is checked against other
+ * containers here.
+ */
+export async function checkHostPorts(exec = execSync, projectName = getProjectName(), probe = probeHostPort) {
+    const ports = Object.keys(HOST_PORTS).map(Number);
+    const inUse = [];
+    for (const port of ports) {
+        if ((await probe(port)) === "in-use")
+            inUse.push(port);
+    }
+    if (inUse.length === 0) {
+        return {
+            name: "Host Ports",
+            didPass: true,
+            message: `Host ports ${ports.join(", ")} are free`,
+        };
+    }
+    let dockerPs = "";
+    try {
+        dockerPs = exec("docker ps --format '{{.Names}}\\t{{.Ports}}'", {
+            stdio: "pipe",
+            encoding: "utf-8",
+            timeout: EXEC_TIMEOUT_MS,
+        });
+    }
+    catch {
+        // Can't attribute ports without Docker; treat them as held by the host.
+    }
+    const holders = parsePublishedPortHolders(dockerPs, inUse);
+    const prefix = toComposeProjectPrefix(projectName).toLowerCase();
+    const isOwn = (name) => {
+        const lower = name.toLowerCase();
+        return lower.startsWith(`${prefix}_`) || lower.startsWith(`${prefix}-`);
+    };
+    const problems = [];
+    for (const port of inUse) {
+        const holder = holders.find((h) => h.publishedPorts.includes(port));
+        if (!holder) {
+            problems.push(`${port} (${HOST_PORTS[port]}) is used by a program on this machine`);
+        }
+        else if (port === 5432 && !isOwn(holder.name)) {
+            problems.push(`${port} (${HOST_PORTS[port]}) is published by container ${holder.name}`);
+        }
+    }
+    if (problems.length === 0) {
+        return { name: "Host Ports", didPass: true, message: "Host ports are held by this project" };
+    }
+    const first = inUse.find((port) => problems.some((p) => p.startsWith(`${port} `))) ?? inUse[0];
+    return {
+        name: "Host Ports",
+        didPass: false,
+        message: `Ports TDK needs are taken:\n    ${problems.join("\n    ")}`,
+        fix: `Find what holds a port with \`lsof -nP -iTCP:${first} -sTCP:LISTEN\` and stop it ` +
+            "(for a local Postgres: `brew services stop postgresql` or quit Postgres.app), then run `tdk up`.",
     };
 }
 /**

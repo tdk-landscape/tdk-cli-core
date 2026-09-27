@@ -4,7 +4,7 @@ import { dirname, join, normalize } from "node:path";
 import chalk from "chalk";
 import { Command } from "commander";
 import { MASTER_CONFIG_FILES, QUICKSTART_DOCS_URL, REQUIRED_PACKAGE_SCRIPTS, } from "../utils/constants.js";
-import { checkIngressPorts, checkPrivateNpmRegistry, checkTiltResourceHealth, } from "../utils/doctor-runtime.js";
+import { checkHostPorts, checkIngressPorts, checkPrivateNpmRegistry, checkTiltResourceHealth, } from "../utils/doctor-runtime.js";
 import { validateEnvFile } from "../utils/env-validator.js";
 import { formatCount } from "../utils/formatting.js";
 import { findProjectRoot } from "../utils/paths.js";
@@ -697,6 +697,8 @@ export const doctorCommand = new Command("doctor")
         checkEnvironmentVariables,
         // Preflight: catch "port 80 already allocated" BEFORE claiming ready.
         checkIngressPorts,
+        // Preflight: a local Postgres or web server on 5432/80/443.
+        () => checkHostPorts(),
         // Preflight: Verdaccio down causes ImageBuild bun install ConnectionRefused.
         checkPrivateNpmRegistry,
         // Runtime checks: skip gracefully if the stack isn't started yet.

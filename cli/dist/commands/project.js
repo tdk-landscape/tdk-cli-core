@@ -8,7 +8,7 @@ import { generateMasterConfigs, readProjectConfig } from "../generator/template-
 import { MASTER_CONFIG_FILES } from "../utils/constants.js";
 import { ensureEnvFile, validateEnvFile } from "../utils/env-validator.js";
 import { errorFactories, runCommand, showErrorAndExit } from "../utils/errors.js";
-import { ensureDirectory, writeJsonFile } from "../utils/file-helpers.js";
+import { ensureDirectory, ensureGitignore, writeJsonFile } from "../utils/file-helpers.js";
 import { showCancelled, showCommandHeader, showDetail, showStep, showSuccess, } from "../utils/formatting.js";
 import { findProjectRoot } from "../utils/paths.js";
 import { PROJECT_FEATURES } from "../utils/project-features.js";
@@ -218,6 +218,10 @@ export const projectCommand = new Command("project")
             }
             showStep("\n📋 Regenerating master configuration files...\n");
             await generateMasterConfigs(projectRoot);
+            const ignored = ensureGitignore(projectRoot);
+            if (ignored.length > 0) {
+                showSuccess(`Added to .gitignore: ${ignored.join(", ")}`);
+            }
             console.log(chalk.green("\n✅ Project configuration regenerated!"));
             showDetail("\nGenerated in .tdk/.tdk-out/:", 0);
             for (const file of MASTER_CONFIG_FILES) {
@@ -354,8 +358,7 @@ export const projectCommand = new Command("project")
         showStep("\n🔧 Setting up environment variables...\n");
         const envCreated = ensureEnvFile(projectRoot);
         if (envCreated) {
-            showSuccess("Created: .env (with required variables)");
-            showDetail("→ Edit .env to set VERDACCIO_URL_DOCKER, TILT_ENV, etc.");
+            showSuccess("Created: .env (the defaults work as-is)");
         }
         else {
             showSuccess("Found: .env (environment already configured)");
@@ -368,6 +371,10 @@ export const projectCommand = new Command("project")
             }
             showDetail("→ Edit .env and fill in these values before running `tdk up`", 1);
         }
+        const ignored = ensureGitignore(projectRoot);
+        if (ignored.length > 0) {
+            showSuccess(`Added to .gitignore: ${ignored.join(", ")}`);
+        }
         console.log(chalk.green("\n✅ Project configuration complete!"));
         showDetail("\nGenerated files in .tdk/.tdk-out/:", 0);
         for (const file of MASTER_CONFIG_FILES) {
@@ -378,9 +385,9 @@ export const projectCommand = new Command("project")
         showDetail("\nSource file:", 0);
         showDetail("- .tdk/project.json (edit this to change project structure)");
         showDetail("\nNext steps:", 0);
-        showDetail("1. Edit .env to set required values (VERDACCIO_URL_DOCKER, TILT_ENV)");
-        showDetail("2. Run `tdk config regenerate` after editing .tdk/project.json");
-        showDetail("3. Run `tdk up` to start development");
+        showDetail("1. tdk resource api --type backend --stack app   # scaffold a service");
+        showDetail("2. tdk up app                                     # start it");
+        showDetail("\nAfter editing .tdk/project.json, run `tdk config regenerate`.", 0);
     });
 });
 //# sourceMappingURL=project.js.map

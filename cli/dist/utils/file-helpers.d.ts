@@ -11,4 +11,10 @@ export declare function writeJsonFileInDir(dir: string, filename: string, data: 
 export declare function writeTextFile(filePath: string, content: string): void;
 export declare function writeTextFileInDir(dir: string, filename: string, content: string): void;
 export declare function ensureDirectory(dirPath: string): void;
+/**
+ * Appends the TDK entries missing from the project's .gitignore (creating it
+ * if needed), so the first `git add .` doesn't commit .env or generated
+ * output. Returns the entries it added.
+ */
+export declare function ensureGitignore(projectRoot: string): string[];
 //# sourceMappingURL=file-helpers.d.ts.map

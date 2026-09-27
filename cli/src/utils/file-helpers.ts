@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import chalk from "chalk";
 import type { FileGenerationTask } from "../types/index.js";
@@ -59,4 +59,27 @@ export function ensureDirectory(dirPath: string): void {
   if (!existsSync(dirPath)) {
     mkdirSync(dirPath, { recursive: true });
   }
+}
+
+/** Generated files that must never be committed: .env holds a generated DB password. */
+const GITIGNORE_ENTRIES = [".env", ".tdk/.tdk-out/", ".tdk/.project-id", "node_modules/"];
+
+/**
+ * Appends the TDK entries missing from the project's .gitignore (creating it
+ * if needed), so the first `git add .` doesn't commit .env or generated
+ * output. Returns the entries it added.
+ */
+export function ensureGitignore(projectRoot: string): string[] {
+  const gitignorePath = resolve(projectRoot, ".gitignore");
+  const existing = existsSync(gitignorePath) ? readFileSync(gitignorePath, "utf-8") : "";
+  const lines = new Set(existing.split("\n").map((line) => line.trim().replace(/\/$/, "")));
+  const missing = GITIGNORE_ENTRIES.filter((entry) => !lines.has(entry.replace(/\/$/, "")));
+  if (missing.length === 0) return [];
+
+  const prefix = existing && !existing.endsWith("\n") ? "\n" : "";
+  const header = existing
+    ? "\n# TDK (generated files and secrets)\n"
+    : "# TDK (generated files and secrets)\n";
+  appendFileSync(gitignorePath, `${prefix}${header}${missing.join("\n")}\n`);
+  return missing;
 }
