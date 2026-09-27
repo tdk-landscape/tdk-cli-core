@@ -4,7 +4,7 @@
   "dockerMemMiB": 7934,
   "perServiceBudgetMiB": 74,
   "options": {
-    "project": "/Users/katerynaburym/Developer/Codex/tdk-erp-system",
+    "project": "../tdk-erp-system",
     "tiers": [
       5,
       10,
