@@ -4,6 +4,8 @@ Notable changes to the `tdk` CLI. Versions match [npm](https://www.npmjs.com/pac
 
 ## Unreleased
 
+- Backends and workers scaffolded by `tdk resource` get a `start` script, and `@types/bun` is pinned instead of `latest`. Before, `tdk doctor` failed on every new service. Found by the clean-machine quickstart run.
+
 ## 1.3.59 (2026-09-27)
 
 - `tdk doctor` no longer fails every fresh project with "Generated Dockerfiles reference missing project runtime assets: prisma-runtime-relink.sh, migrate.sh". Those two scripts were never shipped or used by generated Dockerfiles; doctor now checks the scripts TDK ships plus whatever generated Dockerfiles actually copy. Found by the new clean-machine quickstart run.
