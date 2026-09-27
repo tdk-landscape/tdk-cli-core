@@ -57,7 +57,6 @@
     "commander": "^15.0.0",
     "handlebars": "^4.7.8",
     "ink": "^7.1.1",
-    "ink-select-input": "^6.2.0",
     "react": "^19.3.0"
   },
   "devDependencies": {

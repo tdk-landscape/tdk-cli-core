@@ -4,6 +4,8 @@ Notable changes to the `tdk` CLI. Versions match [npm](https://www.npmjs.com/pac
 
 ## Unreleased
 
+- Dropped the `ink-select-input` dependency in favor of a small built-in list in `tdk ui` (same keys: arrows or j/k, 1-9, Enter). Removes 4 packages: ink-select-input, figures, to-rotated and is-unicode-supported.
+
 ## 1.3.57 (2026-09-27)
 
 - Binary installs (`tdk-landscape.github.io/install.sh`) ship the Docker helper scripts generated Dockerfiles run. Before, `tdk project` warned "TDK runtime assets not found" and image builds could fail. The release script now smoke-tests the built binary.
