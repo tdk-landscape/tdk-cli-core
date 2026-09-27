@@ -4,6 +4,8 @@ Notable changes to the `tdk` CLI. Versions match [npm](https://www.npmjs.com/pac
 
 ## Unreleased
 
+## 1.3.55 (2026-09-27)
+
 - Dropped the `ora` dependency (only `tdk upgrade` used it) in favor of a small built-in spinner: 50 installed packages instead of 61, and no more duplicate versions of cli-cursor, restore-cursor, onetime and signal-exit.
 - `tdk doctor` outside a project checks only Docker, Compose and Tilt, and reports "This machine is ready for TDK". Before, running it right after installing (as the installer suggests) failed with "Master configs missing … Environment not ready".
 
