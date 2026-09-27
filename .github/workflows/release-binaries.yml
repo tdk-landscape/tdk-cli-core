@@ -12,6 +12,12 @@ permissions:
   contents: read
   id-token: write
 
+# Queue releases instead of running them side by side: two runs for the same
+# version upload the same assets and one fails with "already exists".
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   release:
     runs-on: ubuntu-latest
