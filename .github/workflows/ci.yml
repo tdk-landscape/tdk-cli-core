@@ -40,15 +40,41 @@ jobs:
   lint:
     name: 🛡️ Lint
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # push Biome fixes and a rebuilt cli/dist back to the PR branch
     defaults:
       run:
         working-directory: cli
+    env:
+      # Only same-repo PRs can be pushed to; forks get a read-only token.
+      AUTOFIX: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
     steps:
       - uses: actions/checkout@v7
         with:
-          persist-credentials: false
+          # The PR branch itself (not the merge commit), so fixes can be pushed to it.
+          ref: ${{ github.event.pull_request.head.ref || github.ref }}
+          persist-credentials: true # zizmor: ignore[artipacked] needed to push the autofix commit
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
+      # Applies Biome's safe fixes and rebuilds cli/dist, then commits both.
+      # Pushes made with GITHUB_TOKEN don't start a new CI run, so the checks
+      # below run on the fixed tree in this same job.
+      - name: Autofix lint and cli/dist
+        if: env.AUTOFIX == 'true'
+        run: |
+          bun run lint:fix || true
+          bun run build
+          git add -A .
+          git add -f dist
+          if git diff --cached --quiet; then
+            echo "Nothing to fix."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+            git commit -m "Apply Biome fixes and rebuild cli/dist"
+            git push
+            echo "::notice::Pushed a commit with Biome fixes and a rebuilt cli/dist."
+          fi
       - run: bun run lint
 
   typecheck:
