@@ -131,11 +131,13 @@ jobs:
           head: ${{ github.event.pull_request.head.sha }}
           extra_args: --only-verified
 
+  # Needs "Dependency graph" turned on in Settings > Code security, then the
+  # repository variable DEPENDENCY_REVIEW set to true (Settings > Variables).
   dependency-review:
     name: 🔒 Dependency Audit
     runs-on: ubuntu-latest
     needs: changes
-    if: needs.changes.outputs.lockfile == 'true' && github.event_name == 'pull_request'
+    if: vars.DEPENDENCY_REVIEW == 'true' && needs.changes.outputs.lockfile == 'true' && github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v7
         with:
