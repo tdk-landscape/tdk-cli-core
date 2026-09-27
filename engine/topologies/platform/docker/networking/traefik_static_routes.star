@@ -13,10 +13,15 @@
 # backend was healthy).
 #
 # Config for a request travels to the gateway via headers (X-Wake-*), not
-# the path/query, so the original request path reaches the real backend
-# unchanged once the resource is ready (see wake-gateway/server.ts).
+# the path/query. The route still strips the same `apiPath` prefix the real
+# Docker-label `-project` router strips (get_backend_traefik_labels) before
+# forwarding -- confirmed live against tdk-erp-system (task 7.2) that a
+# backend's app only serves its bare health path (e.g. `/health`), not the
+# full `/api/{name}/health` the public route is matched on; without this, the
+# gateway's own proxy-through would forward the unstripped path once healthy
+# and the app would 404 on it, even though the wake itself succeeded.
 
-load("./traefik_helpers.star", "project_backend_rule", "build_entrypoints")
+load("./traefik_helpers.star", "project_backend_rule", "cli_api_path", "build_entrypoints")
 load("./traefik_constants.star",
     "TRAEFIK_BACKEND_ENABLE_HTTP",
     "TRAEFIK_BACKEND_ENABLE_HTTPS",
@@ -88,9 +93,11 @@ def generate_static_wake_route(
     dependencies = dependencies or []
 
     rule = project_backend_rule(manifest, resource_entry_name)
+    api_path = cli_api_path(resource_entry_name, manifest)
     entrypoints = build_entrypoints(TRAEFIK_BACKEND_ENABLE_HTTP, TRAEFIK_BACKEND_ENABLE_HTTPS)
     router_name = resource_entry_name + "-wake"
-    middleware_name = resource_entry_name + "-wake-headers"
+    headers_middleware_name = resource_entry_name + "-wake-headers"
+    strip_middleware_name = resource_entry_name + "-wake-strip"
     service_name = resource_entry_name + "-wake-gateway"
     container_name = _container_name(compose_project_name, resource_entry_name)
     deps_header = ",".join([
@@ -115,10 +122,15 @@ http:
         - {entrypoint}
       service: {service_name}
       middlewares:
-        - {middleware_name}
+        - {strip_middleware_name}
+        - {headers_middleware_name}
       priority: {priority}
   middlewares:
-    {middleware_name}:
+    {strip_middleware_name}:
+      stripPrefix:
+        prefixes:
+          - "{api_path}"
+    {headers_middleware_name}:
       headers:
         customRequestHeaders:
           X-Wake-Resource: "{resource_entry_name}"
@@ -135,7 +147,9 @@ http:
         rule=rule,
         entrypoint=entrypoints.split(",")[0],
         service_name=service_name,
-        middleware_name=middleware_name,
+        strip_middleware_name=strip_middleware_name,
+        headers_middleware_name=headers_middleware_name,
+        api_path=api_path,
         priority=STATIC_ROUTE_PRIORITY,
         resource_entry_name=resource_entry_name,
         container_name=container_name,
