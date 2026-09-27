@@ -4,6 +4,8 @@ Notable changes to the `tdk` CLI. Versions match [npm](https://www.npmjs.com/pac
 
 ## Unreleased
 
+## 1.3.52 (2026-09-27)
+
 - `tdk up` works in a fresh project. The Tiltfile no longer aborts when a stack listed in `project.json` has no directory yet, and stacks created after `tdk project` are added to the `pre_alpha` phase so they actually start.
 - Prompts fail with an error and exit 1 when there's no input to read (CI, `< /dev/null`). Before, `tdk resource` printed its summary, exited 0 and created nothing.
 - `tdk help`: one-line header with the version, instead of a misaligned ASCII box and doubled icons.
