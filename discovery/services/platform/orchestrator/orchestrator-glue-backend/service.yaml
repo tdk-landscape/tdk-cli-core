@@ -2,7 +2,7 @@ appName: orchestrator-glue-backend
 appType: backend
 stack: platform
 port: 5001
-databaseName: beauty_crm_orchestrator
+databaseName: tdk_project_orchestrator
 features:
   - nats
   - prisma
@@ -22,5 +22,5 @@ resources:
     memory: 256Mi
 runtime: bun
 traefik:
-  host: orchestrator.backend.beauty.local
+  host: orchestrator.backend.tdk-project.local
   pathPrefix: /api/orchestrator

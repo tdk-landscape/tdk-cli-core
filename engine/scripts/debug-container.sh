@@ -13,6 +13,11 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# Container name filter: project name from .tdk/project.json (override with TDK_PROJECT_NAME)
+PROJECT_FILTER="${TDK_PROJECT_NAME:-$(sed -n 's/.*"name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' .tdk/project.json 2>/dev/null | head -1)}"
+PROJECT_FILTER="${PROJECT_FILTER:-tdk-project}"
+PROJECT_FILTER="${PROJECT_FILTER//-/[-_]}"
+
 # Help text
 show_help() {
     cat << EOF
@@ -68,11 +73,11 @@ EOF
 # List containers
 list_containers() {
     echo -e "${GREEN}=== Running Containers ===${NC}"
-    docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Image}}" | grep -i "beauty"
+    docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Image}}" | grep -iE "$PROJECT_FILTER"
     
     echo ""
     echo -e "${YELLOW}=== Recently Exited Containers ===${NC}"
-    docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.Image}}" | grep -i "beauty" | grep -i "exited"
+    docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.Image}}" | grep -iE "$PROJECT_FILTER" | grep -i "exited"
 }
 
 # Get container ID from service name
@@ -122,7 +127,7 @@ run_command() {
 # Show failed containers
 show_failed() {
     echo -e "${RED}=== Failed/Exited Containers ===${NC}"
-    docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.Image}}" | grep -i "beauty" | grep -iE "(exited|error)"
+    docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.Image}}" | grep -iE "$PROJECT_FILTER" | grep -iE "(exited|error)"
     
     echo ""
     echo -e "${YELLOW}To inspect logs of a failed container:${NC}"

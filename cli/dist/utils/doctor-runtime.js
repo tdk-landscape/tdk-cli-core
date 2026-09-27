@@ -44,7 +44,7 @@ export function parsePublishedPortHolders(dockerPsOutput, ports) {
 export function isOwnIngressContainer(containerName, projectPrefix) {
     const name = containerName.toLowerCase();
     const prefix = projectPrefix.toLowerCase();
-    // beauty_crm_traefik, beauty_crm-traefik-1, etc.
+    // tdk_project_traefik, tdk_project-traefik-1, etc.
     return name === `${prefix}_traefik` || name.startsWith(`${prefix}_traefik`);
 }
 export function findForeignIngressHolders(holders, projectPrefix) {
@@ -140,9 +140,9 @@ export function summarizeTiltBuildError(error) {
         const more = unique.length > 4 ? ` (+${unique.length - 4} more)` : "";
         return `private registry ConnectionRefused for ${shown}${more} — Verdaccio (:4873) is down or unreachable from the build`;
     }
-    if (/failed to resolve source metadata for docker\.io\/library\/(beauty-crm-[^:\s]+)/i.test(normalized)) {
-        const image = normalized.match(/failed to resolve source metadata for docker\.io\/library\/(beauty-crm-[^:\s]+)/i)?.[1];
-        return `base image ${image ?? "beauty-crm-*"} missing locally (golden-layer build not finished or failed)`;
+    if (/failed to resolve source metadata for docker\.io\/library\/(tdk-project-[^:\s]+)/i.test(normalized)) {
+        const image = normalized.match(/failed to resolve source metadata for docker\.io\/library\/(tdk-project-[^:\s]+)/i)?.[1];
+        return `base image ${image ?? "tdk-project-*"} missing locally (golden-layer build not finished or failed)`;
     }
     if (/install-deps\.sh/i.test(normalized) ||
         /bun install(?: --production)?/i.test(normalized) ||
@@ -263,7 +263,7 @@ export function checkPrivateNpmRegistry(exec = execSync, projectRoot = findProje
     return {
         name: "Private npm registry",
         didPass: false,
-        message: `Private npm registry (Verdaccio) is not reachable at ${registryUrl}. Docker ImageBuilds will fail with ConnectionRefused downloading package manifests for @beauty-crm/* and @tdk-landscape/* packages.`,
+        message: `Private npm registry (Verdaccio) is not reachable at ${registryUrl}. Docker ImageBuilds will fail with ConnectionRefused downloading package manifests for @tdk-landscape/* and project-scoped packages.`,
         fix: "Start the registry with `bun run verdaccio:start` (or `docker compose -f docker-compose.verdaccio.yml up -d`), publish packages with `bun run publish:all` / `scripts/build/publish-to-verdaccio.sh`, then `tilt trigger` failed resources or re-run `tdk up`.",
     };
 }

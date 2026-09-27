@@ -18,7 +18,7 @@ federation:
     shared:
       - react
       - react-dom
-      - @beauty-crm/introvertic-ui
+      - @tdk-landscape/introvertic-ui
 healthCheck: True
 path: identity-management-frontend
 playwright: True

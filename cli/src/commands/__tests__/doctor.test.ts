@@ -346,7 +346,7 @@ describe("doctor ingress + tilt runtime checks", () => {
   it("detects a foreign Traefik holding host port 80", () => {
     const dockerPs = [
       "tdk_saas_starter_traefik\t0.0.0.0:80->80/tcp,:::80->80/tcp,0.0.0.0:8080->8080/tcp",
-      "beauty_crm_postgres\t0.0.0.0:5432->5432/tcp",
+      "tdk_project_postgres\t0.0.0.0:5432->5432/tcp",
     ].join("\n");
 
     const holders = parsePublishedPortHolders(dockerPs, [80, 443]);
@@ -354,20 +354,20 @@ describe("doctor ingress + tilt runtime checks", () => {
     expect(holders[0]?.name).toBe("tdk_saas_starter_traefik");
     expect(holders[0]?.publishedPorts).toContain(80);
 
-    const foreign = findForeignIngressHolders(holders, "beauty_crm");
+    const foreign = findForeignIngressHolders(holders, "tdk_project");
     expect(foreign).toHaveLength(1);
 
-    const result = checkIngressPorts((() => dockerPs) as never, "beauty-crm");
+    const result = checkIngressPorts((() => dockerPs) as never, "tdk-project");
     expect(result.didPass).toBe(false);
     expect(result.message).toContain("tdk_saas_starter_traefik");
     expect(result.fix).toContain("docker stop");
   });
 
   it("passes when this project's Traefik owns the ingress ports", () => {
-    const dockerPs = "beauty_crm_traefik\t0.0.0.0:80->80/tcp,:::80->80/tcp,0.0.0.0:443->443/tcp";
-    const result = checkIngressPorts((() => dockerPs) as never, "beauty-crm");
+    const dockerPs = "tdk_project_traefik\t0.0.0.0:80->80/tcp,:::80->80/tcp,0.0.0.0:443->443/tcp";
+    const result = checkIngressPorts((() => dockerPs) as never, "tdk-project");
     expect(result.didPass).toBe(true);
-    expect(result.message).toContain("beauty_crm_traefik");
+    expect(result.message).toContain("tdk_project_traefik");
   });
 
   it("fails doctor when Tilt reports Traefik update errors that block apps", () => {
@@ -481,7 +481,7 @@ describe("doctor ingress + tilt runtime checks", () => {
   it("summarizes ConnectionRefused package manifest errors from build logs", () => {
     const raw = [
       "error: ConnectionRefused downloading package manifest @tdk-landscape/eventing",
-      "error: ConnectionRefused downloading package manifest @beauty-crm/identity-js-sdk",
+      "error: ConnectionRefused downloading package manifest @tdk-landscape/identity-js-sdk",
       "error: ConnectionRefused downloading package manifest @tdk-landscape/observability",
       'ImageBuild: process "/bin/sh -c bun install --production --cache-dir=/cache/bun" did not complete successfully: exit code: 1',
     ].join("\n");
@@ -672,7 +672,7 @@ describe("doctor ingress + tilt runtime checks", () => {
 
     const execUp = ((command: string) => {
       if (command.startsWith("docker ps")) {
-        return "beauty-crm-verdaccio\n";
+        return "tdk-project-verdaccio\n";
       }
       if (command.includes("curl")) {
         return "200";

@@ -28,7 +28,7 @@ export function getProjectName(): string {
       }
     } catch {}
   }
-  return "beauty-crm";
+  return "tdk-project";
 }
 
 export function resolveSubdomainBases(): { appBase: string; apiBase: string } {

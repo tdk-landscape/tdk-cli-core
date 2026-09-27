@@ -62,7 +62,7 @@
 
 # PROJECT_ROOT is automatically set by Tiltfile based on where you run `tilt up`.
 # You don't need to set it. Example:
-#   - If you run in /home/dev/beauty-crm, PROJECT_ROOT = "/home/dev/beauty-crm"
+#   - If you run in /home/dev/tdk-project, PROJECT_ROOT = "/home/dev/tdk-project"
 #   - All other paths are built from this root.
 #
 # This file is manually maintained to match the directory structure.
@@ -563,7 +563,7 @@ FEATURES = struct(
 
 CONSTANTS = struct(
     # System identity - EXPLICIT
-    SYSTEM_NAME = "beauty-crm-tilt-platform",
+    SYSTEM_NAME = "tdk-project-tilt-platform",
     SYSTEM_VERSION = "2.0.0",
     
     # Runtimes - EXPLICIT supported options
