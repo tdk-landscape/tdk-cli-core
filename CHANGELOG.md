@@ -4,6 +4,8 @@ Notable changes to the `tdk` CLI. Versions match [npm](https://www.npmjs.com/pac
 
 ## Unreleased
 
+- `tdk doctor` no longer fails every fresh project with "Generated Dockerfiles reference missing project runtime assets: prisma-runtime-relink.sh, migrate.sh". Those two scripts were never shipped or used by generated Dockerfiles; doctor now checks the scripts TDK ships plus whatever generated Dockerfiles actually copy. Found by the new clean-machine quickstart run.
+
 ## 1.3.58 (2026-09-27)
 
 - Dropped the `ink-select-input` dependency in favor of a small built-in list in `tdk ui` (same keys: arrows or j/k, 1-9, Enter). Removes 4 packages: ink-select-input, figures, to-rotated and is-unicode-supported.
