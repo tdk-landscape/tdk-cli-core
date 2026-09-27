@@ -84,7 +84,7 @@ while IFS= read -r container; do
         
         printf "%-20s\t%s%%\t%s\t%s\n" "$CONTAINER_DISPLAY" "$CPU_PERCENT" "$MEMORY_USAGE" "$STATUS"
     fi
-done <<< "$BEAUTY_CONTAINERS"
+done <<< "$PROJECT_CONTAINERS"
 
 echo ""
 echo -e "${BLUE}📈 Resource Summary:${NC}"

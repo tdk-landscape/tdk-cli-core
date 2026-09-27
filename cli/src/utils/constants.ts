@@ -54,7 +54,7 @@ export const STANDARD_PORTS = {
 
 export const QUICKSTART_DOCS_URL = "https://tdk-landscape.github.io/tdk-website/docs/quickstart/";
 
-export const BASE_DOMAIN_DEFAULT = "beauty-crm.localhost";
+export const BASE_DOMAIN_DEFAULT = "tdk-project.localhost";
 export const APP_SUBDOMAIN_PREFIX = "app";
 export const API_SUBDOMAIN_PREFIX = "api";
 

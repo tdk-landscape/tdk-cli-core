@@ -10,5 +10,5 @@ dependsOn:
   - database-management
 runtime: docker
 traefik:
-  host: traefik.beauty-crm.localhost
+  host: traefik.tdk-project.localhost
   pathPrefix: /dashboard

@@ -20,10 +20,6 @@
           "options": {
             "patterns": [
               {
-                "group": ["@beauty-crm/*-frontend", "@beauty-crm/*-backend"],
-                "message": "❌ tdk-cli is a leaf dev tool: it must never import a beauty-crm service/frontend. See BOUNDARIES.md §4-5."
-              },
-              {
                 "group": ["@tdk-landscape/*-backend", "@tdk-landscape/*-frontend"],
                 "message": "❌ tdk-cli is a leaf dev tool: it must never import a service package. See BOUNDARIES.md §4-5."
               }

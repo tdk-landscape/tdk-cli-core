@@ -7,7 +7,7 @@
 # 2. Or update service.json
 #
 # Generation Source: GoldenImage.generate_layered_dockerfile()
-# Service: beauty-crm-l1-l4
+# Service: tdk-project-l1-l4
 # Type: GOLDEN LAYERED IMAGES | L1-L4 Pre-built Layers
 ###############################################################################
 
@@ -15,14 +15,14 @@
 # 🏗️ GOLDEN LAYERED IMAGES - Multi-Stage Base Images
 # =============================================================================
 # This Dockerfile builds 8 golden images:
-#   - beauty-crm-l1:latest - OS base + Bun runtime
-#   - beauty-crm-l2:latest - Dependencies installed
-#   - beauty-crm-l3-backend:latest - Backend build tools (Prisma, no Infisical CLI)
-#   - beauty-crm-l3-frontend:latest - Frontend build tools (no Prisma)
-#   - beauty-crm-l3-migrator:latest - Migrator build tools (Prisma, no Infisical CLI)
-#   - beauty-crm-l4-backend:latest - Backend production runtime
-#   - beauty-crm-l4-frontend:latest - Frontend production runtime (Nginx)
-#   - beauty-crm-l4-migrator:latest - Migrator production runtime
+#   - tdk-project-l1:latest - OS base + Bun runtime
+#   - tdk-project-l2:latest - Dependencies installed
+#   - tdk-project-l3-backend:latest - Backend build tools (Prisma, no Infisical CLI)
+#   - tdk-project-l3-frontend:latest - Frontend build tools (no Prisma)
+#   - tdk-project-l3-migrator:latest - Migrator build tools (Prisma, no Infisical CLI)
+#   - tdk-project-l4-backend:latest - Backend production runtime
+#   - tdk-project-l4-frontend:latest - Frontend production runtime (Nginx)
+#   - tdk-project-l4-migrator:latest - Migrator production runtime
 #
 # Services use these as base images to skip heavy dependency installation.
 #
@@ -38,7 +38,7 @@
 # =============================================================================
 FROM oven/bun:1.3.11-alpine AS l1_golden
 
-LABEL layer="l1"       description="OS base with runtime environment"       maintainer="beauty-crm"
+LABEL layer="l1"       description="OS base with runtime environment"       maintainer="tdk-project"
 
 # System dependencies for all services
 RUN apk add --no-cache     ca-certificates     tzdata     curl     file     bash     openssl
@@ -57,7 +57,7 @@ WORKDIR /app
 # =============================================================================
 FROM l1_golden AS l2_golden
 
-LABEL layer="l2"       description="Base with common dependencies installed"       maintainer="beauty-crm"
+LABEL layer="l2"       description="Base with common dependencies installed"       maintainer="tdk-project"
 
 # Install minimal debugging tools (removed: vim, python3, make, g++ = -67MB)
 RUN apk add --no-cache     curl     netcat-openbsd     jq     bind-tools
@@ -74,7 +74,7 @@ RUN echo "Bun version: $(bun --version)"
 # =============================================================================
 FROM l2_golden AS l3_backend_golden
 
-LABEL layer="l3-backend"       description="Backend build tools with Prisma"       maintainer="beauty-crm"
+LABEL layer="l3-backend"       description="Backend build tools with Prisma"       maintainer="tdk-project"
 
 # Install Prisma CLI globally (pinned for deterministic builds)
 RUN bun add -g prisma@7.5.0 @prisma/client@7.5.0
@@ -94,7 +94,7 @@ RUN echo "Prisma version: $(bunx prisma --version | head -1)"
 # =============================================================================
 FROM l2_golden AS l3_frontend_golden
 
-LABEL layer="l3-frontend"       description="Frontend build tools without Prisma"       maintainer="beauty-crm"
+LABEL layer="l3-frontend"       description="Frontend build tools without Prisma"       maintainer="tdk-project"
 
 # Frontend doesn't need Prisma, just verify Bun
 RUN echo "Bun version: $(bun --version)"
@@ -105,7 +105,7 @@ RUN echo "Bun version: $(bun --version)"
 # =============================================================================
 FROM l2_golden AS l3_migrator_golden
 
-LABEL layer="l3-migrator"       description="Migrator build tools with Prisma"       maintainer="beauty-crm"
+LABEL layer="l3-migrator"       description="Migrator build tools with Prisma"       maintainer="tdk-project"
 
 # Install Prisma CLI globally (required for migrations, pinned)
 RUN bun add -g prisma@7.5.0 @prisma/client@7.5.0
@@ -125,7 +125,7 @@ RUN echo "Prisma version: $(bunx prisma --version | head -1)"
 # =============================================================================
 FROM l1_golden AS l4_backend_bun
 
-LABEL layer="l4-backend-bun"       description="Backend production runtime (Bun)"       maintainer="beauty-crm"
+LABEL layer="l4-backend-bun"       description="Backend production runtime (Bun)"       maintainer="tdk-project"
 
 ENV NODE_ENV=production
 
@@ -150,7 +150,7 @@ WORKDIR /app
 # =============================================================================
 FROM node:22-alpine AS l4_backend_node
 
-LABEL layer="l4-backend-node"       description="Backend production runtime (Node.js - lightweight)"       maintainer="beauty-crm"
+LABEL layer="l4-backend-node"       description="Backend production runtime (Node.js - lightweight)"       maintainer="tdk-project"
 
 ENV NODE_ENV=production
 
@@ -180,7 +180,7 @@ FROM l4_backend_bun AS l4_backend_golden
 # =============================================================================
 FROM nginx:alpine AS l4_frontend_golden
 
-LABEL layer="l4-frontend"       description="Frontend production runtime with Nginx"       maintainer="beauty-crm"
+LABEL layer="l4-frontend"       description="Frontend production runtime with Nginx"       maintainer="tdk-project"
 
 ENV NODE_ENV=production
 
@@ -198,7 +198,7 @@ WORKDIR /usr/share/nginx/html
 # =============================================================================
 FROM l1_golden AS l4_migrator_golden
 
-LABEL layer="l4-migrator"       description="Migrator runtime with Prisma"       maintainer="beauty-crm"
+LABEL layer="l4-migrator"       description="Migrator runtime with Prisma"       maintainer="tdk-project"
 
 ENV NODE_ENV=production
 

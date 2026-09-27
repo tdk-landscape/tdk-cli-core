@@ -60,7 +60,7 @@ MIGRATED_PACKAGES = {
 load("../manifest/constants.star", "MANIFEST_FILENAME")
 
 # List of all shared platform networks
-# All networks use PROJECT_NAME format (e.g., beauty_crm_*)
+# All networks use PROJECT_NAME format (e.g., tdk_project_*)
 PLATFORM_NETWORKS = [
   PlatformDockerConstants.NETWORK_TRAEFIK_PUBLIC,
   PlatformDockerConstants.PROJECT_NAME + "_traefik-private",

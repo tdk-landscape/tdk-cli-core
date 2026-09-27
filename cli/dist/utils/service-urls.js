@@ -13,7 +13,7 @@ export function getProjectName() {
         }
         catch { }
     }
-    return "beauty-crm";
+    return "tdk-project";
 }
 export function resolveSubdomainBases() {
     const projectName = getProjectName();
