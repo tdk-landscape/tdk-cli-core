@@ -15,6 +15,7 @@ import {
   stackExists,
 } from "../utils/services.js";
 import { buildTiltUpArgs, runTilt } from "../utils/tilt.js";
+import { enableDiscoveredStacks } from "./project.js";
 
 export const upCommand = new Command("up")
   .description("Start all services (optionally filtered by stack)")
@@ -30,6 +31,15 @@ export const upCommand = new Command("up")
       const copiedAssets = ensureProjectRuntimeAssets(projectRoot);
       if (copiedAssets.length > 0 && options.verbose && !options.quiet) {
         console.log(chalk.gray(`Refreshed runtime assets: ${copiedAssets.join(", ")}`));
+      }
+
+      const newlyEnabledStacks = enableDiscoveredStacks(projectRoot);
+      if (newlyEnabledStacks.length > 0 && !options.quiet) {
+        console.log(
+          chalk.gray(
+            `Added ${newlyEnabledStacks.join(", ")} to the pre_alpha phase in .tdk/project.json`,
+          ),
+        );
       }
 
       let servicesToStart: Awaited<ReturnType<typeof discoverResources>>;

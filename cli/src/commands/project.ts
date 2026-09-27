@@ -70,6 +70,26 @@ function syncDiscoveredStacksToPreAlpha(
 }
 
 /**
+ * Adds stacks that have service.json files but aren't in any phase to
+ * pre_alpha, so a resource scaffolded after `tdk project` is picked up by
+ * `tdk up` without re-running `tdk project`. Returns the stacks it enabled.
+ */
+export function enableDiscoveredStacks(projectRoot: string): string[] {
+  const projectJsonPath = join(projectRoot, ".tdk", "project.json");
+  if (!existsSync(projectJsonPath)) return [];
+
+  const projectConfig = readProjectConfig(projectRoot);
+  const enabled = syncDiscoveredStacksToPreAlpha(
+    projectConfig,
+    discoverExistingServiceStacks(projectRoot),
+  );
+  if (enabled.length > 0) {
+    writeJsonFile(projectJsonPath, projectConfig);
+  }
+  return enabled;
+}
+
+/**
  * Get core infrastructure services from PROJECT_FEATURES that are enabled by default
  */
 function getDefaultCoreServices(): string[] {
