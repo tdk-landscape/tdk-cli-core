@@ -1,45 +1,6 @@
-# 🚀 TDK CLI
+# 🚀 TDK CLI reference
 
-> **T**ilt **D**evelopment **K**it - All-in-one local development platform for microservices
-
-[![npm version](https://img.shields.io/npm/v/@tdk-landscape/tdk-cli-core.svg?style=flat&color=blue)](https://www.npmjs.com/package/@tdk-landscape/tdk-cli-core)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Socket Badge](https://badge.socket.dev/npm/package/@tdk-landscape/tdk-cli-core/1.3.27)](https://badge.socket.dev/npm/package/@tdk-landscape/tdk-cli-core/1.3.27)
-
----
-
-![tdk scaffolding a backend and a frontend, then listing the stack](../docs/demo.svg)
-
----
-
-## 🎯 What is TDK?
-
-TDK CLI organizes your microservices using a clear **Project-Stack-Resource (PSR)** hierarchy:
-
-```
-📁 Project (1 per repo)
-├── ⚙️  TILT_RESOURCE_DEFAULTS.star   # Ports, health checks, memory
-├── 🔧 TILT_TECH_STACK.star          # Bun, Vite, Prisma, NATS
-│
-└── 📦 Stacks (deployment groups)
-    ├── 🔐 api-stack
-    │   ├── ⚡ api-backend      # Resource
-    │   └── 🎨 web-frontend     # Resource
-    │
-    └── 📅 worker-stack
-        ├── ⚡ worker-backend    # Resource
-        └── 🎨 web-frontend     # Resource
-```
-
----
-
-## 📦 Installation
-
-```bash
-npm install -g @tdk-landscape/tdk-cli-core
-# or
-bun install -g @tdk-landscape/tdk-cli-core
-```
+> Command reference for the `tdk` CLI. For what TDK is, installation, badges, and the benchmark, see the **[main README](../README.md)**.
 
 ---
 
@@ -118,7 +79,7 @@ tdk resource my-worker --type worker --stack background
 |---------|-------------|---------|
 | `tdk up` | 🚀 Start all services | `tdk up` |
 | `tdk up <stack>` | 🚀 Start a stack | `tdk up api` |
-| `tdk up <resource>` | 🚀 Start specific resource | `tdk up api-backend` |
+| `tdk up --dry-run` | 👀 Show what would start, without starting | `tdk up api --dry-run` |
 | `tdk down` | ⏹️ Stop all services | `tdk down` |
 | `tdk status` | 📊 Show resource status | `tdk status` |
 
@@ -129,7 +90,13 @@ tdk resource my-worker --type worker --stack background
 | Command | Description |
 |---------|-------------|
 | `tdk ui` | 🎨 Interactive terminal UI |
+| `tdk networks` | 🌐 Show Traefik-routed URLs (`--stack`, `--json`, `--raw`) |
+| `tdk config regenerate` | ♻️ Regenerate master config files from `.tdk/project.json` |
+| `tdk config verify` | ✅ Check generated files match `.tdk/project.json` |
+| `tdk config enable-infra <service>` | ➕ Enable an optional infrastructure service (`disable-infra` to turn it off) |
 | `tdk doctor` | 🔍 Check environment (Docker, Bun, Tilt, ports) |
+| `tdk completion --install` | ⌨️ Install shell completions (`--shell bash\|zsh\|fish`) |
+| `tdk upgrade` | ⬆️ Self-update to the latest version (`--dry-run`, `--force`) |
 | `tdk version` | ℹ️  Show version |
 | `tdk --help` | ❓ Show help |
 
@@ -183,6 +150,7 @@ tdk resources --stack api
 | `backend` | 4000-4999 | 🏎️ Hono API | REST APIs, microservices |
 | `frontend` | 3000-3999 | ⚛️ React + Vite | Web apps, dashboards |
 | `worker` | (optional) | 🔧 Background worker | Queue processors, jobs |
+| `sdk` | — | none (register existing, `packages/<name>`) | Shared libraries |
 
 ---
 
@@ -302,21 +270,22 @@ tdk up --help
 
 ## 📚 Documentation
 
-- [Main Documentation](https://github.com/tdk-landscape/tdk-cli/tree/main/docs)
-- [Architecture](https://github.com/tdk-landscape/tdk-cli/tree/main/engine/docs)
-- [Tilt Extension](https://github.com/tdk-landscape/tdk-cli#using-as-tilt-extension)
+- [Main README](../README.md)
+- [Feature flags](../docs/FEATURES.md)
+- [Architecture](../engine/docs/README.md)
+- [Tilt Extension](../ext/)
 
 ---
 
 ## 📝 License
 
-MIT © [TDK Landscape](https://github.com/tdk-landscape)
+[MIT](../LICENSE) © [TDK Landscape](https://github.com/tdk-landscape)
 
 ---
 
 <div align="center">
 
-**[⬆️ Back to Top](#-tdk-cli)**
+**[⬆️ Back to Top](#-tdk-cli-reference)**
 
 Made with 💚 for developers who ship
 
