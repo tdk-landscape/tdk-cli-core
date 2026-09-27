@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation
+    url: https://tdk-landscape.github.io/tdk-website
+    about: Guides, quickstart, and examples
+  - name: Report a security vulnerability
+    url: https://github.com/tdk-landscape/tdk-cli-core/security/advisories/new
+    about: Please report security issues privately

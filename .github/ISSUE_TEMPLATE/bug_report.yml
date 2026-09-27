@@ -1,0 +1,40 @@
+name: Bug report
+description: Something in tdk does not work as expected
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you run, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. tdk project --yes
+        2. tdk up api
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Output of `tdk doctor`
+      render: shell
+  - type: input
+    id: version
+    attributes:
+      label: TDK version
+      description: Output of `tdk --version`
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options: [macOS (Apple Silicon), macOS (Intel), Linux, Windows (WSL), Other]
+    validations:
+      required: true

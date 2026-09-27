@@ -15,7 +15,7 @@
  */
 import { execSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { basename, dirname, join, resolve } from "node:path";
+import { basename, dirname, join, relative, resolve } from "node:path";
 
 const REPO_ROOT = resolve(import.meta.dir, "..", "..");
 const PREFIX = "tdkbench-";
@@ -494,7 +494,7 @@ function main(): void {
   const outFile = join(outDir, `container-scale-${new Date().toISOString().replace(/[:.]/g, "-")}.json`);
   writeFileSync(
     outFile,
-    JSON.stringify({ date: new Date().toISOString(), hostMemGiB, dockerMemMiB, perServiceBudgetMiB, options: opts, images: services.length, imageStats, diskUsage, singleProcessImageShare: singleShare, results, gate: { tier: opts.gate, passed } }, null, 2),
+    JSON.stringify({ date: new Date().toISOString(), hostMemGiB, dockerMemMiB, perServiceBudgetMiB, options: { ...opts, project: relative(REPO_ROOT, opts.project) }, images: services.length, imageStats, diskUsage, singleProcessImageShare: singleShare, results, gate: { tier: opts.gate, passed } }, null, 2),
   );
   console.log(`\n${passed ? "PASS" : "FAIL"} - results saved to ${outFile}`);
   process.exit(passed ? 0 : 1);

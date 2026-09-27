@@ -5,7 +5,7 @@
   "perServiceBudgetMiB": 74,
   "options": {
     "mode": "compose",
-    "project": "/Users/katerynaburym/Developer/Codex/tdk-erp-system",
+    "project": "../tdk-erp-system",
     "tiers": [
       5
     ],
