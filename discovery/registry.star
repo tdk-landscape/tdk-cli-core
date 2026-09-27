@@ -423,7 +423,9 @@ def _find_manifest_files(root, manifest_filename):
             full_path = root
         else:
             full_path = project_root + "/" + root
-        cmd = "find " + full_path + " -type f -name '" + manifest_filename + "' 2>/dev/null"
+        # A stack listed in project.json may not have a directory yet (a fresh
+        # project lists "proxy"); find exits 1 on a missing path and local() fails.
+        cmd = "if [ -d '" + full_path + "' ]; then find '" + full_path + "' -type f -name '" + manifest_filename + "' 2>/dev/null; fi"
         result = str(local(cmd, quiet=True, echo_off=True)).strip()
     
     if result:
