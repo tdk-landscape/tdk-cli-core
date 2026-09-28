@@ -203,7 +203,8 @@ jobs:
 
           while IFS='|' read -r pattern path; do
             [ -n "$pattern" ] || continue
-            base="$(grep -E "$pattern" web-urls.txt | head -1 | sed 's#/*$##' || true)"
+            # Frontend URLs are printed as their /health check; the page lives at the base.
+            base="$(grep -E "$pattern" web-urls.txt | head -1 | sed -E 's#/+$##; s#/health$##' || true)"
             if [ -z "$base" ]; then
               echo "::error::no frontend URL matches '$pattern'"
               echo "| Page $pattern | (no matching URL) | ❌ |" >> results.md
