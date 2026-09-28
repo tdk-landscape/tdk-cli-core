@@ -46,10 +46,6 @@ export declare function parseTiltResourceFailures(jsonText: string, deferredName
     okCount: number;
     total: number;
 };
-/**
- * Turn noisy Tilt/Docker build errors into an actionable one-liner.
- * Prefer registry/network root causes over truncated ImageBuild exit lines.
- */
 export declare function summarizeTiltBuildError(error: string): string;
 export declare function isRegistryRelatedBuildError(error: string): boolean;
 export declare function projectExpectsVerdaccio(projectRoot?: string): boolean;

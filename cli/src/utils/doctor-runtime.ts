@@ -180,6 +180,9 @@ export function parseTiltResourceFailures(
  * Turn noisy Tilt/Docker build errors into an actionable one-liner.
  * Prefer registry/network root causes over truncated ImageBuild exit lines.
  */
+const GOLDEN_BASE_IMAGE_PULL_FAILURE =
+  /failed to resolve source metadata for docker\.io\/library\/([A-Za-z0-9._-]+-l[1-4](?:-[a-z]+)*)(?::[^\s:]+)?:/i;
+
 export function summarizeTiltBuildError(error: string): string {
   const normalized = error.replace(/\s+/g, " ").trim();
 
@@ -201,15 +204,11 @@ export function summarizeTiltBuildError(error: string): string {
     return `private registry ConnectionRefused for ${shown}${more} — Verdaccio (:4873) is down or unreachable from the build`;
   }
 
-  if (
-    /failed to resolve source metadata for docker\.io\/library\/(tdk-project-[^:\s]+)/i.test(
-      normalized,
-    )
-  ) {
-    const image = normalized.match(
-      /failed to resolve source metadata for docker\.io\/library\/(tdk-project-[^:\s]+)/i,
-    )?.[1];
-    return `base image ${image ?? "tdk-project-*"} missing locally (golden-layer build not finished or failed)`;
+  // Golden base images are named `<project>-l1`, `<project>-l2`, `<project>-l3-backend`,
+  // `<project>-l4-migrator`, and so on, for whatever the project is called.
+  const goldenBase = normalized.match(GOLDEN_BASE_IMAGE_PULL_FAILURE);
+  if (goldenBase) {
+    return `base image ${goldenBase[1]} was missing when this build started (the golden layers weren't built yet, or golden-layers-build failed) - Tilt does not retry a failed build by itself`;
   }
 
   if (
