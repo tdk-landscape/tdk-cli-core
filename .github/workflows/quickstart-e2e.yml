@@ -27,9 +27,20 @@ jobs:
 
       # ubuntu-latest ships a Postgres service already listening on 5432,
       # which collides with the one TDK generates and fails tdk doctor's
-      # host-port check before tdk up ever runs.
+      # host-port check before tdk up ever runs. `postgresql.service` is a
+      # meta-unit; stopping it alone didn't free the port, so stop the
+      # versioned instance units too and fall back to killing whatever is
+      # actually bound to 5432.
       - name: Free port 5432 (runner's preinstalled Postgres)
-        run: sudo systemctl stop postgresql.service || true
+        run: |
+          sudo systemctl stop postgresql.service 'postgresql@*.service' 2>/dev/null || true
+          sudo fuser -k 5432/tcp 2>/dev/null || true
+          sleep 1
+          if sudo ss -ltn 2>/dev/null | grep -q ':5432 '; then
+            echo "::error::port 5432 is still in use"
+            sudo ss -ltnp | grep ':5432 ' || true
+            exit 1
+          fi
 
       - name: Install TDK from npm
         run: npm install -g @tdk-landscape/tdk-cli-core@latest && tdk --version # zizmor: ignore[adhoc-packages] the point is to test what users install
