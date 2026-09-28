@@ -159,6 +159,7 @@ Default features for backend services (appType: "backend", "worker", "migrator")
 - **Purpose**: Prisma CLI configuration for database access
 - **Usage**: `npx prisma generate`, `npx prisma migrate`, `npx prisma db push`
 - **Database**: Uses `DATABASE_URL` env var from project-level database
+- **Opt-in**: not enabled by default. Add `"prisma"` to `features` only together with a `prisma/schema.prisma` and the `prisma` and `@prisma/client` dependencies in the service's `package.json`; the generated Dockerfile copies `prisma/` and runs `prisma generate`, so it fails to build without them.
 
 #### `ddd` (Premium)
 - **Generates**: Domain-driven design folders and backend path aliases
@@ -224,7 +225,7 @@ These generators always run and don't have a feature flag:
 
 | Feature | Default | Customizable |
 |---------|---------|--------------|
-| prisma | ✅ | Yes |
+| prisma | ❌ (opt-in, needs a schema) | Yes |
 | ddd | ❌ | Yes (Premium) |
 | vite | ✅ (always) | No |
 | tsconfig | ✅ (always) | No |

@@ -4,6 +4,8 @@ Notable changes to the `tdk` CLI. Versions match [npm](https://www.npmjs.com/pac
 
 ## Unreleased
 
+- **`tdk resource --type backend` now produces a service whose image builds.** It set `featuresEnabled: ["prisma"]` by default but never created `prisma/schema.prisma` or the `prisma` dependency, so the generated Dockerfile failed on `COPY services/<stack>/<name>/prisma` and no scaffolded service could start. Prisma is now opt-in, like in the ERP and restaurant examples that boot, and `docs/FEATURES.md` says what it needs. Found by the clean-machine quickstart run, one step after the base-image race.
+
 ## 1.3.66 (2026-09-28)
 
 - **`tdk up` on a machine with no base images no longer leaves every service stuck on a 404.** The generated Tiltfile dropped the golden-layers resource name, so app and migrator resources never waited for `golden-layers-build`. Their image builds started at once, failed with "pull access denied" because the base images did not exist yet, and Tilt never retried. Machines that had built the layers before (any second run) were unaffected, which hid it. Found by the clean-machine quickstart run.
