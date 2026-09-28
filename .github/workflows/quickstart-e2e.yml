@@ -91,6 +91,8 @@ jobs:
               docker ps -a --format 'table {{.Names}}\t{{.Status}}' | head -20 || true
               echo "-- images built so far:"
               docker images --format '{{.Repository}}:{{.Tag}}  {{.CreatedSince}}' | head -12 || true
+              echo "-- tilt resources (name, update, runtime, what it is waiting on):"
+              tilt get uiresources -o json 2>/dev/null | jq -r '.items[] | "\(.metadata.name)  update=\(.status.updateStatus // "-")  runtime=\(.status.runtimeStatus // "-")  waiting=\(.status.waiting // {} | tostring)  err=\((.status.buildHistory // [] | map(.error // empty) | first) // "-")"' || echo "(tilt not reachable)"
               echo "-- tdk up log (last 8 lines):"
               tail -8 up.log || true
               echo "::endgroup::"
