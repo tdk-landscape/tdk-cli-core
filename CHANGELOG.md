@@ -4,6 +4,8 @@ Notable changes to the `tdk` CLI. Versions match [npm](https://www.npmjs.com/pac
 
 ## Unreleased
 
+## 1.3.73 (2026-09-28)
+
 - Free-tier projects no longer start the `sablier` and `wake-gateway` containers, and Traefik no longer downloads the Sablier plugin from GitHub on every start. They were always launched (the `sablier` one with a read-write Docker socket) even though the license only gated the per-service labels, so nothing could use them. They are now generated only when a license grants Sablier. Fewer containers, one image build less, and no network fetch at Traefik boot. Spotted in the ERP CI run log.
 
 ## 1.3.72 (2026-09-28)
