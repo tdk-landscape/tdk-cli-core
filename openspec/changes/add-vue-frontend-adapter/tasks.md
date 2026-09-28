@@ -3,14 +3,14 @@
 - [ ] 1.1 Define frontend provider types and a registry in the shipped CLI package.
 - [ ] 1.2 Move React dependencies, Vite integration, entry files, and starter component out of the generic frontend resource command into the React provider.
 - [ ] 1.3 Resolve omitted framework values to React, persist `framework: "react"` in new frontend `service.json`, and preserve existing React generated output.
-- [ ] 1.4 Add an explicit framework selection path and fail before file writes when the provider id is unknown.
-- [ ] 1.5 Add CLI tests for React default output, explicit provider resolution, and unknown-provider failure.
-- [ ] 1.6 Verify frontend manifests without a framework field remain valid under existing discovery and shared runtime behavior.
+- [ ] 1.4 Add `--framework <id>` for frontend creation and fail before file writes for unknown ids or use with a non-frontend resource type.
+- [ ] 1.5 Add CLI tests for React default output, explicit provider resolution, unknown-provider failure, and non-frontend option rejection.
+- [ ] 1.6 Verify legacy frontend manifests without a framework field remain valid under discovery and shared runtime behavior, and are not rewritten merely to add the field.
 
 ## 2. Document framework contributions
 
 - [ ] 2.1 Add a frontend framework contribution guide describing the shared contract, provider layout, registration, and framework-specific files.
-- [ ] 2.2 Link the guide from `CONTRIBUTING.md` and document how contributors can add React-compatible and lightweight Vite-based frameworks.
+- [ ] 2.2 Link the guide from `CONTRIBUTING.md` and document how contributors can add Vite-based SPA adapters by starting from the React provider.
 - [ ] 2.3 Add or update a framework pull request checklist with issue/context, default compatibility, generated output tests, and documentation requirements.
 - [ ] 2.4 Document supported framework selection and the shared TDK frontend runtime contract in the CLI resource documentation.
 

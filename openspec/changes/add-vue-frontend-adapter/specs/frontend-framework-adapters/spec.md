@@ -2,7 +2,7 @@
 
 ### Requirement: Frontend resource generation resolves and persists a registered framework provider
 
-The CLI SHALL accept an optional `--framework <id>` for frontend resource creation. It SHALL resolve the framework through the registered providers, persist the resolved identifier as `framework` in the generated `service.json`, and select React when the option is omitted. The CLI SHALL reject an unknown identifier before writing generated files. Interactive prompts SHALL continue to use React without adding a framework picker.
+The CLI SHALL accept an optional `--framework <id>` for frontend resource creation. It SHALL resolve the framework through the registered providers, persist the resolved identifier as `framework` in the generated `service.json`, and select React when the option is omitted. The CLI SHALL reject an unknown identifier before writing generated files and SHALL reject `--framework` when the resource type is not frontend. Interactive prompts SHALL continue to use React without adding a framework picker.
 
 #### Scenario: Omitted framework preserves React default
 - **WHEN** a user creates a frontend resource without specifying a framework
@@ -23,6 +23,11 @@ The CLI SHALL accept an optional `--framework <id>` for frontend resource creati
 - **WHEN** a user requests an unregistered frontend framework identifier
 - **THEN** the CLI returns an actionable error listing how to find supported identifiers
 - **AND** does not create a partial resource
+
+#### Scenario: Framework option is rejected for non-frontend resources
+- **WHEN** a user supplies `--framework` while creating a backend, worker, or other non-frontend resource
+- **THEN** the CLI returns an actionable error that the option applies only to frontend resources
+- **AND** does not create or modify the resource
 
 ### Requirement: Framework providers preserve the shared TDK frontend contract
 
@@ -54,3 +59,7 @@ Existing frontend `service.json` files without a `framework` field SHALL remain 
 #### Scenario: Existing frontend metadata omits framework
 - **WHEN** TDK reads an existing frontend `service.json` that has no `framework` field
 - **THEN** the service remains valid and compatible with existing shared frontend runtime behavior
+
+#### Scenario: Reading a legacy frontend does not rewrite its metadata
+- **WHEN** resource discovery or `tdk up` reads a frontend `service.json` without a `framework` field
+- **THEN** it does not rewrite `service.json` solely to insert a default framework field
