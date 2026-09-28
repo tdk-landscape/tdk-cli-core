@@ -86,6 +86,33 @@ jobs:
           echo "::error::$url did not become healthy within 20 minutes"
           exit 1
 
+      # When the health poll times out, "404 for 20 minutes" says nothing about
+      # why. Dump what a person would look at first.
+      - name: Diagnostics on failure
+        if: failure()
+        run: |
+          cd "$RUNNER_TEMP/shop" 2>/dev/null || exit 0
+          echo "::group::tdk up log (last 300 lines)"
+          tail -300 up.log 2>/dev/null || true
+          echo "::endgroup::"
+          echo "::group::docker ps -a"
+          docker ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' || true
+          echo "::endgroup::"
+          for c in $(docker ps -a --format '{{.Names}}' | grep -iE 'orders|traefik' || true); do
+            echo "::group::docker logs $c (last 100 lines)"
+            docker logs --tail 100 "$c" 2>&1 || true
+            echo "::endgroup::"
+          done
+          echo "::group::docker images"
+          docker images --format 'table {{.Repository}}\t{{.Tag}}\t{{.CreatedSince}}' | head -20 || true
+          echo "::endgroup::"
+          echo "::group::tilt resources"
+          tilt get uiresources 2>&1 | head -40 || true
+          echo "::endgroup::"
+          echo "::group::tdk doctor"
+          tdk doctor || true
+          echo "::endgroup::"
+
       - name: tdk down
         if: always()
         run: |
