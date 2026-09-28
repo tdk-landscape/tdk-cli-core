@@ -75,6 +75,37 @@ describe("template-engine", () => {
       expect(loader).toMatch(/sablier_middleware_suffix\(\{"sablier":\s*\{"enable":\s*True\}\}/);
     });
 
+    it("focus mode always enables nats and every messaging-compose service, not just the hardcoded infra names", () => {
+      // Regression (tdk-cli-core#155): pre-alpha always exercises this focus
+      // branch (see the FOCUS_MODE comment above it), and its always-enabled
+      // infra list only re-added init-networks/postgres/traefik/golden-layers-build
+      // to config.set_enabled_resources(). A resource with "nats" in
+      // featuresEnabled built and started, then retried its broker connection
+      // forever, because the "nats" Tilt resource itself stayed Disabled. Any
+      // other service in services/platform/messaging/docker-compose.yml (e.g. a
+      // local mail catcher) was disabled the same way.
+      const tiltfile = loadTemplate("Tiltfile.hbs");
+      const focusBlock = tiltfile.slice(
+        tiltfile.indexOf("if FOCUS_MODE and FOCUS_ENABLED_RESOURCES:"),
+      );
+
+      expect(focusBlock).toMatch(
+        /_ALWAYS_ENABLED_INFRA_RESOURCES\s*=\s*\[\s*'init-networks',\s*'postgres',\s*'traefik',\s*'golden-layers-build',?\s*\]/,
+      );
+      // Read from the messaging compose file, not a second hardcoded list, so a
+      // service added to that file later (mailpit, a mail catcher, ...) is
+      // covered without another Tiltfile.hbs change.
+      expect(focusBlock).toMatch(/read_yaml\(_messaging_compose_path,\s*default=\{\}\)/);
+      expect(focusBlock).toMatch(/_messaging_compose_doc\.get\('services',\s*\{\}\)\.keys\(\)/);
+      expect(focusBlock).toContain("_ALWAYS_ENABLED_INFRA_RESOURCES.append(_messaging_svc_name)");
+      expect(focusBlock).toContain("_ALWAYS_ENABLED_INFRA_RESOURCES.append('nats')");
+      // Both must land in the list Tilt is actually told to enable.
+      const alwaysBlockEnd = focusBlock.indexOf("for _KR in _KNOWN_TILT_RESOURCES:");
+      expect(focusBlock.slice(0, alwaysBlockEnd)).toMatch(
+        /for _INFRA in _ALWAYS_ENABLED_INFRA_RESOURCES:\s*\n\s*_FILTERED_RESOURCES\.append\(_INFRA\)/,
+      );
+    });
+
     it("should throw (not silently return directory bytes) for non-existent template", () => {
       expect(() => loadTemplate("non-existent.hbs")).toThrow("Failed to load template");
     });

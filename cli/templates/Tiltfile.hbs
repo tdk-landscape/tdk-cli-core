@@ -279,9 +279,30 @@ if FOCUS_MODE and FOCUS_ENABLED_RESOURCES:
         else:
             _MATCHED = [kr for kr in _KNOWN_TILT_RESOURCES if kr != 'service-discovery-daemon' and kr.startswith(_R + '-')]
             _FILTERED_RESOURCES.extend(_MATCHED)
-    for _INFRA in ['init-networks', 'postgres', 'traefik', 'golden-layers-build']:
-        if _INFRA in _KNOWN_TILT_RESOURCES:
-            _FILTERED_RESOURCES.append(_INFRA)
+    # NATS is gated by the same 'database-management' should_enable() check as
+    # postgres (see infra-loader.star), so it belongs with the infra that is
+    # always kept enabled here -- otherwise config.set_enabled_resources()
+    # below disables it on every out-of-the-box `tdk up` (pre-alpha always
+    # activates this focus-filter branch), and any resource that enables the
+    # 'nats' feature never gets a broker to connect to.
+    #
+    # services/platform/messaging/docker-compose.yml is user-authored (TDK
+    # does not generate it) and may declare more than nats/redis -- e.g. a
+    # local mail catcher standing in for a managed email provider. Every
+    # service it declares is loaded via docker_compose() in infra-loader.star,
+    # so it must be enabled here too, or it is silently disabled the same way.
+    _ALWAYS_ENABLED_INFRA_RESOURCES = ['init-networks', 'postgres', 'traefik', 'golden-layers-build']
+    _messaging_compose_path = PROJECT_ROOT + '/services/platform/messaging/docker-compose.yml'
+    if str(local("test -f '" + _messaging_compose_path + "' && echo yes || echo no", quiet=True, echo_off=True)).strip() == 'yes':
+        # infra-loader.star only creates these Tilt resources when this file
+        # exists, so only add them here when they actually exist to add.
+        _messaging_compose_doc = read_yaml(_messaging_compose_path, default={})
+        for _messaging_svc_name in _messaging_compose_doc.get('services', {}).keys():
+            _ALWAYS_ENABLED_INFRA_RESOURCES.append(_messaging_svc_name)
+        if 'nats' not in _ALWAYS_ENABLED_INFRA_RESOURCES:
+            _ALWAYS_ENABLED_INFRA_RESOURCES.append('nats')
+    for _INFRA in _ALWAYS_ENABLED_INFRA_RESOURCES:
+        _FILTERED_RESOURCES.append(_INFRA)
     for _KR in _KNOWN_TILT_RESOURCES:
         if _KR.startswith('provision-db-'):
             _FILTERED_RESOURCES.append(_KR)
