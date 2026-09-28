@@ -569,6 +569,21 @@ function typePackageCandidates(entry: string): string[] {
   return [`@types/${base}`, base];
 }
 
+/**
+ * True when running the script `name` invokes `tsc`, following `bun|npm|pnpm|yarn run <other>`
+ * hops. TS2688 ("Cannot find type definition file") is raised by `tsc`; a `vite build` or
+ * `bun build` transpiles TypeScript without type-checking and never reads `"types"`.
+ */
+function scriptRunsTsc(scripts: Record<string, string>, name: string, depth = 0): boolean {
+  const body = scripts[name];
+  if (typeof body !== "string" || depth > 3) return false;
+  if (/(^|[\s;&|(])tsc(\s|$)/.test(body)) return true;
+  for (const hop of body.matchAll(/\b(?:bun|npm|pnpm|yarn)\s+run\s+([\w:.-]+)/g)) {
+    if (scriptRunsTsc(scripts, hop[1] as string, depth + 1)) return true;
+  }
+  return false;
+}
+
 /** The package to tell the user to install for a `types` entry. */
 function neededTypePackage(entry: string): string {
   const candidates = typePackageCandidates(entry);
@@ -610,6 +625,10 @@ export function checkTypeScriptTypeDependencies(): CheckResult {
     }
 
     const pkg = readJsonFile(packageJsonPath);
+    const scripts = (pkg?.scripts as Record<string, string> | undefined) ?? {};
+    if (!scriptRunsTsc(scripts, "build")) {
+      continue;
+    }
     const installed = new Set([
       ...Object.keys((pkg?.devDependencies as Record<string, string> | undefined) ?? {}),
       ...Object.keys((pkg?.dependencies as Record<string, string> | undefined) ?? {}),
