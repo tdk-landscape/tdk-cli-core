@@ -4,6 +4,9 @@ Notable changes to the `tdk` CLI. Versions match [npm](https://www.npmjs.com/pac
 
 ## Unreleased
 
+- `tdk resource --type backend` adds `@types/node` to the new service. The Docker build uses a tsconfig with `"types": ["node"]`, so without it the image failed at `bun run build` with `TS2688: Cannot find type definition file for 'node'`. This was the next blocker on a clean machine, after the base-image race and the default Prisma feature.
+- `tdk doctor` now checks **every** entry in the Docker tsconfig's `types` list against the service's dependencies. It only looked at `"bun"`, so a missing `@types/node` passed. It names the service, the entry and the package to add, and handles subpath (`vitest/globals`) and scoped entries.
+
 ## 1.3.67 (2026-09-28)
 
 - The clean-machine quickstart run (`tdk project`, `tdk resource`, `tdk up`, wait for `/health`) now starts by itself after every successful release and tests exactly the version just published. It also still runs nightly and on demand.

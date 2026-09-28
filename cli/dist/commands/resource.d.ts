@@ -38,6 +38,7 @@ export declare function createPackageJson(name: string, type: string): {
     };
     devDependencies: {
         "@types/bun": string;
+        "@types/node": string;
         typescript: string;
         vitest: string;
         "@biomejs/biome": string;
