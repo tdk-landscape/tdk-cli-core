@@ -49,7 +49,7 @@ Alternative considered: introduce Vue CLI or a framework-specific production pip
 
 ### CI checks the contributor contract
 
-Extend the existing CLI CI workflow with provider-focused automated tests for registry resolution, default React output compatibility, Vue output/dependencies, and fail-closed behavior for unknown ids. Continue running the repo's existing typecheck, lint, and test jobs; do not add heavyweight browser or Docker integration checks unless the existing workflow already supports them.
+Add provider-focused automated tests to the CLI test suite for registry resolution, persisted React default output, Vue output/dependencies, legacy manifest compatibility, and fail-closed behavior for unknown ids. The existing CI `test` job already runs `npm test`, alongside lint and typecheck jobs, so new provider tests run there without a separate workflow or job. Do not add heavyweight browser or Docker integration checks unless the existing workflow already supports them.
 
 ## Risks / Trade-offs
 
@@ -68,5 +68,6 @@ Rollback is a normal revert of the change. Existing generated services remain in
 
 ## Open Questions
 
-- Whether framework selection should be exposed only as a `tdk resource --framework` option or also through interactive prompts. Initial scope can use the explicit option and retain React as the prompt/default selection.
-- Whether the Vue provider needs a dedicated test runner dependency in generated projects. Prefer to keep existing generated test behavior until a concrete Vue component test is part of scope.
+None. Framework selection uses `tdk resource --framework <id>` and persists the resolved id in `service.json`; the interactive prompt remains React-only. Generated Vue apps do not add a Vue-specific test runner in this change. Provider tests run in the existing CLI test suite, which CI already executes.
+
+`tdk config regenerate` regenerates project-level master configuration from `.tdk/project.json`; it does not regenerate resource source files. Framework preservation during resource-source regeneration is therefore outside this change because no such command exists in the current CLI.

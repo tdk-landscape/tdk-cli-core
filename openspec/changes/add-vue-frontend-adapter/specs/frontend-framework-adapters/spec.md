@@ -1,18 +1,23 @@
 ## ADDED Requirements
 
-### Requirement: Frontend resource generation resolves a registered framework provider
+### Requirement: Frontend resource generation resolves and persists a registered framework provider
 
-The CLI SHALL resolve frontend scaffolding through a registered provider selected by an optional framework identifier. When the identifier is omitted, the CLI SHALL select React. The CLI SHALL reject an unknown identifier before writing generated files.
+The CLI SHALL accept an optional `--framework <id>` for frontend resource creation. It SHALL resolve the framework through the registered providers, persist the resolved identifier as `framework` in the generated `service.json`, and select React when the option is omitted. The CLI SHALL reject an unknown identifier before writing generated files. Interactive prompts SHALL continue to use React without adding a framework picker.
 
 #### Scenario: Omitted framework preserves React default
 - **WHEN** a user creates a frontend resource without specifying a framework
-- **THEN** the CLI records or resolves the framework as `react`
+- **THEN** generated `service.json` contains `"framework": "react"`
 - **AND** generates the React starter files and dependencies
 
 #### Scenario: Explicit registered framework is selected
 - **WHEN** a user creates a frontend resource with a registered framework identifier
 - **THEN** the CLI generates that provider's entry files, dependencies, and framework configuration
-- **AND** records the selected identifier in the frontend service metadata
+- **AND** generated `service.json` contains the selected identifier in its `framework` field
+
+#### Scenario: Framework option selects Vue
+- **WHEN** a user runs `tdk resource web --type frontend --framework vue`
+- **THEN** the Vue provider is used
+- **AND** generated `service.json` contains `"framework": "vue"`
 
 #### Scenario: Unknown framework is rejected before generation
 - **WHEN** a user requests an unregistered frontend framework identifier
@@ -35,9 +40,17 @@ Every frontend provider SHALL use the shared service metadata and existing TDK f
 
 ### Requirement: Provider registry and generated output are checked automatically
 
-The CLI SHALL have automated checks for registered provider resolution, the React default, each provider's generated output, and fail-closed handling of unknown identifiers. The checks SHALL run in the existing CLI CI workflow.
+The CLI SHALL have automated checks for registered provider resolution, persisted React default, each provider's generated output, and fail-closed handling of unknown identifiers. The checks SHALL run in the existing CLI test suite used by CI.
 
 #### Scenario: CLI CI validates frontend providers
 - **WHEN** the CLI CI workflow runs
 - **THEN** provider tests verify React default output and Vue scaffold output
 - **AND** the workflow verifies unknown framework identifiers fail without partial output
+
+### Requirement: Existing frontend service metadata remains compatible
+
+Existing frontend `service.json` files without a `framework` field SHALL remain valid and SHALL continue to receive the shared TDK frontend behavior.
+
+#### Scenario: Existing frontend metadata omits framework
+- **WHEN** TDK reads an existing frontend `service.json` that has no `framework` field
+- **THEN** the service remains valid and compatible with existing shared frontend runtime behavior

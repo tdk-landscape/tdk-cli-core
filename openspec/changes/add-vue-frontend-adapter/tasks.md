@@ -2,9 +2,10 @@
 
 - [ ] 1.1 Define frontend provider types and a registry in the shipped CLI package.
 - [ ] 1.2 Move React dependencies, Vite integration, entry files, and starter component out of the generic frontend resource command into the React provider.
-- [ ] 1.3 Resolve omitted framework values to React and preserve existing React generated output and metadata behavior.
+- [ ] 1.3 Resolve omitted framework values to React, persist `framework: "react"` in new frontend `service.json`, and preserve existing React generated output.
 - [ ] 1.4 Add an explicit framework selection path and fail before file writes when the provider id is unknown.
 - [ ] 1.5 Add CLI tests for React default output, explicit provider resolution, and unknown-provider failure.
+- [ ] 1.6 Verify frontend manifests without a framework field remain valid under existing discovery and shared runtime behavior.
 
 ## 2. Document framework contributions
 
@@ -17,5 +18,5 @@
 
 - [ ] 3.1 Implement and register the Vue 3 + Vite + TypeScript provider with Vue SFC entry and starter component files.
 - [ ] 3.2 Add generated output checks for Vue dependencies, configuration, entry files, and persisted framework metadata.
-- [ ] 3.3 Extend the existing CLI CI workflow to run provider tests and retain the standard typecheck, lint, and test checks.
+- [ ] 3.3 Add provider tests to the existing CLI test suite run by CI; retain the standard typecheck and lint jobs without adding a separate provider workflow.
 - [ ] 3.4 Verify React and Vue providers share the existing TDK frontend service and runtime integration without framework-specific engine files.
