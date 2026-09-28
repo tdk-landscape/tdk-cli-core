@@ -400,10 +400,16 @@ def _generate_all_configs_for_resource(
         # Docker builds: Resolve from node_modules (packages must be published)
         
         # Docker tsconfig: NO path aliases to internal deps
-        TSConfig.frontend(resource_path, write_file, internal_deps=None, is_docker=True)
+        TSConfig.frontend(
+            resource_path, write_file, internal_deps=None, is_docker=True,
+            framework=manifest.get('framework', 'react'),
+        )
         
         # Local tsconfig: CAN use path aliases to internal deps
-        TSConfig.frontend(resource_path, write_file, internal_deps=internal_deps_map, is_docker=False)
+        TSConfig.frontend(
+            resource_path, write_file, internal_deps=internal_deps_map, is_docker=False,
+            framework=manifest.get('framework', 'react'),
+        )
     else:
         prisma_path = resource_config.get('prisma_client_path', './node_modules/.prisma/client')
         resource_features = manifest.get('featuresEnabled', [])

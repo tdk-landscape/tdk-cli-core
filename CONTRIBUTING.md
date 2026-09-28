@@ -29,6 +29,8 @@ From the repo root, `make help` lists more targets (`make test-fast`, `make pre-
 - `engine/` is the Starlark Tilt framework. Conventions are in [engine/AGENTS.md](engine/AGENTS.md).
 - `discovery/` builds the resource and dependency graph from `service.json` files.
 
+To add a Vite-based frontend framework, start with the React provider and follow the [frontend framework provider guide](docs/frontend-framework-providers.md). Submit one framework per pull request.
+
 ## Pull requests
 
 1. Fork the repo and create a branch from `main`.
