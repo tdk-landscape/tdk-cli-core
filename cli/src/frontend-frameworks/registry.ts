@@ -1,3 +1,4 @@
+import { TdkError } from "../utils/errors.js";
 import { reactFrontendProvider } from "./react.js";
 import type { FrontendFrameworkProvider } from "./types.js";
 import { vueFrontendProvider } from "./vue.js";
@@ -10,12 +11,15 @@ export const FRONTEND_FRAMEWORKS: Record<string, FrontendFrameworkProvider> = {
 };
 
 export function getFrontendFramework(frameworkId?: string): FrontendFrameworkProvider {
-  const id = frameworkId ?? DEFAULT_FRONTEND_FRAMEWORK;
+  const id = (frameworkId ?? DEFAULT_FRONTEND_FRAMEWORK).trim().toLowerCase();
   const provider = Object.hasOwn(FRONTEND_FRAMEWORKS, id) ? FRONTEND_FRAMEWORKS[id] : undefined;
 
   if (!provider) {
     const supportedIds = Object.keys(FRONTEND_FRAMEWORKS).join(", ");
-    throw new Error(`Unknown frontend framework "${id}". Supported frameworks: ${supportedIds}.`);
+    throw new TdkError(
+      `Unknown frontend framework "${frameworkId}". Supported frameworks: ${supportedIds}.`,
+      [`Use one of: ${supportedIds}`, `Omit --framework to use ${DEFAULT_FRONTEND_FRAMEWORK}`],
+    );
   }
 
   return provider;
@@ -27,7 +31,9 @@ export function resolveFrontendFramework(
 ): FrontendFrameworkProvider | undefined {
   if (resourceType !== "frontend") {
     if (frameworkId !== undefined) {
-      throw new Error("--framework can only be used with --type frontend.");
+      throw new TdkError("--framework can only be used with --type frontend.", [
+        "Add --type frontend, or drop --framework for this resource type",
+      ]);
     }
     return undefined;
   }

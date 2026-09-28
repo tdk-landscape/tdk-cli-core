@@ -220,7 +220,7 @@ describe("frontend resource framework selection", () => {
         ],
         projectRoot,
       ),
-    ).toThrow(/Unknown frontend framework "svelte"/);
+    ).toThrow(/Unknown frontend framework "svelte"[\s\S]*Use one of: react, vue/);
     expect(existsSync(resourcePath)).toBe(false);
   }, 15000);
 

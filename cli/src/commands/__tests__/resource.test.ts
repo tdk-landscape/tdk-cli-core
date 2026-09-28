@@ -18,6 +18,7 @@ import {
   resolveFrontendFramework,
 } from "../../frontend-frameworks/registry.js";
 import { CREATABLE_RESOURCE_TYPES, isCreatableResourceType } from "../../types/index.js";
+import { TdkError } from "../../utils/errors.js";
 import { discoverResourcesFromRoot } from "../../utils/services.js";
 import { KEBAB_CASE_REGEX } from "../../utils/validation.js";
 
@@ -182,12 +183,14 @@ describe("resource command", () => {
   });
 
   describe("frontend framework providers", () => {
-    it("uses React when the framework is omitted and rejects unknown or case-mismatched ids", () => {
+    it("uses React when the framework is omitted, normalizes case, and rejects unknown ids", () => {
       expect(getFrontendFramework().id).toBe("react");
       expect(getFrontendFramework("vue").id).toBe("vue");
       expect(() => getFrontendFramework("svelte")).toThrow(/Supported frameworks: react, vue/);
       expect(() => getFrontendFramework("__proto__")).toThrow(/Unknown frontend framework/);
-      expect(() => getFrontendFramework("React")).toThrow(/Unknown frontend framework/);
+      expect(getFrontendFramework("React").id).toBe("react");
+      expect(getFrontendFramework(" VUE ").id).toBe("vue");
+      expect(() => getFrontendFramework("svelte")).toThrow(TdkError);
       expect(() => getFrontendFramework("")).toThrow(/Unknown frontend framework/);
     });
 

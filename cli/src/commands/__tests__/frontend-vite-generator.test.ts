@@ -98,7 +98,8 @@ afterEach(() => {
   }
 });
 
-describe.skipIf(!hasTilt)("Starlark frontend Vite generator", () => {
+// Each case spawns `tilt alpha tiltfile-result`, which takes several seconds under full-suite load.
+describe.skipIf(!hasTilt)("Starlark frontend Vite generator", { timeout: 30_000 }, () => {
   it("uses the same React configs for explicit and legacy manifests at generated paths", () => {
     const result =
       evaluateTiltfile(`load(${JSON.stringify(frontendGenerator)}, 'generate_frontend', 'VITE_FRONTEND_CONFIG_PATH', 'VITE_FRONTEND_BUILD_CONFIG_PATH')
@@ -162,7 +163,7 @@ if 'proxy:' not in files[dev_path]: fail('missing shared proxy')
   });
 });
 
-describe.skipIf(!hasTilt)("Starlark frontend TypeScript generator", () => {
+describe.skipIf(!hasTilt)("Starlark frontend TypeScript generator", { timeout: 30_000 }, () => {
   it("preserves legacy React JSX and omits it for Vue Docker builds", () => {
     const result =
       evaluateTiltfile(`load(${JSON.stringify(frontendTsconfigGenerator)}, 'generate_frontend_tsconfig')
@@ -194,7 +195,7 @@ if vue_config['compilerOptions']['moduleResolution'] != 'bundler': fail('fronten
   });
 });
 
-describe.skipIf(!hasTilt)("Starlark frontend health check", () => {
+describe.skipIf(!hasTilt)("Starlark frontend health check", { timeout: 30_000 }, () => {
   it("requires main.ts for Vue and main.tsx for legacy React", () => {
     const result =
       evaluateTiltfile(`load(${JSON.stringify(frontendValidators)}, 'generate_resource_health_check')

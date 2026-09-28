@@ -23,7 +23,7 @@ The CLI provider creates root `index.html`, the entry point, and starter compone
 4. Add CLI scaffold tests in `cli/src/commands/__tests__/resource-frameworks-e2e.test.ts` and Starlark generator checks in `frontend-vite-generator.test.ts`. Verify dependencies, `service.json.framework`, entry files, both generated Vite configs, and absence of root `vite.config.ts`. Keep tests for omitted-framework React output, legacy manifests, unknown ids, and non-frontend rejection.
 5. Update `cli/README.md` and this guide with the new selection example. Run `npm run build`, `npm run typecheck`, `npm run lint`, and `npm test` in `cli/`. CI runs the same checks, including provider tests, in its existing jobs.
 
-Create a resource with `tdk resource web --type frontend --framework <id> --stack app`. An unknown id fails before resource files are written. A legacy frontend `service.json` without `framework` continues to use React and is not rewritten just to add the field. `tdk config regenerate` rebuilds project-level master config; it does not recreate resource source files.
+Create a resource with `tdk resource web --type frontend --framework <id> --stack app`. Ids are matched case-insensitively (`--framework Vue` selects `vue`). An unknown id fails before resource files are written. A legacy frontend `service.json` without `framework` continues to use React and is not rewritten just to add the field. `tdk config regenerate` rebuilds project-level master config; it does not recreate resource source files.
 
 ## Framework pull request checklist
 
