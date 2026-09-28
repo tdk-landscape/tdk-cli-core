@@ -175,23 +175,20 @@ export function summarizeTiltBuildError(error) {
 export function isRegistryRelatedBuildError(error) {
     return /ConnectionRefused downloading package manifest|Verdaccio|private registry|dependency install failed during ImageBuild|install-deps\.sh|bun install/i.test(error);
 }
-export function projectExpectsVerdaccio(projectRoot = findProjectRoot() ?? process.cwd()) {
+export function projectConfigEnablesVerdaccio(projectRoot = findProjectRoot() ?? process.cwd()) {
     const projectJsonPath = join(projectRoot, ".tdk", "project.json");
-    if (existsSync(projectJsonPath)) {
-        try {
-            const parsed = JSON.parse(readFileSync(projectJsonPath, "utf-8"));
-            if (parsed.optional_infra?.verdaccio === true) {
-                return true;
-            }
-            if (Object.values(parsed.phases ?? {}).some((phase) => (phase.enabledStacks ?? []).includes("verdaccio"))) {
-                return true;
-            }
-        }
-        catch {
-            // Fall through to npmrc heuristics.
-        }
+    if (!existsSync(projectJsonPath))
+        return false;
+    try {
+        const parsed = JSON.parse(readFileSync(projectJsonPath, "utf-8"));
+        return (parsed.optional_infra?.verdaccio === true ||
+            Object.values(parsed.phases ?? {}).some((phase) => (phase.enabledStacks ?? []).includes("verdaccio")));
     }
-    // Heuristic: scoped private registry pointed at :4873
+    catch {
+        return false;
+    }
+}
+function npmrcPointsAtVerdaccio(projectRoot) {
     for (const candidate of [join(projectRoot, ".npmrc"), join(projectRoot, "package.json")]) {
         if (!existsSync(candidate))
             continue;
@@ -207,13 +204,24 @@ export function projectExpectsVerdaccio(projectRoot = findProjectRoot() ?? proce
     }
     return false;
 }
+export function projectExpectsVerdaccio(projectRoot = findProjectRoot() ?? process.cwd()) {
+    return projectConfigEnablesVerdaccio(projectRoot) || npmrcPointsAtVerdaccio(projectRoot);
+}
 /**
  * When the project uses a local Verdaccio registry, fail early with a clear
  * fix instead of only showing truncated ImageBuild exit codes later.
  */
 export function checkPrivateNpmRegistry(exec = execSync, projectRoot = findProjectRoot() ?? process.cwd(), registryUrl = process.env.VERDACCIO_URL ??
     process.env.NPM_REGISTRY_URL ??
-    DEFAULT_VERDACCIO_URL) {
+    DEFAULT_VERDACCIO_URL, verdaccioLicensed = true) {
+    if (!verdaccioLicensed && !npmrcPointsAtVerdaccio(projectRoot)) {
+        return {
+            name: "Private npm registry",
+            didPass: true,
+            isSkipped: true,
+            message: "Verdaccio is enabled in the project config but needs a Premium license, so TDK will not start it - skipped",
+        };
+    }
     if (!projectExpectsVerdaccio(projectRoot)) {
         return {
             name: "Private npm registry",

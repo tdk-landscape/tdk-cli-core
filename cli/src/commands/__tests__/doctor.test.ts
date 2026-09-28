@@ -796,6 +796,56 @@ describe("doctor ingress + tilt runtime checks", () => {
   });
 });
 
+describe("doctor private registry check without a Verdaccio license", () => {
+  function projectWithVerdaccioEnabled(npmrc?: string): string {
+    const projectRoot = join(
+      tmpdir(),
+      `tdk-doctor-registry-unlicensed-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    );
+    mkdirSync(join(projectRoot, ".tdk"), { recursive: true });
+    writeFileSync(
+      join(projectRoot, ".tdk", "project.json"),
+      JSON.stringify({
+        project: { name: "demo" },
+        optional_infra: { verdaccio: true },
+        phases: {},
+      }),
+    );
+    if (npmrc) writeFileSync(join(projectRoot, ".npmrc"), npmrc);
+    return projectRoot;
+  }
+
+  const unreachable = (() => {
+    throw new Error("Failed to connect to localhost port 4873");
+  }) as unknown as typeof import("node:child_process").execSync;
+
+  it("skips when the config enables Verdaccio but TDK will not start it", () => {
+    const projectRoot = projectWithVerdaccioEnabled();
+    const result = checkPrivateNpmRegistry(
+      unreachable,
+      projectRoot,
+      "http://localhost:4873",
+      false,
+    );
+    expect(result.didPass).toBe(true);
+    expect(result.isSkipped).toBe(true);
+    expect(result.message).toContain("Premium license");
+    rmSync(projectRoot, { recursive: true, force: true });
+  });
+
+  it("still checks a registry the project's own .npmrc points at", () => {
+    const projectRoot = projectWithVerdaccioEnabled("@acme:registry=http://localhost:4873\n");
+    const result = checkPrivateNpmRegistry(
+      unreachable,
+      projectRoot,
+      "http://localhost:4873",
+      false,
+    );
+    expect(result.didPass).toBe(false);
+    rmSync(projectRoot, { recursive: true, force: true });
+  });
+});
+
 describe("doctor Docker version check", () => {
   function fakeExec(engine: string, compose: string) {
     return ((command: string) =>

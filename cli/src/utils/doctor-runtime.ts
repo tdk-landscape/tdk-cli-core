@@ -251,32 +251,28 @@ export function isRegistryRelatedBuildError(error: string): boolean {
   );
 }
 
-export function projectExpectsVerdaccio(
+export function projectConfigEnablesVerdaccio(
   projectRoot: string = findProjectRoot() ?? process.cwd(),
 ): boolean {
   const projectJsonPath = join(projectRoot, ".tdk", "project.json");
-  if (existsSync(projectJsonPath)) {
-    try {
-      const parsed = JSON.parse(readFileSync(projectJsonPath, "utf-8")) as {
-        optional_infra?: { verdaccio?: boolean };
-        phases?: Record<string, { enabledStacks?: string[] }>;
-      };
-      if (parsed.optional_infra?.verdaccio === true) {
-        return true;
-      }
-      if (
-        Object.values(parsed.phases ?? {}).some((phase) =>
-          (phase.enabledStacks ?? []).includes("verdaccio"),
-        )
-      ) {
-        return true;
-      }
-    } catch {
-      // Fall through to npmrc heuristics.
-    }
+  if (!existsSync(projectJsonPath)) return false;
+  try {
+    const parsed = JSON.parse(readFileSync(projectJsonPath, "utf-8")) as {
+      optional_infra?: { verdaccio?: boolean };
+      phases?: Record<string, { enabledStacks?: string[] }>;
+    };
+    return (
+      parsed.optional_infra?.verdaccio === true ||
+      Object.values(parsed.phases ?? {}).some((phase) =>
+        (phase.enabledStacks ?? []).includes("verdaccio"),
+      )
+    );
+  } catch {
+    return false;
   }
+}
 
-  // Heuristic: scoped private registry pointed at :4873
+function npmrcPointsAtVerdaccio(projectRoot: string): boolean {
   for (const candidate of [join(projectRoot, ".npmrc"), join(projectRoot, "package.json")]) {
     if (!existsSync(candidate)) continue;
     try {
@@ -288,8 +284,13 @@ export function projectExpectsVerdaccio(
       // ignore
     }
   }
-
   return false;
+}
+
+export function projectExpectsVerdaccio(
+  projectRoot: string = findProjectRoot() ?? process.cwd(),
+): boolean {
+  return projectConfigEnablesVerdaccio(projectRoot) || npmrcPointsAtVerdaccio(projectRoot);
 }
 
 /**
@@ -302,7 +303,18 @@ export function checkPrivateNpmRegistry(
   registryUrl: string = process.env.VERDACCIO_URL ??
     process.env.NPM_REGISTRY_URL ??
     DEFAULT_VERDACCIO_URL,
+  verdaccioLicensed = true,
 ): CheckResult {
+  if (!verdaccioLicensed && !npmrcPointsAtVerdaccio(projectRoot)) {
+    return {
+      name: "Private npm registry",
+      didPass: true,
+      isSkipped: true,
+      message:
+        "Verdaccio is enabled in the project config but needs a Premium license, so TDK will not start it - skipped",
+    };
+  }
+
   if (!projectExpectsVerdaccio(projectRoot)) {
     return {
       name: "Private npm registry",
