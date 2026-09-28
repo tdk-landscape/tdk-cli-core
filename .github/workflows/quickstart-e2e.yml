@@ -1,11 +1,21 @@
-# Runs the README quickstart against the published npm package on a clean
-# machine: install, scaffold a backend, `tdk up`, and wait for its /health
-# URL to answer through Traefik. Runs after every release, nightly, and on
-# demand from the Actions tab.
+# Runs the README quickstart on a clean machine: install, scaffold a backend,
+# `tdk up`, and wait for its /health URL to answer through Traefik. After a
+# release and nightly it tests the published npm package; on a pull request it
+# tests that PR's own package (`npm pack`), so a change that breaks `tdk up`
+# is caught before it merges. Also runnable from the Actions tab.
 name: 🧭 Quickstart E2E
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - "cli/**"
+      - "engine/**"
+      - "discovery/**"
+      - "Tiltfile"
+      - "package.json"
+      - ".github/workflows/quickstart-e2e.yml"
   schedule:
     - cron: "0 6 * * *"
   # Prove each release boots as soon as it is published. Read-only token, no
@@ -22,9 +32,11 @@ permissions:
 # Releases can land minutes apart, and a boot takes several minutes. Run one at
 # a time and never cancel one mid-boot: a cancelled run proves nothing. GitHub
 # keeps at most one queued run, so a burst of releases collapses to the latest.
+# A pull request is different: a newer push supersedes its older boot, and each
+# PR has its own group so it never cancels or queues behind a release check.
 concurrency:
-  group: quickstart-e2e
-  cancel-in-progress: false
+  group: quickstart-e2e${{ github.event_name == 'pull_request' && format('-pr-{0}', github.event.pull_request.number) || '' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   quickstart:
@@ -42,13 +54,16 @@ jobs:
           node-version: 22
 
       # After a release, test exactly the version that was just published
-      # (main's package.json holds it: the release commits its own bump). Any
-      # other trigger tests whatever npm serves as latest.
+      # (main's package.json holds it: the release commits its own bump). A
+      # pull request tests its own checkout ("local"). Any other trigger tests
+      # whatever npm serves as latest.
       - name: Choose the version to test
         id: version
         run: |
           if [ "$GITHUB_EVENT_NAME" = "workflow_run" ]; then
             version="$(node -p "require('./package.json').version")"
+          elif [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            version="local"
           else
             version="latest"
           fi
@@ -82,10 +97,18 @@ jobs:
           fi
           echo "port 5432 is free"
 
-      - name: Install TDK from npm
+      - name: Install TDK
         env:
           TDK_VERSION: ${{ steps.version.outputs.version }}
         run: | # zizmor: ignore[adhoc-packages] the point is to test what users install
+          if [ "$TDK_VERSION" = "local" ]; then
+            # The tarball users would get from npm, built from this checkout
+            # (cli/dist is committed and CI keeps it in sync).
+            tarball="$(npm pack --ignore-scripts --silent | tail -1)"
+            npm install -g "./$tarball"
+            tdk --version
+            exit 0
+          fi
           if [ "$TDK_VERSION" != "latest" ]; then
             # npm's registry can lag a minute or two behind the publish.
             for _ in $(seq 1 30); do
