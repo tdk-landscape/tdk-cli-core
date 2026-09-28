@@ -1,7 +1,7 @@
 # frontend-framework-adapters Specification
 
 ## Purpose
-TBD - created by archiving change add-vue-frontend-adapter. Update Purpose after archive.
+Defines how `tdk resource --type frontend` resolves a registered framework provider (React by default, Vue opt-in), persists it as `framework` in service.json, and how the Starlark Vite and TypeScript generators vary by framework while Docker, nginx, Traefik and Tilt orchestration stay shared.
 
 ## Requirements
 

@@ -1,7 +1,7 @@
 # frontend-framework-contributions Specification
 
 ## Purpose
-TBD - created by archiving change add-vue-frontend-adapter. Update Purpose after archive.
+Defines the documented process and pull request checklist for contributing one Vite-based single-page-app framework provider to TDK without forking the engine or creating a separate repository.
 
 ## Requirements
 
