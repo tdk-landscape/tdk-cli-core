@@ -12,7 +12,7 @@ export function logVerbose(message, err) {
         console.warn(chalk.gray(`${message}${errMsg}`));
     }
 }
-class TdkError extends Error {
+export class TdkError extends Error {
     suggestions;
     exitCode;
     constructor(message, suggestions = [], exitCode = 1) {
@@ -78,6 +78,9 @@ export function requireProjectRoot() {
     return projectRoot;
 }
 function handleCommandError(err) {
+    if (err instanceof TdkError) {
+        err.exit();
+    }
     console.error(chalk.red(`Error: ${getErrorMessage(err)}`));
     process.exit(1);
 }

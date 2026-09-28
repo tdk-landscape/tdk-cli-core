@@ -15,7 +15,7 @@ export function logVerbose(message: string, err?: unknown): void {
   }
 }
 
-class TdkError extends Error {
+export class TdkError extends Error {
   public suggestions: string[];
   public exitCode: number;
 
@@ -95,6 +95,9 @@ export function requireProjectRoot(): string {
 }
 
 function handleCommandError(err: unknown): never {
+  if (err instanceof TdkError) {
+    err.exit();
+  }
   console.error(chalk.red(`Error: ${getErrorMessage(err)}`));
   process.exit(1);
 }

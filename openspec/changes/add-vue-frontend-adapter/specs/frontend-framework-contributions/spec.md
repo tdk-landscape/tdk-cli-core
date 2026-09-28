@@ -12,13 +12,13 @@ The repository SHALL document how contributors add a frontend framework provider
 #### Scenario: Contributor can determine provider scope
 - **WHEN** a contributor follows the guide to add a framework
 - **THEN** the guide identifies framework-owned files and shared files
-- **AND** states that shared Docker, nginx, Traefik, Tilt, and API/environment generation remain provider-independent
+- **AND** states that shared Docker, nginx, Traefik, Tilt orchestration, and API/environment generation remain provider-independent while Vite and frontend TypeScript settings can vary within shared generators
 
 #### Scenario: Contributor understands the supported first-provider scope
 - **WHEN** a contributor follows the guide to add a provider in this change
 - **THEN** the guide says to copy the React provider and register one kebab-case framework id
 - **AND** limits the initial adapter contract to Vite-based SPAs and one framework per pull request
-- **AND** says not to add framework-specific Docker, nginx, Traefik, Tilt, or API-client implementations
+- **AND** says not to add framework-specific Docker, nginx, Traefik, Tilt orchestration, or API-client implementations
 - **AND** says not to add the framework as a dependency of the `tdk` CLI runtime
 
 ### Requirement: Framework contributions have a review checklist

@@ -31,7 +31,7 @@ The CLI SHALL accept an optional `--framework <id>` for frontend resource creati
 
 ### Requirement: Framework providers preserve the shared TDK frontend contract
 
-Every frontend provider SHALL use the shared service metadata and existing TDK frontend runtime contract. Provider selection SHALL NOT require framework-specific Docker, nginx, Traefik, Tilt, port allocation, or generated API/environment module behavior.
+Every frontend provider SHALL use the shared service metadata and existing TDK frontend runtime contract. Provider selection SHALL NOT require framework-specific Docker, nginx, Traefik, Tilt orchestration, port allocation, or generated API/environment module behavior. The shared Vite and frontend TypeScript generators MAY select framework-specific config settings.
 
 #### Scenario: Provider-generated frontend runs through shared TDK integration
 - **WHEN** a frontend resource is generated with any registered provider
@@ -42,6 +42,11 @@ Every frontend provider SHALL use the shared service metadata and existing TDK f
 - **WHEN** a user creates a frontend resource with framework `vue`
 - **THEN** the generated project includes Vue 3, the Vue Vite plugin, and a Vue SFC starter entry/component
 - **AND** the TDK CLI runtime does not acquire Vue as a dependency
+
+#### Scenario: Generated frontend TypeScript configuration follows the framework
+- **WHEN** TDK generates Docker TypeScript configuration for a Vue frontend
+- **THEN** it uses bundler module resolution and does not emit React JSX settings
+- **AND** a React frontend, including one with legacy metadata, retains its JSX setting
 
 ### Requirement: Provider registry and generated output are checked automatically
 

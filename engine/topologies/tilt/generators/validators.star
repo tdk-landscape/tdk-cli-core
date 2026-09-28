@@ -555,9 +555,10 @@ def generate_resource_health_check(resource_name, resource_path, manifest, check
     health_checks = []
     
     # Check 1: Required files exist
+    frontend_entry = "src/main.ts" if manifest.get("framework", "react") == "vue" else "src/main.tsx"
     required_files = {
         "backend": ["package.json", "prisma/schema.prisma"],
-        "frontend": ["package.json", "index.html", "src/main.tsx"],
+        "frontend": ["package.json", "index.html", frontend_entry],
         "library": ["package.json"],
     }.get(app_type, ["package.json"])
     

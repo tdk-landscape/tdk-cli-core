@@ -20,8 +20,8 @@ interface TypeSpecificConfig {
     };
 }
 export declare const TYPE_SPECIFIC: Record<CreatableResourceType, TypeSpecificConfig>;
-export declare function createServiceJson(name: string, type: CreatableResourceType, stack: string, port: number, extraFeatures?: string[]): any;
-export declare function createPackageJson(name: string, type: string): {
+export declare function createServiceJson(name: string, type: CreatableResourceType, stack: string, port: number, extraFeatures?: string[], frameworkId?: string): any;
+export declare function createPackageJson(name: string, type: string, frameworkId?: string): {
     name: string;
     version: string;
     type: string;
@@ -44,6 +44,24 @@ export declare function createPackageJson(name: string, type: string): {
         "@biomejs/biome": string;
         vite?: string | undefined;
     };
+};
+export declare function createResourceTsconfig(resourceType: CreatableResourceType, frameworkId?: string): {
+    compilerOptions: {
+        target: string;
+        module: string;
+        moduleResolution: string;
+        strict: boolean;
+        esModuleInterop: boolean;
+        skipLibCheck: boolean;
+        forceConsistentCasingInFileNames: boolean;
+        outDir: string;
+        rootDir: string;
+        declaration: boolean;
+        declarationMap: boolean;
+        sourceMap: boolean;
+    };
+    include: string[];
+    exclude: string[];
 };
 export declare const TSCONFIG_TEMPLATE: {
     compilerOptions: {

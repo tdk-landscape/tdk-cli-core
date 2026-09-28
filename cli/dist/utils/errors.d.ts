@@ -1,6 +1,6 @@
 export declare function getErrorMessage(err: unknown): string;
 export declare function logVerbose(message: string, err?: unknown): void;
-declare class TdkError extends Error {
+export declare class TdkError extends Error {
     suggestions: string[];
     exitCode: number;
     constructor(message: string, suggestions?: string[], exitCode?: number);
@@ -27,5 +27,4 @@ export declare function withTiltCheck<T>(action: () => Promise<T>, options?: {
 }): Promise<T | never>;
 export declare function showErrorAndExit(message: string, exitCode?: number): never;
 export declare function handleTiltFailure(command: "up" | "down", exitCode: number): never;
-export {};
 //# sourceMappingURL=errors.d.ts.map

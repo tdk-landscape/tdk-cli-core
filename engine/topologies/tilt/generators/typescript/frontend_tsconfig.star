@@ -18,7 +18,7 @@ if _is_verbose:
 # Frontend TSConfig Generator
 # =============================================================================
 
-def generate_frontend_tsconfig(resource_path, write_fn, internal_deps=None, is_docker=True):
+def generate_frontend_tsconfig(resource_path, write_fn, internal_deps=None, is_docker=True, framework='react'):
     """
     Generate tsconfig for frontend services.
 
@@ -27,6 +27,7 @@ def generate_frontend_tsconfig(resource_path, write_fn, internal_deps=None, is_d
         write_fn: Write function for file output
         internal_deps: Optional internal dependencies map
         is_docker: Whether generating for Docker context
+        framework: Frontend framework id; omitted in legacy manifests means React
     """
     # Check verbose mode
     is_verbose = os.environ.get('TILT_LOG_LEVEL') == 'verbose'
@@ -76,25 +77,31 @@ def generate_frontend_tsconfig(resource_path, write_fn, internal_deps=None, is_d
                 resource_path
             ))
             print("   Docker build will resolve @{npm_scope}/* from node_modules")
+    if framework not in ['react', 'vue']:
+        fail("Unknown frontend framework for TypeScript generation: " + str(framework))
+
+    compiler_options = {
+        "target": "ES2022",
+        "module": "ES2022",
+        "moduleResolution": "bundler",
+        "lib": ["dom", "dom.iterable", "esnext"],
+        "paths": paths,
+        "skipLibCheck": True,
+        "strict": True,
+        "esModuleInterop": True,
+        "allowSyntheticDefaultImports": True,
+        # "bun" (not "node"): matches backend_tsconfig.star - @types/bun is a direct
+        # devDependency so it's always linked at the top level under any linker mode
+        # (including Docker's isolated linker), while @types/node (when only pulled in
+        # transitively, e.g. via bun-types) isn't hoisted under the isolated linker and
+        # "types": ["node"] fails to resolve there even though it works locally.
+        "types": ["node"],
+    }
+    if framework == 'react':
+        compiler_options['jsx'] = 'react-jsx'
+
     content = {
-        "compilerOptions": {
-            "target": "ES2022",
-            "module": "ES2022",
-            "moduleResolution": "node",
-            "lib": ["dom", "dom.iterable", "esnext"],
-            "jsx": "react-jsx",
-            "paths": paths,
-            "skipLibCheck": True,
-            "strict": True,
-            "esModuleInterop": True,
-            "allowSyntheticDefaultImports": True,
-            # "bun" (not "node"): matches backend_tsconfig.star - @types/bun is a direct
-            # devDependency so it's always linked at the top level under any linker mode
-            # (including Docker's isolated linker), while @types/node (when only pulled in
-            # transitively, e.g. via bun-types) isn't hoisted under the isolated linker and
-            # "types": ["node"] fails to resolve there even though it works locally.
-            "types": ["node"],
-        },
+        "compilerOptions": compiler_options,
         "exclude": [
             "node_modules",
             "dist",
