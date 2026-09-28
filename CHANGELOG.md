@@ -6,6 +6,8 @@ Notable changes to the `tdk` CLI. Versions match [npm](https://www.npmjs.com/pac
 
 - `tdk doctor` no longer fails with "Verdaccio is not reachable" when the project config enables Verdaccio but no Premium license grants it. TDK does not start Verdaccio in that case, so the check could never pass; it is now skipped with a note. A registry your own `.npmrc` points at (`:4873`) is still checked. Found by the ERP CI workflow.
 
+## 1.3.71 (2026-09-28)
+
 - `tdk project` in a freshly cloned repo (one that already has `.tdk/project.json`) now creates the missing `.env` with working defaults. Before, it regenerated the configs but left no `.env`, and `tdk doctor` then failed with "set VERDACCIO_URL_DOCKER=<value>". Doctor now says to run `tdk project` when there is no `.env` at all. Found by the ERP CI workflow.
 
 ## 1.3.70 (2026-09-28)
