@@ -4,6 +4,8 @@ Notable changes to the `tdk` CLI. Versions match [npm](https://www.npmjs.com/pac
 
 ## Unreleased
 
+- New CI workflow that boots the public 100-service ERP example on a clean GitHub-hosted runner with the published CLI and waits for every backend to answer `/health` through Traefik, then writes the time to healthy and the resource use to the job summary. Manual (`full` or `one-stack`) and weekly.
+
 ## 1.3.69 (2026-09-28)
 
 - `tdk resource --type backend` adds `@types/node` to the new service. The Docker build uses a tsconfig with `"types": ["node"]`, so without it the image failed at `bun run build` with `TS2688: Cannot find type definition file for 'node'`. This was the next blocker on a clean machine, after the base-image race and the default Prisma feature.
