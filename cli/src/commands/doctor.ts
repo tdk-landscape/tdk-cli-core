@@ -3,6 +3,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, normalize } from "node:path";
 import chalk from "chalk";
 import { Command } from "commander";
+import { hasVerdaccioLicense } from "../generator/extension-fetch.js";
 import type { CheckResult } from "../types/index.js";
 import {
   MASTER_CONFIG_FILES,
@@ -15,6 +16,7 @@ import {
   checkIngressPorts,
   checkPrivateNpmRegistry,
   checkTiltResourceHealth,
+  projectConfigEnablesVerdaccio,
   summarizeServiceProbes,
 } from "../utils/doctor-runtime.js";
 import { validateEnvFile } from "../utils/env-validator.js";
@@ -935,7 +937,13 @@ export const doctorCommand = new Command("doctor")
       // Preflight: a local Postgres or web server on 5432/80/443.
       () => checkHostPorts(),
       // Preflight: Verdaccio down causes ImageBuild bun install ConnectionRefused.
-      checkPrivateNpmRegistry,
+      async () => {
+        const root = findProjectRoot() ?? process.cwd();
+        const licensed = projectConfigEnablesVerdaccio(root)
+          ? await hasVerdaccioLicense(root)
+          : true;
+        return checkPrivateNpmRegistry(execSync, root, undefined, licensed);
+      },
       // Runtime checks: skip gracefully if the stack isn't started yet.
       checkContainerResourceHealth,
       // When Tilt is up, surface red resources (Traefik/apps never started).
