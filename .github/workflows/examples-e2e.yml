@@ -48,12 +48,15 @@ jobs:
               dashboard-app|/
               checkout-app|/
           - repo: tdk-restaurant-example
+            # Patterns match the service name in the URL (e.g. "reservation"
+            # from /api/reservation/health), not the stack name ("guest") --
+            # they only happen to be the same word for kitchen.
             api_checks: |
-              guest|/api/v1/reservations
-              guest|/api/v1/waitlist
+              reservation|/api/v1/reservations
+              reservation|/api/v1/waitlist
               kitchen|/api/v1/tickets
               kitchen|/api/v1/stations
-              operations|/api/v1/menu-items
+              menu|/api/v1/menu-items
             web_checks: |
               reservation-app|/
               floor-app|/
@@ -115,8 +118,12 @@ jobs:
           done
           awk '/Starting [0-9]+ service/{f=1} /Running tilt up/{f=0} f' up.log | grep -oE 'https?://[^ ]+' | sort -u > urls.txt || true
           [ -s urls.txt ] || grep -oE 'https?://[^ ]+' up.log | sort -u > urls.txt || true
-          grep -E '/health$' urls.txt > backend-urls.txt || true
-          grep -vE '/health$' urls.txt > web-urls.txt || true
+          # Every routed URL ends in /health (frontends have an nginx healthcheck
+          # too), so that suffix can't tell backend from frontend. The Traefik
+          # host prefix TDK generates can: api.<project>.localhost vs
+          # app.<project>.localhost.
+          grep -E '^https?://api\.' urls.txt > backend-urls.txt || true
+          grep -E '^https?://app\.' urls.txt > web-urls.txt || true
           echo "::group::URLs tdk up printed"
           cat urls.txt
           echo "::endgroup::"
