@@ -1,5 +1,5 @@
 import { execSync } from "node:child_process";
-import type { CheckResult } from "../types/index.js";
+import type { CheckResult, DiscoveredResource } from "../types/index.js";
 import { type HealthProbe } from "./service-urls.js";
 /** Host ports Traefik publishes for local ingress. Without these, app routes never come up. */
 export declare const INGRESS_PORTS: readonly [80, 443];
@@ -109,5 +109,22 @@ export declare function orderTiltFailures(failures: TiltResourceFailure[]): Tilt
  */
 export declare function probeContainerRuntimeError(resourceName: string, exec?: typeof execSync): string | null;
 export declare function describeTiltFailure(failure: TiltResourceFailure, exec?: typeof execSync): string;
+export interface MissingHealthRoute {
+    name: string;
+    healthPath: string;
+}
+/**
+ * Backends whose source never mentions their health path as a string literal
+ * ('/health', "/health" or `/health`). Covers Hono, Express, Elysia, Fastify
+ * and hand-rolled `url.pathname === "/health"` checks. Services without a
+ * src/ directory are skipped, since there is nothing to read.
+ */
+export declare function findMissingHealthRoutes(resources: DiscoveredResource[]): MissingHealthRoute[];
+/**
+ * A backend without its health route never passes the container healthcheck,
+ * so Traefik never routes to it and every request gets a 404 - after a slow
+ * image build, with nothing in `tdk up` saying why. Catch it before starting.
+ */
+export declare function checkHealthRoutes(projectRoot?: string): CheckResult;
 export {};
 //# sourceMappingURL=doctor-runtime.d.ts.map

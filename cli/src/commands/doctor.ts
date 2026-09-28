@@ -10,6 +10,7 @@ import {
   REQUIRED_PACKAGE_SCRIPTS,
 } from "../utils/constants.js";
 import {
+  checkHealthRoutes,
   checkHostPorts,
   checkIngressPorts,
   checkPrivateNpmRegistry,
@@ -860,6 +861,8 @@ export const doctorCommand = new Command("doctor")
       checkGeneratedProjectRuntimeAssets,
       checkStarlarkLoadExports,
       checkStartupScripts,
+      // A backend without its health route never turns healthy; Traefik 404s it.
+      () => checkHealthRoutes(),
       checkTypeScriptTypeDependencies,
       checkFrontendDockerPreflight,
       checkEnvironmentVariables,

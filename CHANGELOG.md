@@ -4,6 +4,8 @@ Notable changes to the `tdk` CLI. Versions match [npm](https://www.npmjs.com/pac
 
 ## Unreleased
 
+- `tdk doctor` checks that every backend defines its health route (`/health`, or `healthCheckPath` from service.json) somewhere in `src/`. A backend without it never passes the container healthcheck, so Traefik never routes to it and every request gets a 404, which used to surface only after a slow image build.
+
 ## 1.3.62 (2026-09-28)
 
 - `tdk doctor` no longer skips the service health check when Traefik answers with an error. A 404 (no route yet) or 502/503/504 (route found, container not answering) is reported as a failure that names the service and URL, instead of being read as "Traefik never bound :80". It is skipped only when every probe fails to connect.
