@@ -78,8 +78,23 @@ jobs:
           done
           [ -n "$url" ] || { cat up.log; echo "::error::tdk up never printed the orders-api URL"; exit 1; }
           echo "Waiting for $url"
-          for _ in $(seq 1 120); do
-            if curl -fsS --max-time 5 "$url"; then echo; echo "Healthy: $url"; exit 0; fi
+          for n in $(seq 1 120); do
+            code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "$url" || true)"
+            case "$code" in
+              2??) echo "Healthy: $url (HTTP $code after $((n * 10))s)"; curl -s --max-time 5 "$url"; echo; exit 0 ;;
+            esac
+            echo "poll $n ($((n * 10))s): HTTP $code"
+            # Once a minute, show what is actually happening so a slow first boot
+            # can be told apart from a container that never turns healthy.
+            if [ $((n % 6)) -eq 0 ]; then
+              echo "::group::progress at $((n * 10))s"
+              docker ps -a --format 'table {{.Names}}\t{{.Status}}' | head -20 || true
+              echo "-- images built so far:"
+              docker images --format '{{.Repository}}:{{.Tag}}  {{.CreatedSince}}' | head -12 || true
+              echo "-- tdk up log (last 8 lines):"
+              tail -8 up.log || true
+              echo "::endgroup::"
+            fi
             sleep 10
           done
           tail -200 up.log
