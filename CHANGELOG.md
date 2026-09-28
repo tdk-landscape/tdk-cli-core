@@ -4,6 +4,8 @@ Notable changes to the `tdk` CLI. Versions match [npm](https://www.npmjs.com/pac
 
 ## Unreleased
 
+- `tdk doctor` no longer skips the service health check when Traefik answers with an error. A 404 (no route yet) or 502/503/504 (route found, container not answering) is reported as a failure that names the service and URL, instead of being read as "Traefik never bound :80". It is skipped only when every probe fails to connect.
+
 ## 1.3.61 (2026-09-28)
 
 - `tdk doctor` and `tdk up` no longer report free host ports (80, 443, 5432) as "taken" on Linux. The port check bound `0.0.0.0` and `127.0.0.1` at the same time, and on Linux the second bind collided with our own first probe. It now probes them one after the other, which still catches a loopback-only Postgres on macOS. Found by the nightly clean-machine quickstart run.

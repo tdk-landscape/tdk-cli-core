@@ -5,7 +5,7 @@ import { join } from "node:path";
 import type { CheckResult } from "../types/index.js";
 import { formatCount } from "./formatting.js";
 import { findProjectRoot } from "./paths.js";
-import { getProjectName } from "./service-urls.js";
+import { getProjectName, type HealthProbe } from "./service-urls.js";
 import { discoverResources } from "./services.js";
 
 const EXEC_TIMEOUT_MS = 10_000;
@@ -462,6 +462,66 @@ export async function probeHostPort(port: number): Promise<PortState> {
   const wildcard = await probeAddress(port, "0.0.0.0");
   if (wildcard !== "free") return wildcard;
   return probeAddress(port, "127.0.0.1");
+}
+
+/** What an HTTP status from a service's health URL means, in the words a user needs. */
+function describeProbeFailure(probe: HealthProbe): string {
+  const { status } = probe;
+  if (status === undefined) return probe.error ?? "no response";
+  if (status === 404) {
+    return "HTTP 404: Traefik is answering but has no route for this URL (container not started yet, or not running)";
+  }
+  if (status === 502 || status === 503 || status === 504) {
+    return `HTTP ${status}: Traefik found the route but the container isn't answering (still starting, or unhealthy)`;
+  }
+  return `HTTP ${status}`;
+}
+
+/**
+ * Turns health-URL probes into a doctor result.
+ *
+ * "Nothing answered" (connection refused or timeout on every probe) means the
+ * stack is down or Traefik never bound :80, so the check is skipped. Any HTTP
+ * response counts as an answer, including a 404 or 502 from Traefik: that means
+ * the ingress is up and the service behind it is not reachable, which is a
+ * failure. Treating only 2xx as "responded" reported a running Traefik with no
+ * route as "Traefik never bound :80" and skipped the check.
+ */
+export function summarizeServiceProbes(probes: HealthProbe[]): CheckResult {
+  const answered = probes.filter((probe) => probe.status !== undefined);
+  const failed = probes.filter((probe) => !probe.ok);
+
+  if (answered.length === 0) {
+    return {
+      name: "Service Health",
+      didPass: true,
+      isSkipped: true,
+      message: `No services responded - skipped ping of ${formatCount(probes.length, "service")} (stack may be down, or Traefik never bound :80)`,
+      fix: "If `tdk up` is already running, check Traefik/port 80 in the Tilt UI. Otherwise start with: tdk up",
+    };
+  }
+
+  if (failed.length === 0) {
+    return {
+      name: "Service Health",
+      didPass: true,
+      message: `All ${formatCount(probes.length, "service")} responding on /health`,
+    };
+  }
+
+  const details = failed
+    .map((probe) => `${probe.name} (${describeProbeFailure(probe)})\n      ${probe.url}`)
+    .join("\n    ");
+  const notRouted = failed.some((probe) => probe.status === 404);
+
+  return {
+    name: "Service Health",
+    didPass: false,
+    message: `${formatCount(failed.length, "service")} not healthy (${probes.length - failed.length}/${probes.length} healthy):\n    ${details}`,
+    fix: notRouted
+      ? "If `tdk up` just started, images may still be building: re-run `tdk doctor` in a minute. Otherwise check `docker ps` and the resource in the Tilt UI, and compare `tdk networks` with the URL above."
+      : "Check container state and routing: docker ps, then tdk networks to compare the advertised URLs against Traefik's routers",
+  };
 }
 
 /**

@@ -1,5 +1,6 @@
 import { execSync } from "node:child_process";
 import type { CheckResult } from "../types/index.js";
+import { type HealthProbe } from "./service-urls.js";
 /** Host ports Traefik publishes for local ingress. Without these, app routes never come up. */
 export declare const INGRESS_PORTS: readonly [80, 443];
 export declare function toComposeProjectPrefix(projectName: string): string;
@@ -75,6 +76,17 @@ type PortState = "free" | "in-use" | "unknown";
  * it before trying 127.0.0.1 avoids that self-collision on every platform.
  */
 export declare function probeHostPort(port: number): Promise<PortState>;
+/**
+ * Turns health-URL probes into a doctor result.
+ *
+ * "Nothing answered" (connection refused or timeout on every probe) means the
+ * stack is down or Traefik never bound :80, so the check is skipped. Any HTTP
+ * response counts as an answer, including a 404 or 502 from Traefik: that means
+ * the ingress is up and the service behind it is not reachable, which is a
+ * failure. Treating only 2xx as "responded" reported a running Traefik with no
+ * route as "Traefik never bound :80" and skipped the check.
+ */
+export declare function summarizeServiceProbes(probes: HealthProbe[]): CheckResult;
 /**
  * Catches host ports taken by something other than this project's containers,
  * most often a local Postgres on 5432 or a web server on 80. Docker-held 80/443
