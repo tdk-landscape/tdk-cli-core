@@ -27,28 +27,26 @@ jobs:
 
       # ubuntu-latest ships a Postgres service already listening on 5432,
       # which collides with the one TDK generates and fails tdk doctor's
-      # host-port check before tdk up ever runs. Stopping it wasn't enough -
-      # it came back a few steps later, most likely via socket activation or
-      # a systemd Restart= policy - so mask both the service and socket
-      # units (stops systemd from ever bringing them back this boot) before
-      # killing whatever is currently bound, and verify right before the
-      # step that actually needs the port, not just here.
+      # host-port check before tdk up ever runs. Stopping and even masking
+      # the systemd units didn't stick - the port was taken again a few
+      # steps and ~15s later, so something outside systemd's unit table is
+      # restarting it (runner provisioning finishing in the background is
+      # the leading suspect on GitHub-hosted runners). Removing the package
+      # outright is the one thing nothing can undo for the rest of the job.
       - name: Free port 5432 (runner's preinstalled Postgres)
         run: |
           sudo systemctl stop postgresql.socket 'postgresql@*.socket' 2>/dev/null || true
           sudo systemctl stop postgresql.service 'postgresql@*.service' 2>/dev/null || true
-          sudo systemctl mask postgresql.socket 'postgresql@*.socket' 2>/dev/null || true
-          sudo systemctl mask postgresql.service 'postgresql@*.service' 2>/dev/null || true
-          for _ in 1 2 3 4 5; do
-            sudo fuser -k 5432/tcp 2>/dev/null || true
-            sleep 2
-            sudo ss -ltn 2>/dev/null | grep -q ':5432 ' || break
-          done
+          sudo DEBIAN_FRONTEND=noninteractive apt-get remove --purge -y 'postgresql*' 2>&1 | sudo tee /tmp/pg-purge.log > /dev/null || true
+          sudo fuser -k 5432/tcp 2>/dev/null || true
+          sleep 2
           if sudo ss -ltn 2>/dev/null | grep -q ':5432 '; then
-            echo "::error::port 5432 is still in use"
+            echo "::error::port 5432 is still in use after purging postgresql"
             sudo ss -ltnp | grep ':5432 ' || true
+            tail -50 /tmp/pg-purge.log || true
             exit 1
           fi
+          echo "port 5432 is free"
 
       - name: Install TDK from npm
         run: npm install -g @tdk-landscape/tdk-cli-core@latest && tdk --version # zizmor: ignore[adhoc-packages] the point is to test what users install
@@ -59,7 +57,8 @@ jobs:
       - name: Scaffold the quickstart project
         run: |
           if sudo ss -ltn 2>/dev/null | grep -q ':5432 '; then
-            echo "::warning::port 5432 was rebound after the earlier free-port step; killing it again"
+            echo "::warning::port 5432 is in use again right before scaffolding; here's what's on it"
+            sudo ss -ltnp | grep ':5432 ' || true
             sudo fuser -k 5432/tcp 2>/dev/null || true
             sleep 2
           fi
