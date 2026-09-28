@@ -4,6 +4,8 @@ Notable changes to the `tdk` CLI. Versions match [npm](https://www.npmjs.com/pac
 
 ## Unreleased
 
+## 1.3.66 (2026-09-28)
+
 - **`tdk up` on a machine with no base images no longer leaves every service stuck on a 404.** The generated Tiltfile dropped the golden-layers resource name, so app and migrator resources never waited for `golden-layers-build`. Their image builds started at once, failed with "pull access denied" because the base images did not exist yet, and Tilt never retried. Machines that had built the layers before (any second run) were unaffected, which hid it. Found by the clean-machine quickstart run.
 - `tdk doctor` now names a missing golden base image for any project name (`shop-l4-backend`, ...). The hint was hard-coded to the `tdk-project-` prefix, so a real project got the raw BuildKit error.
 
