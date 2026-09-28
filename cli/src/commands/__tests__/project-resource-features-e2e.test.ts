@@ -39,6 +39,22 @@ describe("project and resource feature E2E", () => {
     }
   });
 
+  it("recreates a missing .env when `tdk project` runs in an already-initialised repo", () => {
+    projectRoot = mkdtempSync(join(tmpdir(), "tdk-project-env-"));
+
+    runTdk(["project", "--yes"], projectRoot);
+    const envPath = join(projectRoot, ".env");
+    expect(existsSync(envPath)).toBe(true);
+
+    // A fresh clone has .tdk/project.json (committed) but no .env (gitignored).
+    rmSync(envPath);
+    runTdk(["project", "--yes"], projectRoot);
+
+    const env = readFileSync(envPath, "utf-8");
+    expect(env).toMatch(/^TILT_ENV=dev$/m);
+    expect(env).toMatch(/^DB_PASSWORD=[0-9a-f]{32}$/m);
+  });
+
   it("keeps Verdaccio as an explicit premium project feature", () => {
     projectRoot = mkdtempSync(join(tmpdir(), "tdk-project-feature-"));
 
