@@ -1,8 +1,12 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { loadTemplate } from "../template-engine.js";
+
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
+const readEngine = (rel: string) => fs.readFileSync(path.join(repoRoot, "engine", rel), "utf-8");
 
 // Real template files, keyed by a substring that only appears in that specific
 // file - regression coverage for the bug where loadTemplate joined a candidate
@@ -40,6 +44,35 @@ describe("template-engine", () => {
       const tiltfile = loadTemplate("Tiltfile.hbs");
       expect(tiltfile).toMatch(/GOLDEN_IMAGE_RESOURCE\s*=\s*Infra\.load_all\(/);
       expect(tiltfile).toMatch(/'golden_image_resource':\s*GOLDEN_IMAGE_RESOURCE/);
+    });
+
+    it("standalone Traefik only starts sablier and wake-gateway when Sablier is licensed", () => {
+      // Regression: the standalone compose always started the sablier container (read-write
+      // Docker socket), built and ran the wake gateway, and had Traefik download the Sablier
+      // plugin from GitHub - for every free-tier user, who cannot use any of it. The license
+      // only gated the per-service labels. (Verified by loading the Tiltfile: free tier
+      // renders only `traefik`; forcing the flag on renders all three.)
+      const compose = readEngine("topologies/platform/docker/compose/traefik_standalone.star");
+      expect(compose).toMatch(
+        /def generate_standalone_traefik_compose\(sablier_enabled\s*=\s*False\)/,
+      );
+      for (const marker of [
+        "  sablier:\n",
+        "  wake-gateway:\n",
+        "--experimental.plugins.sablier",
+      ]) {
+        const at = compose.indexOf(marker);
+        expect(at, marker).toBeGreaterThan(-1);
+        const guard = compose.lastIndexOf("_SABLIER_", at);
+        // each only lives inside a _SABLIER_* constant, which is emitted conditionally
+        expect(guard, marker).toBeGreaterThan(-1);
+        expect(compose.slice(0, guard)).toContain("def generate_standalone_traefik_compose");
+      }
+      expect(compose).toMatch(/if sablier_enabled else ""/);
+
+      const loader = readEngine("topologies/tilt/resources/infra-loader.star");
+      expect(loader).toMatch(/generate_standalone_traefik_compose\(sablier_enabled\)/);
+      expect(loader).toMatch(/sablier_middleware_suffix\(\{"sablier":\s*\{"enable":\s*True\}\}/);
     });
 
     it("should throw (not silently return directory bytes) for non-existent template", () => {

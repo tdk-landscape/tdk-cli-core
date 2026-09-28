@@ -20,6 +20,7 @@
 
 load("../../platform/docker/constants.star", "PlatformDockerConstants")
 load("../../platform/docker/compose/traefik_standalone.star", "generate_standalone_traefik_compose")
+load("../../platform/docker/networking/sablier_container_cycle.star", "sablier_middleware_suffix")
 load("../../platform/registries/verdaccio_loader.star", "load_verdaccio")
 
 # =============================================================================
@@ -194,7 +195,11 @@ def _load_standalone_traefik(root_prefix, env_file, write_fn):
     """Generate and load a self-contained Traefik compose for standalone projects."""
     _stop_conflicting_traefik()
     compose_rel = ".tdk/.tdk-out/docker-compose.traefik.yml"
-    content = generate_standalone_traefik_compose()
+    # The free-tier stub always reports "disabled"; the licensed module reports
+    # enabled for a manifest that opts in. Probing it keeps this file free of any
+    # license logic while starting the sablier containers only when they can work.
+    _, sablier_enabled = sablier_middleware_suffix({"sablier": {"enable": True}}, "probe")
+    content = generate_standalone_traefik_compose(sablier_enabled)
     if write_fn:
         write_fn(compose_rel, content)
     compose_file = root_prefix + compose_rel if root_prefix else compose_rel

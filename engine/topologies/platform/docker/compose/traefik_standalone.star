@@ -10,8 +10,14 @@ load("../config/healthcheck.star", "compose_healthcheck_timing")
 load("../networking/traefik_static_routes.star", "normalize_abs_path")
 
 
-def generate_standalone_traefik_compose():
-    """Minimal Traefik that routes Docker labels on api.{project}.localhost."""
+def generate_standalone_traefik_compose(sablier_enabled = False):
+    """Minimal Traefik that routes Docker labels on api.{project}.localhost.
+
+    The Sablier plugin, the sablier container and the wake gateway are only
+    emitted when sablier_enabled is True (a license grants "sablier"). Without
+    it they would run for nothing: a container holding a read-write Docker
+    socket, an image build, and a plugin download from GitHub on every start.
+    """
     network = PlatformDockerConstants.NETWORK_TRAEFIK_PUBLIC
     name = PlatformDockerConstants.PROJECT_NAME
     return """###############################################################################
@@ -24,10 +30,7 @@ services:
     image: traefik:v3.6.8
     container_name: {name}_traefik
     restart: unless-stopped
-    depends_on:
-      - sablier
-      - wake-gateway
-    command:
+{traefik_depends_on}    command:
       - "--api.insecure=true"
       - "--ping=true"
       - "--providers.docker=true"
@@ -44,12 +47,7 @@ services:
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
       - "--log.level=INFO"
-      # On-demand scaling: routes to stopped containers (opt-in via a
-      # resource's `sablier:` manifest block), keeps idle services from
-      # burning memory. Requires Traefik >=3.6 (see allownonrunning below).
-      - "--experimental.plugins.sablier.moduleName=github.com/sablierapp/sablier-traefik-plugin"
-      - "--experimental.plugins.sablier.version=v1.3.1"
-    ports:
+{sablier_flags}    ports:
       - "80:80"
       - "8080:8080"
     volumes:
@@ -60,7 +58,66 @@ services:
     healthcheck:
       test: ["CMD", "traefik", "healthcheck", "--ping"]
 {healthcheck_timing}
-  sablier:
+{sablier_services}networks:
+  traefik-public:
+    name: {network}
+    external: true
+""".format(
+        name=name,
+        network=network,
+        healthcheck_timing=compose_healthcheck_timing(10),
+        traefik_depends_on=_SABLIER_DEPENDS_ON if sablier_enabled else "",
+        sablier_flags=_SABLIER_FLAGS if sablier_enabled else "",
+        sablier_services=_SABLIER_SERVICES.format(
+            name=name,
+            gateway_container=PlatformDockerConstants.TRAEFIK_WAKE_GATEWAY_CONTAINER,
+            gateway_port=PlatformDockerConstants.TRAEFIK_WAKE_GATEWAY_PORT,
+            vendored_gateway_dir="tdk-cli-ext/engine/assets/docker/wake-gateway",
+            tilt_dev_dir=os.environ.get("HOME", "") + "/.tilt-dev",
+            project_root_mount=_project_root_mount(),
+        ) if sablier_enabled else "",
+        dynamic_dir_name=PlatformDockerConstants.TRAEFIK_DYNAMIC_DIR_REL.split("/")[-1],
+        vendored_gateway_dir="tdk-cli-ext/engine/assets/docker/wake-gateway",
+        gateway_container=PlatformDockerConstants.TRAEFIK_WAKE_GATEWAY_CONTAINER,
+        gateway_port=PlatformDockerConstants.TRAEFIK_WAKE_GATEWAY_PORT,
+        tilt_dev_dir=os.environ.get("HOME", "") + "/.tilt-dev",
+        project_root_mount=_project_root_mount(),
+    )
+
+
+def _project_root_mount():
+    """Read-only mount of the project at its own absolute host path.
+
+    The gateway runs `docker compose up --no-build` for a deferred resource
+    itself (bypassing Tilt's build queue), using the compose files Tilt uses.
+    Compose resolves relative paths in them (env_file etc.) client-side, so
+    they must exist at the same absolute paths inside the gateway container.
+    Empty when TDK_PROJECT_ROOT is unset (the generated Tiltfile sets it).
+    """
+    root = project_root_abspath()
+    if not root:
+        return ""
+    return "\n      - " + root + ":" + root + ":ro"
+
+
+def project_root_abspath():
+    """Absolute, normalized project root (TDK_PROJECT_ROOT), or "" when unset."""
+    return normalize_abs_path(os.environ.get("TDK_PROJECT_ROOT", ""))
+
+
+_SABLIER_DEPENDS_ON = """    depends_on:
+      - sablier
+      - wake-gateway
+"""
+
+_SABLIER_FLAGS = """      # On-demand scaling: routes to stopped containers (opt-in via a
+      # resource's `sablier:` manifest block), keeps idle services from
+      # burning memory. Requires Traefik >=3.6 (see allownonrunning below).
+      - "--experimental.plugins.sablier.moduleName=github.com/sablierapp/sablier-traefik-plugin"
+      - "--experimental.plugins.sablier.version=v1.3.1"
+"""
+
+_SABLIER_SERVICES = """  sablier:
     image: sablierapp/sablier:1.18.0
     container_name: {name}_sablier
     restart: unless-stopped
@@ -96,38 +153,4 @@ services:
     networks:
       - traefik-public
 
-networks:
-  traefik-public:
-    name: {network}
-    external: true
-""".format(
-        name=name,
-        network=network,
-        healthcheck_timing=compose_healthcheck_timing(10),
-        dynamic_dir_name=PlatformDockerConstants.TRAEFIK_DYNAMIC_DIR_REL.split("/")[-1],
-        vendored_gateway_dir="tdk-cli-ext/engine/assets/docker/wake-gateway",
-        gateway_container=PlatformDockerConstants.TRAEFIK_WAKE_GATEWAY_CONTAINER,
-        gateway_port=PlatformDockerConstants.TRAEFIK_WAKE_GATEWAY_PORT,
-        tilt_dev_dir=os.environ.get("HOME", "") + "/.tilt-dev",
-        project_root_mount=_project_root_mount(),
-    )
-
-
-def _project_root_mount():
-    """Read-only mount of the project at its own absolute host path.
-
-    The gateway runs `docker compose up --no-build` for a deferred resource
-    itself (bypassing Tilt's build queue), using the compose files Tilt uses.
-    Compose resolves relative paths in them (env_file etc.) client-side, so
-    they must exist at the same absolute paths inside the gateway container.
-    Empty when TDK_PROJECT_ROOT is unset (the generated Tiltfile sets it).
-    """
-    root = project_root_abspath()
-    if not root:
-        return ""
-    return "\n      - " + root + ":" + root + ":ro"
-
-
-def project_root_abspath():
-    """Absolute, normalized project root (TDK_PROJECT_ROOT), or "" when unset."""
-    return normalize_abs_path(os.environ.get("TDK_PROJECT_ROOT", ""))
+"""
