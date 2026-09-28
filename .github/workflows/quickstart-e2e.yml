@@ -137,12 +137,22 @@ jobs:
           # templates. Published versions from before --framework existed skip
           # them, so the nightly check of `latest` keeps testing what it can.
           if tdk resource --help | grep -q -- '--framework'; then
-            printf 'y\n' | tdk resource storefront --type frontend --stack shop
-            printf 'y\n' | tdk resource vue-app --type frontend --framework vue --stack shop
+            # Explicit paths: a frontend's default home, apps/<name>, is outside the
+            # services/*/* glob that project.json discovers, so Tilt would never
+            # create a resource for it and its route would answer 404 forever.
+            printf 'y\n' | tdk resource storefront --type frontend --stack shop --path services/shop/storefront
+            printf 'y\n' | tdk resource vue-app --type frontend --framework vue --stack shop --path services/shop/vue-app
             echo "FRONTENDS=storefront:root vue-app:app" >> "$GITHUB_ENV"
           else
             echo "::notice::this tdk version has no --framework; testing the backend only"
           fi
+          # Log what discovery will see, so a missing service is obvious here
+          # rather than 20 minutes later as a 404.
+          echo "::group::scaffolded project"
+          echo "discovery paths: $(jq -c '.discovery.paths' .tdk/project.json)"
+          find . -name service.json -not -path './node_modules/*' -not -path './.tdk/*' \
+            | sort | while read -r f; do echo "$f: $(jq -c '{name,type,framework,stack}' "$f")"; done
+          echo "::endgroup::"
           tdk doctor
 
       - name: tdk up and wait for /health
@@ -150,10 +160,12 @@ jobs:
           cd "$RUNNER_TEMP/shop"
           tdk up shop > up.log 2>&1 &
           # One URL per service: the backend, plus each frontend scaffolded above.
-          services="orders"
-          for fe in $FRONTENDS; do services="$services ${fe%%:*}"; done
+          # Each entry is <route segment>:<Tilt resource name>.
+          services="orders:orders-api"
+          for fe in $FRONTENDS; do services="$services ${fe%%:*}:${fe%%:*}"; done
           urls=""
-          for svc in $services; do
+          for pair in $services; do
+            svc="${pair%%:*}"
             url=""
             for _ in $(seq 1 60); do
               url="$(grep -oE "https?://[^ ]*/${svc}[^ ]*/health" up.log | head -1 || true)"
@@ -165,6 +177,7 @@ jobs:
           done
           echo "Waiting for:$urls"
           failed_checks=0
+          missing_checks=0
           for n in $(seq 1 120); do
             pending=""
             for url in $urls; do
@@ -204,6 +217,28 @@ jobs:
                 fi
               else
                 failed_checks=0
+              fi
+              # A route can only turn healthy if Tilt has a resource for it. If a
+              # service was never discovered it never will, so say so and stop.
+              known="$(tilt get uiresources -o json 2>/dev/null | jq -r '.items[].metadata.name' || true)"
+              missing=""
+              for pair in $services; do
+                res="${pair##*:}"
+                echo "$known" | grep -qx "$res" || missing="$missing $res"
+              done
+              if [ -n "$missing" ]; then
+                missing_checks=$((missing_checks + 1))
+                echo "::warning::Tilt has no resource for:$missing (check $missing_checks of 2)"
+                if [ "$missing_checks" -ge 2 ]; then
+                  echo "-- resources Tilt does know about:"; echo "$known"
+                  echo "-- discovery paths and service.json files:"
+                  jq -c '.discovery.paths' .tdk/project.json
+                  find . -name service.json -not -path './node_modules/*' -not -path './.tdk/*' | sort
+                  echo "::error::Giving up early: Tilt never created a resource for:$missing"
+                  exit 1
+                fi
+              else
+                missing_checks=0
               fi
             fi
             sleep 10
