@@ -194,7 +194,7 @@ Checks Docker, Compose and Tilt. Inside a project it also checks the generated c
 - **Questions and ideas:** [open an issue](https://github.com/tdk-landscape/tdk-cli-core/issues/new/choose).
 - **Contributing:** see [CONTRIBUTING.md](CONTRIBUTING.md). Issues labeled [`good first issue`](https://github.com/tdk-landscape/tdk-cli-core/labels/good%20first%20issue) are a good place to start.
 - **Security:** see [SECURITY.md](SECURITY.md). Please don't report vulnerabilities in public issues.
-- **Examples:** [ERP system (100 services)](https://github.com/tdk-landscape/tdk-erp-system), [SaaS starter](https://github.com/tdk-landscape/tdk-saas-starter), [restaurant](https://github.com/tdk-landscape/tdk-restaurant-example).
+- **Examples:** [ERP system (100 services)](https://github.com/tdk-landscape/tdk-erp-system), [SaaS starter](https://github.com/tdk-landscape/tdk-saas-starter), [restaurant](https://github.com/tdk-landscape/tdk-restaurant-example), [ecommerce (Vue + Hono)](https://github.com/tdk-landscape/tdk-ecommerce-example).
 
 ## License
 

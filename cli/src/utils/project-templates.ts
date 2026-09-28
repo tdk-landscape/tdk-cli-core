@@ -22,6 +22,10 @@ export const PROJECT_TEMPLATES: Record<string, ProjectTemplate> = {
     repo: "https://github.com/tdk-landscape/tdk-user-management.git",
     description: "User/auth management services",
   },
+  ecommerce: {
+    repo: "https://github.com/tdk-landscape/tdk-ecommerce-example.git",
+    description: "Vue 3 storefront and Hono catalog API (needs TDK 1.3.75+ for --framework vue)",
+  },
   example: {
     repo: "https://github.com/tdk-landscape/tdk-example.git",
     description: "Minimal Project-Stack-Resource (PSR) demonstration",
