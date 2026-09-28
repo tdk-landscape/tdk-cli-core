@@ -11,8 +11,8 @@ import { isTiltAvailable } from "../utils/tilt.js";
 const HelpPanel = ({ onClose }) => (_jsxs(Box, { borderStyle: "single", borderColor: "cyan", paddingX: 2, paddingY: 1, flexDirection: "column", width: 60, children: [_jsx(Text, { bold: true, color: "cyan", children: "Keyboard Shortcuts" }), _jsxs(Box, { marginY: 1, flexDirection: "column", children: [_jsx(Text, { bold: true, underline: true, children: "Navigation" }), _jsx(Text, { children: " \u2191/\u2193 Navigate list items" }), _jsx(Text, { children: " Enter Select item / Open detail" }), _jsx(Text, { children: " Space Toggle expand (tree view)" }), _jsx(Text, { children: " Tab Next tab" }), _jsx(Text, { children: " 1-5 Direct tab access" }), _jsx(Box, { marginTop: 1, children: _jsx(Text, { bold: true, underline: true, children: "Actions" }) }), _jsx(Text, { children: " a Toggle all/pre-alpha services" }), _jsx(Text, { children: " m Toggle mouse support" }), _jsx(Text, { children: " t Toggle tooltips" }), _jsx(Text, { children: " e Toggle enabled/disabled services" }), _jsx(Text, { children: " r Refresh data" }), _jsx(Text, { children: " / Search/filter" }), _jsx(Text, { children: " ? Show this help" }), _jsx(Text, { children: " q/Esc Quit / Back" })] }), _jsx(Box, { marginTop: 1, children: _jsx(Text, { color: "gray", dimColor: true, children: "Press any key to close..." }) })] }));
 const LoadingScreen = ({ progress, message }) => (_jsxs(Box, { flexDirection: "column", padding: 2, children: [_jsx(Text, { bold: true, color: "cyan", children: "\u2593\u2592\u2591 TDK NEON EDITION \u2591\u2592\u2593" }), _jsx(Box, { marginY: 1 }), _jsxs(Text, { children: ["Loading: ", message] }), _jsxs(Box, { marginY: 1, borderStyle: "single", borderColor: "gray", width: 50, children: [_jsx(Box, { width: progress / 2, backgroundColor: "cyan", children: _jsx(Text, { children: " ".repeat(progress / 2) }) }), _jsxs(Text, { children: [" ", progress, "%"] })] })] }));
 // biome-ignore lint/correctness/noUnusedFunctionParameters: reserved callback prop kept in the component API
-const ErrorScreen = ({ error, onRetry }) => (_jsxs(Box, { flexDirection: "column", padding: 2, alignItems: "center", children: [_jsx(Text, { bold: true, color: "red", children: "Connection Error" }), _jsx(Box, { marginY: 1 }), _jsxs(Text, { color: "red", children: ["\u2717 ", error] }), _jsx(Box, { marginY: 1 }), _jsx(Text, { color: "gray", children: "Troubleshooting:" }), _jsx(Text, { color: "gray", children: " 1. Is Tilt running? Run: tilt up" }), _jsx(Text, { color: "gray", children: " 2. Check Tiltfile exists" }), _jsx(Text, { color: "gray", children: " 3. Try: tdk status --verbose" }), _jsx(Box, { marginY: 1 }), _jsx(Text, { color: "cyan", children: "Press [r] to retry or [q] to quit" })] }));
-const EmptyState = () => (_jsxs(Box, { flexDirection: "column", padding: 2, alignItems: "center", children: [_jsx(Text, { bold: true, color: "yellow", children: "No Services Found" }), _jsx(Box, { marginY: 1 }), _jsx(Text, { color: "gray", children: "\u25C9 No service.json files found" }), _jsx(Box, { marginY: 1 }), _jsx(Text, { children: "To get started:" }), _jsx(Text, { children: " 1. Run: tdk init" }), _jsx(Text, { children: " 2. Or create services manually" }), _jsx(Box, { marginY: 1 }), _jsx(Text, { color: "gray", children: "Press [q] to quit" })] }));
+const ErrorScreen = ({ error, onRetry }) => (_jsxs(Box, { flexDirection: "column", padding: 2, alignItems: "center", children: [_jsx(Text, { bold: true, color: "red", children: "Could Not Load Services" }), _jsx(Box, { marginY: 1 }), _jsxs(Text, { color: "red", children: ["\u2717 ", error] }), _jsx(Box, { marginY: 1 }), _jsx(Text, { color: "gray", children: "Troubleshooting:" }), _jsx(Text, { color: "gray", children: " 1. Check that every service.json is valid JSON" }), _jsx(Text, { color: "gray", children: " 2. Run tdk from your project (the folder with the Tiltfile)" }), _jsx(Text, { color: "gray", children: " 3. Try: tdk status --verbose" }), _jsx(Box, { marginY: 1 }), _jsx(Text, { color: "cyan", children: "Press [r] to retry or [q] to quit" })] }));
+const EmptyState = () => (_jsxs(Box, { flexDirection: "column", padding: 2, alignItems: "center", children: [_jsx(Text, { bold: true, color: "yellow", children: "No Services Found" }), _jsx(Box, { marginY: 1 }), _jsx(Text, { color: "gray", children: "\u25C9 No service.json files found" }), _jsx(Box, { marginY: 1 }), _jsx(Text, { children: "To get started:" }), _jsx(Text, { children: " 1. Run: tdk init" }), _jsx(Text, { children: " 2. Or create services manually" }), _jsx(Box, { marginY: 1 }), _jsx(Text, { color: "cyan", children: "Press [r] to refresh or [q] to quit" })] }));
 const TUIApp = () => {
     const { exit } = useApp();
     const { stdout } = useStdout();
@@ -33,21 +33,27 @@ const TUIApp = () => {
     const [showTooltips, setShowTooltips] = useState(true);
     const [showEnabledOnly, setShowEnabledOnly] = useState(true);
     const projectRoot = findProjectRoot() || "unknown";
-    const { stacks, services } = useMemo(() => ({
-        stacks: discoverStacks(),
-        services: discoverResources(),
-    }), []);
-    useEffect(() => {
-        setLoading(false);
+    const [{ stacks, services }, setDiscovered] = useState({ stacks: [], services: [] });
+    // Re-read service.json files from disk. An empty project is not an error:
+    // it renders EmptyState. Only a failed discovery shows ErrorScreen.
+    const refresh = useCallback(() => {
+        clearMetadataCache();
+        try {
+            setDiscovered({ stacks: discoverStacks(), services: discoverResources() });
+            setError(null);
+            return true;
+        }
+        catch (err) {
+            setError(err instanceof Error ? err.message : String(err));
+            return false;
+        }
+        finally {
+            setLoading(false);
+        }
     }, []);
     useEffect(() => {
-        if (services.length === 0) {
-            setError('No services found. Run "tdk init" to get started.');
-        }
-        else {
-            setError(null);
-        }
-    }, [services.length]);
+        refresh();
+    }, [refresh]);
     const selectedStackData = useMemo(() => {
         if (!selectedStack)
             return null;
@@ -241,8 +247,7 @@ const TUIApp = () => {
     useInput((input, key) => {
         if (error) {
             if (input === "r" || input === "R") {
-                setError(null);
-                setLoading(true);
+                refresh();
                 return;
             }
             if (input === "q" || key.escape) {
@@ -300,9 +305,10 @@ const TUIApp = () => {
             return;
         }
         if (input === "r") {
-            clearMetadataCache();
-            setMessage("Data refreshed");
-            setTimeout(() => setMessage(""), 1500);
+            if (refresh()) {
+                setMessage("Data refreshed");
+                setTimeout(() => setMessage(""), 1500);
+            }
             return;
         }
         if (input === "/") {
@@ -404,10 +410,7 @@ const TUIApp = () => {
         return _jsx(LoadingScreen, { progress: 100, message: "Initializing..." });
     }
     if (error) {
-        return (_jsx(ErrorScreen, { error: error, onRetry: () => {
-                setError(null);
-                setLoading(true);
-            } }));
+        return _jsx(ErrorScreen, { error: error, onRetry: refresh });
     }
     if (services.length === 0) {
         return _jsx(EmptyState, {});

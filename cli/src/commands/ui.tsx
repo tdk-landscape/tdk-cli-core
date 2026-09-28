@@ -11,6 +11,7 @@ import {
 } from "../components/index.js";
 import type {
   DiscoveredResource,
+  DiscoveredStack,
   ErrorScreenProps,
   FileNode,
   HelpPanelProps,
@@ -94,14 +95,14 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ progress, message }) => (
 const ErrorScreen: React.FC<ErrorScreenProps> = ({ error, onRetry }) => (
   <Box flexDirection="column" padding={2} alignItems="center">
     <Text bold color="red">
-      Connection Error
+      Could Not Load Services
     </Text>
     <Box marginY={1} />
     <Text color="red">✗ {error}</Text>
     <Box marginY={1} />
     <Text color="gray">Troubleshooting:</Text>
-    <Text color="gray"> 1. Is Tilt running? Run: tilt up</Text>
-    <Text color="gray"> 2. Check Tiltfile exists</Text>
+    <Text color="gray"> 1. Check that every service.json is valid JSON</Text>
+    <Text color="gray"> 2. Run tdk from your project (the folder with the Tiltfile)</Text>
     <Text color="gray"> 3. Try: tdk status --verbose</Text>
     <Box marginY={1} />
     <Text color="cyan">Press [r] to retry or [q] to quit</Text>
@@ -120,7 +121,7 @@ const EmptyState: React.FC = () => (
     <Text> 1. Run: tdk init</Text>
     <Text> 2. Or create services manually</Text>
     <Box marginY={1} />
-    <Text color="gray">Press [q] to quit</Text>
+    <Text color="cyan">Press [r] to refresh or [q] to quit</Text>
   </Box>
 );
 
@@ -147,25 +148,30 @@ const TUIApp: React.FC = () => {
 
   const projectRoot = findProjectRoot() || "unknown";
 
-  const { stacks, services } = useMemo(
-    () => ({
-      stacks: discoverStacks(),
-      services: discoverResources(),
-    }),
-    [],
-  );
+  const [{ stacks, services }, setDiscovered] = useState<{
+    stacks: DiscoveredStack[];
+    services: DiscoveredResource[];
+  }>({ stacks: [], services: [] });
 
-  useEffect(() => {
-    setLoading(false);
+  // Re-read service.json files from disk. An empty project is not an error:
+  // it renders EmptyState. Only a failed discovery shows ErrorScreen.
+  const refresh = useCallback((): boolean => {
+    clearMetadataCache();
+    try {
+      setDiscovered({ stacks: discoverStacks(), services: discoverResources() });
+      setError(null);
+      return true;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      return false;
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    if (services.length === 0) {
-      setError('No services found. Run "tdk init" to get started.');
-    } else {
-      setError(null);
-    }
-  }, [services.length]);
+    refresh();
+  }, [refresh]);
 
   const selectedStackData = useMemo(() => {
     if (!selectedStack) return null;
@@ -383,8 +389,7 @@ const TUIApp: React.FC = () => {
   useInput((input, key) => {
     if (error) {
       if (input === "r" || input === "R") {
-        setError(null);
-        setLoading(true);
+        refresh();
         return;
       }
       if (input === "q" || key.escape) {
@@ -448,9 +453,10 @@ const TUIApp: React.FC = () => {
     }
 
     if (input === "r") {
-      clearMetadataCache();
-      setMessage("Data refreshed");
-      setTimeout(() => setMessage(""), 1500);
+      if (refresh()) {
+        setMessage("Data refreshed");
+        setTimeout(() => setMessage(""), 1500);
+      }
       return;
     }
 
@@ -565,15 +571,7 @@ const TUIApp: React.FC = () => {
   }
 
   if (error) {
-    return (
-      <ErrorScreen
-        error={error}
-        onRetry={() => {
-          setError(null);
-          setLoading(true);
-        }}
-      />
-    );
+    return <ErrorScreen error={error} onRetry={refresh} />;
   }
 
   if (services.length === 0) {
