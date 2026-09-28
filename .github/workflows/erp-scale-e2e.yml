@@ -1,0 +1,195 @@
+# Boots the public 100-service ERP example (tdk-landscape/tdk-erp-system) on a
+# clean GitHub-hosted runner with the published CLI and waits for every backend
+# to answer /health through Traefik. It backs the README's "100 services on a
+# 16 GB machine" claim with a measurement anyone can re-run.
+#
+# Manual and weekly only: a full boot builds ~107 images and takes a long time.
+# Use scope "one-stack" for a quick check (about 16 services).
+name: 🏭 ERP scale E2E
+
+on:
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: "How much of the ERP to boot"
+        type: choice
+        options: [full, one-stack]
+        default: full
+      stack:
+        description: "Stack to boot when scope is one-stack"
+        type: string
+        default: finance
+      version:
+        description: "CLI version to test (latest if empty)"
+        type: string
+        default: ""
+  schedule:
+    - cron: "0 3 * * 0"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: erp-scale-e2e
+  cancel-in-progress: false
+
+jobs:
+  erp:
+    name: 🏭 ERP boot on a clean machine
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          repository: tdk-landscape/tdk-erp-system
+          path: erp
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install Tilt
+        run: curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash
+
+      - name: Install TDK from npm
+        env:
+          TDK_VERSION: ${{ inputs.version || 'latest' }}
+        run: | # zizmor: ignore[adhoc-packages] the point is to test what users install
+          npm install -g "@tdk-landscape/tdk-cli-core@${TDK_VERSION}"
+          tdk --version
+
+      - name: Machine resources
+        run: |
+          echo "cpus: $(nproc)"
+          free -h
+          df -h / | tail -1
+          docker version --format 'docker {{.Server.Version}}'
+
+      - name: Set up the project and check it with tdk doctor
+        working-directory: erp
+        run: |
+          tdk project --yes
+          tdk doctor
+
+      - name: tdk up, then wait for every backend to answer /health
+        working-directory: erp
+        env:
+          SCOPE: ${{ inputs.scope || 'full' }}
+          STACK: ${{ inputs.stack || 'finance' }}
+          WAIT_MINUTES: "75"
+        run: |
+          if [ "$SCOPE" = "one-stack" ]; then
+            tdk up "$STACK" > up.log 2>&1 &
+          else
+            tdk up > up.log 2>&1 &
+          fi
+          started="$(date +%s)"
+          echo "started=$started" >> "$GITHUB_ENV"
+
+          # tdk up prints the URL of every service it will start, then hands off to Tilt.
+          for _ in $(seq 1 90); do
+            grep -q "Running tilt up" up.log && break
+            sleep 2
+          done
+          awk '/Starting [0-9]+ service/{f=1} /Running tilt up/{f=0} f' up.log | grep -oE 'https?://[^ ]+' | sort -u > urls.txt || true
+          grep -E '^https?://api\.' urls.txt > backend-urls.txt || true
+          grep -E '^https?://app\.' urls.txt > frontend-urls.txt || true
+          total="$(wc -l < backend-urls.txt | tr -d ' ')"
+          frontends="$(wc -l < frontend-urls.txt | tr -d ' ')"
+          if [ "$total" -eq 0 ]; then
+            head -60 up.log
+            echo "::error::tdk up printed no backend URLs"
+            exit 1
+          fi
+          echo "Waiting for $total backend URLs. $frontends frontend URLs are reported but not gated."
+          echo "backends_total=$total" >> "$GITHUB_ENV"
+          echo "frontends_total=$frontends" >> "$GITHUB_ENV"
+
+          failed_checks=0
+          for n in $(seq 1 $((WAIT_MINUTES * 4))); do
+            ok="$(xargs -P 24 -I{} curl -s -o /dev/null -m 5 -w '%{http_code}\n' {} < backend-urls.txt | grep -c '^2' || true)"
+            elapsed=$(( $(date +%s) - started ))
+            echo "t=${elapsed}s healthy=${ok}/${total}"
+            if [ "$ok" -eq "$total" ]; then
+              echo "all_healthy_seconds=$elapsed" >> "$GITHUB_ENV"
+              echo "All $total backends healthy after ${elapsed}s"
+              exit 0
+            fi
+
+            # Once a minute: show what is happening, and stop early if a build failed.
+            # Tilt does not retry a failed image build, so it will never recover.
+            if [ $((n % 4)) -eq 0 ]; then
+              echo "::group::progress at ${elapsed}s"
+              docker ps -a --format '{{.Status}}' | sed -E 's/ \(.*\)//; s/^(Up|Exited|Created|Restarting).*/\1/' | sort | uniq -c
+              echo "healthy containers: $(docker ps --filter health=healthy -q | wc -l)  unhealthy: $(docker ps --filter health=unhealthy -q | wc -l)"
+              echo "images: $(docker images -q | sort -u | wc -l)"
+              echo "-- tdk up log (last 5 lines):"
+              tail -5 up.log
+              echo "::endgroup::"
+              bad="$(tilt get uiresources -o json 2>/dev/null | jq -r '[.items[] | select(.status.updateStatus == "error") | .metadata.name] | join(",")' || true)"
+              if [ -n "$bad" ]; then
+                failed_checks=$((failed_checks + 1))
+                echo "::warning::Tilt reports failed resource(s): $bad (check $failed_checks of 2)"
+                if [ "$failed_checks" -ge 2 ]; then
+                  echo "::error::Giving up early: failed to build and Tilt will not retry: $bad"
+                  exit 1
+                fi
+              else
+                failed_checks=0
+              fi
+            fi
+            sleep 15
+          done
+          echo "::error::Only $ok of $total backends became healthy within $WAIT_MINUTES minutes"
+          exit 1
+
+      - name: Report
+        if: success()
+        working-directory: erp
+        run: |
+          fe_ok="$(xargs -P 8 -I{} curl -s -o /dev/null -m 5 -w '%{http_code}\n' {} < frontend-urls.txt | grep -c '^2' || true)"
+          containers="$(docker ps -q | wc -l)"
+          mem_mib="$(docker stats --no-stream --format '{{.MemUsage}}' | awk '{v=$1; if (v ~ /GiB/) {sub(/GiB/,"",v); s+=v*1024} else if (v ~ /MiB/) {sub(/MiB/,"",v); s+=v} else if (v ~ /KiB/) {sub(/KiB/,"",v); s+=v/1024}} END {printf "%.0f", s}')"
+          {
+            echo "### 🏭 ERP boot on a clean GitHub-hosted runner"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| CLI | \`$(tdk --version)\` |"
+            echo "| Runner | $(nproc) vCPU, $(free -g | awk '/Mem:/{print $2}') GB RAM |"
+            echo "| Backends healthy | **${backends_total} / ${backends_total}** through Traefik |"
+            echo "| Time to all backends healthy | **${all_healthy_seconds}s** (includes building every image) |"
+            echo "| Frontends answering (not gated) | ${fe_ok} / ${frontends_total} |"
+            echo "| Running containers | ${containers} |"
+            echo "| Memory used by all containers | ${mem_mib} MiB |"
+            echo "| Disk used | $(df -h / | awk 'NR==2{print $3" of "$2}') |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          cat "$GITHUB_STEP_SUMMARY"
+
+      - name: Diagnostics on failure
+        if: failure() || cancelled()
+        working-directory: erp
+        run: |
+          echo "::group::tdk up log (last 200 lines)"
+          tail -200 up.log 2>/dev/null || true
+          echo "::endgroup::"
+          echo "::group::containers that are not healthy"
+          docker ps -a --format 'table {{.Names}}\t{{.Status}}' | grep -vE '\((healthy)\)' | head -60 || true
+          echo "::endgroup::"
+          echo "::group::tilt resources in error"
+          tilt get uiresources -o json 2>/dev/null | jq -r '.items[] | select(.status.updateStatus == "error") | "\(.metadata.name): \((.status.buildHistory // [] | map(.error // empty) | first) // "-")"' | head -40 || true
+          echo "::endgroup::"
+          echo "::group::resources"
+          free -h
+          df -h /
+          docker system df || true
+          echo "::endgroup::"
+          echo "::group::tdk doctor"
+          tdk doctor || true
+          echo "::endgroup::"
+
+      - name: tdk down
+        if: always()
+        working-directory: erp
+        run: tdk down || true
