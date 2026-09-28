@@ -4,7 +4,7 @@ import { dirname, join, normalize } from "node:path";
 import chalk from "chalk";
 import { Command } from "commander";
 import { MASTER_CONFIG_FILES, QUICKSTART_DOCS_URL, REQUIRED_PACKAGE_SCRIPTS, } from "../utils/constants.js";
-import { checkHostPorts, checkIngressPorts, checkPrivateNpmRegistry, checkTiltResourceHealth, summarizeServiceProbes, } from "../utils/doctor-runtime.js";
+import { checkHealthRoutes, checkHostPorts, checkIngressPorts, checkPrivateNpmRegistry, checkTiltResourceHealth, summarizeServiceProbes, } from "../utils/doctor-runtime.js";
 import { validateEnvFile } from "../utils/env-validator.js";
 import { formatCount } from "../utils/formatting.js";
 import { findProjectRoot } from "../utils/paths.js";
@@ -683,6 +683,8 @@ export const doctorCommand = new Command("doctor")
         checkGeneratedProjectRuntimeAssets,
         checkStarlarkLoadExports,
         checkStartupScripts,
+        // A backend without its health route never turns healthy; Traefik 404s it.
+        () => checkHealthRoutes(),
         checkTypeScriptTypeDependencies,
         checkFrontendDockerPreflight,
         checkEnvironmentVariables,

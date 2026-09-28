@@ -287,7 +287,9 @@ def _apply_manifest_defaults(manifest, resource_path):
         computed_traefik = {
             'host': stack + '.backend.' + PlatformDockerConstants.PROJECT_NAME + '.local',
             'pathPrefix': default_path_prefix,
-            'healthCheck': HEALTH_CHECK_PATH,
+            # Follows healthCheckPath so a manifest that only sets that keeps one
+            # path for both probes; `traefik.healthCheck` overrides just Traefik's.
+            'healthCheck': result.get('healthCheckPath') or HEALTH_CHECK_PATH,
         }
         
         # Check for overrides

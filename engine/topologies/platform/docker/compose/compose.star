@@ -248,13 +248,16 @@ def _generate_single_backend_entry(resource_path, resource_name, res, manifest, 
         traefik_labels = '      - "traefik.enable=false"'
         healthcheck_section = ""
     else:
+        # Traefik's load-balancer check can be overridden separately in service.json
+        # (`traefik.healthCheck`); it defaults to the container check's path.
+        traefik_health_path = traefik_cfg.get('healthCheck') or health_path
         traefik_labels = get_backend_traefik_labels(
             resource_entry_name=resource_entry_name,
             traefik_host=traefik_host,
             traefik_path=traefik_path,
             traefik_resource_name=traefik_resource_name,
             internal_port=internal_port,
-            health_path=health_path,
+            health_path=traefik_health_path,
             manifest=manifest,
         )
         healthcheck_section = """    healthcheck:
