@@ -77,6 +77,7 @@ describe("frontend resource framework selection", () => {
       "Dockerfile",
       "index.html",
       "package.json",
+      "public",
       "service.json",
       "src",
       "tests",
@@ -173,6 +174,7 @@ describe("frontend resource framework selection", () => {
       "Dockerfile",
       "index.html",
       "package.json",
+      "public",
       "service.json",
       "src",
       "tests",
@@ -199,6 +201,43 @@ describe("frontend resource framework selection", () => {
         ),
       ),
     ).toBe(true);
+  }, 15000);
+
+  it("places a frontend where discovery finds it and says so", () => {
+    const output = runTdk(
+      ["resource", "landing", "--type", "frontend", "--stack", "shop"],
+      projectRoot,
+      "y\n",
+    );
+
+    // apps/landing would be outside the default services/*/* discovery glob, so Tilt would
+    // never create a resource for it and `tdk up` would route to nothing.
+    expect(existsSync(join(projectRoot, "services", "shop", "landing", "service.json"))).toBe(true);
+    expect(existsSync(join(projectRoot, "apps", "landing"))).toBe(false);
+    expect(output).toContain("Placed in services/shop/landing instead of the usual apps/landing");
+    expect(output).toContain('["services/*/*"]');
+    expect(existsSync(join(projectRoot, "services", "shop", "landing", "public"))).toBe(true);
+  }, 15000);
+
+  it("warns when an explicit --path is outside discovery", () => {
+    const output = runTdk(
+      [
+        "resource",
+        "marketing",
+        "--type",
+        "frontend",
+        "--stack",
+        "shop",
+        "--path",
+        "apps/marketing",
+      ],
+      projectRoot,
+      "y\n",
+    );
+
+    expect(existsSync(join(projectRoot, "apps", "marketing", "service.json"))).toBe(true);
+    expect(output).toContain("apps/marketing is outside discovery.paths");
+    expect(output).toContain("tdk config regenerate");
   }, 15000);
 
   it("fails for an unknown framework before creating a resource directory", () => {

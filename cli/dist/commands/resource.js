@@ -6,6 +6,7 @@ import { resolveFrontendFramework } from "../frontend-frameworks/registry.js";
 import { hasDddLicense } from "../generator/extension-fetch.js";
 import { CREATABLE_RESOURCE_TYPES } from "../types/index.js";
 import { assertValid, confirmOrCancel } from "../utils/command-helpers.js";
+import { chooseResourcePath, isPathDiscovered, readDiscoveryPaths, } from "../utils/discovery-paths.js";
 import { errorFactories, requireProjectRoot, runCommand } from "../utils/errors.js";
 import { writeFilesWithProgress } from "../utils/file-helpers.js";
 import { showCommandHeader } from "../utils/formatting.js";
@@ -393,6 +394,7 @@ export const resourceCommand = new Command("resource")
             }
         }
         let finalResourcePath = resourcePath;
+        let pathAdjustedFrom;
         if (!finalResourcePath) {
             const defaultPaths = {
                 backend: `services/${stackName}/${resourceName}`,
@@ -401,6 +403,12 @@ export const resourceCommand = new Command("resource")
                 sdk: `packages/${resourceName}`,
             };
             finalResourcePath = defaultPaths[resourceType];
+            // An SDK is registered where it already lives, so its folder is never moved.
+            if (resourceType !== "sdk") {
+                const chosen = chooseResourcePath(projectRoot, finalResourcePath, stackName, resourceName);
+                finalResourcePath = chosen.path;
+                pathAdjustedFrom = chosen.adjustedFrom;
+            }
         }
         const fullPath = resolve(projectRoot, finalResourcePath);
         // Prevent path traversal attacks
@@ -466,6 +474,9 @@ export const resourceCommand = new Command("resource")
         mkdirSync(fullPath, { recursive: true });
         mkdirSync(resolve(fullPath, "src"), { recursive: true });
         mkdirSync(resolve(fullPath, "tests"), { recursive: true });
+        if (resourceType === "frontend") {
+            mkdirSync(resolve(fullPath, "public"), { recursive: true });
+        }
         if (dddEnabled) {
             for (const layer of ["domain", "application", "infrastructure", "presentation"]) {
                 mkdirSync(resolve(fullPath, "src", layer), { recursive: true });
@@ -519,6 +530,16 @@ export const resourceCommand = new Command("resource")
                 ...file,
                 type: "text",
             })) ?? []));
+            // The shared frontend Docker builder unconditionally runs `COPY <resource>/public`
+            // (the Vite static-assets folder), and an empty folder can't be committed, so
+            // without a placeholder the image build fails for every framework.
+            tasks.push({
+                type: "text",
+                filename: "public/.gitkeep",
+                content: "",
+                description: "Generating public/ assets folder",
+                emoji: "📁",
+            });
         }
         else if (resourceType === "worker") {
             tasks.push({
@@ -542,6 +563,18 @@ export const resourceCommand = new Command("resource")
         writeFilesWithProgress(fullPath, tasks);
         console.log(chalk.green("\n✅ Resource created successfully!"));
         console.log(chalk.gray(`\nLocation: ${fullPath}`));
+        const discoveryPaths = readDiscoveryPaths(projectRoot);
+        if (pathAdjustedFrom) {
+            console.log(chalk.yellow(`\n📁 Placed in ${finalResourcePath} instead of the usual ${pathAdjustedFrom}: ` +
+                `discovery.paths in .tdk/project.json is ${JSON.stringify(discoveryPaths)}, ` +
+                `so ${pathAdjustedFrom} would never be started by \`tdk up\`.`));
+            console.log(chalk.gray("   Use --path to choose another folder."));
+        }
+        else if (!isPathDiscovered(projectRoot, finalResourcePath, discoveryPaths)) {
+            console.log(chalk.yellow(`\n⚠️  ${finalResourcePath} is outside discovery.paths ${JSON.stringify(discoveryPaths)}, ` +
+                "so `tdk up` will not start this resource."));
+            console.log(chalk.gray("   Add a matching pattern to discovery.paths in .tdk/project.json and run `tdk config regenerate`."));
+        }
         console.log(chalk.gray(`\nNext steps:`));
         console.log(chalk.gray(`  cd ${finalResourcePath}`));
         console.log(chalk.gray(`  bun install`));

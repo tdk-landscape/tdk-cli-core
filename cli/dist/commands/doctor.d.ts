@@ -3,6 +3,11 @@ import { Command } from "commander";
 import type { CheckResult } from "../types/index.js";
 export { checkIngressPorts, checkPrivateNpmRegistry, checkTiltResourceHealth, summarizeServiceProbes, summarizeTiltBuildError, } from "../utils/doctor-runtime.js";
 export declare function checkDockerVersions(exec?: typeof execSync): CheckResult;
+/**
+ * Tilt only builds resources under `discovery.paths`, but the CLI finds every service.json,
+ * so a resource outside them is listed and given a URL by `tdk up` yet never started.
+ */
+export declare function checkResourceDiscovery(): CheckResult;
 export declare function checkGeneratedProjectRuntimeAssets(): CheckResult;
 export declare function checkStarlarkLoadExports(): CheckResult;
 export declare function checkTypeScriptTypeDependencies(): CheckResult;

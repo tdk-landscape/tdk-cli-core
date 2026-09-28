@@ -137,11 +137,11 @@ jobs:
           # templates. Published versions from before --framework existed skip
           # them, so the nightly check of `latest` keeps testing what it can.
           if tdk resource --help | grep -q -- '--framework'; then
-            # Explicit paths: a frontend's default home, apps/<name>, is outside the
-            # services/*/* glob that project.json discovers, so Tilt would never
-            # create a resource for it and its route would answer 404 forever.
-            printf 'y\n' | tdk resource storefront --type frontend --stack shop --path services/shop/storefront
-            printf 'y\n' | tdk resource vue-app --type frontend --framework vue --stack shop --path services/shop/vue-app
+            # No --path: this exercises the default folder (which tdk picks so that
+            # project.json discovery finds it) and the public/ folder the frontend
+            # Docker build copies.
+            printf 'y\n' | tdk resource storefront --type frontend --stack shop
+            printf 'y\n' | tdk resource vue-app --type frontend --framework vue --stack shop
             echo "FRONTENDS=storefront:root vue-app:app" >> "$GITHUB_ENV"
           else
             echo "::notice::this tdk version has no --framework; testing the backend only"

@@ -17,6 +17,7 @@ import {
   checkDockerVersions,
   checkFrontendDockerPreflight,
   checkGeneratedProjectRuntimeAssets,
+  checkResourceDiscovery,
   checkStarlarkLoadExports,
   checkTypeScriptTypeDependencies,
 } from "../doctor.js";
@@ -54,6 +55,7 @@ describe("doctor frontend Docker preflight", () => {
     mkdirSync(generatedDir, { recursive: true });
     mkdirSync(stackGeneratedDir, { recursive: true });
     mkdirSync(join(appDir, "src"), { recursive: true });
+    mkdirSync(join(appDir, "public"), { recursive: true });
 
     writeFileSync(
       join(appDir, "service.json"),
@@ -117,6 +119,21 @@ describe("doctor frontend Docker preflight", () => {
     expect(result.didPass).toBe(false);
     expect(result.message).toContain("does not allow synthetic default imports");
     expect(result.message).toContain("react-dom/client");
+  });
+
+  it("fails when a frontend has no public/ folder for the Docker build to copy", () => {
+    writeFrontendProject({
+      composePort: 80,
+      dockerTsconfig: { compilerOptions: { strict: true } },
+      mainTsx: "",
+    });
+    rmSync(join(testDir, "services", "app", "dashboard-app", "public"), { recursive: true });
+
+    const result = checkFrontendDockerPreflight();
+
+    expect(result.didPass).toBe(false);
+    expect(result.message).toContain("dashboard-app: no public/ folder");
+    expect(result.message).toContain("mkdir -p services/app/dashboard-app/public");
   });
 
   it("passes when generated frontend Docker metadata is internally consistent", () => {
@@ -931,5 +948,55 @@ describe("doctor Docker version check", () => {
 
     expect(result.didPass).toBe(true);
     expect(result.isSkipped).toBe(true);
+  });
+});
+
+describe("doctor resource discovery", () => {
+  let testDir: string;
+  let originalCwd: string;
+
+  beforeEach(() => {
+    originalCwd = process.cwd();
+    testDir = join(
+      tmpdir(),
+      `tdk-doctor-discovery-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    );
+    mkdirSync(join(testDir, ".tdk"), { recursive: true });
+    writeFileSync(join(testDir, "Tiltfile"), "");
+    writeFileSync(
+      join(testDir, ".tdk", "project.json"),
+      JSON.stringify({ discovery: { paths: ["services/*/*"] } }),
+    );
+    process.chdir(testDir);
+  });
+
+  afterEach(() => {
+    process.chdir(originalCwd);
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  function writeResource(dir: string, appName: string) {
+    mkdirSync(join(testDir, dir), { recursive: true });
+    writeFileSync(
+      join(testDir, dir, "service.json"),
+      JSON.stringify({ appName, appType: "frontend", stack: "shop" }),
+    );
+  }
+
+  it("passes when every resource is under a discovery path", () => {
+    writeResource("services/shop/storefront", "storefront");
+    expect(checkResourceDiscovery().didPass).toBe(true);
+  });
+
+  it("fails and names resources that Tilt would never start", () => {
+    writeResource("services/shop/orders-api", "orders-api");
+    writeResource("apps/storefront", "storefront");
+
+    const result = checkResourceDiscovery();
+
+    expect(result.didPass).toBe(false);
+    expect(result.message).toContain("apps/storefront");
+    expect(result.message).not.toContain("orders-api");
+    expect(result.fix).toContain("discovery.paths");
   });
 });
