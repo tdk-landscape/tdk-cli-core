@@ -105,6 +105,9 @@ export function createPackageJson(name: string, type: string) {
     },
     devDependencies: {
       "@types/bun": "^1.4.2",
+      // The generated Docker tsconfig sets "types": ["node"]; without this the
+      // image's `bun run build` fails with TS2688. ^20 matches the services that build.
+      "@types/node": "^20.0.0",
       typescript: "^7.0.2",
       vitest: "^5.0.0",
       "@biomejs/biome": "^2.5.13",

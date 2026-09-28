@@ -556,11 +556,39 @@ function checkStartupScripts(): CheckResult {
  * -- and the failure only surfaces later as `tsc: TS2688: Cannot find type
  * definition file for 'bun'` inside `bun run build`, mid Docker image build.
  */
+/**
+ * Package names that can satisfy a `compilerOptions.types` entry. TypeScript
+ * resolves `"node"` from `@types/node` or from a package named `node`, and
+ * `"vitest/globals"` from `vitest`; scoped entries name their own package.
+ */
+function typePackageCandidates(entry: string): string[] {
+  if (entry.startsWith("@")) {
+    return [entry.split("/").slice(0, 2).join("/")];
+  }
+  const base = entry.split("/")[0] ?? entry;
+  return [`@types/${base}`, base];
+}
+
+/** The package to tell the user to install for a `types` entry. */
+function neededTypePackage(entry: string): string {
+  const candidates = typePackageCandidates(entry);
+  // "node" -> @types/node; "vitest/globals" and scoped entries name their own package.
+  return entry.includes("/") || entry.startsWith("@")
+    ? (candidates[candidates.length - 1] as string)
+    : (candidates[0] as string);
+}
+
+const KNOWN_TYPE_PACKAGE_VERSIONS: Record<string, string> = {
+  "@types/bun": "^1.4.2",
+  "@types/node": "^20.0.0",
+};
+
 export function checkTypeScriptTypeDependencies(): CheckResult {
   const projectRoot = findProjectRoot() ?? process.cwd();
   const resources = discoverResourcesFromRoot(projectRoot);
 
   const problems: string[] = [];
+  const missingPackages = new Set<string>();
 
   for (const resource of resources) {
     const packageJsonPath = join(resource.path, "package.json");
@@ -577,14 +605,25 @@ export function checkTypeScriptTypeDependencies(): CheckResult {
     const tsconfig = readJsonFile(dockerTsconfigPath);
     const compilerOptions = tsconfig?.compilerOptions as Record<string, unknown> | undefined;
     const types = compilerOptions?.types;
-    if (!Array.isArray(types) || !types.includes("bun")) {
+    if (!Array.isArray(types)) {
       continue;
     }
 
     const pkg = readJsonFile(packageJsonPath);
-    const devDependencies = (pkg?.devDependencies as Record<string, string> | undefined) ?? {};
-    if (!devDependencies["@types/bun"]) {
-      problems.push(resource.name);
+    const installed = new Set([
+      ...Object.keys((pkg?.devDependencies as Record<string, string> | undefined) ?? {}),
+      ...Object.keys((pkg?.dependencies as Record<string, string> | undefined) ?? {}),
+    ]);
+
+    const missing = types
+      .filter((entry): entry is string => typeof entry === "string")
+      .filter((entry) => !typePackageCandidates(entry).some((name) => installed.has(name)));
+    for (const entry of missing) {
+      missingPackages.add(neededTypePackage(entry));
+    }
+    if (missing.length > 0) {
+      const described = missing.map((m) => `"${m}" (needs ${neededTypePackage(m)})`).join(", ");
+      problems.push(`${resource.name}: "types" lists ${described}`);
     }
   }
 
@@ -592,15 +631,19 @@ export function checkTypeScriptTypeDependencies(): CheckResult {
     return {
       name: "TypeScript Type Dependencies",
       didPass: true,
-      message: "All services with a bun-typed tsconfig have @types/bun installed",
+      message: 'Every service\'s Docker tsconfig "types" entry has its @types package installed',
     };
   }
 
+  const lines = [...missingPackages].map((name) => {
+    const version = KNOWN_TYPE_PACKAGE_VERSIONS[name];
+    return version ? `"${name}": "${version}"` : `${name} (bun add -d ${name})`;
+  });
   return {
     name: "TypeScript Type Dependencies",
     didPass: false,
-    message: `Services set "types": ["bun"] in their Docker tsconfig but are missing the "@types/bun" devDependency, so \`bun run build\` fails with TS2688:\n    ${problems.join("\n    ")}`,
-    fix: 'Add to each service\'s package.json devDependencies: "@types/bun": "^1.4.2"',
+    message: `Docker tsconfig "types" names packages the service does not depend on, so \`bun run build\` fails with TS2688 (Cannot find type definition file):\n    ${problems.join("\n    ")}`,
+    fix: `Add to each service's package.json devDependencies: ${lines.join(", ")}`,
   };
 }
 
