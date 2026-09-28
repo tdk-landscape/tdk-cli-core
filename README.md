@@ -28,6 +28,8 @@ tdk up shop                                             # run it with hot reload
 
 ![tdk scaffolding a backend and a frontend, then listing the stack](docs/demo.svg)
 
+![npm downloads, last month](docs/npm-downloads.svg)
+
 **Requirements:** Docker (Desktop, OrbStack or Colima; Engine 25+, Compose 2.20+), [Tilt](https://docs.tilt.dev/install.html), [Bun](https://bun.sh) for the generated services, and Node.js 22.12+ for the CLI. Ports 80, 443 and 5432 must be free (a local Postgres is the usual conflict). macOS and Linux are supported. Windows is untested (WSL2 may work). Run `tdk doctor` to check all of it.
 
 This is the core monorepo for TDK: the `tdk` CLI, the Starlark-based Tilt orchestration engine that powers it, and the discovery system that turns a directory of services into a running local landscape.

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="220" viewBox="0 0 720 220" role="img">
+  <title>@tdk-landscape/tdk-cli-core npm downloads 2026-08-28 to 2026-09-26</title>
+  <rect width="720" height="220" fill="#0b0b0f"/>
+  <text x="44" y="18" fill="#e4e4e7" font-family="ui-sans-serif,system-ui" font-size="13">@tdk-landscape/tdk-cli-core · 3,361 npm downloads · 2026-08-28 → 2026-09-26</text>
+  <line x1="44" x2="704" y1="184.0" y2="184.0" stroke="#27272a"/>
+  <text x="38" y="188.0" fill="#71717a" font-size="10" text-anchor="end" font-family="ui-monospace,monospace">0</text>
+  <line x1="44" x2="704" y1="106.0" y2="106.0" stroke="#27272a"/>
+  <text x="38" y="110.0" fill="#71717a" font-size="10" text-anchor="end" font-family="ui-monospace,monospace">507</text>
+  <line x1="44" x2="704" y1="28.0" y2="28.0" stroke="#27272a"/>
+  <text x="38" y="32.0" fill="#71717a" font-size="10" text-anchor="end" font-family="ui-monospace,monospace">1014</text>
+  <polyline fill="none" stroke="#7c4dff" stroke-width="2" points="44.0,184.0 66.8,184.0 89.5,184.0 112.3,184.0 135.0,184.0 157.8,184.0 180.6,184.0 203.3,184.0 226.1,184.0 248.8,184.0 271.6,184.0 294.3,184.0 317.1,184.0 339.9,184.0 362.6,184.0 385.4,184.0 408.1,184.0 430.9,184.0 453.7,184.0 476.4,184.0 499.2,184.0 521.9,184.0 544.7,184.0 567.4,184.0 590.2,99.4 613.0,28.0 635.7,130.6 658.5,130.0 681.2,48.3 704.0,150.6"/>
+  <text x="44.0" y="210" fill="#71717a" font-size="9" text-anchor="middle" font-family="ui-monospace,monospace">08-28</text>
+  <text x="157.8" y="210" fill="#71717a" font-size="9" text-anchor="middle" font-family="ui-monospace,monospace">09-02</text>
+  <text x="271.6" y="210" fill="#71717a" font-size="9" text-anchor="middle" font-family="ui-monospace,monospace">09-07</text>
+  <text x="385.4" y="210" fill="#71717a" font-size="9" text-anchor="middle" font-family="ui-monospace,monospace">09-12</text>
+  <text x="499.2" y="210" fill="#71717a" font-size="9" text-anchor="middle" font-family="ui-monospace,monospace">09-17</text>
+  <text x="613.0" y="210" fill="#71717a" font-size="9" text-anchor="middle" font-family="ui-monospace,monospace">09-22</text>
+  <text x="704.0" y="210" fill="#71717a" font-size="9" text-anchor="middle" font-family="ui-monospace,monospace">09-26</text>
+</svg>
