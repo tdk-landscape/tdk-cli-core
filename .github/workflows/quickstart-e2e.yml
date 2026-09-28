@@ -1,8 +1,8 @@
-# Runs the README quickstart on a clean machine: install, scaffold a backend,
-# `tdk up`, and wait for its /health URL to answer through Traefik. After a
-# release and nightly it tests the published npm package; on a pull request it
-# tests that PR's own package (`npm pack`), so a change that breaks `tdk up`
-# is caught before it merges. Also runnable from the Actions tab.
+# Runs the README quickstart on a clean machine: install, scaffold a backend
+# plus a React (default) and a Vue frontend, `tdk up`, and wait for every
+# /health URL to answer through Traefik. After a release and nightly it tests
+# the published npm package; on a pull request it tests that PR's own package
+# (`npm pack`), so a change that breaks `tdk up` is caught before it merges. Also runnable from the Actions tab.
 name: 🧭 Quickstart E2E
 
 on:
@@ -133,26 +133,52 @@ jobs:
           mkdir -p "$RUNNER_TEMP/shop" && cd "$RUNNER_TEMP/shop"
           tdk project --yes
           printf 'y\n' | tdk resource orders-api --type backend --stack shop
+          # Frontends go through the framework providers and their Starlark Vite
+          # templates. Published versions from before --framework existed skip
+          # them, so the nightly check of `latest` keeps testing what it can.
+          if tdk resource --help | grep -q -- '--framework'; then
+            printf 'y\n' | tdk resource storefront --type frontend --stack shop
+            printf 'y\n' | tdk resource vue-app --type frontend --framework vue --stack shop
+            echo "FRONTENDS=storefront:root vue-app:app" >> "$GITHUB_ENV"
+          else
+            echo "::notice::this tdk version has no --framework; testing the backend only"
+          fi
           tdk doctor
 
       - name: tdk up and wait for /health
         run: |
           cd "$RUNNER_TEMP/shop"
           tdk up shop > up.log 2>&1 &
-          for _ in $(seq 1 60); do
-            url="$(grep -oE 'https?://[^ ]*orders[^ ]*/health' up.log | head -1 || true)"
-            [ -n "$url" ] && break
-            sleep 2
+          # One URL per service: the backend, plus each frontend scaffolded above.
+          services="orders"
+          for fe in $FRONTENDS; do services="$services ${fe%%:*}"; done
+          urls=""
+          for svc in $services; do
+            url=""
+            for _ in $(seq 1 60); do
+              url="$(grep -oE "https?://[^ ]*/${svc}[^ ]*/health" up.log | head -1 || true)"
+              [ -n "$url" ] && break
+              sleep 2
+            done
+            [ -n "$url" ] || { cat up.log; echo "::error::tdk up never printed the $svc URL"; exit 1; }
+            urls="$urls $url"
           done
-          [ -n "$url" ] || { cat up.log; echo "::error::tdk up never printed the orders-api URL"; exit 1; }
-          echo "Waiting for $url"
+          echo "Waiting for:$urls"
           failed_checks=0
           for n in $(seq 1 120); do
-            code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "$url" || true)"
-            case "$code" in
-              2??) echo "Healthy: $url (HTTP $code after $((n * 10))s)"; curl -s --max-time 5 "$url"; echo; exit 0 ;;
-            esac
-            echo "poll $n ($((n * 10))s): HTTP $code"
+            pending=""
+            for url in $urls; do
+              code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "$url" || true)"
+              case "$code" in
+                2??) ;;
+                *) pending="$pending $url=$code" ;;
+              esac
+            done
+            if [ -z "$pending" ]; then
+              echo "All healthy after $((n * 10))s:$urls"
+              exit 0
+            fi
+            echo "poll $n ($((n * 10))s): waiting on$pending"
             # Once a minute, show what is actually happening so a slow first boot
             # can be told apart from a container that never turns healthy.
             if [ $((n % 6)) -eq 0 ]; then
@@ -183,8 +209,34 @@ jobs:
             sleep 10
           done
           tail -200 up.log
-          echo "::error::$url did not become healthy within 20 minutes"
+          echo "::error::not healthy within 20 minutes:$pending"
           exit 1
+
+      # nginx answers /health on its own, so also load each frontend's page and
+      # the script it references: this proves the framework's Vite build output
+      # is what is being served, under the right base path.
+      - name: Frontends serve their built app
+        if: env.FRONTENDS != ''
+        run: |
+          cd "$RUNNER_TEMP/shop"
+          for fe in $FRONTENDS; do
+            name="${fe%%:*}"
+            mount="${fe##*:}"
+            health="$(grep -oE "https?://[^ ]*/${name}/health" up.log | head -1)"
+            page="${health%/health}/"
+            origin="$(echo "$page" | grep -oE '^https?://[^/]+')"
+            html="$(curl -fsS --max-time 10 "$page")"
+            echo "$html" | grep -q "id=\"$mount\"" \
+              || { echo "$html"; echo "::error::$name: page has no #$mount mount point"; exit 1; }
+            script="$(echo "$html" | grep -oE '<script[^>]+src="[^"]+"' | grep -oE 'src="[^"]+"' | head -1 | cut -d'"' -f2)"
+            case "$script" in
+              "/$name/"*) ;;
+              *) echo "$html"; echo "::error::$name: entry script '$script' is not under /$name/"; exit 1 ;;
+            esac
+            curl -fsS --max-time 10 -o /dev/null "$origin$script" \
+              || { echo "::error::$name: $origin$script did not load"; exit 1; }
+            echo "$name: $page serves #$mount and $script"
+          done
 
       # When the health poll times out, "404 for 20 minutes" says nothing about
       # why. Dump what a person would look at first.
@@ -198,7 +250,7 @@ jobs:
           echo "::group::docker ps -a"
           docker ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' || true
           echo "::endgroup::"
-          for c in $(docker ps -a --format '{{.Names}}' | grep -iE 'orders|traefik' || true); do
+          for c in $(docker ps -a --format '{{.Names}}' | grep -iE 'orders|storefront|vue-app|traefik' || true); do
             echo "::group::docker logs $c (last 100 lines)"
             docker logs --tail 100 "$c" 2>&1 || true
             echo "::endgroup::"
