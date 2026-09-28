@@ -4,6 +4,8 @@ Notable changes to the `tdk` CLI. Versions match [npm](https://www.npmjs.com/pac
 
 ## Unreleased
 
+## 1.3.64 (2026-09-28)
+
 - `traefik.healthCheck` in service.json (the path Traefik's load balancer probes, documented in the schema) is now honored. It was read by discovery but never used, so Traefik always probed `healthCheckPath`. It defaults to `healthCheckPath`, so manifests that only set that generate the same output as before.
 - `tdk doctor` checks that every backend defines the health routes it is probed on (`healthCheckPath` for the container, `traefik.healthCheck` for Traefik, both defaulting to `/health`) somewhere in `src/`. A backend without them never turns healthy, so Traefik returns 404, which used to surface only after a slow image build.
 
