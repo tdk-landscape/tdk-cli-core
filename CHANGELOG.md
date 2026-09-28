@@ -7,6 +7,7 @@ Notable changes to the `tdk` CLI. Versions match [npm](https://www.npmjs.com/pac
 ## 1.3.67 (2026-09-28)
 
 - The clean-machine quickstart run (`tdk project`, `tdk resource`, `tdk up`, wait for `/health`) now starts by itself after every successful release and tests exactly the version just published. It also still runs nightly and on demand.
+- **`tdk resource --type backend` now produces a service whose image builds.** It set `featuresEnabled: ["prisma"]` by default but never created `prisma/schema.prisma` or the `prisma` dependency, so the generated Dockerfile failed on `COPY services/<stack>/<name>/prisma` and no scaffolded service could start. Prisma is now opt-in, like in the ERP and restaurant examples that boot, and `docs/FEATURES.md` says what it needs. Found by the clean-machine quickstart run, one step after the base-image race.
 
 ## 1.3.66 (2026-09-28)
 
