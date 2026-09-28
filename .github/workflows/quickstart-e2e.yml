@@ -89,7 +89,7 @@ jobs:
       # When the health poll times out, "404 for 20 minutes" says nothing about
       # why. Dump what a person would look at first.
       - name: Diagnostics on failure
-        if: failure()
+        if: failure() || cancelled()
         run: |
           cd "$RUNNER_TEMP/shop" 2>/dev/null || exit 0
           echo "::group::tdk up log (last 300 lines)"
