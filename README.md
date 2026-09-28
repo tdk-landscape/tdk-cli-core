@@ -8,6 +8,8 @@ One CLI that scaffolds your services and runs the whole landscape locally with h
 
 [![npm version](https://img.shields.io/npm/v/@tdk-landscape/tdk-cli-core.svg?style=flat&color=blue)](https://www.npmjs.com/package/@tdk-landscape/tdk-cli-core)
 [![CI](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/ci.yml/badge.svg)](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/ci.yml)
+[![Quickstart E2E](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/quickstart-e2e.yml/badge.svg)](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/quickstart-e2e.yml)
+[![ERP scale E2E](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/erp-scale-e2e.yml/badge.svg)](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/erp-scale-e2e.yml)
 [![Known Vulnerabilities](https://snyk.io/test/github/tdk-landscape/tdk-cli-core/badge.svg)](https://snyk.io/test/github/tdk-landscape/tdk-cli-core)
 [![Socket Badge](https://badge.socket.dev/npm/package/@tdk-landscape/tdk-cli-core/latest)](https://socket.dev/npm/package/@tdk-landscape/tdk-cli-core/overview)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -56,9 +58,18 @@ Measured with [`scripts/benchmark/container-scale.ts`](scripts/benchmark/README.
 What this does and doesn't measure:
 
 - The ERP services are small generated Bun HTTP services (about 20 lines each) answering `/health`. Real services with real dependencies use more memory; the point is that TDK's per-service overhead (runtime image, healthchecks, proxy routing) stays small.
-- Images were already built. Build time isn't included, and a first `tdk up` of 100 services takes much longer.
+- Images were already built, so build time isn't included. The clean-machine run below includes it.
 - The script starts the service containers with the settings `tdk up` generates (512 MiB / 0.5 CPU limits, healthchecks), without Tilt running. The memory column counts only the service containers, not Postgres or Traefik.
 - Numbers vary between runs (a later run reached 100 healthy in 74 s). Run it yourself with `bun scripts/benchmark/container-scale.ts`.
+
+### Cold boot on a clean machine (CI)
+
+The table above is a warm start. Two workflows install the published CLI on a fresh GitHub-hosted Ubuntu runner and run `tdk up` from nothing, building every image:
+
+- [**Quickstart E2E**](.github/workflows/quickstart-e2e.yml): the commands from the top of this README, one scaffolded backend, until it answers `/health` through Traefik. About 4 minutes. Runs after each release and daily.
+- [**ERP scale E2E**](.github/workflows/erp-scale-e2e.yml): the 100-service example. [Run 36395860088](https://github.com/tdk-landscape/tdk-cli-core/actions/runs/36395860088) (CLI 1.3.72, 4 vCPU / 15 GB): **100 / 100 backends healthy through Traefik after 472 s**, 111 containers, 1.8 GiB used by all containers. Runs weekly.
+
+Both are the same kind of fixture: generated services answering `/health`, not a real business app. A green run means TDK can generate, build, route and health-check a landscape of that size on a machine that has never seen it. It doesn't cover Windows, Apple Silicon, or an existing repo you bring yourself.
 
 ## What is TDK?
 
