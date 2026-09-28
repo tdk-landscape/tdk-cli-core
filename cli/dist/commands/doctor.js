@@ -177,7 +177,9 @@ function checkEnvironmentVariables() {
             name: "Environment Variables",
             didPass: false,
             message: `Missing required env variables: ${validation.missing.join(", ")}`,
-            fix: `Edit .env and set these values:\n    ${validation.missing.map((v) => `${v}=<value>`).join("\n    ")}`,
+            fix: existsSync(join(projectRoot, ".env"))
+                ? `Edit .env and set these values:\n    ${validation.missing.map((v) => `${v}=<value>`).join("\n    ")}`
+                : "No .env file yet. Run `tdk project` to create one with working defaults.",
         };
     }
     if (validation.invalid.length > 0) {

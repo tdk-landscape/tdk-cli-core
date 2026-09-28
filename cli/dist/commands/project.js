@@ -218,6 +218,9 @@ export const projectCommand = new Command("project")
             }
             showStep("\n📋 Regenerating master configuration files...\n");
             await generateMasterConfigs(projectRoot);
+            if (ensureEnvFile(projectRoot)) {
+                showSuccess("Created: .env (the defaults work as-is)");
+            }
             const ignored = ensureGitignore(projectRoot);
             if (ignored.length > 0) {
                 showSuccess(`Added to .gitignore: ${ignored.join(", ")}`);
