@@ -4,6 +4,8 @@ Notable changes to the `tdk` CLI. Versions match [npm](https://www.npmjs.com/pac
 
 ## Unreleased
 
+- `tdk doctor` and `tdk up` no longer report free host ports (80, 443, 5432) as "taken" on Linux. The port check bound `0.0.0.0` and `127.0.0.1` at the same time, and on Linux the second bind collided with our own first probe. It now probes them one after the other, which still catches a loopback-only Postgres on macOS. Found by the nightly clean-machine quickstart run.
+
 ## 1.3.60 (2026-09-27)
 
 - Backends and workers scaffolded by `tdk resource` get a `start` script, and `@types/bun` is pinned instead of `latest`. Before, `tdk doctor` failed on every new service. Found by the clean-machine quickstart run.

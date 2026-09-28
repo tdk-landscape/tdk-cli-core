@@ -52,4 +52,32 @@ describe("probeHostPort", () => {
       server.close();
     }
   });
+
+  it("reports a genuinely free port as free, not a false positive", async () => {
+    // Regression test: probing 0.0.0.0 and 127.0.0.1 concurrently made the
+    // second bind collide with our own first one on Linux (EADDRINUSE),
+    // reporting every free port as taken. Probe several ephemeral ports:
+    // a free port is unpredictable ahead of time, so ask the OS for one.
+    for (let i = 0; i < 5; i++) {
+      const probe = createServer();
+      const port = await new Promise<number>((resolve) => {
+        probe.listen(0, "127.0.0.1", () => {
+          const { port } = probe.address() as { port: number };
+          probe.close(() => resolve(port));
+        });
+      });
+      expect(await probeHostPort(port)).toBe("free");
+    }
+  });
+
+  it("reports a wildcard-bound listener as in use even when probed via loopback", async () => {
+    const server = createServer();
+    await new Promise<void>((resolve) => server.listen(0, "0.0.0.0", resolve));
+    const { port } = server.address() as { port: number };
+    try {
+      expect(await probeHostPort(port)).toBe("in-use");
+    } finally {
+      server.close();
+    }
+  });
 });
