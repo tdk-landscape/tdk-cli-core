@@ -9,6 +9,7 @@ import { isPathDiscovered, readDiscoveryPaths } from "../utils/discovery-paths.j
 import { checkHealthRoutes, checkHostPorts, checkIngressPorts, checkPrivateNpmRegistry, checkTiltResourceHealth, projectConfigEnablesVerdaccio, summarizeServiceProbes, } from "../utils/doctor-runtime.js";
 import { checkDockerNetworkCapacity, checkFrontendBackendUrls, checkNatsBroker, checkResourcePackageJson, checkServiceUrlPorts, checkTiltInstances, } from "../utils/doctor-wiring.js";
 import { validateEnvFile } from "../utils/env-validator.js";
+import { execAsync, isExecTimeout } from "../utils/exec-async.js";
 import { formatCount } from "../utils/formatting.js";
 import { findProjectRoot } from "../utils/paths.js";
 import { buildHealthTargets, pingHealthTargets } from "../utils/service-urls.js";
@@ -18,12 +19,12 @@ export { checkIngressPorts, checkPrivateNpmRegistry, checkTiltResourceHealth, su
 // and doctor is exactly the tool people run when their environment is broken.
 const EXEC_TIMEOUT_MS = 10_000;
 function isTimeout(err) {
-    return err?.code === "ETIMEDOUT";
+    return isExecTimeout(err);
 }
 function createExecCheck(name, command, successMessage, failureMessage, fixInstructions) {
-    return () => {
+    return async () => {
         try {
-            execSync(command, { stdio: "pipe", timeout: EXEC_TIMEOUT_MS });
+            await execAsync(command, EXEC_TIMEOUT_MS);
             return {
                 name,
                 didPass: true,
@@ -41,10 +42,18 @@ function createExecCheck(name, command, successMessage, failureMessage, fixInstr
         }
     };
 }
-function checkDockerRuntime() {
-    // Check for Docker
+async function succeeds(command) {
     try {
-        execSync("docker ps", { stdio: "pipe", timeout: EXEC_TIMEOUT_MS });
+        await execAsync(command, EXEC_TIMEOUT_MS);
+        return true;
+    }
+    catch {
+        return false;
+    }
+}
+async function checkDockerRuntime() {
+    try {
+        await execAsync("docker ps", EXEC_TIMEOUT_MS);
         return {
             name: "Container Runtime",
             didPass: true,
@@ -60,49 +69,36 @@ function checkDockerRuntime() {
                 fix: "Restart the runtime: quit and reopen Docker Desktop, or run `colima restart`",
             };
         }
-        // Docker not running, check for Colima
-        try {
-            execSync("colima status", { stdio: "pipe", timeout: EXEC_TIMEOUT_MS });
-            // Colima is running
-            return {
-                name: "Container Runtime",
-                didPass: true,
-                message: "Colima (Docker runtime) is running",
-            };
-        }
-        catch {
-            // Check if Colima is installed but not running
-            try {
-                execSync("which colima", { stdio: "pipe", timeout: EXEC_TIMEOUT_MS });
-                return {
-                    name: "Container Runtime",
-                    didPass: false,
-                    message: "Colima is installed but not running",
-                    fix: "Start Colima: colima start",
-                };
-            }
-            catch {
-                // Check for Podman
-                try {
-                    execSync("podman ps", { stdio: "pipe", timeout: EXEC_TIMEOUT_MS });
-                    return {
-                        name: "Container Runtime",
-                        didPass: true,
-                        message: "Podman is running",
-                    };
-                }
-                catch {
-                    // No container runtime found
-                    return {
-                        name: "Container Runtime",
-                        didPass: false,
-                        message: "No container runtime (Docker/Colima/Podman) is running",
-                        fix: `Start: colima start (recommended) OR open -a Docker (macOS) OR sudo systemctl start docker (Linux). Setup guide: ${QUICKSTART_DOCS_URL}`,
-                    };
-                }
-            }
-        }
     }
+    // Docker not running: check for Colima, then Podman
+    if (await succeeds("colima status")) {
+        return {
+            name: "Container Runtime",
+            didPass: true,
+            message: "Colima (Docker runtime) is running",
+        };
+    }
+    if (await succeeds("which colima")) {
+        return {
+            name: "Container Runtime",
+            didPass: false,
+            message: "Colima is installed but not running",
+            fix: "Start Colima: colima start",
+        };
+    }
+    if (await succeeds("podman ps")) {
+        return {
+            name: "Container Runtime",
+            didPass: true,
+            message: "Podman is running",
+        };
+    }
+    return {
+        name: "Container Runtime",
+        didPass: false,
+        message: "No container runtime (Docker/Colima/Podman) is running",
+        fix: `Start: colima start (recommended) OR open -a Docker (macOS) OR sudo systemctl start docker (Linux). Setup guide: ${QUICKSTART_DOCS_URL}`,
+    };
 }
 const checkDockerCompose = createExecCheck("Docker Compose", "docker compose version", "Docker Compose plugin available", "Docker Compose plugin not found", "Install Docker Compose: https://docs.docker.com/compose/install/");
 // Generated healthchecks use `start_interval`, which older engines/compose reject.
@@ -124,13 +120,15 @@ function isAtLeast(version, minimum) {
     }
     return true;
 }
-export function checkDockerVersions(exec = execSync) {
-    const run = (command) => String(exec(command, { stdio: "pipe", encoding: "utf-8", timeout: EXEC_TIMEOUT_MS })).trim();
+export async function checkDockerVersions(exec = execAsync) {
+    const run = async (command) => String(await exec(command, EXEC_TIMEOUT_MS)).trim();
     let engineRaw;
     let composeRaw;
     try {
-        engineRaw = run("docker version --format '{{.Server.Version}}'");
-        composeRaw = run("docker compose version --short");
+        [engineRaw, composeRaw] = await Promise.all([
+            run("docker version --format '{{.Server.Version}}'"),
+            run("docker compose version --short"),
+        ]);
     }
     catch {
         return {
@@ -842,9 +840,12 @@ export const doctorCommand = new Command("doctor")
     // would all fail with "run tdk project".
     const inProject = Boolean(findProjectRoot());
     const checks = inProject ? [...machineChecks, ...projectChecks] : machineChecks;
+    // Machine checks are independent and mostly wait on child processes, so start
+    // them all now and print in the original order. Project checks stay sequential.
+    const startedMachineChecks = machineChecks.map((checkFn) => Promise.resolve().then(checkFn));
     let allPassed = true;
-    for (const checkFn of checks) {
-        const result = await checkFn();
+    for (const [index, checkFn] of checks.entries()) {
+        const result = await (startedMachineChecks[index] ?? checkFn());
         if (result.isSkipped) {
             console.log(`${chalk.gray("○")} ${chalk.gray(result.message)}`);
             if (result.fix) {
