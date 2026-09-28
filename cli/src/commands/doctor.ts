@@ -20,6 +20,14 @@ import {
   projectConfigEnablesVerdaccio,
   summarizeServiceProbes,
 } from "../utils/doctor-runtime.js";
+import {
+  checkDockerNetworkCapacity,
+  checkFrontendBackendUrls,
+  checkNatsBroker,
+  checkResourcePackageJson,
+  checkServiceUrlPorts,
+  checkTiltInstances,
+} from "../utils/doctor-wiring.js";
 import { validateEnvFile } from "../utils/env-validator.js";
 import { formatCount } from "../utils/formatting.js";
 import { findProjectRoot } from "../utils/paths.js";
@@ -988,6 +996,8 @@ export const doctorCommand = new Command("doctor")
       checkTilt,
       checkDockerCompose,
       checkDockerVersions,
+      // Each project needs several networks; a full address pool fails `tdk up` late.
+      () => checkDockerNetworkCapacity(),
     ];
     const projectChecks: Array<() => CheckResult | Promise<CheckResult>> = [
       checkMasterConfigs,
@@ -999,6 +1009,12 @@ export const doctorCommand = new Command("doctor")
       checkTypeScriptTypeDependencies,
       checkFrontendDockerPreflight,
       checkResourceDiscovery,
+      // Wiring mistakes that otherwise surface minutes into `tdk up`.
+      () => checkResourcePackageJson(),
+      () => checkServiceUrlPorts(),
+      () => checkFrontendBackendUrls(),
+      () => checkNatsBroker(),
+      () => checkTiltInstances(),
       checkEnvironmentVariables,
       // Preflight: catch "port 80 already allocated" BEFORE claiming ready.
       checkIngressPorts,

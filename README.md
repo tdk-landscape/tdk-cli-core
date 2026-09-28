@@ -187,7 +187,7 @@ make pre-commit-run # run pre-commit hooks on all files
 tdk doctor
 ```
 
-Checks Docker, Compose and Tilt. Inside a project it also checks the generated configs, `.env`, service scripts and that the ingress ports are free, before you run `tdk up`.
+Checks Docker, Compose and Tilt. Inside a project it also checks the generated configs, `.env`, service scripts and that the ingress ports are free, before you run `tdk up`. It also catches wiring mistakes: a resource without `package.json`, a `params` URL that uses the wrong port for another service, a frontend calling a backend on `localhost:<port>`, the `nats` feature without a broker to start, duplicate Tilt processes, and Docker running out of network address space.
 
 ## Community
 
