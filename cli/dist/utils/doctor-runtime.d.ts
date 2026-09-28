@@ -67,8 +67,12 @@ export declare function checkIngressPorts(exec?: typeof execSync, projectName?: 
 export declare const HOST_PORTS: Record<number, string>;
 type PortState = "free" | "in-use" | "unknown";
 /**
- * Probes both the wildcard and loopback address: a Homebrew Postgres listens on
- * 127.0.0.1 only, which a wildcard bind alone doesn't detect.
+ * Probes both the wildcard and loopback address: on macOS, a Homebrew Postgres
+ * bound to 127.0.0.1 only is invisible to a wildcard-only bind. Sequential, not
+ * concurrent: on Linux, binding 0.0.0.0 and 127.0.0.1 to the same port at the
+ * same time makes the second bind fail with EADDRINUSE against *our own first
+ * probe*, reporting every free port as taken. Binding 0.0.0.0 first and closing
+ * it before trying 127.0.0.1 avoids that self-collision on every platform.
  */
 export declare function probeHostPort(port: number): Promise<PortState>;
 /**

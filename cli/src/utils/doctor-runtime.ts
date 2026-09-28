@@ -451,16 +451,17 @@ function probeAddress(port: number, host: string): Promise<PortState> {
 }
 
 /**
- * Probes both the wildcard and loopback address: a Homebrew Postgres listens on
- * 127.0.0.1 only, which a wildcard bind alone doesn't detect.
+ * Probes both the wildcard and loopback address: on macOS, a Homebrew Postgres
+ * bound to 127.0.0.1 only is invisible to a wildcard-only bind. Sequential, not
+ * concurrent: on Linux, binding 0.0.0.0 and 127.0.0.1 to the same port at the
+ * same time makes the second bind fail with EADDRINUSE against *our own first
+ * probe*, reporting every free port as taken. Binding 0.0.0.0 first and closing
+ * it before trying 127.0.0.1 avoids that self-collision on every platform.
  */
 export async function probeHostPort(port: number): Promise<PortState> {
-  const results = await Promise.all([
-    probeAddress(port, "0.0.0.0"),
-    probeAddress(port, "127.0.0.1"),
-  ]);
-  if (results.includes("in-use")) return "in-use";
-  return results.includes("free") ? "free" : "unknown";
+  const wildcard = await probeAddress(port, "0.0.0.0");
+  if (wildcard !== "free") return wildcard;
+  return probeAddress(port, "127.0.0.1");
 }
 
 /**
