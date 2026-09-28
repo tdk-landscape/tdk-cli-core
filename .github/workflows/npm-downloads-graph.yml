@@ -1,0 +1,38 @@
+# Refreshes docs/npm-downloads.svg from the public npm stats API every Monday.
+# Run manually from the Actions tab too. npm stats lag 1-2 days.
+name: 📈 npm downloads graph
+
+on:
+  schedule:
+    - cron: "0 8 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  graph:
+    name: 📈 Refresh graph
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      contents: write # commit the refreshed SVG back to main
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: true # zizmor: ignore[artipacked] needed to push the refreshed SVG
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: node scripts/npm-downloads-graph.mjs
+      - name: Commit refreshed graph
+        run: |
+          git add docs/npm-downloads.svg
+          if git diff --cached --quiet; then
+            echo "Graph unchanged."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+            git commit -m "chore: refresh npm downloads graph"
+            git push
+          fi
