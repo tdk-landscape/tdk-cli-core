@@ -2,6 +2,7 @@ import { execSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import type { CheckResult, DiscoveredResource } from "../types/index.js";
+import { type ExecAsync, execAsync } from "./exec-async.js";
 import { formatCount } from "./formatting.js";
 import { findProjectRoot } from "./paths.js";
 import { discoverResourcesFromRoot } from "./services.js";
@@ -265,10 +266,12 @@ export function checkTiltInstances(
   return { name: "Tilt processes", didPass: true, message: "No stray Tilt processes" };
 }
 
-export function checkDockerNetworkCapacity(exec: typeof execSync = execSync): CheckResult {
+export async function checkDockerNetworkCapacity(
+  exec: ExecAsync = execAsync,
+): Promise<CheckResult> {
   const probe = `tdk_doctor_probe_${process.pid}`;
   try {
-    exec(`docker network create ${probe}`, { stdio: "pipe", timeout: EXEC_TIMEOUT_MS });
+    await exec(`docker network create ${probe}`, EXEC_TIMEOUT_MS);
   } catch (error) {
     const stderr = String((error as { stderr?: Buffer | string }).stderr ?? error);
     if (/address pools/i.test(stderr)) {
@@ -288,7 +291,7 @@ export function checkDockerNetworkCapacity(exec: typeof execSync = execSync): Ch
     };
   }
   try {
-    exec(`docker network rm ${probe}`, { stdio: "pipe", timeout: EXEC_TIMEOUT_MS });
+    await exec(`docker network rm ${probe}`, EXEC_TIMEOUT_MS);
   } catch {
     // A leftover probe network is harmless and tdk_doctor_probe_* is easy to prune.
   }

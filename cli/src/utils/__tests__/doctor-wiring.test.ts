@@ -12,6 +12,7 @@ import {
   checkTiltInstances,
   parseTiltProcesses,
 } from "../doctor-wiring.js";
+import type { ExecAsync } from "../exec-async.js";
 
 let root: string;
 
@@ -205,37 +206,37 @@ describe("checkTiltInstances", () => {
   });
 });
 
-describe("checkDockerNetworkCapacity", () => {
-  it("passes and removes its probe network", () => {
+describe("checkDockerNetworkCapacity", async () => {
+  it("passes and removes its probe network", async () => {
     const calls: string[] = [];
-    const exec = ((command: string) => {
+    const exec = (async (command: string) => {
       calls.push(command);
       return "";
-    }) as unknown as typeof execSync;
-    expect(checkDockerNetworkCapacity(exec).didPass).toBe(true);
+    }) as unknown as ExecAsync;
+    expect((await checkDockerNetworkCapacity(exec)).didPass).toBe(true);
     expect(calls[0]).toMatch(/^docker network create tdk_doctor_probe_/);
     expect(calls[1]).toMatch(/^docker network rm tdk_doctor_probe_/);
   });
 
-  it("fails when Docker has no address pool left", () => {
-    const exec = (() => {
+  it("fails when Docker has no address pool left", async () => {
+    const exec = (async () => {
       throw Object.assign(new Error("failed"), {
         stderr: Buffer.from(
           "Error response from daemon: all predefined address pools have been fully subnetted",
         ),
       });
-    }) as unknown as typeof execSync;
-    const result = checkDockerNetworkCapacity(exec);
+    }) as unknown as ExecAsync;
+    const result = await checkDockerNetworkCapacity(exec);
     expect(result.didPass).toBe(false);
     expect(result.fix).toContain("docker network prune");
   });
 
-  it("does not fail on unrelated Docker errors", () => {
-    const exec = (() => {
+  it("does not fail on unrelated Docker errors", async () => {
+    const exec = (async () => {
       throw Object.assign(new Error("boom"), {
         stderr: Buffer.from("Cannot connect to the Docker daemon"),
       });
-    }) as unknown as typeof execSync;
-    expect(checkDockerNetworkCapacity(exec).isSkipped).toBe(true);
+    }) as unknown as ExecAsync;
+    expect((await checkDockerNetworkCapacity(exec)).isSkipped).toBe(true);
   });
 });
