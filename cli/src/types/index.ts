@@ -21,8 +21,10 @@ export interface ResourceConfig {
   basePath?: string;
   backendName?: string;
   apiPath?: string;
-  /** Path the container healthcheck and Traefik probe. Defaults to /health. */
+  /** Path the container healthcheck probes (and Traefik too, unless traefik.healthCheck is set). Defaults to /health. */
   healthCheckPath?: string;
+  /** Traefik routing overrides. `healthCheck` is the path Traefik's load balancer probes; defaults to healthCheckPath. */
+  traefik?: { host?: string; pathPrefix?: string; healthCheck?: string };
   /** On-demand scaling via Sablier (Premium - requires TDK_LICENSE_KEY). See hasSablierLicense() in extension-fetch.ts. */
   sablier?: {
     enable?: boolean;

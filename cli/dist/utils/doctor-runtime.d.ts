@@ -109,15 +109,27 @@ export declare function orderTiltFailures(failures: TiltResourceFailure[]): Tilt
  */
 export declare function probeContainerRuntimeError(resourceName: string, exec?: typeof execSync): string | null;
 export declare function describeTiltFailure(failure: TiltResourceFailure, exec?: typeof execSync): string;
+/**
+ * The two paths a backend is probed on, resolved like the engine does:
+ * the container healthcheck uses `healthCheckPath` (default /health), and
+ * Traefik's load balancer uses `traefik.healthCheck`, defaulting to the
+ * container's path.
+ */
+export declare function resolveHealthPaths(config: DiscoveredResource["config"]): {
+    container: string;
+    traefik: string;
+};
 export interface MissingHealthRoute {
     name: string;
     healthPath: string;
+    /** Which probe hits this path, for the message. */
+    usedBy: string;
 }
 /**
- * Backends whose source never mentions their health path as a string literal
- * ('/health', "/health" or `/health`). Covers Hono, Express, Elysia, Fastify
- * and hand-rolled `url.pathname === "/health"` checks. Services without a
- * src/ directory are skipped, since there is nothing to read.
+ * Backends whose source never mentions a path they are probed on as a string
+ * literal ('/health', "/health" or `/health`). Covers Hono, Express, Elysia,
+ * Fastify and hand-rolled `url.pathname === "/health"` checks. Services
+ * without a src/ directory are skipped, since there is nothing to read.
  */
 export declare function findMissingHealthRoutes(resources: DiscoveredResource[]): MissingHealthRoute[];
 /**

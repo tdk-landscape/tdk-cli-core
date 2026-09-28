@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { checkHealthRoutes } from "../doctor-runtime.js";
+import { checkHealthRoutes, resolveHealthPaths } from "../doctor-runtime.js";
 
 describe("checkHealthRoutes", () => {
   let root: string;
@@ -77,6 +77,43 @@ describe("checkHealthRoutes", () => {
     expect(checkHealthRoutes(root).didPass).toBe(true);
   });
 
+  it("checks traefik.healthCheck separately from healthCheckPath", () => {
+    service(
+      "orders-api",
+      { appType: "backend", traefik: { healthCheck: "/ready" } },
+      {
+        "src/index.ts": "app.get('/health', h);",
+      },
+    );
+    const missing = checkHealthRoutes(root);
+    expect(missing.didPass).toBe(false);
+    expect(missing.message).toContain(
+      'no "/ready" route in src/ (probed by the Traefik healthcheck)',
+    );
+    expect(missing.message).not.toContain('"/health" route');
+
+    writeFileSync(
+      join(root, "services", "shop", "orders-api", "src", "index.ts"),
+      "app.get('/health', h); app.get('/ready', h);",
+    );
+    expect(checkHealthRoutes(root).didPass).toBe(true);
+  });
+
+  it("names both probes when both paths are missing", () => {
+    service(
+      "orders-api",
+      { appType: "backend", healthCheckPath: "/status", traefik: { healthCheck: "/ready" } },
+      {
+        "src/index.ts": "app.get('/orders', h);",
+      },
+    );
+    const result = checkHealthRoutes(root);
+    expect(result.message).toContain(
+      '"/status" route in src/ (probed by the container healthcheck)',
+    );
+    expect(result.message).toContain('"/ready" route in src/ (probed by the Traefik healthcheck)');
+  });
+
   it("finds the route in a nested file", () => {
     service(
       "orders-api",
@@ -105,5 +142,32 @@ describe("checkHealthRoutes", () => {
     service("storefront", { appType: "frontend" }, { "src/main.ts": "render();" });
     const result = checkHealthRoutes(root);
     expect(result.isSkipped).toBe(true);
+  });
+});
+
+describe("resolveHealthPaths", () => {
+  const base = { appName: "a", appType: "backend" as const };
+
+  it("defaults both probes to /health", () => {
+    expect(resolveHealthPaths({ ...base })).toEqual({ container: "/health", traefik: "/health" });
+    expect(resolveHealthPaths(undefined)).toEqual({ container: "/health", traefik: "/health" });
+  });
+
+  it("makes Traefik follow healthCheckPath unless traefik.healthCheck overrides it", () => {
+    expect(resolveHealthPaths({ ...base, healthCheckPath: "/status" })).toEqual({
+      container: "/status",
+      traefik: "/status",
+    });
+    expect(
+      resolveHealthPaths({
+        ...base,
+        healthCheckPath: "/status",
+        traefik: { healthCheck: "/ready" },
+      }),
+    ).toEqual({ container: "/status", traefik: "/ready" });
+    expect(resolveHealthPaths({ ...base, traefik: { healthCheck: "/ready" } })).toEqual({
+      container: "/health",
+      traefik: "/ready",
+    });
   });
 });

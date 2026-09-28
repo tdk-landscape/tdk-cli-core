@@ -652,10 +652,20 @@ function listSourceFiles(dir) {
     return files;
 }
 /**
- * Backends whose source never mentions their health path as a string literal
- * ('/health', "/health" or `/health`). Covers Hono, Express, Elysia, Fastify
- * and hand-rolled `url.pathname === "/health"` checks. Services without a
- * src/ directory are skipped, since there is nothing to read.
+ * The two paths a backend is probed on, resolved like the engine does:
+ * the container healthcheck uses `healthCheckPath` (default /health), and
+ * Traefik's load balancer uses `traefik.healthCheck`, defaulting to the
+ * container's path.
+ */
+export function resolveHealthPaths(config) {
+    const container = config?.healthCheckPath || "/health";
+    return { container, traefik: config?.traefik?.healthCheck || container };
+}
+/**
+ * Backends whose source never mentions a path they are probed on as a string
+ * literal ('/health', "/health" or `/health`). Covers Hono, Express, Elysia,
+ * Fastify and hand-rolled `url.pathname === "/health"` checks. Services
+ * without a src/ directory are skipped, since there is nothing to read.
  */
 export function findMissingHealthRoutes(resources) {
     const missing = [];
@@ -668,14 +678,20 @@ export function findMissingHealthRoutes(resources) {
         const files = listSourceFiles(srcDir);
         if (files.length === 0)
             continue;
-        const healthPath = resource.config.healthCheckPath ?? "/health";
-        const literals = ["'", '"', "`"].map((q) => `${q}${healthPath}${q}`);
-        const found = files.some((file) => {
-            const source = readFileSync(file, "utf-8");
-            return literals.some((literal) => source.includes(literal));
-        });
-        if (!found)
-            missing.push({ name: resource.name, healthPath });
+        const sources = files.map((file) => readFileSync(file, "utf-8"));
+        const { container, traefik } = resolveHealthPaths(resource.config);
+        const probes = container === traefik
+            ? [{ path: container, usedBy: "container and Traefik healthchecks" }]
+            : [
+                { path: container, usedBy: "container healthcheck" },
+                { path: traefik, usedBy: "Traefik healthcheck" },
+            ];
+        for (const { path, usedBy } of probes) {
+            const literals = ["'", '"', "`"].map((q) => `${q}${path}${q}`);
+            if (!sources.some((source) => literals.some((literal) => source.includes(literal)))) {
+                missing.push({ name: resource.name, healthPath: path, usedBy });
+            }
+        }
     }
     return missing;
 }
@@ -715,14 +731,14 @@ export function checkHealthRoutes(projectRoot = findProjectRoot() ?? process.cwd
         };
     }
     const details = missing
-        .map((m) => `${m.name}: no "${m.healthPath}" route in src/`)
+        .map((m) => `${m.name}: no "${m.healthPath}" route in src/ (probed by the ${m.usedBy})`)
         .join("\n    ");
     return {
         name: "Health Routes",
         didPass: false,
         message: `Backends without a health route (the container never turns healthy, so Traefik returns 404):\n    ${details}`,
         fix: `Add the route, e.g. for Hono: app.get("${missing[0]?.healthPath}", (c) => c.json({ status: "ok" })). ` +
-            'If the service uses a different path, set "healthCheckPath" in its service.json.',
+            'To use a different path, set "healthCheckPath" (container healthcheck) or "traefik.healthCheck" (Traefik) in its service.json.',
     };
 }
 //# sourceMappingURL=doctor-runtime.js.map
