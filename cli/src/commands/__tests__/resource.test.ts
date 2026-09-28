@@ -1,6 +1,7 @@
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   BASE_TEMPLATE,
@@ -14,6 +15,7 @@ import {
   TYPE_SPECIFIC,
 } from "../../commands/resource.js";
 import {
+  FRONTEND_FRAMEWORKS,
   getFrontendFramework,
   resolveFrontendFramework,
 } from "../../frontend-frameworks/registry.js";
@@ -332,5 +334,23 @@ describe("resource command", () => {
       expect(CREATABLE_RESOURCE_TYPES).toContain("worker");
       expect(CREATABLE_RESOURCE_TYPES).toHaveLength(3);
     });
+  });
+});
+
+describe("service.json schema", () => {
+  it("accepts exactly the registered frontend frameworks", () => {
+    const schemaPath = join(
+      dirname(fileURLToPath(import.meta.url)),
+      "../../../../engine/schemas/service-schema.json",
+    );
+    const schema = JSON.parse(readFileSync(schemaPath, "utf-8"));
+
+    // additionalProperties is false, so a provider missing from the enum makes every
+    // service.json that `tdk resource --framework <id>` writes schema-invalid.
+    expect(schema.additionalProperties).toBe(false);
+    expect([...schema.properties.framework.enum].sort()).toEqual(
+      Object.keys(FRONTEND_FRAMEWORKS).sort(),
+    );
+    expect(createServiceJson("web", "frontend", "app", 3000, [], "vue").framework).toBe("vue");
   });
 });
