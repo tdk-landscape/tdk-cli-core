@@ -1,25 +1,59 @@
 # Runs the README quickstart against the published npm package on a clean
 # machine: install, scaffold a backend, `tdk up`, and wait for its /health
-# URL to answer through Traefik. Nightly and on demand from the Actions tab.
+# URL to answer through Traefik. Runs after every release, nightly, and on
+# demand from the Actions tab.
 name: 🧭 Quickstart E2E
 
 on:
   workflow_dispatch:
   schedule:
     - cron: "0 6 * * *"
+  # Prove each release boots as soon as it is published. Read-only token, no
+  # secrets, main branch only, and it checks out main itself rather than the
+  # triggering run's ref, so nothing untrusted is executed.
+  workflow_run: # zizmor: ignore[dangerous-triggers]
+    workflows: ["Release binaries and npm package"]
+    types: [completed]
+    branches: [main]
 
 permissions:
   contents: read
 
+# Releases can land minutes apart, and a boot takes several minutes. Run one at
+# a time and never cancel one mid-boot: a cancelled run proves nothing. GitHub
+# keeps at most one queued run, so a burst of releases collapses to the latest.
+concurrency:
+  group: quickstart-e2e
+  cancel-in-progress: false
+
 jobs:
   quickstart:
     name: 🧭 README quickstart on a clean machine
+    # A failed release publishes nothing, so there is nothing to boot.
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v7
         with:
           node-version: 22
+
+      # After a release, test exactly the version that was just published
+      # (main's package.json holds it: the release commits its own bump). Any
+      # other trigger tests whatever npm serves as latest.
+      - name: Choose the version to test
+        id: version
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "workflow_run" ]; then
+            version="$(node -p "require('./package.json').version")"
+          else
+            version="latest"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Testing @tdk-landscape/tdk-cli-core@$version"
       - uses: oven-sh/setup-bun@v2
 
       - name: Install Tilt
@@ -49,7 +83,18 @@ jobs:
           echo "port 5432 is free"
 
       - name: Install TDK from npm
-        run: npm install -g @tdk-landscape/tdk-cli-core@latest && tdk --version # zizmor: ignore[adhoc-packages] the point is to test what users install
+        env:
+          TDK_VERSION: ${{ steps.version.outputs.version }}
+        run: | # zizmor: ignore[adhoc-packages] the point is to test what users install
+          if [ "$TDK_VERSION" != "latest" ]; then
+            # npm's registry can lag a minute or two behind the publish.
+            for _ in $(seq 1 30); do
+              npm view "@tdk-landscape/tdk-cli-core@${TDK_VERSION}" version --prefer-online >/dev/null 2>&1 && break
+              sleep 10
+            done
+          fi
+          npm install -g "@tdk-landscape/tdk-cli-core@${TDK_VERSION}"
+          tdk --version
 
       - name: tdk doctor (machine only)
         run: tdk doctor
