@@ -4,13 +4,13 @@ import { dirname, join, normalize } from "node:path";
 import chalk from "chalk";
 import { Command } from "commander";
 import { MASTER_CONFIG_FILES, QUICKSTART_DOCS_URL, REQUIRED_PACKAGE_SCRIPTS, } from "../utils/constants.js";
-import { checkHostPorts, checkIngressPorts, checkPrivateNpmRegistry, checkTiltResourceHealth, } from "../utils/doctor-runtime.js";
+import { checkHostPorts, checkIngressPorts, checkPrivateNpmRegistry, checkTiltResourceHealth, summarizeServiceProbes, } from "../utils/doctor-runtime.js";
 import { validateEnvFile } from "../utils/env-validator.js";
 import { formatCount } from "../utils/formatting.js";
 import { findProjectRoot } from "../utils/paths.js";
 import { buildHealthTargets, pingHealthTargets } from "../utils/service-urls.js";
 import { discoverResourcesFromRoot } from "../utils/services.js";
-export { checkIngressPorts, checkPrivateNpmRegistry, checkTiltResourceHealth, summarizeTiltBuildError, } from "../utils/doctor-runtime.js";
+export { checkIngressPorts, checkPrivateNpmRegistry, checkTiltResourceHealth, summarizeServiceProbes, summarizeTiltBuildError, } from "../utils/doctor-runtime.js";
 // A wedged Docker daemon makes `docker ps` block forever instead of failing,
 // and doctor is exactly the tool people run when their environment is broken.
 const EXEC_TIMEOUT_MS = 10_000;
@@ -658,41 +658,7 @@ async function checkServiceHealth(timeoutMs) {
             message: "No routable services to ping",
         };
     }
-    const probes = await pingHealthTargets(targets, timeoutMs);
-    const reachable = probes.filter((probe) => probe.ok);
-    const failed = probes.filter((probe) => !probe.ok);
-    // Nothing answered at all: either the stack was never started, or ingress
-    // never came up (Traefik port conflict). Prefer failing via
-    // checkTiltResourceHealth / checkIngressPorts when Tilt is up; here we only
-    // skip when there is truly nothing to probe yet.
-    if (reachable.length === 0) {
-        return {
-            name: "Service Health",
-            didPass: true,
-            isSkipped: true,
-            message: `No services responded - skipped ping of ${formatCount(targets.length, "service")} (stack may be down, or Traefik never bound :80)`,
-            fix: "If `tdk up` is already running, check Traefik/port 80 in the Tilt UI. Otherwise start with: tdk up",
-        };
-    }
-    if (failed.length === 0) {
-        return {
-            name: "Service Health",
-            didPass: true,
-            message: `All ${formatCount(targets.length, "service")} responding on /health`,
-        };
-    }
-    const details = failed
-        .map((probe) => {
-        const reason = probe.status ? `HTTP ${probe.status}` : (probe.error ?? "no response");
-        return `${probe.name} (${reason})\n      ${probe.url}`;
-    })
-        .join("\n    ");
-    return {
-        name: "Service Health",
-        didPass: false,
-        message: `${formatCount(failed.length, "service")} not responding (${reachable.length}/${probes.length} healthy):\n    ${details}`,
-        fix: "Check container state and routing: docker ps, then tdk networks to compare the advertised URLs against Traefik's routers",
-    };
+    return summarizeServiceProbes(await pingHealthTargets(targets, timeoutMs));
 }
 export const doctorCommand = new Command("doctor")
     .description("Check environment readiness for TDK")
