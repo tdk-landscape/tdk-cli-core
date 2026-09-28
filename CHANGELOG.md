@@ -4,6 +4,8 @@ Notable changes to the `tdk` CLI. Versions match [npm](https://www.npmjs.com/pac
 
 ## Unreleased
 
+- `tdk doctor` now catches wiring mistakes that used to surface minutes into `tdk up`: a resource with no `package.json` (the image build stops at "COPY ... not found"), a `params` URL such as `http://auth-emulator:4000` whose port is not the one the target listens on (its `service.json` `port`), a frontend calling a backend through `localhost:<port>` (TDK publishes no backend ports on localhost; use the Traefik route), the `nats` feature without `services/platform/messaging/docker-compose.yml` (TDK does not generate it, so no NATS server starts), two Tilt processes running for one project, and Docker having no address pool left for the networks a project needs. Found while building [tdk-ecommerce-example](https://github.com/tdk-landscape/tdk-ecommerce-example) and a queue/auth example.
+
 - `tdk project ecommerce` clones [tdk-ecommerce-example](https://github.com/tdk-landscape/tdk-ecommerce-example), a Vue 3 storefront and Hono catalog API. Before, only restaurant, saas, erp, user-management and example were accepted.
 
 ## 1.3.73 (2026-09-28)
