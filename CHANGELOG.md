@@ -4,6 +4,8 @@ Notable changes to the `tdk` CLI. Versions match [npm](https://www.npmjs.com/pac
 
 ## Unreleased
 
+## 1.3.71 (2026-09-28)
+
 - `tdk project` in a freshly cloned repo (one that already has `.tdk/project.json`) now creates the missing `.env` with working defaults. Before, it regenerated the configs but left no `.env`, and `tdk doctor` then failed with "set VERDACCIO_URL_DOCKER=<value>". Doctor now says to run `tdk project` when there is no `.env` at all. Found by the ERP CI workflow.
 
 ## 1.3.70 (2026-09-28)
