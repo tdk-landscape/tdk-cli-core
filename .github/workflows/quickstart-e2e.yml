@@ -123,6 +123,7 @@ jobs:
           done
           [ -n "$url" ] || { cat up.log; echo "::error::tdk up never printed the orders-api URL"; exit 1; }
           echo "Waiting for $url"
+          failed_checks=0
           for n in $(seq 1 120); do
             code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "$url" || true)"
             case "$code" in
@@ -141,6 +142,20 @@ jobs:
               echo "-- tdk up log (last 8 lines):"
               tail -8 up.log || true
               echo "::endgroup::"
+              # Tilt does not retry a failed image build, so a service whose update
+              # status is "error" will never turn healthy. Two checks in a row (about
+              # a minute apart) before giving up, so a transient error can clear.
+              bad="$(tilt get uiresources -o json 2>/dev/null | jq -r '[.items[] | select(.status.updateStatus == "error") | .metadata.name] | join(",")' || true)"
+              if [ -n "$bad" ]; then
+                failed_checks=$((failed_checks + 1))
+                echo "::warning::Tilt reports failed resource(s): $bad (check $failed_checks of 2)"
+                if [ "$failed_checks" -ge 2 ]; then
+                  echo "::error::Giving up early: $bad failed to build and Tilt will not retry it"
+                  exit 1
+                fi
+              else
+                failed_checks=0
+              fi
             fi
             sleep 10
           done
