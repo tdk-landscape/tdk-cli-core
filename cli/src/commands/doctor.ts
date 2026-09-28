@@ -1073,6 +1073,10 @@ export const doctorCommand = new Command("doctor")
       }
     }
 
+    // A failed check stops the loop early; let the rest finish so the network
+    // probe can clean up before process.exit.
+    await Promise.allSettled(startedMachineChecks);
+
     console.log("");
 
     if (allPassed && !inProject) {

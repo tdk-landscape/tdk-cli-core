@@ -3,7 +3,7 @@ import { promisify } from "node:util";
 
 const execPromise = promisify(exec);
 
-/** Runs a shell command without blocking the event loop; resolves with trimmed-free stdout. */
+/** Runs a shell command without blocking the event loop; resolves with raw stdout. */
 export type ExecAsync = (command: string, timeoutMs: number) => Promise<string>;
 
 export const execAsync: ExecAsync = async (command, timeoutMs) => {
