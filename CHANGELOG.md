@@ -4,6 +4,8 @@ Notable changes to the `tdk` CLI. Versions match [npm](https://www.npmjs.com/pac
 
 ## Unreleased
 
+- **Fix for 1.3.69:** `tdk doctor` no longer reports "Environment not ready" for the ERP example. The new check for missing `@types/*` packages flagged its 7 frontends, but they build with `vite build`, which never type-checks, so `types: ["node"]` cannot fail their build. It now only flags a service whose `build` script runs `tsc` (following `bun|npm|pnpm|yarn run` hops). Found by the new ERP CI workflow on its first run.
+
 - New CI workflow that boots the public 100-service ERP example on a clean GitHub-hosted runner with the published CLI and waits for every backend to answer `/health` through Traefik, then writes the time to healthy and the resource use to the job summary. Manual (`full` or `one-stack`) and weekly.
 
 ## 1.3.69 (2026-09-28)
