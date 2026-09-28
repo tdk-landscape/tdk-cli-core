@@ -363,8 +363,12 @@ describe("doctor TypeScript type dependency check", () => {
     expect(result.fix).toContain('"@types/bun"');
   });
 
-  it('passes when @types/bun is a devDependency alongside "types": ["bun"]', () => {
-    writeBackendResource({ typescript: "^5.0.0", "@types/bun": "^1.4.2" });
+  it('passes when @types/bun and @types/node are devDependencies alongside "types": ["bun"]', () => {
+    writeBackendResource({
+      typescript: "^5.0.0",
+      "@types/bun": "^1.4.2",
+      "@types/node": "^20.0.0",
+    });
 
     const result = checkTypeScriptTypeDependencies();
 
@@ -431,6 +435,50 @@ describe("doctor TypeScript type dependency check", () => {
   it("does not loop forever on scripts that run each other", () => {
     writeBackendResource({}, ["node"], {}, { build: "bun run a", a: "bun run build" });
     expect(checkTypeScriptTypeDependencies().didPass).toBe(true);
+  });
+
+  it("fails when @types/bun is used but @types/node is not a direct dependency (bun-types' hidden reference)", () => {
+    // bun-types hardcodes `/// <reference types="node" />` in its own index.d.ts.
+    // TypeScript honors that regardless of the tsconfig's "types" restriction, so
+    // "types": ["bun"] alone is not enough -- @types/node must resolve too. It can
+    // resolve transitively via bun-types' own dependency, but that hoisting is not
+    // guaranteed in Docker's isolated per-service install, unlike a full workspace
+    // install, so the same service can build locally and fail with TS2688 in Docker.
+    writeBackendResource({ typescript: "^5.0.0", "@types/bun": "^1.4.2" });
+
+    const result = checkTypeScriptTypeDependencies();
+
+    expect(result.didPass).toBe(false);
+    expect(result.message).toContain("cash-management-api");
+    expect(result.message).toContain("@types/bun");
+    expect(result.message).toContain("node types internally");
+    expect(result.fix).toContain('"@types/node"');
+  });
+
+  it("passes when @types/bun and @types/node are both direct dependencies", () => {
+    writeBackendResource({
+      typescript: "^5.0.0",
+      "@types/bun": "^1.4.2",
+      "@types/node": "^20.0.0",
+    });
+    expect(checkTypeScriptTypeDependencies().didPass).toBe(true);
+  });
+
+  it("does not require @types/node when @types/bun is unused", () => {
+    writeBackendResource({ "@types/node": "^20.0.0" }, ["node"]);
+    expect(checkTypeScriptTypeDependencies().didPass).toBe(true);
+  });
+
+  it("catches the hidden @types/node requirement even when @types/bun is a dependency without being in the types array", () => {
+    // "types" only lists what the tsconfig explicitly restricts resolution to; a
+    // service can still have @types/bun installed (and hit its reference) without
+    // "bun" appearing there.
+    writeBackendResource({ "@types/bun": "^1.4.2" }, []);
+
+    const result = checkTypeScriptTypeDependencies();
+
+    expect(result.didPass).toBe(false);
+    expect(result.message).toContain("node types internally");
   });
 
   it("resolves subpath and scoped entries to the package that provides them", () => {

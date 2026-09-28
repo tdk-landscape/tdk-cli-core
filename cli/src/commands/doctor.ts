@@ -602,6 +602,27 @@ const KNOWN_TYPE_PACKAGE_VERSIONS: Record<string, string> = {
   "@types/node": "^20.0.0",
 };
 
+/**
+ * `@types/bun` (via its underlying `bun-types` package) ships a hardcoded
+ * `/// <reference types="node" />` in its own index.d.ts. TypeScript always
+ * honors an explicit triple-slash reference, regardless of what the
+ * tsconfig's own `"types"` array restricts to -- so a Docker tsconfig with
+ * `"types": ["bun"]` still requires `@types/node` to resolve, even though
+ * "node" never appears in that array.
+ *
+ * When `@types/node` isn't a direct dependency, it can only resolve as a
+ * *transitive* dependency of `bun-types`, hoisted wherever Bun's installer
+ * happens to place it. That is not guaranteed in the isolated, per-service
+ * `bun install` that Docker's build layers run (unlike a full workspace-root
+ * install), so the same tsconfig can build locally and fail in Docker with
+ * `TS2688: Cannot find type definition file for 'node'`. Declaring
+ * `@types/node` directly makes the install deterministic either way.
+ */
+function needsNodeTypesForBun(installed: Set<string>, types: unknown[]): boolean {
+  const usesBunTypes = types.includes("bun") || installed.has("@types/bun");
+  return usesBunTypes && !installed.has("@types/node");
+}
+
 export function checkTypeScriptTypeDependencies(): CheckResult {
   const projectRoot = findProjectRoot() ?? process.cwd();
   const resources = discoverResourcesFromRoot(projectRoot);
@@ -648,6 +669,13 @@ export function checkTypeScriptTypeDependencies(): CheckResult {
       const described = missing.map((m) => `"${m}" (needs ${neededTypePackage(m)})`).join(", ");
       problems.push(`${resource.name}: "types" lists ${described}`);
     }
+
+    if (needsNodeTypesForBun(installed, types)) {
+      missingPackages.add("@types/node");
+      problems.push(
+        `${resource.name}: uses @types/bun, which references node types internally, but @types/node is not a direct dependency`,
+      );
+    }
   }
 
   if (problems.length === 0) {
@@ -665,7 +693,7 @@ export function checkTypeScriptTypeDependencies(): CheckResult {
   return {
     name: "TypeScript Type Dependencies",
     didPass: false,
-    message: `Docker tsconfig "types" names packages the service does not depend on, so \`bun run build\` fails with TS2688 (Cannot find type definition file):\n    ${problems.join("\n    ")}`,
+    message: `\`bun run build\` will fail with TS2688 (Cannot find type definition file) because a @types package it needs is not a direct dependency:\n    ${problems.join("\n    ")}`,
     fix: `Add to each service's package.json devDependencies: ${lines.join(", ")}`,
   };
 }
