@@ -185,7 +185,12 @@ def should_enable(resource_name):
 # =============================================================================
 
 print("🏗️  Loading infrastructure services...")
-Infra.load_all(
+# load_all returns the golden-layers build resource's name. It has to reach
+# TILT_CONTEXT below: app and migrator resources add it to their resource_deps
+# so their images build only after the base images exist. Dropping it lets
+# every service image build start at once, fail with "pull access denied" on a
+# machine that has no base images yet, and never retry.
+GOLDEN_IMAGE_RESOURCE = Infra.load_all(
     should_enable=should_enable,
     fix_docker_networks_fn=Utils.fix_docker_networks,
     docker_provider=Docker,
@@ -219,6 +224,7 @@ TILT_CONTEXT = {
     'global_config': GLOBAL_CONFIG_EXPORT,
     'project_root': PROJECT_ROOT,
     'all_services': _app_resources_list,
+    'golden_image_resource': GOLDEN_IMAGE_RESOURCE,
 }
 
 print("🚀 Creating Tilt resources for {} services...".format(len(_app_resources_list)))

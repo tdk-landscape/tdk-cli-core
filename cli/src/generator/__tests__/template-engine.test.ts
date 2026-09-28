@@ -31,6 +31,17 @@ describe("template-engine", () => {
       expect(new Set(contents).size).toBe(contents.length);
     });
 
+    it("Tiltfile passes the golden-layers resource to app resources via TILT_CONTEXT", () => {
+      // Regression: Infra.load_all() returns the golden-layers-build resource name, and app
+      // and migrator resources add it to resource_deps only if ctx['golden_image_resource']
+      // is set. The template dropped it, so service image builds started before their base
+      // images existed, failed with "pull access denied", and Tilt never retried - a clean
+      // machine 404'd forever while any machine that had built the layers before worked.
+      const tiltfile = loadTemplate("Tiltfile.hbs");
+      expect(tiltfile).toMatch(/GOLDEN_IMAGE_RESOURCE\s*=\s*Infra\.load_all\(/);
+      expect(tiltfile).toMatch(/'golden_image_resource':\s*GOLDEN_IMAGE_RESOURCE/);
+    });
+
     it("should throw (not silently return directory bytes) for non-existent template", () => {
       expect(() => loadTemplate("non-existent.hbs")).toThrow("Failed to load template");
     });
