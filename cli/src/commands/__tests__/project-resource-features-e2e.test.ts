@@ -177,7 +177,9 @@ describe("project and resource feature E2E", () => {
     const backendService = JSON.parse(
       readFileSync(join(projectRoot, "services", "alpha", "api", "service.json"), "utf-8"),
     );
-    expect(backendService.featuresEnabled).toEqual(["prisma"]);
+    // No prisma by default: `tdk resource` creates no prisma/schema.prisma or dependency, so
+    // enabling it made the generated Dockerfile fail on `COPY .../prisma` for every new backend.
+    expect(backendService.featuresEnabled).toEqual([]);
 
     const frontendService = JSON.parse(
       readFileSync(join(projectRoot, "services", "alpha", "web", "service.json"), "utf-8"),
