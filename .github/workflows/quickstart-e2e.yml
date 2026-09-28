@@ -25,6 +25,12 @@ jobs:
       - name: Install Tilt
         run: curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash
 
+      # ubuntu-latest ships a Postgres service already listening on 5432,
+      # which collides with the one TDK generates and fails tdk doctor's
+      # host-port check before tdk up ever runs.
+      - name: Free port 5432 (runner's preinstalled Postgres)
+        run: sudo systemctl stop postgresql.service || true
+
       - name: Install TDK from npm
         run: npm install -g @tdk-landscape/tdk-cli-core@latest && tdk --version # zizmor: ignore[adhoc-packages] the point is to test what users install
 
