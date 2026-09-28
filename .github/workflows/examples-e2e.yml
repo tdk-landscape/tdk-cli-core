@@ -1,0 +1,239 @@
+# Boots the two real example apps (tdk-saas-starter, tdk-restaurant-example)
+# on a clean GitHub-hosted runner with the published CLI, then requires their
+# actual routes to answer, not only /health: JSON from the business endpoints
+# and an HTML page from each frontend. It backs the claim that TDK runs a real
+# app, not just generated health-check stubs.
+#
+# Manual and weekly. Separate from the ERP scale test on purpose: different
+# size, different timeout, and "healthy" means something else here.
+name: 🍽️ Example apps E2E
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "CLI version to test (latest if empty)"
+        type: string
+        default: ""
+  schedule:
+    - cron: "0 4 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: examples-e2e
+  cancel-in-progress: false
+
+jobs:
+  example:
+    name: ${{ matrix.repo }} on a clean machine
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - repo: tdk-saas-starter
+            # "pattern|path": the backend whose health URL matches pattern must
+            # answer path with 2xx and valid JSON.
+            api_checks: |
+              dashboard|/api/v1/metrics
+              dashboard|/api/v1/activity
+              billing|/api/v1/plans
+              billing|/api/v1/subscription
+            # "pattern|path": the frontend whose URL matches pattern must
+            # answer path with 2xx and an HTML document.
+            web_checks: |
+              dashboard-app|/
+              checkout-app|/
+          - repo: tdk-restaurant-example
+            api_checks: |
+              guest|/api/v1/reservations
+              guest|/api/v1/waitlist
+              kitchen|/api/v1/tickets
+              kitchen|/api/v1/stations
+              operations|/api/v1/menu-items
+            web_checks: |
+              reservation-app|/
+              floor-app|/
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          repository: tdk-landscape/${{ matrix.repo }}
+          path: example
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install Tilt
+        run: curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash
+
+      # ubuntu-latest ships a Postgres service on 5432, which collides with the
+      # one TDK generates (see quickstart-e2e.yml for the whole story).
+      - name: Free port 5432 (runner's preinstalled Postgres)
+        run: |
+          sudo systemctl stop postgresql.socket 'postgresql@*.socket' 2>/dev/null || true
+          sudo systemctl stop postgresql.service 'postgresql@*.service' 2>/dev/null || true
+          sudo DEBIAN_FRONTEND=noninteractive apt-get remove --purge -y 'postgresql*' 2>&1 | sudo tee /tmp/pg-purge.log > /dev/null || true
+          sudo fuser -k 5432/tcp 2>/dev/null || true
+          sleep 2
+          if sudo ss -ltn 2>/dev/null | grep -q ':5432 '; then
+            echo "::error::port 5432 is still in use after purging postgresql"
+            exit 1
+          fi
+
+      - name: Install TDK from npm
+        env:
+          TDK_VERSION: ${{ inputs.version || 'latest' }}
+        run: | # zizmor: ignore[adhoc-packages] the point is to test what users install
+          npm install -g "@tdk-landscape/tdk-cli-core@${TDK_VERSION}"
+          tdk --version
+
+      - name: Set up the project and check it with tdk doctor
+        working-directory: example
+        run: |
+          tdk project --yes
+          tdk doctor
+
+      - name: tdk up, then prove the real routes answer
+        working-directory: example
+        env:
+          API_CHECKS: ${{ matrix.api_checks }}
+          WEB_CHECKS: ${{ matrix.web_checks }}
+          WAIT_MINUTES: "18"
+        run: |
+          tdk up > up.log 2>&1 &
+          started="$(date +%s)"
+
+          # tdk up prints the URL of every service it will start, then hands off to Tilt.
+          for _ in $(seq 1 90); do
+            grep -q "Running tilt up" up.log && break
+            sleep 2
+          done
+          awk '/Starting [0-9]+ service/{f=1} /Running tilt up/{f=0} f' up.log | grep -oE 'https?://[^ ]+' | sort -u > urls.txt || true
+          [ -s urls.txt ] || grep -oE 'https?://[^ ]+' up.log | sort -u > urls.txt || true
+          grep -E '/health$' urls.txt > backend-urls.txt || true
+          grep -vE '/health$' urls.txt > web-urls.txt || true
+          echo "::group::URLs tdk up printed"
+          cat urls.txt
+          echo "::endgroup::"
+          total="$(wc -l < backend-urls.txt | tr -d ' ')"
+          if [ "$total" -eq 0 ]; then
+            head -60 up.log
+            echo "::error::tdk up printed no backend /health URLs"
+            exit 1
+          fi
+
+          # 1) Every backend answers /health through Traefik.
+          failed_checks=0
+          ok=0
+          for n in $(seq 1 $((WAIT_MINUTES * 4))); do
+            ok="$(xargs -P 8 -I{} curl -s -o /dev/null -m 5 -w '%{http_code}\n' {} < backend-urls.txt | grep -c '^2' || true)"
+            elapsed=$(( $(date +%s) - started ))
+            echo "t=${elapsed}s healthy=${ok}/${total}"
+            [ "$ok" -eq "$total" ] && break
+            if [ $((n % 4)) -eq 0 ]; then
+              bad="$(tilt get uiresources -o json 2>/dev/null | jq -r '[.items[] | select(.status.updateStatus == "error") | .metadata.name] | join(",")' || true)"
+              if [ -n "$bad" ]; then
+                failed_checks=$((failed_checks + 1))
+                echo "::warning::Tilt reports failed resource(s): $bad (check $failed_checks of 2)"
+                if [ "$failed_checks" -ge 2 ]; then
+                  echo "::error::Giving up early: failed to build and Tilt will not retry: $bad"
+                  exit 1
+                fi
+              else
+                failed_checks=0
+              fi
+            fi
+            sleep 15
+          done
+          [ "$ok" -eq "$total" ] || { echo "::error::Only $ok of $total backends became healthy within $WAIT_MINUTES minutes"; exit 1; }
+          echo "All $total backends healthy after $(( $(date +%s) - started ))s"
+
+          # 2) The real routes answer with real content.
+          {
+            echo "### ${GITHUB_JOB}: real routes"
+            echo ""
+            echo "| Check | URL | Result |"
+            echo "|---|---|---|"
+          } > results.md
+          failures=0
+
+          fetch() {
+            # Frontends can lag the backends, so retry for a while.
+            url="$1"
+            for _ in $(seq 1 24); do
+              code="$(curl -s -o body.txt -w '%{http_code}' -m 10 "$url" || true)"
+              case "$code" in 2??) return 0 ;; esac
+              sleep 5
+            done
+            return 1
+          }
+
+          while IFS='|' read -r pattern path; do
+            [ -n "$pattern" ] || continue
+            base="$(grep -E "$pattern" backend-urls.txt | head -1 | sed 's#/health$##' || true)"
+            if [ -z "$base" ]; then
+              echo "::error::no backend URL matches '$pattern'"
+              echo "| API $pattern$path | (no matching URL) | ❌ |" >> results.md
+              failures=$((failures + 1))
+              continue
+            fi
+            url="$base$path"
+            if fetch "$url" && jq -e . body.txt > /dev/null 2>&1; then
+              echo "OK   $url"
+              echo "| API \`$pattern$path\` | $url | ✅ 2xx, valid JSON |" >> results.md
+            else
+              echo "::error::$url did not return 2xx with valid JSON (last status ${code:-none})"
+              head -c 400 body.txt || true; echo
+              echo "| API \`$pattern$path\` | $url | ❌ status ${code:-none} |" >> results.md
+              failures=$((failures + 1))
+            fi
+          done <<< "$API_CHECKS"
+
+          while IFS='|' read -r pattern path; do
+            [ -n "$pattern" ] || continue
+            base="$(grep -E "$pattern" web-urls.txt | head -1 | sed 's#/*$##' || true)"
+            if [ -z "$base" ]; then
+              echo "::error::no frontend URL matches '$pattern'"
+              echo "| Page $pattern | (no matching URL) | ❌ |" >> results.md
+              failures=$((failures + 1))
+              continue
+            fi
+            url="$base$path"
+            if fetch "$url" && grep -qi '<html' body.txt; then
+              echo "OK   $url"
+              echo "| Page \`$pattern\` | $url | ✅ 2xx, HTML document |" >> results.md
+            else
+              echo "::error::$url did not return 2xx with an HTML document (last status ${code:-none})"
+              head -c 400 body.txt || true; echo
+              echo "| Page \`$pattern\` | $url | ❌ status ${code:-none} |" >> results.md
+              failures=$((failures + 1))
+            fi
+          done <<< "$WEB_CHECKS"
+
+          cat results.md >> "$GITHUB_STEP_SUMMARY"
+          [ "$failures" -eq 0 ] || { echo "::error::$failures real-route check(s) failed"; exit 1; }
+          echo "All real-route checks passed"
+
+      - name: Diagnostics on failure
+        if: failure() || cancelled()
+        working-directory: example
+        run: |
+          echo "::group::tdk up log (last 200 lines)"
+          tail -200 up.log 2>/dev/null || true
+          echo "::endgroup::"
+          echo "::group::containers that are not healthy"
+          docker ps -a --format 'table {{.Names}}\t{{.Status}}' | grep -vE '\((healthy)\)' | head -60 || true
+          echo "::endgroup::"
+          echo "::group::tilt resources in error"
+          tilt get uiresources -o json 2>/dev/null | jq -r '.items[] | select(.status.updateStatus == "error") | "\(.metadata.name): \((.status.buildHistory // [] | map(.error // empty) | first) // "-")"' | head -40 || true
+          echo "::endgroup::"
+
+      - name: tdk down
+        if: always()
+        working-directory: example
+        run: tdk down || true
