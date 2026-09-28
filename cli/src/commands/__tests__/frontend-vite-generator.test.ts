@@ -33,6 +33,9 @@ const frontendValidators = join(
   "validators.star",
 );
 const hasTilt = spawnSync("tilt", ["version"], { encoding: "utf-8" }).status === 0;
+if (process.env.TDK_REQUIRE_TILT === "1" && !hasTilt) {
+  throw new Error("Tilt is required for frontend Starlark generator tests in CI.");
+}
 const temporaryDirs: string[] = [];
 
 it("registers Vue Vite templates at the shared Starlark generator paths", () => {

@@ -111,11 +111,15 @@ jobs:
         with:
           persist-credentials: false
       - uses: oven-sh/setup-bun@v2
+      - name: Install Tilt for Starlark generator tests
+        run: curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash
       - uses: actions/setup-node@v7
         with:
           node-version: 22
       - run: bun install --frozen-lockfile
       - run: npm test
+        env:
+          TDK_REQUIRE_TILT: '1'
 
   # Installs the npm package the way users do (npm install -g) and runs it,
   # so a release can't ship without the compiled CLI or its dependencies.
