@@ -86,7 +86,7 @@ The frontend provider owns root `index.html` and starter source. After TDK gener
 |---------|-------------|---------|
 | `tdk up` | 🚀 Start all services | `tdk up` |
 | `tdk up <stack>` | 🚀 Start a stack | `tdk up api` |
-| `tdk up --dry-run` | 👀 Show what would start, without starting | `tdk up api --dry-run` |
+| `tdk up --dry-run` | 👀 Preview the services and URLs without Docker, Tilt, or file changes | `tdk up api --dry-run` |
 | `tdk down` | ⏹️ Stop all services | `tdk down` |
 | `tdk status` | 📊 Show resource status | `tdk status` |
 

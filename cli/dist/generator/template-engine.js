@@ -351,7 +351,7 @@ function normalizeProjectConfig(value) {
 export function readProjectConfig(projectRoot) {
     const projectJsonPath = path.join(projectRoot, ".tdk", "project.json");
     if (!fs.existsSync(projectJsonPath)) {
-        throw new Error(`Project config not found: ${projectJsonPath}. Run 'tdk project init' first.`);
+        throw new Error(`Project config not found: ${projectJsonPath}. Run 'tdk project --yes' first.`);
     }
     const jsonContent = fs.readFileSync(projectJsonPath, "utf-8");
     const parsed = JSON.parse(jsonContent);

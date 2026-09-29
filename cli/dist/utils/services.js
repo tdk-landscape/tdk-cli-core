@@ -70,7 +70,7 @@ export function discoverResourcesFromRoot(projectRoot) {
 export function discoverResources() {
     const projectRoot = findProjectRoot();
     if (!projectRoot) {
-        throw new Error("Could not find project root (no Tiltfile found). Make sure you're in a root project.");
+        throw new Error("Could not find project root (no .tdk/project.json found). Run `tdk project --yes` first.");
     }
     return discoverResourcesFromRoot(projectRoot);
 }
