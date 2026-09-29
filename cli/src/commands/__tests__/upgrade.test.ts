@@ -1,5 +1,13 @@
 import { createHash } from "node:crypto";
-import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -8,8 +16,20 @@ const execSyncMock = vi.fn();
 vi.mock("node:child_process", () => ({
   execSync: (...args: unknown[]) => execSyncMock(...args),
 }));
+vi.mock("../../utils/tar.js", () => ({
+  extractTarball: (_data: Buffer, destination: string) => {
+    mkdirSync(destination, { recursive: true });
+    writeFileSync(join(destination, "engine-marker"), "extracted");
+  },
+}));
 
-const { upgradeViaBinary, isWritable, parseChecksums } = await import("../upgrade.js");
+const {
+  classifyRunningInstall,
+  isWritable,
+  parseChecksums,
+  upgradeViaBinary,
+  windowsNpmUpgradeMessage,
+} = await import("../upgrade.js");
 
 import type { BinaryRelease } from "../upgrade.js";
 
@@ -26,22 +46,7 @@ describe("upgradeViaBinary", () => {
   let tdkPath: string;
   let release: BinaryRelease;
   let checksums: string;
-  const downloaded: string[] = [];
-
-  // Stands in for curl: `curl -fsSL -o "<path>" "<url>"` writes the asset's
-  // bytes to <path>; `curl -fsSL "<checksums url>"` returns checksums.txt.
-  function fakeExec(command: string): string {
-    const download = command.match(/^curl -fsSL -o (".*?") (".*?")$/);
-    if (download) {
-      const path = JSON.parse(download[1]) as string;
-      const url = JSON.parse(download[2]) as string;
-      writeFileSync(path, url === release.engineDownloadUrl ? ENGINE_BYTES : BINARY_BYTES);
-      downloaded.push(path);
-      return "";
-    }
-    if (command.includes(release.checksumsUrl)) return checksums;
-    return "";
-  }
+  const fetchMock = vi.fn();
 
   beforeEach(() => {
     installDir = mkdtempSync(join(tmpdir(), "tdk-upgrade-test-"));
@@ -59,65 +64,53 @@ describe("upgradeViaBinary", () => {
       `${sha256(ENGINE_BYTES)}  tdk-cli-engine.tar.gz`,
     ].join("\n");
     execSyncMock.mockReset();
-    execSyncMock.mockImplementation(fakeExec);
+    fetchMock.mockReset();
+    fetchMock.mockImplementation(async (url: string) => ({
+      ok: true,
+      status: 200,
+      arrayBuffer: async () =>
+        Buffer.from(url === release.engineDownloadUrl ? ENGINE_BYTES : BINARY_BYTES),
+      text: async () => checksums,
+    }));
+    vi.stubGlobal("fetch", fetchMock);
   });
 
   afterEach(() => {
     rmSync(installDir, { recursive: true, force: true });
-    for (const path of downloaded.splice(0)) rmSync(path, { force: true });
+    vi.unstubAllGlobals();
   });
-
-  function commandsRun(): string[] {
-    return execSyncMock.mock.calls.map((call) => call[0] as string);
-  }
 
   it("downloads and extracts the bundled engine tarball next to the binary, not just the binary itself", async () => {
     const ok = await upgradeViaBinary(tdkPath, release);
     expect(ok).toBe(true);
 
-    const commands = commandsRun();
     const engineDir = join(installDir, "tdk-cli");
-
-    expect(commands.some((c) => c.includes("curl") && c.includes(release.downloadUrl))).toBe(true);
-    expect(commands.some((c) => c.includes("curl") && c.includes(release.engineDownloadUrl))).toBe(
-      true,
-    );
-    expect(commands.some((c) => c.startsWith("rm -rf") && c.includes(engineDir))).toBe(true);
-    expect(commands.some((c) => c.startsWith("mkdir -p") && c.includes(engineDir))).toBe(true);
-    expect(
-      commands.some(
-        (c) =>
-          c.includes("tar -xzf") && c.includes(engineDir) && c.includes("--strip-components=1"),
-      ),
-    ).toBe(true);
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      release.downloadUrl,
+      release.engineDownloadUrl,
+      release.checksumsUrl,
+    ]);
+    expect(readFileSync(tdkPath, "utf-8")).toBe(BINARY_BYTES);
+    expect(readFileSync(join(engineDir, "engine-marker"), "utf-8")).toBe("extracted");
   });
 
   it("downloads both the binary and the engine tarball before installing either", async () => {
     await upgradeViaBinary(tdkPath, release);
 
-    const commands = commandsRun();
-    const binaryCurlIndex = commands.findIndex((c) => c.includes(release.downloadUrl));
-    const engineCurlIndex = commands.findIndex((c) => c.includes(release.engineDownloadUrl));
-    const mvIndex = commands.findIndex((c) => c.startsWith("mv "));
-    const tarIndex = commands.findIndex((c) => c.includes("tar -xzf"));
-
-    expect(binaryCurlIndex).toBeGreaterThanOrEqual(0);
-    expect(engineCurlIndex).toBeGreaterThanOrEqual(0);
-    expect(mvIndex).toBeGreaterThan(binaryCurlIndex);
-    expect(mvIndex).toBeGreaterThan(engineCurlIndex);
-    expect(tarIndex).toBeGreaterThan(engineCurlIndex);
+    expect(fetchMock).toHaveBeenNthCalledWith(1, release.downloadUrl, expect.any(Object));
+    expect(fetchMock).toHaveBeenNthCalledWith(2, release.engineDownloadUrl, expect.any(Object));
+    expect(readFileSync(tdkPath, "utf-8")).toBe(BINARY_BYTES);
   });
 
   it("verifies checksums after both downloads and before installing anything", async () => {
     await upgradeViaBinary(tdkPath, release);
 
-    const commands = commandsRun();
-    const checksumsIndex = commands.findIndex((c) => c.includes(release.checksumsUrl));
-    const engineCurlIndex = commands.findIndex((c) => c.includes(release.engineDownloadUrl));
-    const mvIndex = commands.findIndex((c) => c.startsWith("mv "));
-
-    expect(checksumsIndex).toBeGreaterThan(engineCurlIndex);
-    expect(mvIndex).toBeGreaterThan(checksumsIndex);
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      release.downloadUrl,
+      release.engineDownloadUrl,
+      release.checksumsUrl,
+    ]);
+    expect(existsSync(tdkPath)).toBe(true);
   });
 
   it.each([
@@ -135,10 +128,7 @@ describe("upgradeViaBinary", () => {
     const ok = await upgradeViaBinary(tdkPath, release);
 
     expect(ok).toBe(false);
-    const commands = commandsRun();
-    expect(commands.some((c) => c.startsWith("mv "))).toBe(false);
-    expect(commands.some((c) => c.includes("tar -xzf"))).toBe(false);
-    expect(commands.some((c) => c.startsWith("rm -rf"))).toBe(false);
+    expect(existsSync(tdkPath)).toBe(false);
   });
 
   it("still installs releases whose checksums.txt predates the engine entry", async () => {
@@ -149,7 +139,7 @@ describe("upgradeViaBinary", () => {
     const ok = await upgradeViaBinary(tdkPath, release);
 
     expect(ok).toBe(true);
-    expect(commandsRun().some((c) => c.startsWith("mv "))).toBe(true);
+    expect(existsSync(tdkPath)).toBe(true);
   });
 
   // root ignores the write-permission bit (accessSync(W_OK) legitimately
@@ -164,8 +154,7 @@ describe("upgradeViaBinary", () => {
       try {
         const ok = await upgradeViaBinary(tdkPath, release);
         expect(ok).toBe(false);
-        expect(execSyncMock).not.toHaveBeenCalled();
-        expect(commandsRun().some((c) => c.includes("sudo"))).toBe(false);
+        expect(fetchMock).not.toHaveBeenCalled();
       } finally {
         chmodSync(installDir, 0o755);
       }
@@ -194,5 +183,33 @@ describe("parseChecksums", () => {
     expect(sums.get("tdk-linux-amd64")).toBe(a);
     expect(sums.get("tdk-cli-engine.tar.gz")).toBe("b".repeat(64));
     expect(sums.size).toBe(2);
+  });
+});
+
+describe("Windows upgrade installation routing", () => {
+  it("recognizes a compiled Windows CLI executable", () => {
+    expect(classifyRunningInstall("C:\\Users\\dev\\tdk.exe", "", "win32")).toEqual({
+      method: "binary",
+      path: "C:\\Users\\dev\\tdk.exe",
+    });
+  });
+
+  it("recognizes an npm-installed Node entry point", () => {
+    expect(
+      classifyRunningInstall(
+        "C:\\Program Files\\nodejs\\node.exe",
+        "C:\\Users\\dev\\node_modules\\@tdk-landscape\\tdk-cli-core\\bin\\tdk.js",
+        "win32",
+      ),
+    ).toEqual({
+      method: "npm",
+      path: "C:\\Users\\dev\\node_modules\\@tdk-landscape\\tdk-cli-core\\bin\\tdk.js",
+    });
+  });
+
+  it("prints the npm update command instead of replacing npm files with an exe", () => {
+    expect(windowsNpmUpgradeMessage("win32", { method: "npm" })).toBe(
+      "use npm install -g @tdk-landscape/tdk-cli-core@latest",
+    );
   });
 });

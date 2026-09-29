@@ -1,4 +1,4 @@
-import { execSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { join } from "node:path";
@@ -6,9 +6,19 @@ import { formatCount } from "./formatting.js";
 import { findProjectRoot } from "./paths.js";
 import { getProjectName } from "./service-urls.js";
 import { discoverResources, discoverResourcesFromRoot } from "./services.js";
+import { findOnPath } from "./which.js";
 const EXEC_TIMEOUT_MS = 10_000;
 const REGISTRY_PROBE_TIMEOUT_MS = 3_000;
 const DEFAULT_VERDACCIO_URL = "http://localhost:4873";
+function runHostCommand(exec, command, args, shellCommand, options) {
+    if (process.platform === "win32") {
+        return execFileSync(findOnPath(command) ?? command, args, {
+            ...options,
+            windowsHide: true,
+        });
+    }
+    return exec(shellCommand, options);
+}
 /** Host ports Traefik publishes for local ingress. Without these, app routes never come up. */
 export const INGRESS_PORTS = [80, 443];
 export function toComposeProjectPrefix(projectName) {
@@ -232,7 +242,7 @@ export function checkPrivateNpmRegistry(exec = execSync, projectRoot = findProje
     }
     let containerRunning = false;
     try {
-        const names = exec("docker ps --format '{{.Names}}'", {
+        const names = runHostCommand(exec, "docker", ["ps", "--format", "{{.Names}}"], "docker ps --format '{{.Names}}'", {
             stdio: "pipe",
             encoding: "utf-8",
             timeout: EXEC_TIMEOUT_MS,
@@ -246,11 +256,18 @@ export function checkPrivateNpmRegistry(exec = execSync, projectRoot = findProje
     let httpDetail = "";
     try {
         // curl is more reliable than fetch in the compiled CLI binary environments.
-        const probe = exec(`curl -fsS -o /dev/null -w '%{http_code}' --max-time 2 ${JSON.stringify(registryUrl)}`, {
-            stdio: "pipe",
-            encoding: "utf-8",
-            timeout: REGISTRY_PROBE_TIMEOUT_MS + 1_000,
-        }).trim();
+        const probe = process.platform === "win32"
+            ? execFileSync("curl.exe", ["-fsS", "-o", "NUL", "-w", "%{http_code}", "--max-time", "2", registryUrl], {
+                stdio: "pipe",
+                encoding: "utf-8",
+                timeout: REGISTRY_PROBE_TIMEOUT_MS + 1_000,
+                windowsHide: true,
+            }).trim()
+            : exec(`curl -fsS -o /dev/null -w '%{http_code}' --max-time 2 ${JSON.stringify(registryUrl)}`, {
+                stdio: "pipe",
+                encoding: "utf-8",
+                timeout: REGISTRY_PROBE_TIMEOUT_MS + 1_000,
+            }).trim();
         httpOk = /^[23]\d\d$/.test(probe);
         httpDetail = `HTTP ${probe}`;
     }
@@ -288,7 +305,7 @@ export function checkIngressPorts(exec = execSync, projectName = getProjectName(
     const projectPrefix = toComposeProjectPrefix(projectName);
     let dockerPs = "";
     try {
-        dockerPs = exec("docker ps --format '{{.Names}}\\t{{.Ports}}'", {
+        dockerPs = runHostCommand(exec, "docker", ["ps", "--format", "{{.Names}}\\t{{.Ports}}"], "docker ps --format '{{.Names}}\\t{{.Ports}}'", {
             stdio: "pipe",
             encoding: "utf-8",
             timeout: EXEC_TIMEOUT_MS,
@@ -437,7 +454,7 @@ export async function checkHostPorts(exec = execSync, projectName = getProjectNa
     }
     let dockerPs = "";
     try {
-        dockerPs = exec("docker ps --format '{{.Names}}\\t{{.Ports}}'", {
+        dockerPs = runHostCommand(exec, "docker", ["ps", "--format", "{{.Names}}\\t{{.Ports}}"], "docker ps --format '{{.Names}}\\t{{.Ports}}'", {
             stdio: "pipe",
             encoding: "utf-8",
             timeout: EXEC_TIMEOUT_MS,
@@ -470,8 +487,10 @@ export async function checkHostPorts(exec = execSync, projectName = getProjectNa
         name: "Host Ports",
         didPass: false,
         message: `Ports TDK needs are taken:\n    ${problems.join("\n    ")}`,
-        fix: `Find what holds a port with \`lsof -nP -iTCP:${first} -sTCP:LISTEN\` and stop it ` +
-            "(for a local Postgres: `brew services stop postgresql` or quit Postgres.app), then run `tdk up`.",
+        fix: process.platform === "win32"
+            ? `Find the process with \`Get-NetTCPConnection -LocalPort ${first} -State Listen\` in PowerShell, stop it, then run \`tdk up\`.`
+            : `Find what holds a port with \`lsof -nP -iTCP:${first} -sTCP:LISTEN\` and stop it ` +
+                "(for a local Postgres: `brew services stop postgresql` or quit Postgres.app), then run `tdk up`.",
     };
 }
 /**
@@ -482,7 +501,7 @@ export async function checkHostPorts(exec = execSync, projectName = getProjectNa
 export function checkTiltResourceHealth(exec = execSync) {
     let jsonText = "";
     try {
-        jsonText = exec("tilt get uiresources -o json", {
+        jsonText = runHostCommand(exec, "tilt", ["get", "uiresources", "-o", "json"], "tilt get uiresources -o json", {
             stdio: "pipe",
             encoding: "utf-8",
             timeout: EXEC_TIMEOUT_MS,
@@ -588,7 +607,7 @@ export function orderTiltFailures(failures) {
  */
 export function probeContainerRuntimeError(resourceName, exec = execSync) {
     try {
-        const names = exec("docker ps -a --format '{{.Names}}'", {
+        const names = runHostCommand(exec, "docker", ["ps", "-a", "--format", "{{.Names}}"], "docker ps -a --format '{{.Names}}'", {
             stdio: "pipe",
             encoding: "utf-8",
             timeout: EXEC_TIMEOUT_MS,
@@ -600,7 +619,7 @@ export function probeContainerRuntimeError(resourceName, exec = execSync) {
             names.find((name) => name.includes(resourceName));
         if (!match)
             return null;
-        const logs = exec(`docker logs --tail 120 ${JSON.stringify(match)} 2>&1`, {
+        const logs = runHostCommand(exec, "docker", ["logs", "--tail", "120", match], `docker logs --tail 120 ${JSON.stringify(match)} 2>&1`, {
             stdio: "pipe",
             encoding: "utf-8",
             timeout: EXEC_TIMEOUT_MS,

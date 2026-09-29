@@ -1,4 +1,4 @@
-import { execSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { execAsync } from "./exec-async.js";
@@ -186,17 +186,24 @@ export function checkNatsBroker(projectRoot = findProjectRoot() ?? process.cwd()
 export function parseTiltProcesses(psOutput) {
     const processes = [];
     for (const line of psOutput.split("\n")) {
-        const match = line.match(/^\s*(\d+)\s+.*\btilt up\b.*?\s-f\s+(\S+)/);
+        const match = line.match(/^\s*(\d+)\s+.*\btilt up\b.*?\s-f\s+(\S+)/i);
         if (!match)
             continue;
-        processes.push({ pid: Number(match[1]), root: match[2].split("/.tdk/")[0] });
+        processes.push({ pid: Number(match[1]), root: match[2].split(/[\\/]\.tdk[\\/]/i)[0] });
     }
     return processes;
 }
 export function checkTiltInstances(projectRoot = findProjectRoot() ?? process.cwd(), exec = execSync) {
     let output;
     try {
-        output = exec("ps -Ao pid=,command=", { encoding: "utf-8", timeout: EXEC_TIMEOUT_MS });
+        output =
+            process.platform === "win32"
+                ? execFileSync("powershell.exe", [
+                    "-NoProfile",
+                    "-Command",
+                    "Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'tilt.exe' } | ForEach-Object { '{0} {1}' -f $_.ProcessId, $_.CommandLine }",
+                ], { encoding: "utf-8", timeout: EXEC_TIMEOUT_MS, windowsHide: true })
+                : exec("ps -Ao pid=,command=", { encoding: "utf-8", timeout: EXEC_TIMEOUT_MS });
     }
     catch {
         return {

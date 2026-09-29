@@ -1,15 +1,17 @@
 import { spawn } from "node:child_process";
 import { join } from "node:path";
 import { findProjectRoot } from "./paths.js";
+import { findOnPath } from "./which.js";
 export function runTilt(command, args = [], options = {}) {
     return new Promise((resolve, reject) => {
         const tiltArgs = [command, ...args];
         if (options.verbose) {
             console.log(`Executing: tilt ${tiltArgs.join(" ")}`);
         }
-        const child = spawn("tilt", tiltArgs, {
+        const child = spawn(findOnPath("tilt") ?? "tilt", tiltArgs, {
             stdio: options.inheritStdio ? "inherit" : "pipe",
             shell: false,
+            windowsHide: process.platform === "win32",
             timeout: options.timeoutMs,
         });
         let stdout = "";

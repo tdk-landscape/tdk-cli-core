@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import chalk from "chalk";
@@ -217,9 +217,17 @@ complete -c tdk -n '__fish_seen_subcommand_from upgrade' -l force -d 'Force upgr
 complete -c tdk -n '__fish_seen_subcommand_from upgrade' -l dry-run -d 'Show what would be upgraded'
 `;
 
+const POWERSHELL_COMPLETION = `Register-ArgumentCompleter -Native -CommandName tdk -ScriptBlock {
+  param($wordToComplete)
+  $cmds = @('up','down','doctor','project','resource','stacks','status','networks','upgrade','version','ui','config')
+  $cmds | Where-Object { $_ -like "$wordToComplete*" }
+}`;
+const POWERSHELL_START = "# TDK-CLI-COMPLETION-START";
+const POWERSHELL_END = "# TDK-CLI-COMPLETION-END";
+
 export const completionCommand = new Command("completion")
   .description("Generate shell completion scripts")
-  .option("-s, --shell <shell>", "Target shell (bash, zsh, fish)", "bash")
+  .option("-s, --shell <shell>", "Target shell (bash, zsh, fish, powershell)", "bash")
   .option("-o, --output <path>", "Output file path (default: stdout)")
   .option("--install", "Install to shell config automatically")
   .action((options) => {
@@ -241,9 +249,13 @@ export const completionCommand = new Command("completion")
         completionScript = FISH_COMPLETION;
         filename = "tdk.fish";
         break;
+      case "powershell":
+        completionScript = `${POWERSHELL_START}\n${POWERSHELL_COMPLETION}\n${POWERSHELL_END}`;
+        filename = "Microsoft.PowerShell_profile.ps1";
+        break;
       default:
         console.error(chalk.red(`❌ Unsupported shell: ${shell}`));
-        console.log(chalk.gray("Supported shells: bash, zsh, fish"));
+        console.log(chalk.gray("Supported shells: bash, zsh, fish, powershell"));
         process.exit(1);
     }
 
@@ -253,6 +265,24 @@ export const completionCommand = new Command("completion")
       let installInstructions: string;
 
       switch (shell) {
+        case "powershell": {
+          const docs = join(home, "Documents");
+          const ps7 = process.env.PSModulePath?.includes(
+            join("Documents", "PowerShell", "Modules"),
+          );
+          const profileDir = join(docs, ps7 ? "PowerShell" : "WindowsPowerShell");
+          installPath = join(profileDir, filename);
+          mkdirSync(profileDir, { recursive: true });
+          const existing = existsSync(installPath) ? readFileSync(installPath, "utf-8") : "";
+          const block = `${POWERSHELL_START}\n${POWERSHELL_COMPLETION}\n${POWERSHELL_END}`;
+          const markerPattern = new RegExp(`${POWERSHELL_START}[\\s\\S]*?${POWERSHELL_END}`, "m");
+          const updated = markerPattern.test(existing)
+            ? existing.replace(markerPattern, block)
+            : `${existing}${existing && !existing.endsWith("\n") ? "\n" : ""}${block}\n`;
+          writeFileSync(installPath, updated, "utf-8");
+          installInstructions = "\n# Close and reopen PowerShell to load the completion.";
+          break;
+        }
         case "bash": {
           installPath = join(home, ".bash_completion.d", filename);
           const bashDir = join(home, ".bash_completion.d");

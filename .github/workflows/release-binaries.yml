@@ -88,6 +88,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.BINARY_RELEASE_TOKEN }}
 
+      - name: Verify Windows release binary
+        run: test -s "release-dist-${VERSION}/tdk-windows-amd64.exe"
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+
       # The root package is the public package. It owns the tdk bin entry and
       # already contains the compiled CLI plus the bundled engine assets.
       - name: Publish to npm

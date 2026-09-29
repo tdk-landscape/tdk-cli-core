@@ -1,4 +1,4 @@
-import { execSync, spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import chalk from "chalk";
 import { Command } from "commander";
 import { readProjectConfig } from "../generator/template-engine.js";
@@ -9,10 +9,13 @@ import { colorizeByStatus, DEFAULT_BOX_WIDTH, formatBoxLine, formatPadded, getSt
 import { findProjectRoot } from "../utils/paths.js";
 import { checkPortStatus } from "../utils/port-assignment.js";
 import { isValidPort, sanitizeForShell } from "../utils/validation.js";
+import { findOnPath } from "../utils/which.js";
 function execSafe(command, args, options = {}) {
     return new Promise((resolve, reject) => {
-        const child = spawn(command, args, {
+        const child = spawn(findOnPath(command) ?? command, args, {
             timeout: options.timeout || 5000,
+            shell: false,
+            windowsHide: process.platform === "win32",
         });
         let stdout = "";
         let stderr = "";
@@ -46,7 +49,7 @@ function determineDefaultDomain() {
     }
     const domains = new Set();
     try {
-        const traefikLabels = execSync('docker ps --filter "label=traefik.enable=true" --format "{{.Labels}}" 2>/dev/null', { encoding: "utf-8" });
+        const traefikLabels = execFileSync(findOnPath("docker") ?? "docker", ["ps", "--filter", "label=traefik.enable=true", "--format", "{{.Labels}}"], { encoding: "utf-8", windowsHide: process.platform === "win32" });
         // Capture every Host(`...`) in a rule (multi-host rules included), avoid ReDoS with bounded classes
         const domainRegex = /Host\(`([a-zA-Z0-9_.-]{1,100})`\)/g;
         for (let match = domainRegex.exec(traefikLabels); match !== null; match = domainRegex.exec(traefikLabels)) {
@@ -130,7 +133,9 @@ async function checkServiceStatus(serviceName, port, url) {
             return "running";
         }
         if (portStatus === "unknown") {
-            console.warn(chalk.yellow(`⚠️ Could not check port ${port} (lsof unavailable)`));
+            console.warn(chalk.yellow(process.platform === "win32"
+                ? `⚠️ Could not check port ${port} with the Windows TCP probe`
+                : `⚠️ Could not check port ${port} (port probe unavailable)`));
         }
     }
     try {
@@ -175,6 +180,9 @@ export const networksCommand = new Command("networks")
             stack: s.stack,
             basePath: s.config.basePath,
             url,
+            ...(process.platform === "win32"
+                ? { loopbackUrl: `http://127.0.0.1:80/${basePath}`.replace(/\/$/, "") }
+                : {}),
             port,
             status,
         };
@@ -200,6 +208,8 @@ export const networksCommand = new Command("networks")
     if (options.raw) {
         for (const service of filteredServices) {
             console.log(service.url);
+            if (service.loopbackUrl)
+                console.log(service.loopbackUrl);
         }
         process.exit(0);
     }
@@ -237,6 +247,9 @@ export const networksCommand = new Command("networks")
                 : chalk.gray(service.url); // Gray out URL if stopped
             const statusLabel = service.status !== "running" ? chalk.gray(` [${service.status}]`) : "";
             console.log(`  ${statusEmoji} ${chalk.white(namePart)}  ${urlPart}${statusLabel}`);
+            if (service.loopbackUrl) {
+                console.log(`     ${chalk.gray(`Loopback: ${service.loopbackUrl} (Host: ${new URL(service.url).hostname})`)}`);
+            }
         }
     }
     console.log();

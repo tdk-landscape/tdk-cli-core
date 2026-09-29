@@ -1,4 +1,4 @@
-import { execSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, normalize, relative } from "node:path";
 import chalk from "chalk";
@@ -34,6 +34,12 @@ import { formatCount } from "../utils/formatting.js";
 import { findProjectRoot } from "../utils/paths.js";
 import { buildHealthTargets, pingHealthTargets } from "../utils/service-urls.js";
 import { discoverResourcesFromRoot } from "../utils/services.js";
+import { findOnPath } from "../utils/which.js";
+import {
+  checkWindowsDockerMode,
+  checkWindowsHostConfiguration,
+  checkWindowsRuntimeTools,
+} from "../utils/windows-doctor.js";
 
 export {
   checkIngressPorts,
@@ -88,6 +94,23 @@ async function succeeds(command: string): Promise<boolean> {
 }
 
 async function checkDockerRuntime(): Promise<CheckResult> {
+  if (process.platform === "win32") {
+    try {
+      await execAsync("docker ps", EXEC_TIMEOUT_MS);
+      return {
+        name: "Container Runtime",
+        didPass: true,
+        message: "Docker Desktop Linux container engine is running",
+      };
+    } catch {
+      return {
+        name: "Container Runtime",
+        didPass: false,
+        message:
+          "Docker is not running. Start Docker Desktop, wait until it is Running, then retry tdk doctor.",
+      };
+    }
+  }
   try {
     await execAsync("docker ps", EXEC_TIMEOUT_MS);
     return {
@@ -114,7 +137,7 @@ async function checkDockerRuntime(): Promise<CheckResult> {
       message: "Colima (Docker runtime) is running",
     };
   }
-  if (await succeeds("which colima")) {
+  if (findOnPath("colima")) {
     return {
       name: "Container Runtime",
       didPass: false,
@@ -226,7 +249,9 @@ const checkTilt = createExecCheck(
   "Tilt CLI",
   "tilt version",
   "Tilt CLI installed",
-  "Tilt CLI not found",
+  process.platform === "win32"
+    ? "tilt.exe not found on PATH. Install Tilt from https://docs.tilt.dev/install.html"
+    : "Tilt CLI not found",
   `Install Tilt: brew install tilt (macOS) or see https://docs.tilt.dev/install.html. Setup guide: ${QUICKSTART_DOCS_URL}`,
 );
 
@@ -898,11 +923,16 @@ function parseDockerStats(raw: string): ContainerStat[] {
 function checkContainerResourceHealth(): CheckResult {
   let raw: string;
   try {
-    raw = execSync('docker stats --no-stream --format "{{.Name}},{{.MemPerc}},{{.CPUPerc}}"', {
-      stdio: "pipe",
-      encoding: "utf-8",
-      timeout: EXEC_TIMEOUT_MS,
-    });
+    raw = execFileSync(
+      findOnPath("docker") ?? "docker",
+      ["stats", "--no-stream", "--format", "{{.Name}},{{.MemPerc}},{{.CPUPerc}}"],
+      {
+        stdio: "pipe",
+        encoding: "utf-8",
+        timeout: EXEC_TIMEOUT_MS,
+        windowsHide: process.platform === "win32",
+      },
+    );
   } catch (err) {
     return {
       name: "Container Resource Health",
@@ -994,6 +1024,13 @@ export const doctorCommand = new Command("doctor")
     }
 
     const machineChecks: Array<() => Promise<CheckResult>> = [
+      ...(process.platform === "win32"
+        ? [
+            async () => checkWindowsRuntimeTools(),
+            async () => checkWindowsDockerMode(),
+            checkWindowsHostConfiguration,
+          ]
+        : []),
       checkDockerRuntime,
       checkTilt,
       checkDockerCompose,

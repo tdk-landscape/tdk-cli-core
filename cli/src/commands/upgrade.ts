@@ -1,15 +1,28 @@
-import { execSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { accessSync, constants, existsSync, readFileSync, realpathSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import {
+  accessSync,
+  constants,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { basename, dirname, join, resolve, win32 } from "node:path";
 import { fileURLToPath } from "node:url";
 import chalk from "chalk";
 import { Command } from "commander";
 import { getErrorMessage, logVerbose, showErrorAndExit } from "../utils/errors.js";
 import { showCancelled } from "../utils/formatting.js";
 import { getPackageVersion } from "../utils/paths.js";
+import { binaryAssetName, executableName, isWindows } from "../utils/platform.js";
 import { promptConfirm } from "../utils/prompt.js";
 import { startSpinner } from "../utils/spinner.js";
+import { extractTarball } from "../utils/tar.js";
+import { findOnPath } from "../utils/which.js";
 
 interface InstallInfo {
   method: "npm" | "bun" | "git" | "binary" | "unknown";
@@ -18,8 +31,9 @@ interface InstallInfo {
 }
 
 function isStandaloneBinary(tdkPath: string): boolean {
+  if (isWindows() && tdkPath.toLowerCase().endsWith(".exe")) return true;
   try {
-    const fileInfo = execSync(`file -b ${JSON.stringify(tdkPath)}`, { encoding: "utf-8" });
+    const fileInfo = execFileSync("file", ["-b", tdkPath], { encoding: "utf-8" });
     return /Mach-O|ELF/.test(fileInfo);
   } catch (err: unknown) {
     logVerbose("Binary detection (file command) error", err);
@@ -27,9 +41,42 @@ function isStandaloneBinary(tdkPath: string): boolean {
   }
 }
 
+export function classifyRunningInstall(
+  execPath: string,
+  scriptPath: string,
+  platformName = process.platform,
+): InstallInfo | null {
+  const runningName = (
+    platformName === "win32" ? win32.basename(execPath) : basename(execPath)
+  ).toLowerCase();
+  if (runningName === "tdk" || runningName === "tdk.exe") {
+    return { method: "binary", path: execPath };
+  }
+  if (runningName === "node" || runningName === "node.exe") {
+    const normalizedScriptPath = scriptPath.toLowerCase();
+    if (normalizedScriptPath.includes("node_modules") || normalizedScriptPath.includes(".npm")) {
+      return { method: "npm", path: scriptPath };
+    }
+  }
+  return null;
+}
+
+export function windowsNpmUpgradeMessage(
+  platformName: string,
+  installInfo: InstallInfo,
+): string | null {
+  return platformName === "win32" && installInfo.method === "npm"
+    ? "use npm install -g @tdk-landscape/tdk-cli-core@latest"
+    : null;
+}
+
 function detectInstallation(): InstallInfo {
+  const runningPath = process.execPath;
+  const runningInstall = classifyRunningInstall(runningPath, process.argv[1] ?? "");
+  if (runningInstall) return runningInstall;
   try {
-    const tdkPath = execSync("which tdk", { encoding: "utf-8" }).trim();
+    const tdkPath = findOnPath(executableName());
+    if (!tdkPath) return { method: "unknown" };
 
     // `readlink -f` is not available on macOS. Use Node's cross-platform
     // realpath implementation so standalone binaries are detected there too.
@@ -69,14 +116,6 @@ function detectInstallation(): InstallInfo {
 }
 
 const BINARY_RELEASE_REPO = "tdk-landscape/tdk-cli-releases";
-
-function binaryAssetName(): string | null {
-  const osName =
-    process.platform === "darwin" ? "darwin" : process.platform === "linux" ? "linux" : null;
-  const archName = process.arch === "arm64" ? "arm64" : process.arch === "x64" ? "amd64" : null;
-  if (!osName || !archName) return null;
-  return `tdk-${osName}-${archName}`;
-}
 
 const ENGINE_ASSET_NAME = "tdk-cli-engine.tar.gz";
 const CHECKSUMS_ASSET_NAME = "checksums.txt";
@@ -119,7 +158,9 @@ function verifyChecksum(
   }
   const actual = createHash("sha256").update(readFileSync(filePath)).digest("hex");
   if (actual !== expected) {
-    throw new Error(`Checksum mismatch for ${assetName} (expected ${expected}, got ${actual})`);
+    throw new Error(
+      `${isWindows() ? "checksum mismatch" : "Checksum mismatch"} for ${assetName} (expected ${expected}, got ${actual})`,
+    );
   }
 }
 
@@ -128,11 +169,14 @@ async function getLatestBinaryRelease(): Promise<BinaryRelease | null> {
   if (!assetName) return null;
 
   try {
-    const raw = execSync(
-      `curl -fsSL https://api.github.com/repos/${BINARY_RELEASE_REPO}/releases/latest`,
-      { encoding: "utf-8", timeout: 10000 },
+    const response = await fetch(
+      `https://api.github.com/repos/${BINARY_RELEASE_REPO}/releases/latest`,
+      {
+        signal: AbortSignal.timeout(10_000),
+      },
     );
-    const data = JSON.parse(raw) as { tag_name?: string };
+    if (!response.ok) return null;
+    const data = (await response.json()) as { tag_name?: string };
     if (!data.tag_name) return null;
 
     return {
@@ -165,24 +209,33 @@ export async function upgradeViaBinary(tdkPath: string, release: BinaryRelease):
   if (!isWritable(installDir)) {
     console.log(chalk.yellow(`\n🔒 ${installDir} isn't writable by your user.`));
     console.log(chalk.yellow("💡 Upgrade manually instead:"));
-    console.log(chalk.cyan(`   curl -fsSL -o ${tdkPath} ${release.downloadUrl}`));
-    console.log(chalk.cyan(`   chmod +x ${tdkPath}`));
+    if (isWindows()) {
+      console.log(
+        chalk.cyan("   Install TDK in a user-writable directory, then retry the upgrade."),
+      );
+    } else {
+      console.log(chalk.cyan(`   curl -fsSL -o ${tdkPath} ${release.downloadUrl}`));
+      console.log(chalk.cyan(`   chmod +x ${tdkPath}`));
+    }
     return false;
   }
 
   const spinner = startSpinner(`Downloading ${release.assetName} (${release.tag})...`);
-  // Download to /tmp first (both the binary and the engine bundle below) so a
-  // failed network step can't leave a half-written binary at tdkPath.
-  const tmpPath = `/tmp/tdk-upgrade-${release.assetName}`;
-  const engineTmpPath = `/tmp/tdk-upgrade-engine-${release.tag}.tar.gz`;
+  const tempDir = join(installDir, `.tdk-upgrade-${process.pid}-${Date.now()}`);
+  const tmpPath = join(tempDir, release.assetName);
+  const engineTmpPath = join(tempDir, "engine.tar.gz");
   const engineDir = join(installDir, "tdk-cli");
+  const engineStageDir = join(tempDir, "tdk-cli");
+  const binaryBackup = join(tempDir, `${basename(tdkPath)}.previous`);
+  const engineBackup = join(tempDir, "tdk-cli.previous");
 
   try {
-    execSync(`curl -fsSL -o ${JSON.stringify(tmpPath)} ${JSON.stringify(release.downloadUrl)}`, {
-      stdio: "pipe",
-      timeout: 120000,
+    mkdirSync(tempDir, { recursive: true });
+    const binaryResponse = await fetch(release.downloadUrl, {
+      signal: AbortSignal.timeout(120_000),
     });
-    execSync(`chmod +x ${JSON.stringify(tmpPath)}`);
+    if (!binaryResponse.ok) throw new Error(`Download failed (${binaryResponse.status})`);
+    writeFileSync(tmpPath, Buffer.from(await binaryResponse.arrayBuffer()));
 
     // The compiled binary has no source checkout to find engine/ or
     // cli/templates/ in, so it looks for a tdk-cli/ folder next to itself
@@ -191,52 +244,62 @@ export async function upgradeViaBinary(tdkPath: string, release: BinaryRelease):
     // stale/missing after an upgrade - refresh it here too, every time,
     // the same way install.sh does on a fresh install.
     spinner.text = `Downloading bundled engine (${release.tag})...`;
-    execSync(
-      `curl -fsSL -o ${JSON.stringify(engineTmpPath)} ${JSON.stringify(release.engineDownloadUrl)}`,
-      { stdio: "pipe", timeout: 120000 },
-    );
+    const engineResponse = await fetch(release.engineDownloadUrl, {
+      signal: AbortSignal.timeout(120_000),
+    });
+    if (!engineResponse.ok) throw new Error(`Engine download failed (${engineResponse.status})`);
+    const engineBuffer = Buffer.from(await engineResponse.arrayBuffer());
+    writeFileSync(engineTmpPath, engineBuffer);
 
     // Verify both downloads against the release's checksums.txt before
     // touching the installed binary or engine.
     spinner.text = `Verifying checksums (${release.tag})...`;
-    const sums = parseChecksums(
-      execSync(`curl -fsSL ${JSON.stringify(release.checksumsUrl)}`, {
-        encoding: "utf-8",
-        stdio: "pipe",
-        timeout: 30000,
-      }),
-    );
+    const checksumResponse = await fetch(release.checksumsUrl, {
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (!checksumResponse.ok)
+      throw new Error(`Checksum download failed (${checksumResponse.status})`);
+    const sums = parseChecksums(await checksumResponse.text());
     verifyChecksum(tmpPath, release.assetName, sums, true);
     verifyChecksum(engineTmpPath, ENGINE_ASSET_NAME, sums, false);
 
-    execSync(`mv ${JSON.stringify(tmpPath)} ${JSON.stringify(tdkPath)}`);
-    execSync(`rm -rf ${JSON.stringify(engineDir)}`);
-    execSync(`mkdir -p ${JSON.stringify(engineDir)}`);
-    execSync(
-      `tar -xzf ${JSON.stringify(engineTmpPath)} -C ${JSON.stringify(engineDir)} --strip-components=1`,
-    );
+    mkdirSync(engineStageDir, { recursive: true });
+    extractTarball(engineBuffer, engineStageDir);
+
+    if (existsSync(tdkPath)) renameSync(tdkPath, binaryBackup);
+    try {
+      renameSync(tmpPath, tdkPath);
+    } catch (err) {
+      if (existsSync(binaryBackup)) renameSync(binaryBackup, tdkPath);
+      throw err;
+    }
+    if (existsSync(engineDir)) renameSync(engineDir, engineBackup);
+    try {
+      renameSync(engineStageDir, engineDir);
+    } catch (err) {
+      if (existsSync(engineBackup)) renameSync(engineBackup, engineDir);
+      if (existsSync(binaryBackup)) {
+        rmSync(tdkPath, { force: true });
+        renameSync(binaryBackup, tdkPath);
+      }
+      throw err;
+    }
+    rmSync(binaryBackup, { force: true });
+    rmSync(engineBackup, { recursive: true, force: true });
 
     spinner.succeed(`Upgraded to ${release.tag}`);
     return true;
   } catch (err: unknown) {
     spinner.fail(`Binary upgrade failed: ${getErrorMessage(err)}`);
     logVerbose("Binary upgrade error", err);
-    console.log(chalk.yellow("\n💡 If this failed due to permissions, upgrade manually instead:"));
-    console.log(chalk.cyan(`   curl -fsSL -o ${tdkPath} ${release.downloadUrl}`));
-    console.log(chalk.cyan(`   chmod +x ${tdkPath}`));
-    console.log(chalk.cyan(`   rm -rf ${engineDir} && mkdir -p ${engineDir}`));
     console.log(
-      chalk.cyan(
-        `   curl -fsSL ${release.engineDownloadUrl} | tar -xzf - -C ${engineDir} --strip-components=1`,
+      chalk.yellow(
+        "\n💡 If this failed due to permissions, use the platform installer or install command.",
       ),
     );
     return false;
   } finally {
-    try {
-      execSync(`rm -f ${JSON.stringify(tmpPath)} ${JSON.stringify(engineTmpPath)}`);
-    } catch {
-      // best-effort cleanup
-    }
+    rmSync(tempDir, { recursive: true, force: true });
   }
 }
 
@@ -253,10 +316,24 @@ async function getLatestVersion(): Promise<string | null> {
   const spinner = startSpinner("Checking for latest version...");
 
   try {
-    const result = execSync("npm view @tdk-landscape/tdk-cli-core version", {
-      encoding: "utf-8",
-      timeout: 10000,
-    }).trim();
+    let result: string;
+    if (isWindows()) {
+      const response = await fetch(
+        "https://registry.npmjs.org/@tdk-landscape%2ftdk-cli-core/latest",
+        {
+          signal: AbortSignal.timeout(10_000),
+        },
+      );
+      if (!response.ok) throw new Error(`npm registry returned ${response.status}`);
+      const latest = (await response.json()) as { version?: string };
+      result = latest.version ?? "";
+      if (!result) throw new Error("npm registry response did not include a version");
+    } else {
+      result = execSync("npm view @tdk-landscape/tdk-cli-core version", {
+        encoding: "utf-8",
+        timeout: 10000,
+      }).trim();
+    }
     spinner.succeed(`Latest version: ${chalk.green(result)}`);
     return result;
   } catch (_err: unknown) {
@@ -302,10 +379,14 @@ async function upgradeViaBun(): Promise<boolean> {
   const spinner = startSpinner("Upgrading via bun...");
 
   try {
-    execSync("bun install -g @tdk-landscape/tdk-cli-core@latest", {
-      stdio: "inherit",
-      timeout: 120000,
-    });
+    execFileSync(
+      findOnPath("bun") ?? "bun",
+      ["install", "-g", "@tdk-landscape/tdk-cli-core@latest"],
+      {
+        stdio: "inherit",
+        timeout: 120000,
+      },
+    );
     spinner.succeed("Upgraded successfully via bun");
     return true;
   } catch (err: unknown) {
@@ -313,10 +394,14 @@ async function upgradeViaBun(): Promise<boolean> {
     spinner.text = "bun registry failed, trying GitHub...";
     logVerbose("bun registry error", err);
     try {
-      execSync("bun install -g github:tdk-landscape/tdk-cli-core", {
-        stdio: "inherit",
-        timeout: 120000,
-      });
+      execFileSync(
+        findOnPath("bun") ?? "bun",
+        ["install", "-g", "github:tdk-landscape/tdk-cli-core"],
+        {
+          stdio: "inherit",
+          timeout: 120000,
+        },
+      );
       spinner.succeed("Upgraded successfully via GitHub");
       return true;
     } catch (err: unknown) {
@@ -330,25 +415,25 @@ async function upgradeViaGit(path: string): Promise<boolean> {
   const spinner = startSpinner("Pulling latest changes from git...");
 
   try {
-    execSync("git rev-parse --git-dir", {
+    execFileSync("git", ["rev-parse", "--git-dir"], {
       cwd: path,
       stdio: "pipe",
     });
 
     spinner.text = "Fetching from origin...";
-    execSync("git fetch origin", {
+    execFileSync("git", ["fetch", "origin"], {
       cwd: path,
       stdio: "pipe",
       timeout: 30000,
     });
 
-    const branch = execSync("git rev-parse --abbrev-ref HEAD", {
+    const branch = execFileSync("git", ["rev-parse", "--abbrev-ref", "HEAD"], {
       cwd: path,
       encoding: "utf-8",
     }).trim();
 
     spinner.text = `Pulling latest on ${branch}...`;
-    execSync(`git pull origin ${branch}`, {
+    execFileSync("git", ["pull", "origin", branch], {
       cwd: path,
       stdio: "pipe",
       timeout: 30000,
@@ -356,7 +441,12 @@ async function upgradeViaGit(path: string): Promise<boolean> {
 
     if (existsSync(join(path, "cli", "package.json"))) {
       spinner.text = "Rebuilding CLI...";
-      execSync("bun install && bun run build", {
+      execFileSync(findOnPath("bun") ?? "bun", ["install"], {
+        cwd: join(path, "cli"),
+        stdio: "pipe",
+        timeout: 60000,
+      });
+      execFileSync(findOnPath("bun") ?? "bun", ["run", "build"], {
         cwd: join(path, "cli"),
         stdio: "pipe",
         timeout: 60000,
@@ -364,7 +454,7 @@ async function upgradeViaGit(path: string): Promise<boolean> {
     }
 
     spinner.text = "Re-linking CLI...";
-    execSync("bun link --force", {
+    execFileSync(findOnPath("bun") ?? "bun", ["link", "--force"], {
       cwd: join(path, "cli"),
       stdio: "pipe",
       timeout: 30000,
@@ -394,6 +484,12 @@ export const upgradeCommand = new Command("upgrade")
     console.log(chalk.gray(`Installation method: ${installInfo.method}`));
     console.log();
 
+    const windowsNpmMessage = windowsNpmUpgradeMessage(process.platform, installInfo);
+    if (windowsNpmMessage) {
+      console.log(windowsNpmMessage);
+      return;
+    }
+
     if (installInfo.method === "unknown") {
       console.error(chalk.red("❌ Could not detect installation method"));
       console.log(chalk.yellow("\n💡 Manual upgrade (package not on npm yet, use GitHub):"));
@@ -412,8 +508,18 @@ export const upgradeCommand = new Command("upgrade")
       binaryRelease = await getLatestBinaryRelease();
 
       if (!binaryRelease) {
+        if (process.platform === "win32" && process.arch === "arm64") {
+          showErrorAndExit(
+            "TDK Windows v1 supports AMD64 only. Use WSL2 Ubuntu or a 64-bit Intel/AMD PC.",
+          );
+        }
+        if (process.platform === "win32") {
+          showErrorAndExit(
+            "No Windows AMD64 binary in this TDK release. Need asset tdk-windows-amd64.exe.",
+          );
+        }
         showErrorAndExit(
-          `Could not determine latest release for this platform (${process.platform}/${process.arch})`,
+          `Unsupported OS: TDK does not support this OS: ${process.platform}. Supported: linux, darwin, win32.`,
         );
       }
 
@@ -434,12 +540,12 @@ export const upgradeCommand = new Command("upgrade")
       console.log(chalk.blue("📦 Git installation detected - will pull latest from origin"));
 
       try {
-        execSync("git fetch origin", { cwd: installInfo.path, stdio: "pipe" });
-        const localHash = execSync("git rev-parse HEAD", {
+        execFileSync("git", ["fetch", "origin"], { cwd: installInfo.path, stdio: "pipe" });
+        const localHash = execFileSync("git", ["rev-parse", "HEAD"], {
           cwd: installInfo.path,
           encoding: "utf-8",
         }).trim();
-        const remoteHash = execSync("git rev-parse origin/main", {
+        const remoteHash = execFileSync("git", ["rev-parse", "origin/main"], {
           cwd: installInfo.path,
           encoding: "utf-8",
         }).trim();
@@ -560,16 +666,20 @@ export const upgradeCommand = new Command("upgrade")
         console.log(chalk.cyan(`   cd ${installInfo.path} && git pull && bun link --force`));
       } else if (installInfo.method === "binary" && binaryRelease && installInfo.path) {
         const engineDir = join(dirname(installInfo.path), "tdk-cli");
-        console.log(
-          chalk.cyan(`   curl -fsSL -o ${installInfo.path} ${binaryRelease.downloadUrl}`),
-        );
-        console.log(chalk.cyan(`   chmod +x ${installInfo.path}`));
-        console.log(chalk.cyan(`   rm -rf ${engineDir} && mkdir -p ${engineDir}`));
-        console.log(
-          chalk.cyan(
-            `   curl -fsSL ${binaryRelease.engineDownloadUrl} | tar -xzf - -C ${engineDir} --strip-components=1`,
-          ),
-        );
+        if (isWindows()) {
+          console.log(chalk.cyan("   irm https://tdk-landscape.github.io/install.ps1 | iex"));
+        } else {
+          console.log(
+            chalk.cyan(`   curl -fsSL -o ${installInfo.path} ${binaryRelease.downloadUrl}`),
+          );
+          console.log(chalk.cyan(`   chmod +x ${installInfo.path}`));
+          console.log(chalk.cyan(`   rm -rf ${engineDir} && mkdir -p ${engineDir}`));
+          console.log(
+            chalk.cyan(
+              `   curl -fsSL ${binaryRelease.engineDownloadUrl} | tar -xzf - -C ${engineDir} --strip-components=1`,
+            ),
+          );
+        }
       }
       process.exit(1);
     }
@@ -578,7 +688,14 @@ export const upgradeCommand = new Command("upgrade")
     const verifySpinner = startSpinner("Verifying upgrade...");
 
     try {
-      const newVersion = execSync("tdk version", { encoding: "utf-8" }).trim();
+      const newVersion = execFileSync(
+        findOnPath(executableName()) ?? executableName(),
+        ["version"],
+        {
+          encoding: "utf-8",
+          windowsHide: isWindows(),
+        },
+      ).trim();
       verifySpinner.succeed(`Verified: now running ${chalk.green(newVersion)}`);
 
       console.log();
@@ -594,7 +711,7 @@ export const upgradeCommand = new Command("upgrade")
         console.log(chalk.gray(`   Method:   ${installInfo.method}`));
       }
       console.log(
-        chalk.gray(`   Binary:   ${execSync("which tdk", { encoding: "utf-8" }).trim()}`),
+        chalk.gray(`   Binary:   ${installInfo.path ?? findOnPath(executableName()) ?? "unknown"}`),
       );
 
       console.log();

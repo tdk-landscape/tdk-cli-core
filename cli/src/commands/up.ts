@@ -1,4 +1,4 @@
-import { execSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 import chalk from "chalk";
 import { Command } from "commander";
 import { ensureProjectRuntimeAssets } from "../generator/template-engine.js";
@@ -141,7 +141,18 @@ export const upCommand = new Command("up")
 
       if (options.force && !options.quiet) {
         console.log(chalk.yellow("Force flag set - killing any existing Tilt processes..."));
-        execSync("killall tilt 2>/dev/null || true", { shell: "/bin/sh", stdio: "pipe" });
+        if (process.platform === "win32") {
+          try {
+            execFileSync("taskkill.exe", ["/IM", "tilt.exe", "/F"], {
+              stdio: "pipe",
+              windowsHide: true,
+            });
+          } catch {
+            // No existing Tilt process is a normal force-start state.
+          }
+        } else {
+          execSync("killall tilt 2>/dev/null || true", { shell: "/bin/sh", stdio: "pipe" });
+        }
         await new Promise((resolve) => setTimeout(resolve, 2000));
       }
 

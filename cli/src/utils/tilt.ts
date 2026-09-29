@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { join } from "node:path";
 import type { TiltCommandResult } from "../types/index.js";
 import { findProjectRoot } from "./paths.js";
+import { findOnPath } from "./which.js";
 
 export function runTilt(
   command: string,
@@ -20,9 +21,10 @@ export function runTilt(
       console.log(`Executing: tilt ${tiltArgs.join(" ")}`);
     }
 
-    const child = spawn("tilt", tiltArgs, {
+    const child = spawn(findOnPath("tilt") ?? "tilt", tiltArgs, {
       stdio: options.inheritStdio ? "inherit" : "pipe",
       shell: false,
+      windowsHide: process.platform === "win32",
       timeout: options.timeoutMs,
     });
 
