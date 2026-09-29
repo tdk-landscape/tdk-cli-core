@@ -1,7 +1,7 @@
 import { execFileSync, execSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { accessSync, constants, existsSync, mkdirSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync, } from "node:fs";
-import { basename, dirname, join, resolve } from "node:path";
+import { basename, dirname, join, resolve, win32 } from "node:path";
 import { fileURLToPath } from "node:url";
 import chalk from "chalk";
 import { Command } from "commander";
@@ -25,18 +25,29 @@ function isStandaloneBinary(tdkPath) {
         return false;
     }
 }
-function detectInstallation() {
-    const runningPath = process.execPath;
-    const runningName = basename(runningPath).toLowerCase();
+export function classifyRunningInstall(execPath, scriptPath, platformName = process.platform) {
+    const runningName = (platformName === "win32" ? win32.basename(execPath) : basename(execPath)).toLowerCase();
     if (runningName === "tdk" || runningName === "tdk.exe") {
-        return { method: "binary", path: runningPath };
+        return { method: "binary", path: execPath };
     }
     if (runningName === "node" || runningName === "node.exe") {
-        const scriptPath = process.argv[1] ?? "";
-        if (scriptPath.includes("node_modules") || scriptPath.includes(".npm")) {
+        const normalizedScriptPath = scriptPath.toLowerCase();
+        if (normalizedScriptPath.includes("node_modules") || normalizedScriptPath.includes(".npm")) {
             return { method: "npm", path: scriptPath };
         }
     }
+    return null;
+}
+export function windowsNpmUpgradeMessage(platformName, installInfo) {
+    return platformName === "win32" && installInfo.method === "npm"
+        ? "use npm install -g @tdk-landscape/tdk-cli-core@latest"
+        : null;
+}
+function detectInstallation() {
+    const runningPath = process.execPath;
+    const runningInstall = classifyRunningInstall(runningPath, process.argv[1] ?? "");
+    if (runningInstall)
+        return runningInstall;
     try {
         const tdkPath = findOnPath(executableName());
         if (!tdkPath)
@@ -402,8 +413,9 @@ export const upgradeCommand = new Command("upgrade")
     const installInfo = detectInstallation();
     console.log(chalk.gray(`Installation method: ${installInfo.method}`));
     console.log();
-    if (isWindows() && installInfo.method === "npm") {
-        console.log("use npm install -g @tdk-landscape/tdk-cli-core@latest");
+    const windowsNpmMessage = windowsNpmUpgradeMessage(process.platform, installInfo);
+    if (windowsNpmMessage) {
+        console.log(windowsNpmMessage);
         return;
     }
     if (installInfo.method === "unknown") {
