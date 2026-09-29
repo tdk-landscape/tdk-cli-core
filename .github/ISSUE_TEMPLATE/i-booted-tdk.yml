@@ -22,12 +22,10 @@ body:
     attributes:
       label: Minutes until first healthy URL
       placeholder: For example, 8
-    validations:
-      required: true
   - type: textarea
     id: broke
     attributes:
-      label: What broke?
+      label: What broke
       description: Include the relevant output or error.
     validations:
       required: true
