@@ -8,7 +8,7 @@ export declare const DOCTOR_FIXES: {
     readonly tiltMissing: "curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash";
     readonly bunMissing: "curl -fsSL https://bun.sh/install | bash";
     readonly port80: "Stop the process bound to port 80, or stop local nginx/caddy. Then: tdk doctor";
-    readonly port5432: "Stop local Postgres or change the host port. Find the process with: lsof -nP -iTCP:5432. Then: tdk doctor";
+    readonly port5432: "Stop local Postgres or change the host port. Then: tdk doctor";
     readonly notProject: "tdk project --yes";
     readonly wsl2: "WSL2 detected. Use Docker Desktop WSL integration. Guide: docs/wsl2.md";
 };

@@ -12,7 +12,7 @@ const REGISTRY_PROBE_TIMEOUT_MS = 3_000;
 const DEFAULT_VERDACCIO_URL = "http://localhost:4873";
 export const HOST_PORT_FIXES = {
     port80: "Stop the process bound to port 80, or stop local nginx/caddy. Then: tdk doctor",
-    port5432: "Stop local Postgres or change the host port. Find the process with: lsof -nP -iTCP:5432. Then: tdk doctor",
+    port5432: "Stop local Postgres or change the host port. Then: tdk doctor",
 };
 function runHostCommand(exec, command, args, shellCommand, options) {
     if (process.platform === "win32") {
