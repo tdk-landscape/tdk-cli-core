@@ -33,6 +33,15 @@ The CLI and service schema MUST accept bring-your-own resources with project-def
 - **THEN** `tdk resources` lists it
 - **AND** `tdk up --dry-run <stack>` includes it without starting services
 
+### Scenario: Verify a non-generated Python resource in CI
+
+- **WHEN** the BYO contract E2E copies a pre-written Python Dockerfile fixture into a TDK project and runs `tdk resource <name> --type byo --stack shop --dockerfile ./Dockerfile --port 4500 --yes`
+- **THEN** the fixture files remain byte-for-byte unchanged
+- **AND** the resource has a schema-valid `service.json` with `appType: "bring-your-own"`, `stack: "shop"`, and `port: 4500`
+- **AND** TDK does not create `src/`, `package.json`, or `tsconfig.json`
+- **AND** `tdk up shop --dry-run` lists the resource without requiring Docker or Tilt
+- **AND** the contract E2E does not add Python, Java, or other language generators
+
 ## Requirement: Doctor uses exact remediation copy
 
 Doctor MUST preserve these exact fix strings:
