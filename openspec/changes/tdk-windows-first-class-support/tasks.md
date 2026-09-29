@@ -20,7 +20,7 @@
 - [x] 3.3 Keep the Node port bind test; add PowerShell listener ownership and netsh excluded-range diagnostics, including IIS naming and Hyper-V/WSL guidance.
 - [x] 3.4 Add Windows DNS checks for `tdk.localhost` and a sample host, exact hosts-file guidance, project-drive file-sharing guidance, and a non-mutating `core.autocrlf` warning.
 - [x] 3.5 Update Windows `tdk networks` output to include hostname and numeric loopback URLs while preserving Unix routing defaults.
-- [ ] 3.6 Review generated Compose/Tilt/templates for Windows-host assumptions; retain Linux containers and project-relative mounts, avoid host-side chmod, and preserve existing port overrides.
+- [x] 3.6 Review generated Compose/Tilt/templates for Windows-host assumptions; retain Linux containers and project-relative mounts, avoid host-side chmod, and preserve existing port overrides.
 
 ## 4. PowerShell completion
 

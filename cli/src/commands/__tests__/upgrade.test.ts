@@ -23,7 +23,13 @@ vi.mock("../../utils/tar.js", () => ({
   },
 }));
 
-const { upgradeViaBinary, isWritable, parseChecksums } = await import("../upgrade.js");
+const {
+  classifyRunningInstall,
+  isWritable,
+  parseChecksums,
+  upgradeViaBinary,
+  windowsNpmUpgradeMessage,
+} = await import("../upgrade.js");
 
 import type { BinaryRelease } from "../upgrade.js";
 
@@ -177,5 +183,33 @@ describe("parseChecksums", () => {
     expect(sums.get("tdk-linux-amd64")).toBe(a);
     expect(sums.get("tdk-cli-engine.tar.gz")).toBe("b".repeat(64));
     expect(sums.size).toBe(2);
+  });
+});
+
+describe("Windows upgrade installation routing", () => {
+  it("recognizes a compiled Windows CLI executable", () => {
+    expect(classifyRunningInstall("C:\\Users\\dev\\tdk.exe", "", "win32")).toEqual({
+      method: "binary",
+      path: "C:\\Users\\dev\\tdk.exe",
+    });
+  });
+
+  it("recognizes an npm-installed Node entry point", () => {
+    expect(
+      classifyRunningInstall(
+        "C:\\Program Files\\nodejs\\node.exe",
+        "C:\\Users\\dev\\node_modules\\@tdk-landscape\\tdk-cli-core\\bin\\tdk.js",
+        "win32",
+      ),
+    ).toEqual({
+      method: "npm",
+      path: "C:\\Users\\dev\\node_modules\\@tdk-landscape\\tdk-cli-core\\bin\\tdk.js",
+    });
+  });
+
+  it("prints the npm update command instead of replacing npm files with an exe", () => {
+    expect(windowsNpmUpgradeMessage("win32", { method: "npm" })).toBe(
+      "use npm install -g @tdk-landscape/tdk-cli-core@latest",
+    );
   });
 });
