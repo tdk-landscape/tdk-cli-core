@@ -33,8 +33,10 @@ export const upCommand = new Command("up")
   .option("--dry-run", "Show what would be started without starting", false)
   .option("-f, --force", "Kill existing Tilt process before starting", false)
   .action(async (stackName, options) => {
-    const { assertMachineReadyOrExit } = await import("../utils/cold-preflight.js");
-    await assertMachineReadyOrExit();
+    if (!options.dryRun) {
+      const { assertMachineReadyOrExit } = await import("../utils/cold-preflight.js");
+      await assertMachineReadyOrExit();
+    }
     const action = async (): Promise<void> => {
       const projectRoot = options.dryRun
         ? requireProjectRoot()
@@ -186,8 +188,8 @@ export const upCommand = new Command("up")
       if (!options.quiet) {
         console.log(chalk.gray("\nRunning tilt up..."));
         console.log(chalk.gray(`Using Tiltfile: .tdk/.tdk-out/Tiltfile`));
-        console.log(chalk.blue(`📊 Tilt UI: http://localhost:${port}/\n`));
       }
+      
       const result = await runTilt("up", tiltArgs, {
         verbose: options.verbose,
         quiet: options.quiet,
@@ -196,6 +198,14 @@ export const upCommand = new Command("up")
 
       if (result.exitCode !== 0) {
         handleTiltFailure("up", result.exitCode);
+      }
+
+      if (!options.quiet && result.exitCode === 0) {
+        console.log(chalk.green(chalk.bold("TDK is up.")));
+        console.log(chalk.blue(`Tilt UI: http://localhost:${port}/`));
+        console.log(chalk.blue("App URLs:"));
+        console.log(chalk.gray("  run: tdk networks"));
+        console.log(chalk.gray("Stop: tdk down"));
       }
     };
 

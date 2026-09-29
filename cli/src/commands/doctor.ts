@@ -106,8 +106,8 @@ export async function checkDockerRuntime(): Promise<CheckResult> {
       return {
         name: "Container Runtime",
         didPass: false,
-        message:
-          "Docker is not running. Start Docker Desktop, wait until it is Running, then retry tdk doctor.",
+        message: "Docker is not running",
+        fix: "Start Docker Desktop, OrbStack, or Colima, then retry: tdk doctor",
       };
     }
   }
@@ -123,8 +123,8 @@ export async function checkDockerRuntime(): Promise<CheckResult> {
       return {
         name: "Container Runtime",
         didPass: false,
-        message: `Docker daemon is not responding (\`docker ps\` hung for ${EXEC_TIMEOUT_MS / 1000}s)`,
-        fix: "Restart the runtime: quit and reopen Docker Desktop, or run `colima restart`",
+        message: "Docker daemon is not responding",
+        fix: "Start Docker Desktop, OrbStack, or Colima, then retry: tdk doctor",
       };
     }
   }
@@ -142,7 +142,7 @@ export async function checkDockerRuntime(): Promise<CheckResult> {
       name: "Container Runtime",
       didPass: false,
       message: "Colima is installed but not running",
-      fix: "Start Colima: colima start",
+      fix: "Start Docker Desktop, OrbStack, or Colima, then retry: tdk doctor",
     };
   }
   if (await succeeds("podman ps")) {
@@ -155,8 +155,8 @@ export async function checkDockerRuntime(): Promise<CheckResult> {
   return {
     name: "Container Runtime",
     didPass: false,
-    message: "No container runtime (Docker/Colima/Podman) is running",
-    fix: `Start: colima start (recommended) OR open -a Docker (macOS) OR sudo systemctl start docker (Linux). Setup guide: ${QUICKSTART_DOCS_URL}`,
+    message: "Docker is not running",
+    fix: "See https://docs.docker.com/get-docker/",
   };
 }
 
@@ -249,11 +249,54 @@ export const checkTilt = createExecCheck(
   "Tilt CLI",
   "tilt version",
   "Tilt CLI installed",
-  process.platform === "win32"
-    ? "tilt.exe not found on PATH. Install Tilt from https://docs.tilt.dev/install.html"
-    : "Tilt CLI not found",
-  `Install Tilt: brew install tilt (macOS) or see https://docs.tilt.dev/install.html. Setup guide: ${QUICKSTART_DOCS_URL}`,
+  "Tilt CLI not found",
+  "curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash",
 );
+
+export async function checkBun(): Promise<CheckResult> {
+  const projectRoot = findProjectRoot();
+  if (!projectRoot) {
+    return {
+      name: "Bun",
+      didPass: true,
+      isSkipped: true,
+      message: "Not in a project - skipping Bun check",
+    };
+  }
+
+  const resources = discoverResourcesFromRoot(projectRoot);
+  const hasGeneratedJsServices = resources.some(
+    (resource) =>
+      resource.config?.appType === "backend" ||
+      resource.config?.appType === "frontend" ||
+      resource.config?.appType === "worker",
+  );
+
+  if (!hasGeneratedJsServices) {
+    return {
+      name: "Bun",
+      didPass: true,
+      isSkipped: true,
+      message: "No generated JS services - skipping Bun check",
+    };
+  }
+
+  try {
+    await execAsync("bun --version", EXEC_TIMEOUT_MS);
+    return {
+      name: "Bun",
+      didPass: true,
+      message: "Bun is available",
+    };
+  } catch {
+    return {
+      name: "Bun",
+      didPass: false,
+      message: "Bun is not available",
+      fix: "curl -fsSL https://bun.sh/install | bash",
+    };
+  }
+}
 
 function checkEnvironmentVariables(): CheckResult {
   const projectRoot = findProjectRoot() ?? process.cwd();
@@ -1015,8 +1058,13 @@ export const doctorCommand = new Command("doctor")
   )
   .action(async (options) => {
     const { formatColdPreflight, runColdPreflight } = await import("../utils/cold-preflight.js");
-    console.log(formatColdPreflight(await runColdPreflight()));
+    console.log(formatColdPreflight(await runColdPreflight(), { includeSuccessFooter: false }));
     console.log(`\n${chalk.bold("🔍 TDK Doctor")}\n`);
+    
+    if (process.env.WSL_DISTRO_NAME) {
+      console.log("WSL2 detected. Use Docker Desktop WSL integration. Guide: docs/wsl2.md\n");
+    }
+    
     console.log("Checking environment...\n");
 
     const pingTimeout = Number.parseInt(options.pingTimeout, 10);
@@ -1037,6 +1085,7 @@ export const doctorCommand = new Command("doctor")
       checkTilt,
       checkDockerCompose,
       checkDockerVersions,
+      checkBun,
       // Each project needs several networks; a full address pool fails `tdk up` late.
       () => checkDockerNetworkCapacity(),
     ];
@@ -1084,7 +1133,13 @@ export const doctorCommand = new Command("doctor")
     // project. Only the machine checks mean anything there; the project checks
     // would all fail with "run tdk project".
     const inProject = Boolean(findProjectRoot());
-    const checks = inProject ? [...machineChecks, ...projectChecks] : machineChecks;
+    const notProjectCheck = (): CheckResult => ({
+      name: "Not a TDK project",
+      didPass: false,
+      message: "Not in a TDK project",
+      fix: "tdk project --yes",
+    });
+    const checks = inProject ? [...machineChecks, ...projectChecks] : [...machineChecks, notProjectCheck];
 
     // Machine checks are independent and mostly wait on child processes, so start
     // them all now and print in the original order. Project checks stay sequential.
@@ -1123,23 +1178,11 @@ export const doctorCommand = new Command("doctor")
         `${chalk.gray("○")} ${chalk.gray("Not in a TDK project, so project checks were skipped")}`,
       );
       console.log("");
-      console.log(`${chalk.green(chalk.bold("✓"))} This machine is ready for TDK`);
-      console.log("");
-      console.log("Next steps:");
-      console.log("  1. mkdir my-app && cd my-app");
-      console.log("  2. tdk project --yes");
-      console.log("  3. tdk resource api --type backend --stack my-app");
-      console.log("  4. tdk up my-app");
+      console.log(`${chalk.green(chalk.bold("✓"))} Doctor passed. Next: tdk project --yes`);
     } else if (allPassed) {
-      console.log(`${chalk.green(chalk.bold("✓"))} Environment ready for TDK`);
-      console.log("");
-      console.log("Next steps:");
-      console.log("  1. Run: tdk up");
-      console.log("  2. Open: http://localhost:10350");
+      console.log(`${chalk.green(chalk.bold("✓"))} Doctor passed. Next: tdk up`);
     } else {
-      console.log(`${chalk.red(chalk.bold("✗"))} Environment not ready`);
-      console.log("");
-      console.log("Fix the issues above, then run: tdk doctor");
+      console.log(`${chalk.red(chalk.bold("✗"))} Doctor failed. Fix the items above, then run: tdk doctor`);
       process.exit(1);
     }
   });

@@ -157,6 +157,7 @@ tdk resources --stack api
 | `backend` | 4000-4999 | 🏎️ Hono API | REST APIs, microservices |
 | `frontend` | 3000-3999 | React (default) or Vue + Vite | Web apps, dashboards |
 | `worker` | (optional) | 🔧 Background worker | Queue processors, jobs |
+| `bring-your-own` | 4000-5999 | none | Existing app with your own Dockerfile or image |
 | `sdk` | — | none (register existing, `packages/<name>`) | Shared libraries |
 
 ---

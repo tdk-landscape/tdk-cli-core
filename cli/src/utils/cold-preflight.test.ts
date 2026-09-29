@@ -4,6 +4,7 @@ import {
   nodeTooOld,
   type PreflightItem,
   type PreflightResult,
+  requireVerifiedDockerVersions,
 } from "./cold-preflight.js";
 
 function result(items: PreflightItem[], inProject = false): PreflightResult {
@@ -30,6 +31,18 @@ describe("cold preflight", () => {
     expect(nodeTooOld("22.11.0")).toBe(true);
     expect(nodeTooOld("22.12.0")).toBe(false);
     expect(nodeTooOld("24.0.0")).toBe(false);
+  });
+
+  it("treats an unverified Docker version as a failed prerequisite", () => {
+    const check = requireVerifiedDockerVersions({
+      name: "Docker Versions",
+      didPass: true,
+      isSkipped: true,
+      message: "Could not read Docker Engine/Compose versions",
+    });
+    expect(check.didPass).toBe(false);
+    expect(check.isSkipped).toBe(false);
+    expect(check.message).toContain("Could not verify Docker Engine/Compose minimum versions");
   });
 
   it("shows the cold-start header when a machine prerequisite fails", () => {

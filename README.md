@@ -194,7 +194,7 @@ npx @tdk-landscape/tdk-cli-core doctor
 ```
 
 Ranked first failures: Node 22.12+, Docker Engine 25+, Compose 2.20.2+, Tilt, Bun 1.2+, and ports 80/443/5432.
-Bun, Prisma, and NATS are generated tech-stack concerns after `tdk project`; NATS is required only when the feature is enabled.
+Install Bun 1.2+ as a machine prerequisite. `tdk project` generates the stack configuration; Prisma and NATS are project-specific, and NATS is required only when the feature is enabled.
 
 ```bash
 tdk doctor

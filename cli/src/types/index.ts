@@ -10,7 +10,7 @@ export interface DiscoveredResource {
 
 export interface ResourceConfig {
   appName: string;
-  appType: "backend" | "frontend" | "library" | "sdk" | "worker" | "migrator";
+  appType: "backend" | "frontend" | "library" | "sdk" | "worker" | "migrator" | "bring-your-own";
   stack?: string;
   port?: number;
   replicas?: number;
@@ -33,6 +33,10 @@ export interface ResourceConfig {
     /** Skip this resource during `tdk up` entirely; a Traefik static route wakes it on first request. Requires enable: true. */
     deferStart?: boolean;
   };
+  /** Optional dockerfile path relative to resource dir */
+  dockerfile?: string;
+  /** Optional Docker image name instead of building from Dockerfile */
+  image?: string;
 }
 
 export interface DiscoveredStack {
@@ -68,9 +72,9 @@ export interface FileGenerationTask {
   emoji: string;
 }
 
-export type ResourceType = "frontend" | "backend" | "library" | "sdk" | "worker" | "migrator";
+export type ResourceType = "frontend" | "backend" | "library" | "sdk" | "worker" | "migrator" | "bring-your-own";
 
-export const CREATABLE_RESOURCE_TYPES = ["backend", "frontend", "worker"] as const;
+export const CREATABLE_RESOURCE_TYPES = ["backend", "frontend", "worker", "bring-your-own"] as const;
 
 export type CreatableResourceType = Extract<
   ResourceType,
@@ -332,7 +336,7 @@ export interface PackageInfo {
 
 export type PortAssignableResourceType = Extract<
   CreatableResourceType,
-  "backend" | "frontend" | "worker" | "migrator"
+  "backend" | "frontend" | "worker" | "migrator" | "bring-your-own"
 >;
 
 // ============================================================================

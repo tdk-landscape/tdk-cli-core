@@ -4,7 +4,7 @@ import chalk from "chalk";
 import { Command } from "commander";
 import { resolveFrontendFramework } from "../frontend-frameworks/registry.js";
 import { hasDddLicense } from "../generator/extension-fetch.js";
-import type { CreatableResourceType, FileGenerationTask } from "../types/index.js";
+import type { CreatableResourceType, FileGenerationTask, PortAssignableResourceType, ResourceType } from "../types/index.js";
 import { CREATABLE_RESOURCE_TYPES } from "../types/index.js";
 import { assertValid, confirmOrCancel } from "../utils/command-helpers.js";
 import {
@@ -58,6 +58,9 @@ export const TYPE_SPECIFIC: Record<CreatableResourceType, TypeSpecificConfig> = 
       watch: ["src/**/*"],
     },
   },
+  "bring-your-own": {
+    healthCheck: "/health",
+  },
 };
 
 export function createServiceJson(
@@ -83,8 +86,8 @@ export function createServiceJson(
   return {
     ...base,
     appName: name,
-    appType: type,
-    featuresEnabled: [...getDefaultFeaturesForResourceType(type), ...extraFeatures],
+    appType: type as ResourceType,
+    featuresEnabled: [...getDefaultFeaturesForResourceType(type as ResourceType), ...extraFeatures],
     name,
     type,
     stack,
@@ -324,7 +327,7 @@ describe('${name}', () => {
 export const resourceCommand = new Command("resource")
   .description("Create a new resource (service) from scratch, or register an existing one")
   .argument("[name]", "Resource name (kebab-case)")
-  .option("-t, --type <type>", "Resource type: backend, frontend, worker, sdk", "backend")
+  .option("-t, --type <type>", "Resource type: backend, frontend, worker, bring-your-own, sdk", "backend")
   .option("--framework <id>", "Frontend framework: react (default), vue")
   .option("-s, --stack <stack>", "Stack to assign resource to", "default")
   .option("-p, --path <path>", "Custom path for resource directory")
@@ -334,6 +337,11 @@ export const resourceCommand = new Command("resource")
     "--ddd",
     "Scaffold DDD (domain-driven design) folders + path aliases (Premium - requires TDK_LICENSE_KEY)",
   )
+  .option("--dockerfile <path>", "Path to Dockerfile relative to resource dir (for bring-your-own)", "./Dockerfile")
+  .option("--health-path <path>", "HTTP health check path (for bring-your-own)", "/health")
+  .option("--no-proxy", "Disable Traefik proxy (for bring-your-own)", false)
+  .option("--image <name>", "Docker image name instead of building from Dockerfile (for bring-your-own)")
+  .option("--port <port>", "Port number (default: next free in 4000-5999)")
   .action(async (name, options) => {
     await runCommand(async () => {
       const projectRoot = requireProjectRoot();
@@ -362,19 +370,24 @@ export const resourceCommand = new Command("resource")
       // Support sdk type for registering existing SDKs
       let resourceType: CreatableResourceType | "sdk";
       const validTypes = [...CREATABLE_RESOURCE_TYPES, "sdk"] as const;
-      if (!validTypes.includes(options.type)) {
+      
+      // Normalize bring-your-own aliases
+      const normalizedType = options.type === "byo" || options.type === "bring-your-own" ? "bring-your-own" : options.type;
+      
+      if (!validTypes.includes(normalizedType)) {
         const selectedType = await promptSelect({
           message: "Resource type:",
           choices: [
             { title: "backend - API service with HTTP endpoints", value: "backend" },
             { title: "frontend - Web application/UI", value: "frontend" },
             { title: "worker - Background job processor", value: "worker" },
+            { title: "bring-your-own - Wrap an existing service. No app scaffold. Needs Dockerfile or --image.", value: "bring-your-own" },
             { title: "sdk - Library/SDK (register existing)", value: "sdk" },
           ],
         });
         resourceType = selectedType;
       } else {
-        resourceType = options.type;
+        resourceType = normalizedType;
       }
 
       const frontendFramework = resolveFrontendFramework(resourceType, options.framework);
@@ -449,6 +462,7 @@ export const resourceCommand = new Command("resource")
           backend: `services/${stackName}/${resourceName}`,
           frontend: `apps/${resourceName}`,
           worker: `workers/${resourceName}`,
+          "bring-your-own": `services/${stackName}/${resourceName}`,
           sdk: `packages/${resourceName}`,
         };
         finalResourcePath = defaultPaths[resourceType];
@@ -493,7 +507,7 @@ export const resourceCommand = new Command("resource")
       const assignedPort =
         resourceType === "sdk"
           ? 0
-          : assignPort(resourceType as CreatableResourceType, allResources);
+          : assignPort(resourceType as CreatableResourceType as PortAssignableResourceType, allResources);
 
       console.log(chalk.gray("\nResource details:"));
       console.log(chalk.gray(`  Name:  ${resourceName}`));
@@ -537,6 +551,74 @@ export const resourceCommand = new Command("resource")
         writeFileSync(existingServiceJsonPath, JSON.stringify(updatedServiceJson, null, 2));
 
         console.log(chalk.green("\n✅ Existing resource registered successfully!"));
+        console.log(chalk.gray(`\nLocation: ${fullPath}`));
+        console.log(chalk.gray(`\nNext steps:`));
+        console.log(chalk.gray(`  tdk up ${stackName}`));
+        return;
+      }
+
+      // Handle bring-your-own type
+      if (resourceType === "bring-your-own") {
+        console.log(chalk.blue("\n📁 Creating bring-your-own resource..."));
+        mkdirSync(fullPath, { recursive: true });
+
+        // Parse port option
+        let port = assignedPort;
+        if (options.port) {
+          const customPort = parseInt(options.port, 10);
+          if (!isNaN(customPort)) {
+            port = customPort;
+          }
+        }
+
+        // Create service.json
+        const byoServiceJson = {
+          appName: resourceName,
+          appType: "bring-your-own",
+          stack: stackName,
+          port,
+          healthCheckPath: options.healthPath || "/health",
+          ...(options.image ? { image: options.image } : { dockerfile: options.dockerfile || "./Dockerfile" }),
+          ...(options.noProxy && { featuresEnabled: [], exposeViaProxy: false }),
+        };
+
+        const { writeFileSync } = await import("node:fs");
+        writeFileSync(resolve(fullPath, "service.json"), JSON.stringify(byoServiceJson, null, 2));
+
+        // Create Dockerfile stub if no image provided and dockerfile doesn't exist
+        if (!options.image && !existsSync(resolve(fullPath, options.dockerfile || "./Dockerfile"))) {
+          const dockerfilePath = resolve(fullPath, options.dockerfile || "./Dockerfile");
+          const dockerfileContent = `FROM nginx:1.27-alpine
+COPY health.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
+`;
+          writeFileSync(dockerfilePath, dockerfileContent);
+
+          const healthConfContent = `server {
+  listen 80;
+  location /health {
+    default_type text/plain;
+    return 200 'ok';
+  }
+  location / {
+    default_type text/plain;
+    return 200 'byo';
+  }
+}
+`;
+          writeFileSync(resolve(fullPath, "health.conf"), healthConfContent);
+        }
+
+        // Create AGENTS.md
+        const agentsMdContent = `# AGENTS.md
+
+DO NOT DELETE service.json
+
+This file contains the resource configuration for TDK.
+`;
+        writeFileSync(resolve(fullPath, "AGENTS.md"), agentsMdContent);
+
+        console.log(chalk.green("\n✅ Bring-your-own resource created successfully!"));
         console.log(chalk.gray(`\nLocation: ${fullPath}`));
         console.log(chalk.gray(`\nNext steps:`));
         console.log(chalk.gray(`  tdk up ${stackName}`));
