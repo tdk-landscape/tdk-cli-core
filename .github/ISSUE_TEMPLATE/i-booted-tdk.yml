@@ -1,48 +1,41 @@
 name: I booted TDK
 description: Share evidence from your first TDK run
-title: "I booted TDK: "
-labels: [first-boot]
+title: "boot: "
+labels: [show-and-tell]
 body:
-  - type: markdown
-    attributes:
-      value: Thanks for trying TDK. Please remove secrets and private URLs before submitting.
   - type: input
     id: os
     attributes:
-      label: Operating system and version
+      label: Operating system
       placeholder: Ubuntu 24.04, macOS 15, Windows 11 with WSL2
     validations:
       required: true
   - type: input
-    id: tdk-version
+    id: version
     attributes:
       label: TDK version
       placeholder: Output of `tdk --version`
     validations:
       required: true
+  - type: input
+    id: minutes
+    attributes:
+      label: Minutes to first boot
+      placeholder: For example, 8
+    validations:
+      required: true
   - type: textarea
-    id: first-command
+    id: broke
+    attributes:
+      label: What broke?
+      description: Include the relevant output or error.
+    validations:
+      required: true
+  - type: textarea
+    id: cmd
     attributes:
       label: Command you ran
       description: Include whether this was a fresh install or an existing project.
       render: shell
     validations:
       required: true
-  - type: textarea
-    id: result
-    attributes:
-      label: What happened?
-      description: Include the relevant output, error, or service URL.
-    validations:
-      required: true
-  - type: textarea
-    id: friction
-    attributes:
-      label: What was confusing or slow?
-  - type: checkboxes
-    id: checks
-    attributes:
-      label: Before submitting
-      options:
-        - label: I removed credentials, tokens, and other secrets from this report.
-          required: true

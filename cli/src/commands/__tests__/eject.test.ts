@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { EJECTED_CONTENT, ejectCommand } from "../eject.js";
 
 const originalCwd = process.cwd();
@@ -81,8 +81,17 @@ describe("tdk eject", () => {
 
   it("requires a TDK project", async () => {
     rmSync(join(tempDir, ".tdk", "project.json"));
-    await expect(
-      ejectCommand.parseAsync(["node", "tdk", "--dry-run"], { from: "node" }),
-    ).rejects.toThrow();
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const exit = vi.spyOn(process, "exit").mockImplementation((() => undefined) as never);
+    try {
+      await ejectCommand.parseAsync(["node", "tdk", "--dry-run"], { from: "node" });
+      expect(error).toHaveBeenCalledWith(
+        expect.stringContaining("tdk eject: no .tdk/project.json in this directory or parents"),
+      );
+      expect(exit).toHaveBeenCalledWith(1);
+    } finally {
+      error.mockRestore();
+      exit.mockRestore();
+    }
   });
 });

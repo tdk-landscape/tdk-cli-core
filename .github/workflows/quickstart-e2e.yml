@@ -131,6 +131,7 @@ jobs:
           fi
           mkdir -p "$RUNNER_TEMP/shop" && cd "$RUNNER_TEMP/shop"
           tdk project --yes
+          tdk doctor
           printf 'y\n' | tdk resource orders-api --type backend --stack shop
           # Frontends go through the framework providers and their Starlark Vite
           # templates. Published versions from before --framework existed skip

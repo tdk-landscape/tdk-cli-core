@@ -3,12 +3,21 @@ import { join } from "node:path";
 import chalk from "chalk";
 import { Command } from "commander";
 import { confirmOrCancel } from "../utils/command-helpers.js";
-import { requireProjectRoot, runCommand } from "../utils/errors.js";
+import { runCommand } from "../utils/errors.js";
+import { findProjectRoot } from "../utils/paths.js";
 export const EJECTED_CONTENT = `# Ejected from TDK
 
-TDK generated the Tilt and Docker runtime files in this project. They are now yours to edit.
+## Keep
 
-Run \`tilt up\` to start the landscape. TDK will no longer regenerate these files automatically.
+Keep the generated Tiltfile, Docker Compose files, and Traefik configuration. These files run your local landscape without the TDK CLI.
+
+## Optional to delete
+
+You may delete the TDK project metadata and generated files after confirming the kept files contain everything your project needs.
+
+## To go back
+
+Run \`tdk project --yes\` to regenerate TDK project files. Back up any manual changes first.
 `;
 export const ejectCommand = new Command("eject")
     .description("Take ownership of the generated Tilt and Docker files")
@@ -16,8 +25,11 @@ export const ejectCommand = new Command("eject")
     .option("--yes", "Skip the confirmation prompt", false)
     .action(async (options) => {
     await runCommand(async () => {
-        const projectRoot = requireProjectRoot();
-        const generatedPaths = [".tdk/.tdk-out", "engine", "discovery", "specs", "ext"];
+        const projectRoot = findProjectRoot();
+        if (!projectRoot) {
+            throw new Error("tdk eject: no .tdk/project.json in this directory or parents");
+        }
+        const generatedPaths = [".tdk/.tdk-out"];
         const presentPaths = generatedPaths.filter((path) => existsSync(join(projectRoot, path)));
         const files = presentPaths.flatMap((path) => {
             const absolutePath = join(projectRoot, path);

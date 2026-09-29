@@ -141,6 +141,10 @@ describe("bring-your-own resource type", () => {
     expect(readFileSync(join(resourcePath, "container", "Dockerfile"), "utf-8")).toContain(
       "EXPOSE 4550",
     );
+    expect(readFileSync(join(resourcePath, "container", "Dockerfile"), "utf-8")).toContain(
+      "COPY container/health.conf",
+    );
+    expect(existsSync(join(resourcePath, "container", "health.conf"))).toBe(true);
   });
 
   it("rejects malformed, out-of-range, and conflicting custom ports", () => {

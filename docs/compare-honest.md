@@ -1,38 +1,23 @@
-# How TDK compares
+# TDK vs Compose vs raw Tilt
 
-TDK generates Docker Compose and Tilt configuration from service manifests. It is useful when a
-team wants a repeatable local landscape with per-service lifecycle controls. It does not replace
-Compose, Tilt, Kubernetes, or production operations.
+## Use TDK
 
-## TDK and Docker Compose
+Use TDK when a team wants a generated local landscape with service discovery, stack commands, health checks, and a shared Tilt UI. TDK is a local development tool and does not deploy or validate production infrastructure.
 
-Compose is a strong choice for a small, stable set of containers and gives direct control over the
-resulting YAML. TDK adds resource scaffolding, generated Compose configuration, and stack-level
-startup through Tilt. That convenience adds a generator and its conventions: when a generated
-configuration behaves unexpectedly, users may need to inspect both `service.json` and the emitted
-Compose files. Teams that already maintain Compose comfortably may not benefit from TDK.
+## Do not use TDK
 
-## TDK and Tilt
+Use another tool when the project needs Kubernetes APIs, production parity, or direct ownership of every orchestration file. A small, stable set of containers may be simpler to maintain in Compose directly.
 
-Tilt provides the development loop and UI. TDK builds a landscape around it by generating the
-Tiltfile and service configuration. Using Tilt directly gives a team more control and fewer TDK
-conventions, at the cost of maintaining that configuration itself. TDK is not a replacement for
-learning Tilt when a project needs custom build or orchestration behavior.
+## vs Compose
 
-## TDK and Kubernetes tools
+Docker Compose runs a set of containers from YAML you maintain. TDK generates Compose configuration from service manifests and adds stack-level lifecycle controls through Tilt. Compose gives direct control; TDK reduces repeated setup and adds conventions.
 
-Skaffold, Garden, and DevSpace target Kubernetes workflows. TDK targets local Docker containers
-without requiring a cluster. It is not a Kubernetes deployment tool and does not validate
-production cluster behavior, manifests, or resource limits.
+## vs Tilt
 
-## When TDK may not fit
+Tilt provides the development loop and UI. TDK generates a Tiltfile and service configuration around it. Using raw Tilt gives more control and requires maintaining that configuration yourself.
 
-- A handful of containers with a stable Compose file may be simpler to maintain directly.
-- A service that requires Kubernetes APIs, production parity, or cluster-specific behavior needs a
-  Kubernetes-based development workflow.
-- Generated defaults can be wrong for unusual health checks, ports, build contexts, or networking;
-  inspect and adjust the generated files when the defaults do not match the service.
-- Large landscapes still consume machine resources. Stack filtering helps control startup, but it
-  does not make builds or containers free.
-- Cold startup depends on Docker image and package downloads, disk speed, and available memory.
-  TDK cannot make a cold machine boot as fast as a warm cache.
+## Known limits
+
+- Generated defaults may not fit unusual ports, health checks, build contexts, or networking; inspect generated files when needed.
+- The 100-service benchmark uses generated stubs with a small `/health` endpoint, not production applications.
+- Cold startup depends on image and package downloads, disk speed, and available memory. TDK cannot make a cold machine boot as fast as a warm cache.

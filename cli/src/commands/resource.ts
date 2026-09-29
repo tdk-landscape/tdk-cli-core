@@ -639,9 +639,11 @@ export const resourceCommand = new Command("resource")
         // Create Dockerfile stub if no image provided and dockerfile doesn't exist
         if (!options.image && !existsSync(dockerfilePath)) {
           mkdirSync(resolve(dockerfilePath, ".."), { recursive: true });
+          const healthConfigPath = resolve(dockerfilePath, "..", "health.conf");
+          const healthConfigRelativePath = relative(fullPath, healthConfigPath).replace(/\\/g, "/");
           const dockerfileContent = `FROM nginx:1.27-alpine
 RUN apk add --no-cache curl
-COPY health.conf /etc/nginx/conf.d/default.conf
+COPY ${healthConfigRelativePath} /etc/nginx/conf.d/default.conf
 EXPOSE ${port}
 `;
           writeFileSync(dockerfilePath, dockerfileContent);
@@ -658,7 +660,7 @@ EXPOSE ${port}
   }
 }
 `;
-          writeFileSync(resolve(fullPath, "health.conf"), healthConfContent);
+          writeFileSync(healthConfigPath, healthConfContent);
         }
 
         // Create AGENTS.md
