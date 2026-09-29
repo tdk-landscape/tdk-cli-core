@@ -93,7 +93,7 @@ async function succeeds(command: string): Promise<boolean> {
   }
 }
 
-async function checkDockerRuntime(): Promise<CheckResult> {
+export async function checkDockerRuntime(): Promise<CheckResult> {
   if (process.platform === "win32") {
     try {
       await execAsync("docker ps", EXEC_TIMEOUT_MS);
@@ -160,7 +160,7 @@ async function checkDockerRuntime(): Promise<CheckResult> {
   };
 }
 
-const checkDockerCompose = createExecCheck(
+export const checkDockerCompose = createExecCheck(
   "Docker Compose",
   "docker compose version",
   "Docker Compose plugin available",
@@ -245,7 +245,7 @@ export async function checkDockerVersions(exec: ExecAsync = execAsync): Promise<
   };
 }
 
-const checkTilt = createExecCheck(
+export const checkTilt = createExecCheck(
   "Tilt CLI",
   "tilt version",
   "Tilt CLI installed",
@@ -1014,6 +1014,8 @@ export const doctorCommand = new Command("doctor")
     String(DEFAULT_PING_TIMEOUT_MS),
   )
   .action(async (options) => {
+    const { formatColdPreflight, runColdPreflight } = await import("../utils/cold-preflight.js");
+    console.log(formatColdPreflight(await runColdPreflight()));
     console.log(`\n${chalk.bold("🔍 TDK Doctor")}\n`);
     console.log("Checking environment...\n");
 

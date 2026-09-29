@@ -21,6 +21,7 @@ One CLI that scaffolds your services and runs the whole landscape locally with h
 
 ```bash
 npm install -g @tdk-landscape/tdk-cli-core
+npx @tdk-landscape/tdk-cli-core
 mkdir shop && cd shop                                   # tdk writes files into the current directory
 tdk project --yes                                       # set up the project
 tdk resource orders-api --type backend --stack shop     # scaffold a service
@@ -184,6 +185,16 @@ make pre-commit-run # run pre-commit hooks on all files
 `npm run typecheck` / `npm run lint` / `npm run test` delegate to the `cli/` workspace. If you're contributing, start with the [step-by-step contributor guide](docs/contributing/README.md) for subsystem-specific instructions.
 
 ## Environment check
+
+### Cold npx / first run
+
+```bash
+npx @tdk-landscape/tdk-cli-core
+npx @tdk-landscape/tdk-cli-core doctor
+```
+
+Ranked first failures: Node 22.12+, Docker Engine 25+, Compose 2.20.2+, Tilt, Bun 1.2+, and ports 80/443/5432.
+Bun, Prisma, and NATS are generated tech-stack concerns after `tdk project`; NATS is required only when the feature is enabled.
 
 ```bash
 tdk doctor
