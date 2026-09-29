@@ -33,15 +33,6 @@ The CLI and service schema MUST accept bring-your-own resources with project-def
 - **THEN** `tdk resources` lists it
 - **AND** `tdk up --dry-run <stack>` includes it without starting services
 
-### Scenario: Wrap a non-TypeScript service in the CLI dry-run E2E
-
-- **WHEN** the BYO Python E2E copies a pre-written Python health service into `services/shop/legacy/` and runs `tdk resource legacy --type byo --stack shop --dockerfile ./Dockerfile --port 4500 --yes`
-- **THEN** the generated `service.json` validates against `engine/schemas/service-schema.json`
-- **AND** the original `Dockerfile`, `app.py`, and `requirements.txt` are unchanged
-- **AND** TDK adds `service.json` and `AGENTS.md` without `src/`, `package.json`, or `tsconfig.json`
-- **AND** `tdk up shop --dry-run` lists `legacy` without requiring Docker or Tilt
-- **AND** the E2E does not build or boot the Python container; a boot check is a separate follow-up after the dry-run contract passes in CI
-
 ## Requirement: Doctor uses exact remediation copy
 
 Doctor MUST preserve these exact fix strings:
