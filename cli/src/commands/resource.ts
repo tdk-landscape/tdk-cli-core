@@ -544,19 +544,23 @@ export const resourceCommand = new Command("resource")
         errorFactories.directoryExists(fullPath).exit();
       }
 
-      const assignedPort =
+      const nextPort =
         resourceType === "sdk"
           ? 0
           : assignPort(
               resourceType as CreatableResourceType as PortAssignableResourceType,
               allResources,
             );
+      const assignedPort =
+        resourceType === "bring-your-own"
+          ? resolveByoPort(options.port, nextPort, allResources)
+          : nextPort;
 
       console.log(chalk.gray("\nResource details:"));
       console.log(chalk.gray(`  Name:  ${resourceName}`));
       console.log(chalk.gray(`  Type:  ${resourceType}`));
       console.log(chalk.gray(`  Stack: ${stackName}`));
-      console.log(chalk.gray(`  Port:  ${assignedPort || "N/A (SDK)"}`));
+      console.log(chalk.gray(`  Port: ${assignedPort || "N/A (SDK)"}`));
       console.log(chalk.gray(`  Path:  ${finalResourcePath}`));
 
       if (shouldRegisterExisting && hasServiceJson) {
@@ -607,7 +611,7 @@ export const resourceCommand = new Command("resource")
         console.log(chalk.blue("\n📁 Creating bring-your-own resource..."));
 
         // Parse port option
-        const port = resolveByoPort(options.port, assignedPort, allResources);
+        const port = assignedPort;
 
         const dockerfile = options.dockerfile || "./Dockerfile";
         const dockerfilePath = resolve(fullPath, dockerfile);

@@ -1,7 +1,7 @@
 ## 1. BYO port persistence
 
-- [ ] 1.1 Read the resource command help and existing BYO tests; identify how `--port` is parsed, validated, printed, and serialized.
-- [ ] 1.2 Add or update a focused test proving `--port 4500` prints `Port: 4500` and writes `.port == 4500` to `service.json`.
-- [ ] 1.3 Fix the BYO creation path with the smallest change while preserving the 4000–5999 range and existing error strings.
-- [ ] 1.4 Retain or add tests for invalid and out-of-range BYO ports.
-- [ ] 1.5 Verify the focused BYO command tests and `tdk doctor`; confirm existing examples still pass `tdk up --dry-run` as required by the project acceptance constraints.
+- [x] 1.1 Read the resource command help and existing BYO tests; confirmed `--port` was resolved only after the generic port was printed, while serialization already used the resolved port.
+- [x] 1.2 Added a focused test proving `--port 4500` prints `Port: 4500` and writes `.port == 4500` to `service.json`.
+- [x] 1.3 Resolved and validated the BYO port before printing resource details, then reused it for serialization; preserved the 4000–5999 range and existing error strings.
+- [x] 1.4 Retained existing malformed, out-of-range, and conflict validation tests.
+- [x] 1.5 Verified the focused BYO tests (8/8), including the test that runs `tdk up --dry-run`. `tdk doctor` ran and diagnosed the environment (exit 1 due missing Bun and occupied ports); this repository has no checked-in service examples to run separately.
