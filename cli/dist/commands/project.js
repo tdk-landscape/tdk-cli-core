@@ -160,6 +160,8 @@ export const projectCommand = new Command("project")
     .option("--yes", "Non-interactive mode (use defaults)")
     .option("--config-file <path>", "Load project config from existing JSON file")
     .action(async (template, options) => {
+    const { assertMachineReadyOrExit } = await import("../utils/cold-preflight.js");
+    await assertMachineReadyOrExit();
     if (template) {
         await runCommand(async () => cloneProjectTemplate(template, options.path));
         return;
