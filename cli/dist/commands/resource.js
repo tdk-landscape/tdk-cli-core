@@ -7,7 +7,7 @@ import { hasDddLicense } from "../generator/extension-fetch.js";
 import { CREATABLE_RESOURCE_TYPES } from "../types/index.js";
 import { assertValid, confirmOrCancel } from "../utils/command-helpers.js";
 import { chooseResourcePath, isPathDiscovered, readDiscoveryPaths, } from "../utils/discovery-paths.js";
-import { errorFactories, requireProjectRoot, runCommand } from "../utils/errors.js";
+import { errorFactories, requireProjectRoot, runCommand, TdkError } from "../utils/errors.js";
 import { writeFilesWithProgress } from "../utils/file-helpers.js";
 import { showCommandHeader } from "../utils/formatting.js";
 import { assignPort } from "../utils/port-assignment.js";
@@ -47,6 +47,21 @@ export const TYPE_SPECIFIC = {
         healthCheck: "/health",
     },
 };
+export function resolveByoPort(value, assignedPort, resources) {
+    if (!value)
+        return assignedPort;
+    if (!/^\d+$/.test(value)) {
+        throw new TdkError("BYO --port must be an integer from 4000 through 5999.");
+    }
+    const port = Number(value);
+    if (!Number.isInteger(port) || port < 4000 || port > 5999) {
+        throw new TdkError("BYO --port must be an integer from 4000 through 5999.");
+    }
+    if (resources.some((resource) => resource.config?.port === port)) {
+        throw new TdkError(`BYO port ${port} is already assigned to another resource.`);
+    }
+    return port;
+}
 export function createServiceJson(name, type, stack, port, extraFeatures = [], frameworkId) {
     const framework = resolveFrontendFramework(type, frameworkId);
     const typeSpecific = TYPE_SPECIFIC[type];
@@ -298,10 +313,11 @@ export const resourceCommand = new Command("resource")
     .option("-p, --path <path>", "Custom path for resource directory")
     .option("--resource-path <path>", "Alias for --path (for backward compatibility)")
     .option("--register-existing", "Register an existing resource without creating templates")
+    .option("-y, --yes", "Skip confirmation prompt", false)
     .option("--ddd", "Scaffold DDD (domain-driven design) folders + path aliases (Premium - requires TDK_LICENSE_KEY)")
-    .option("--dockerfile <path>", "Path to Dockerfile relative to resource dir (for bring-your-own)", "./Dockerfile")
+    .option("--dockerfile <path>", "Path to Dockerfile relative to resource dir (for bring-your-own)")
     .option("--health-path <path>", "HTTP health check path (for bring-your-own)", "/health")
-    .option("--no-proxy", "Disable Traefik proxy (for bring-your-own)", false)
+    .option("--no-proxy", "Disable the Traefik route (bring-your-own only)")
     .option("--image <name>", "Docker image name instead of building from Dockerfile (for bring-your-own)")
     .option("--port <port>", "Port number (default: next free in 4000-5999)")
     .action(async (name, options) => {
@@ -442,7 +458,7 @@ export const resourceCommand = new Command("resource")
         const shouldRegisterExisting = options.registerExisting ||
             resourceType === "sdk" ||
             (isExistingResource && hasServiceJson);
-        if (isExistingResource && !shouldRegisterExisting) {
+        if (isExistingResource && !shouldRegisterExisting && resourceType !== "bring-your-own") {
             errorFactories.directoryExists(fullPath).exit();
         }
         const assignedPort = resourceType === "sdk"
@@ -457,9 +473,10 @@ export const resourceCommand = new Command("resource")
         if (shouldRegisterExisting && hasServiceJson) {
             console.log(chalk.yellow("\n⚠️  Existing resource detected - will update service.json only"));
         }
-        const confirmed = await confirmOrCancel(shouldRegisterExisting && hasServiceJson
-            ? "\nRegister existing resource?"
-            : "\nCreate resource?");
+        const confirmed = options.yes ||
+            (await confirmOrCancel(shouldRegisterExisting && hasServiceJson
+                ? "\nRegister existing resource?"
+                : "\nCreate resource?"));
         if (!confirmed)
             return;
         // Handle existing resource registration
@@ -489,15 +506,17 @@ export const resourceCommand = new Command("resource")
         // Handle bring-your-own type
         if (resourceType === "bring-your-own") {
             console.log(chalk.blue("\n📁 Creating bring-your-own resource..."));
-            mkdirSync(fullPath, { recursive: true });
             // Parse port option
-            let port = assignedPort;
-            if (options.port) {
-                const customPort = parseInt(options.port, 10);
-                if (!isNaN(customPort)) {
-                    port = customPort;
-                }
+            const port = resolveByoPort(options.port, assignedPort, allResources);
+            const dockerfile = options.dockerfile || "./Dockerfile";
+            const dockerfilePath = resolve(fullPath, dockerfile);
+            const dockerfileRelativePath = relative(fullPath, dockerfilePath);
+            if (isAbsolute(dockerfileRelativePath) ||
+                dockerfileRelativePath === ".." ||
+                dockerfileRelativePath.startsWith(`..${process.platform === "win32" ? "\\" : "/"}`)) {
+                errorFactories.invalidPath(dockerfile).exit();
             }
+            mkdirSync(fullPath, { recursive: true });
             // Create service.json
             const byoServiceJson = {
                 appName: resourceName,
@@ -505,24 +524,22 @@ export const resourceCommand = new Command("resource")
                 stack: stackName,
                 port,
                 healthCheckPath: options.healthPath || "/health",
-                ...(options.image
-                    ? { image: options.image }
-                    : { dockerfile: options.dockerfile || "./Dockerfile" }),
-                ...(options.noProxy && { featuresEnabled: [], exposeViaProxy: false }),
+                ...(options.image ? { image: options.image } : { dockerfile }),
+                ...(options.proxy === false ? { exposeViaProxy: false } : {}),
             };
             const { writeFileSync } = await import("node:fs");
             writeFileSync(resolve(fullPath, "service.json"), JSON.stringify(byoServiceJson, null, 2));
             // Create Dockerfile stub if no image provided and dockerfile doesn't exist
-            if (!options.image &&
-                !existsSync(resolve(fullPath, options.dockerfile || "./Dockerfile"))) {
-                const dockerfilePath = resolve(fullPath, options.dockerfile || "./Dockerfile");
+            if (!options.image && !existsSync(dockerfilePath)) {
+                mkdirSync(resolve(dockerfilePath, ".."), { recursive: true });
                 const dockerfileContent = `FROM nginx:1.27-alpine
+RUN apk add --no-cache curl
 COPY health.conf /etc/nginx/conf.d/default.conf
-EXPOSE 80
+EXPOSE ${port}
 `;
                 writeFileSync(dockerfilePath, dockerfileContent);
                 const healthConfContent = `server {
-  listen 80;
+  listen ${port};
   location /health {
     default_type text/plain;
     return 200 'ok';
@@ -542,7 +559,9 @@ DO NOT DELETE service.json
 
 This file contains the resource configuration for TDK.
 `;
-            writeFileSync(resolve(fullPath, "AGENTS.md"), agentsMdContent);
+            const agentsPath = resolve(fullPath, "AGENTS.md");
+            if (!existsSync(agentsPath))
+                writeFileSync(agentsPath, agentsMdContent);
             console.log(chalk.green("\n✅ Bring-your-own resource created successfully!"));
             console.log(chalk.gray(`\nLocation: ${fullPath}`));
             console.log(chalk.gray(`\nNext steps:`));

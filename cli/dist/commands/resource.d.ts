@@ -20,6 +20,11 @@ interface TypeSpecificConfig {
     };
 }
 export declare const TYPE_SPECIFIC: Record<CreatableResourceType, TypeSpecificConfig>;
+export declare function resolveByoPort(value: string | undefined, assignedPort: number, resources: Array<{
+    config?: {
+        port?: number;
+    };
+}>): number;
 export declare function createServiceJson(name: string, type: CreatableResourceType, stack: string, port: number, extraFeatures?: string[], frameworkId?: string): any;
 export declare function createPackageJson(name: string, type: string, frameworkId?: string): {
     name: string;

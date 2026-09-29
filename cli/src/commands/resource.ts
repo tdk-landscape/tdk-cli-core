@@ -367,10 +367,7 @@ export const resourceCommand = new Command("resource")
     "--ddd",
     "Scaffold DDD (domain-driven design) folders + path aliases (Premium - requires TDK_LICENSE_KEY)",
   )
-  .option(
-    "--dockerfile <path>",
-    "Path to Dockerfile relative to resource dir (for bring-your-own)",
-  )
+  .option("--dockerfile <path>", "Path to Dockerfile relative to resource dir (for bring-your-own)")
   .option("--health-path <path>", "HTTP health check path (for bring-your-own)", "/health")
   .option("--no-proxy", "Disable the Traefik route (bring-your-own only)")
   .option(
@@ -543,11 +540,7 @@ export const resourceCommand = new Command("resource")
         resourceType === "sdk" ||
         (isExistingResource && hasServiceJson);
 
-      if (
-        isExistingResource &&
-        !shouldRegisterExisting &&
-        resourceType !== "bring-your-own"
-      ) {
+      if (isExistingResource && !shouldRegisterExisting && resourceType !== "bring-your-own") {
         errorFactories.directoryExists(fullPath).exit();
       }
 
@@ -636,9 +629,7 @@ export const resourceCommand = new Command("resource")
           stack: stackName,
           port,
           healthCheckPath: options.healthPath || "/health",
-          ...(options.image
-            ? { image: options.image }
-            : { dockerfile }),
+          ...(options.image ? { image: options.image } : { dockerfile }),
           ...(options.proxy === false ? { exposeViaProxy: false } : {}),
         };
 
