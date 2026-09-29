@@ -33,7 +33,7 @@ Want to inspect a stack before starting containers? `tdk up shop --dry-run` show
 
 ![npm downloads, last month](docs/npm-downloads.svg)
 
-**Requirements:** Docker (Desktop, OrbStack or Colima; Engine 25+, Compose 2.20+), [Tilt](https://docs.tilt.dev/install.html), [Bun](https://bun.sh) for the generated services, and Node.js 22.12+ for the CLI. Ports 80, 443 and 5432 must be free (a local Postgres is the usual conflict). macOS and Linux are supported. Windows is untested (WSL2 may work). Run `tdk doctor` to check all of it.
+**Requirements:** Docker (Desktop, OrbStack or Colima; Engine 25+, Compose 2.20+), [Tilt](https://docs.tilt.dev/install.html), [Bun](https://bun.sh) for the generated services, and Node.js 22.12+ for npm installs. Ports 80, 443 and 5432 must be free (a local Postgres is the usual conflict). macOS and Linux releases are available. Native Windows AMD64 CLI support has merged, and Windows CI checks startup and platform behavior, but the Windows binary release and real Windows 11 acceptance run are still pending. On Windows, use Docker Desktop with Linux containers; WSL2 Ubuntu works as Linux. Run `tdk doctor` to check your setup.
 
 This is the core monorepo for TDK: the `tdk` CLI, the Starlark-based Tilt orchestration engine that powers it, and the discovery system that turns a directory of services into a running local landscape.
 
@@ -74,7 +74,7 @@ The table above is a warm start. Two workflows install the published CLI on a fr
 - [**Quickstart E2E**](.github/workflows/quickstart-e2e.yml): the commands from the top of this README, one scaffolded backend, until it answers `/health` through Traefik. About 4 minutes. Runs after each release and daily.
 - [**ERP scale E2E**](.github/workflows/erp-scale-e2e.yml): the 100-service example. [Run 36395860088](https://github.com/tdk-landscape/tdk-cli-core/actions/runs/36395860088) (CLI 1.3.72, 4 vCPU / 15 GB): **100 / 100 backends healthy through Traefik after 472 s**, 111 containers, 1.8 GiB used by all containers. Runs weekly.
 
-Both are the same kind of fixture: generated services answering `/health`, not a real business app. A green run means TDK can generate, build, route and health-check a landscape of that size on a machine that has never seen it. It doesn't cover Windows, Apple Silicon, or an existing repo you bring yourself.
+Both are Linux/Ubuntu CI fixtures: generated services answering `/health`, not a real business app. A green run means TDK can generate, build, route and health-check a landscape of that size on a clean Ubuntu runner. Windows now has a separate smoke workflow for CLI startup and unit tests, but it does not boot a full landscape on Windows. These CI runs also don't cover Apple Silicon or an existing repo you bring yourself.
 
 ## What is TDK?
 
