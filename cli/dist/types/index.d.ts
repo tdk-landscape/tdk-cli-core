@@ -202,6 +202,7 @@ export interface ServiceUrl {
     stack?: string;
     basePath: string;
     url: string;
+    loopbackUrl?: string;
     port?: number;
     status: "running" | "stopped" | "unknown";
 }
