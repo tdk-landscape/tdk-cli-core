@@ -281,6 +281,11 @@
           "description": "Scale this resource to zero when idle",
           "type": "boolean"
         },
+        "deferStart": {
+          "default": false,
+          "description": "Build the image during tdk up, then create and start the container on its first request",
+          "type": "boolean"
+        },
         "group": {
           "description": "Resources sharing a group wake and sleep together. Defaults to `stack`.",
           "type": "string"

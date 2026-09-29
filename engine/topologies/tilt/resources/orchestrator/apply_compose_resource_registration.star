@@ -137,10 +137,13 @@ def resource_defers_start(manifest):
     static route wakes it on first request (see openspec/changes/
     prioritized-cold-start)."""
     _, sablier_licensed_and_enabled = sablier_middleware_suffix(manifest, '')
+    sablier = manifest.get('sablier', {}) if manifest else {}
+    defers_start = bool(sablier.get('enable', False) and sablier.get('deferStart', False))
+    if defers_start and not sablier_licensed_and_enabled:
+        print("⚠️  '{}' requests sablier.deferStart but the licensed Sablier overlay is disabled; starting normally".format(manifest.get('name', 'resource')))
     if not sablier_licensed_and_enabled:
         return False
-    sablier = manifest.get('sablier', {}) if manifest else {}
-    return bool(sablier.get('deferStart', False))
+    return defers_start
 
 
 def resolve_manifest_dependency_names(manifest, all_services_map):
