@@ -4,7 +4,12 @@ import chalk from "chalk";
 import { Command } from "commander";
 import { resolveFrontendFramework } from "../frontend-frameworks/registry.js";
 import { hasDddLicense } from "../generator/extension-fetch.js";
-import type { CreatableResourceType, FileGenerationTask, PortAssignableResourceType, ResourceType } from "../types/index.js";
+import type {
+  CreatableResourceType,
+  FileGenerationTask,
+  PortAssignableResourceType,
+  ResourceType,
+} from "../types/index.js";
 import { CREATABLE_RESOURCE_TYPES } from "../types/index.js";
 import { assertValid, confirmOrCancel } from "../utils/command-helpers.js";
 import {
@@ -327,7 +332,11 @@ describe('${name}', () => {
 export const resourceCommand = new Command("resource")
   .description("Create a new resource (service) from scratch, or register an existing one")
   .argument("[name]", "Resource name (kebab-case)")
-  .option("-t, --type <type>", "Resource type: backend, frontend, worker, bring-your-own, sdk", "backend")
+  .option(
+    "-t, --type <type>",
+    "Resource type: backend, frontend, worker, bring-your-own, sdk",
+    "backend",
+  )
   .option("--framework <id>", "Frontend framework: react (default), vue")
   .option("-s, --stack <stack>", "Stack to assign resource to", "default")
   .option("-p, --path <path>", "Custom path for resource directory")
@@ -337,10 +346,17 @@ export const resourceCommand = new Command("resource")
     "--ddd",
     "Scaffold DDD (domain-driven design) folders + path aliases (Premium - requires TDK_LICENSE_KEY)",
   )
-  .option("--dockerfile <path>", "Path to Dockerfile relative to resource dir (for bring-your-own)", "./Dockerfile")
+  .option(
+    "--dockerfile <path>",
+    "Path to Dockerfile relative to resource dir (for bring-your-own)",
+    "./Dockerfile",
+  )
   .option("--health-path <path>", "HTTP health check path (for bring-your-own)", "/health")
   .option("--no-proxy", "Disable Traefik proxy (for bring-your-own)", false)
-  .option("--image <name>", "Docker image name instead of building from Dockerfile (for bring-your-own)")
+  .option(
+    "--image <name>",
+    "Docker image name instead of building from Dockerfile (for bring-your-own)",
+  )
   .option("--port <port>", "Port number (default: next free in 4000-5999)")
   .action(async (name, options) => {
     await runCommand(async () => {
@@ -370,10 +386,13 @@ export const resourceCommand = new Command("resource")
       // Support sdk type for registering existing SDKs
       let resourceType: CreatableResourceType | "sdk";
       const validTypes = [...CREATABLE_RESOURCE_TYPES, "sdk"] as const;
-      
+
       // Normalize bring-your-own aliases
-      const normalizedType = options.type === "byo" || options.type === "bring-your-own" ? "bring-your-own" : options.type;
-      
+      const normalizedType =
+        options.type === "byo" || options.type === "bring-your-own"
+          ? "bring-your-own"
+          : options.type;
+
       if (!validTypes.includes(normalizedType)) {
         const selectedType = await promptSelect({
           message: "Resource type:",
@@ -381,7 +400,11 @@ export const resourceCommand = new Command("resource")
             { title: "backend - API service with HTTP endpoints", value: "backend" },
             { title: "frontend - Web application/UI", value: "frontend" },
             { title: "worker - Background job processor", value: "worker" },
-            { title: "bring-your-own - Wrap an existing service. No app scaffold. Needs Dockerfile or --image.", value: "bring-your-own" },
+            {
+              title:
+                "bring-your-own - Wrap an existing service. No app scaffold. Needs Dockerfile or --image.",
+              value: "bring-your-own",
+            },
             { title: "sdk - Library/SDK (register existing)", value: "sdk" },
           ],
         });
@@ -507,7 +530,10 @@ export const resourceCommand = new Command("resource")
       const assignedPort =
         resourceType === "sdk"
           ? 0
-          : assignPort(resourceType as CreatableResourceType as PortAssignableResourceType, allResources);
+          : assignPort(
+              resourceType as CreatableResourceType as PortAssignableResourceType,
+              allResources,
+            );
 
       console.log(chalk.gray("\nResource details:"));
       console.log(chalk.gray(`  Name:  ${resourceName}`));
@@ -578,7 +604,9 @@ export const resourceCommand = new Command("resource")
           stack: stackName,
           port,
           healthCheckPath: options.healthPath || "/health",
-          ...(options.image ? { image: options.image } : { dockerfile: options.dockerfile || "./Dockerfile" }),
+          ...(options.image
+            ? { image: options.image }
+            : { dockerfile: options.dockerfile || "./Dockerfile" }),
           ...(options.noProxy && { featuresEnabled: [], exposeViaProxy: false }),
         };
 
@@ -586,7 +614,10 @@ export const resourceCommand = new Command("resource")
         writeFileSync(resolve(fullPath, "service.json"), JSON.stringify(byoServiceJson, null, 2));
 
         // Create Dockerfile stub if no image provided and dockerfile doesn't exist
-        if (!options.image && !existsSync(resolve(fullPath, options.dockerfile || "./Dockerfile"))) {
+        if (
+          !options.image &&
+          !existsSync(resolve(fullPath, options.dockerfile || "./Dockerfile"))
+        ) {
           const dockerfilePath = resolve(fullPath, options.dockerfile || "./Dockerfile");
           const dockerfileContent = `FROM nginx:1.27-alpine
 COPY health.conf /etc/nginx/conf.d/default.conf

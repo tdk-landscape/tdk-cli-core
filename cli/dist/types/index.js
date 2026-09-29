@@ -1,4 +1,9 @@
-export const CREATABLE_RESOURCE_TYPES = ["backend", "frontend", "worker"];
+export const CREATABLE_RESOURCE_TYPES = [
+    "backend",
+    "frontend",
+    "worker",
+    "bring-your-own",
+];
 export function isCreatableResourceType(value) {
     return (typeof value === "string" && CREATABLE_RESOURCE_TYPES.includes(value));
 }

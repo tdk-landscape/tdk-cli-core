@@ -483,14 +483,21 @@ export async function checkHostPorts(exec = execSync, projectName = getProjectNa
         return { name: "Host Ports", didPass: true, message: "Host ports are held by this project" };
     }
     const first = inUse.find((port) => problems.some((p) => p.startsWith(`${port} `))) ?? inUse[0];
+    let fix;
+    if (first === 80) {
+        fix = "Stop the process bound to port 80, or stop local nginx/caddy. Then: tdk doctor";
+    }
+    else if (first === 5432) {
+        fix = "Stop local Postgres or change the host port. Then: tdk doctor";
+    }
+    else {
+        fix = `Stop the process bound to port ${first}. Then: tdk doctor`;
+    }
     return {
         name: "Host Ports",
         didPass: false,
         message: `Ports TDK needs are taken:\n    ${problems.join("\n    ")}`,
-        fix: process.platform === "win32"
-            ? `Find the process with \`Get-NetTCPConnection -LocalPort ${first} -State Listen\` in PowerShell, stop it, then run \`tdk up\`.`
-            : `Find what holds a port with \`lsof -nP -iTCP:${first} -sTCP:LISTEN\` and stop it ` +
-                "(for a local Postgres: `brew services stop postgresql` or quit Postgres.app), then run `tdk up`.",
+        fix,
     };
 }
 /**

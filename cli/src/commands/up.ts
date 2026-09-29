@@ -189,7 +189,7 @@ export const upCommand = new Command("up")
         console.log(chalk.gray("\nRunning tilt up..."));
         console.log(chalk.gray(`Using Tiltfile: .tdk/.tdk-out/Tiltfile`));
       }
-      
+
       const result = await runTilt("up", tiltArgs, {
         verbose: options.verbose,
         quiet: options.quiet,

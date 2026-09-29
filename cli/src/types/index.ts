@@ -72,9 +72,21 @@ export interface FileGenerationTask {
   emoji: string;
 }
 
-export type ResourceType = "frontend" | "backend" | "library" | "sdk" | "worker" | "migrator" | "bring-your-own";
+export type ResourceType =
+  | "frontend"
+  | "backend"
+  | "library"
+  | "sdk"
+  | "worker"
+  | "migrator"
+  | "bring-your-own";
 
-export const CREATABLE_RESOURCE_TYPES = ["backend", "frontend", "worker", "bring-your-own"] as const;
+export const CREATABLE_RESOURCE_TYPES = [
+  "backend",
+  "frontend",
+  "worker",
+  "bring-your-own",
+] as const;
 
 export type CreatableResourceType = Extract<
   ResourceType,

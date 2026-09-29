@@ -1060,11 +1060,11 @@ export const doctorCommand = new Command("doctor")
     const { formatColdPreflight, runColdPreflight } = await import("../utils/cold-preflight.js");
     console.log(formatColdPreflight(await runColdPreflight(), { includeSuccessFooter: false }));
     console.log(`\n${chalk.bold("🔍 TDK Doctor")}\n`);
-    
+
     if (process.env.WSL_DISTRO_NAME) {
       console.log("WSL2 detected. Use Docker Desktop WSL integration. Guide: docs/wsl2.md\n");
     }
-    
+
     console.log("Checking environment...\n");
 
     const pingTimeout = Number.parseInt(options.pingTimeout, 10);
@@ -1139,7 +1139,9 @@ export const doctorCommand = new Command("doctor")
       message: "Not in a TDK project",
       fix: "tdk project --yes",
     });
-    const checks = inProject ? [...machineChecks, ...projectChecks] : [...machineChecks, notProjectCheck];
+    const checks = inProject
+      ? [...machineChecks, ...projectChecks]
+      : [...machineChecks, notProjectCheck];
 
     // Machine checks are independent and mostly wait on child processes, so start
     // them all now and print in the original order. Project checks stay sequential.
@@ -1182,7 +1184,9 @@ export const doctorCommand = new Command("doctor")
     } else if (allPassed) {
       console.log(`${chalk.green(chalk.bold("✓"))} Doctor passed. Next: tdk up`);
     } else {
-      console.log(`${chalk.red(chalk.bold("✗"))} Doctor failed. Fix the items above, then run: tdk doctor`);
+      console.log(
+        `${chalk.red(chalk.bold("✗"))} Doctor failed. Fix the items above, then run: tdk doctor`,
+      );
       process.exit(1);
     }
   });

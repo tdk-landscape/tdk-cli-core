@@ -158,6 +158,10 @@ export const RESOURCE_FEATURES = {
  * Get default features for a resource type
  */
 export function getDefaultFeaturesForResourceType(appType) {
+    // bring-your-own doesn't generate application code, so no features
+    if (appType === "bring-your-own") {
+        return [];
+    }
     const defaults = [];
     for (const [key, feature] of Object.entries(RESOURCE_FEATURES)) {
         if (feature.enabled_by_default &&

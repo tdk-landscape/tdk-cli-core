@@ -9,7 +9,7 @@ export interface DiscoveredResource {
 }
 export interface ResourceConfig {
     appName: string;
-    appType: "backend" | "frontend" | "library" | "sdk" | "worker" | "migrator";
+    appType: "backend" | "frontend" | "library" | "sdk" | "worker" | "migrator" | "bring-your-own";
     stack?: string;
     port?: number;
     replicas?: number;
@@ -36,6 +36,10 @@ export interface ResourceConfig {
         /** Skip this resource during `tdk up` entirely; a Traefik static route wakes it on first request. Requires enable: true. */
         deferStart?: boolean;
     };
+    /** Optional dockerfile path relative to resource dir */
+    dockerfile?: string;
+    /** Optional Docker image name instead of building from Dockerfile */
+    image?: string;
 }
 export interface DiscoveredStack {
     name: string;
@@ -64,8 +68,8 @@ export interface FileGenerationTask {
     description: string;
     emoji: string;
 }
-export type ResourceType = "frontend" | "backend" | "library" | "sdk" | "worker" | "migrator";
-export declare const CREATABLE_RESOURCE_TYPES: readonly ["backend", "frontend", "worker"];
+export type ResourceType = "frontend" | "backend" | "library" | "sdk" | "worker" | "migrator" | "bring-your-own";
+export declare const CREATABLE_RESOURCE_TYPES: readonly ["backend", "frontend", "worker", "bring-your-own"];
 export type CreatableResourceType = Extract<ResourceType, (typeof CREATABLE_RESOURCE_TYPES)[number]>;
 export declare function isCreatableResourceType(value: unknown): value is CreatableResourceType;
 export type ResourceStatus = "ready" | "pending" | "error" | "unknown";
@@ -256,7 +260,7 @@ export interface PackageInfo {
     version: string;
     fullPackage: JsonObject;
 }
-export type PortAssignableResourceType = Extract<CreatableResourceType, "backend" | "frontend" | "worker" | "migrator">;
+export type PortAssignableResourceType = Extract<CreatableResourceType, "backend" | "frontend" | "worker" | "migrator" | "bring-your-own">;
 export type MasterConfigFileName = "TILT_TECH_STACK.star" | "TILT_RESOURCE_DEFAULTS.star" | "spec.master";
 /**
  * Type guard to validate filename is a known master config file.

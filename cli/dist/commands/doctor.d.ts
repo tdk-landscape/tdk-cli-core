@@ -6,6 +6,7 @@ export declare function checkDockerRuntime(): Promise<CheckResult>;
 export declare const checkDockerCompose: () => Promise<CheckResult>;
 export declare function checkDockerVersions(exec?: ExecAsync): Promise<CheckResult>;
 export declare const checkTilt: () => Promise<CheckResult>;
+export declare function checkBun(): Promise<CheckResult>;
 /**
  * Tilt only builds resources under `discovery.paths`, but the CLI finds every service.json,
  * so a resource outside them is listed and given a URL by `tdk up` yet never started.
