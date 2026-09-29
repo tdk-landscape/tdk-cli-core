@@ -221,10 +221,19 @@ def _generate_single_backend_entry(resource_path, resource_name, res, manifest, 
         if manifest.get('image'):
             build_config = ""
         else:
-            build_config = compose_build_config(
-                full_resource_path,
-                '',
-                manifest.get('dockerfile', 'Dockerfile'),
+            # A BYO Dockerfile copies paths relative to the service directory
+            # (for example, `COPY app.py .`). Build with that directory as the
+            # context instead of the project root used by generated TDK apps.
+            context_prefix = '/'.join(['..'] * (len(resource_path.split('/')) + 1))
+            build_context = context_prefix + '/' + full_resource_path
+            dockerfile = manifest.get('dockerfile', 'Dockerfile')
+            if dockerfile.startswith('./'):
+                dockerfile = dockerfile[2:]
+            build_config = """    build:
+      context: {build_context}
+      dockerfile: {dockerfile}""".format(
+                build_context=build_context,
+                dockerfile=dockerfile,
             )
     else:
         build_config = compose_build_config(resource_path, res_name)
