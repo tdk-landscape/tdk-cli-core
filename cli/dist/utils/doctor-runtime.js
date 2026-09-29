@@ -477,7 +477,8 @@ export async function checkHostPorts(exec = execSync, projectName = getProjectNa
     for (const port of inUse) {
         const holder = holders.find((h) => h.publishedPorts.includes(port));
         if (!holder) {
-            problems.push(`${port} (${HOST_PORTS[port]}) is used by a program on this machine`);
+            const detail = port === 5432 ? "; inspect it with lsof -nP -iTCP:5432" : "";
+            problems.push(`${port} (${HOST_PORTS[port]}) is used by a program on this machine${detail}`);
         }
         else if (port === 5432 && !isOwn(holder.name)) {
             problems.push(`${port} (${HOST_PORTS[port]}) is published by container ${holder.name}`);
