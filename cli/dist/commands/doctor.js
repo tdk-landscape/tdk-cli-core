@@ -6,7 +6,7 @@ import { Command } from "commander";
 import { hasVerdaccioLicense } from "../generator/extension-fetch.js";
 import { MASTER_CONFIG_FILES, REQUIRED_PACKAGE_SCRIPTS } from "../utils/constants.js";
 import { isPathDiscovered, readDiscoveryPaths } from "../utils/discovery-paths.js";
-import { checkHealthRoutes, checkHostPorts, checkIngressPorts, checkPrivateNpmRegistry, checkTiltResourceHealth, HOST_PORT_FIXES, projectConfigEnablesVerdaccio, summarizeServiceProbes, } from "../utils/doctor-runtime.js";
+import { checkHealthRoutes, checkHostPorts, checkIngressPorts, checkPrivateNpmRegistry, checkTiltResourceHealth, projectConfigEnablesVerdaccio, summarizeServiceProbes, } from "../utils/doctor-runtime.js";
 import { checkDockerNetworkCapacity, checkFrontendBackendUrls, checkNatsBroker, checkResourcePackageJson, checkServiceUrlPorts, checkTiltInstances, } from "../utils/doctor-wiring.js";
 import { validateEnvFile } from "../utils/env-validator.js";
 import { execAsync, isExecTimeout } from "../utils/exec-async.js";
@@ -25,11 +25,11 @@ export const DOCTOR_FIXES = {
     dockerDaemonDown: "Start Docker Desktop, OrbStack, or Colima, then retry: tdk doctor",
     tiltMissing: "curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash",
     bunMissing: "curl -fsSL https://bun.sh/install | bash",
-    port80: HOST_PORT_FIXES.port80,
-    port5432: HOST_PORT_FIXES.port5432,
+    port80: "Stop the process bound to port 80, or stop local nginx/caddy. Then: tdk doctor",
+    port5432: "Stop local Postgres or change the host port. Then: tdk doctor",
     notProject: "tdk project --yes",
-    wsl2: "WSL2 detected. Use Docker Desktop WSL integration. Guide: docs/wsl2.md",
 };
+export const WSL2_DOCTOR_MESSAGE = "WSL2 detected. Use Docker Desktop WSL integration. Guide: docs/wsl2.md";
 export function getDoctorOutcomeMessage(inProject, allPassed) {
     if (!allPassed)
         return "Doctor failed. Fix the items above, then run: tdk doctor";
@@ -870,7 +870,7 @@ export const doctorCommand = new Command("doctor")
     console.log(formatColdPreflight(await runColdPreflight(), { includeSuccessFooter: false }));
     console.log(`\n${chalk.bold("🔍 TDK Doctor")}\n`);
     if (process.env.WSL_DISTRO_NAME) {
-        console.log(`${DOCTOR_FIXES.wsl2}\n`);
+        console.log(`${WSL2_DOCTOR_MESSAGE}\n`);
     }
     console.log("Checking environment...\n");
     const pingTimeout = Number.parseInt(options.pingTimeout, 10);

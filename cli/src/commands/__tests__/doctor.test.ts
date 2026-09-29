@@ -24,6 +24,7 @@ import {
   checkTypeScriptTypeDependencies,
   DOCTOR_FIXES,
   getDoctorOutcomeMessage,
+  WSL2_DOCTOR_MESSAGE,
 } from "../doctor.js";
 
 describe("doctor exact guidance", () => {
@@ -37,8 +38,10 @@ describe("doctor exact guidance", () => {
       port80: "Stop the process bound to port 80, or stop local nginx/caddy. Then: tdk doctor",
       port5432: "Stop local Postgres or change the host port. Then: tdk doctor",
       notProject: "tdk project --yes",
-      wsl2: "WSL2 detected. Use Docker Desktop WSL integration. Guide: docs/wsl2.md",
     });
+    expect(WSL2_DOCTOR_MESSAGE).toBe(
+      "WSL2 detected. Use Docker Desktop WSL integration. Guide: docs/wsl2.md",
+    );
   });
 
   it("prints exact project-aware final outcomes", () => {

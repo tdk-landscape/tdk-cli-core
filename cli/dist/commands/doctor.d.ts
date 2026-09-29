@@ -10,8 +10,8 @@ export declare const DOCTOR_FIXES: {
     readonly port80: "Stop the process bound to port 80, or stop local nginx/caddy. Then: tdk doctor";
     readonly port5432: "Stop local Postgres or change the host port. Then: tdk doctor";
     readonly notProject: "tdk project --yes";
-    readonly wsl2: "WSL2 detected. Use Docker Desktop WSL integration. Guide: docs/wsl2.md";
 };
+export declare const WSL2_DOCTOR_MESSAGE = "WSL2 detected. Use Docker Desktop WSL integration. Guide: docs/wsl2.md";
 export declare function getDoctorOutcomeMessage(inProject: boolean, allPassed: boolean): string;
 export declare function checkDockerRuntime(): Promise<CheckResult>;
 export declare const checkDockerCompose: () => Promise<CheckResult>;
