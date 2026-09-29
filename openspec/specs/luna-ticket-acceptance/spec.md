@@ -42,6 +42,13 @@ The CLI and service schema MUST accept bring-your-own resources with project-def
 - **AND** `tdk up shop --dry-run` lists the resource without requiring Docker or Tilt
 - **AND** the contract E2E does not add Python, Java, or other language generators
 
+### Scenario: Boot the checked-in Python BYO fixture
+
+- **WHEN** the nightly or manually dispatched boot E2E copies the Python fixture into `services/shop/legacy/`, registers it with `tdk resource legacy --type byo --stack shop --dockerfile ./Dockerfile --port 4500 --yes`, and runs `tdk up shop`
+- **THEN** the service health URL returns HTTP 200 with body `ok` within three minutes
+- **AND** `tdk down` cleans up the stack
+- **AND** the test confirms `service.json` has `appType: "bring-your-own"` and `port: 4500`, no `src/` or `package.json` was created, and the copied Dockerfile matches the fixture
+
 ## Requirement: Doctor uses exact remediation copy
 
 Doctor MUST preserve these exact fix strings:
