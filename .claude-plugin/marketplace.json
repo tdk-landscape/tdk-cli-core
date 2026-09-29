@@ -1,0 +1,17 @@
+{
+  "name": "tdk-skills",
+  "owner": {
+    "name": "TDK Landscape"
+  },
+  "metadata": {
+    "description": "Shared agent skills for the TDK CLI and landscape repositories",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "tdk-cli",
+      "source": "./plugins/tdk-cli",
+      "description": "Operate and troubleshoot the TDK CLI in a project repository"
+    }
+  ]
+}

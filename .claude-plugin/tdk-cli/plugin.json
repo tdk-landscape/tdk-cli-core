@@ -1,0 +1,8 @@
+{
+  "name": "tdk-cli",
+  "description": "Operate and troubleshoot the TDK CLI in a project repository",
+  "version": "1.0.0",
+  "author": {
+    "name": "TDK Landscape"
+  }
+}
