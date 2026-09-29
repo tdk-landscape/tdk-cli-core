@@ -34,6 +34,20 @@ PY
 # Re-vendor after setting the manifest so a configured premium CI key overlays
 # the real Sablier implementation into this disposable project.
 tdk project --yes
+python3 - <<'PY'
+import json
+from pathlib import Path
+
+manifest_path = next(Path(".").glob("**/cold-api/service.json"))
+manifest = json.loads(manifest_path.read_text())
+if manifest.get("sablier") != {"enable": True, "deferStart": True}:
+    raise SystemExit(f"cold-api service manifest lost its deferred Sablier config: {manifest.get('sablier')!r}")
+
+overlay = Path(".tdk/.tdk-out/tdk-cli-ext/engine/topologies/platform/docker/networking/sablier_container_cycle.star")
+if not overlay.exists() or "No internal license check here" not in overlay.read_text():
+    raise SystemExit("TDK_LICENSE_KEY did not unlock the Sablier overlay; grant the 'sablier' resource to this Actions key")
+print("Verified cold-api deferStart manifest and licensed Sablier overlay")
+PY
 echo "Running tdk doctor after resource generation and before tdk up"
 tdk doctor
 echo "::endgroup::"
