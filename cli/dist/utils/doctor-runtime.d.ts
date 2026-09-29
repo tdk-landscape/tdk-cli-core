@@ -1,6 +1,10 @@
 import { execSync } from "node:child_process";
 import type { CheckResult, DiscoveredResource } from "../types/index.js";
 import { type HealthProbe } from "./service-urls.js";
+export declare const HOST_PORT_FIXES: {
+    readonly port80: "Stop the process bound to port 80, or stop local nginx/caddy. Then: tdk doctor";
+    readonly port5432: "Stop local Postgres or change the host port. Then: tdk doctor";
+};
 /** Host ports Traefik publishes for local ingress. Without these, app routes never come up. */
 export declare const INGRESS_PORTS: readonly [80, 443];
 export declare function toComposeProjectPrefix(projectName: string): string;
