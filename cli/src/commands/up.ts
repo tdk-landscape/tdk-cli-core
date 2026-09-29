@@ -33,6 +33,8 @@ export const upCommand = new Command("up")
   .option("--dry-run", "Show what would be started without starting", false)
   .option("-f, --force", "Kill existing Tilt process before starting", false)
   .action(async (stackName, options) => {
+    const { assertMachineReadyOrExit } = await import("../utils/cold-preflight.js");
+    await assertMachineReadyOrExit();
     const action = async (): Promise<void> => {
       const projectRoot = options.dryRun
         ? requireProjectRoot()

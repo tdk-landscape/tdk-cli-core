@@ -53,7 +53,7 @@ async function succeeds(command) {
         return false;
     }
 }
-async function checkDockerRuntime() {
+export async function checkDockerRuntime() {
     if (process.platform === "win32") {
         try {
             await execAsync("docker ps", EXEC_TIMEOUT_MS);
@@ -119,7 +119,7 @@ async function checkDockerRuntime() {
         fix: `Start: colima start (recommended) OR open -a Docker (macOS) OR sudo systemctl start docker (Linux). Setup guide: ${QUICKSTART_DOCS_URL}`,
     };
 }
-const checkDockerCompose = createExecCheck("Docker Compose", "docker compose version", "Docker Compose plugin available", "Docker Compose plugin not found", "Install Docker Compose: https://docs.docker.com/compose/install/");
+export const checkDockerCompose = createExecCheck("Docker Compose", "docker compose version", "Docker Compose plugin available", "Docker Compose plugin not found", "Install Docker Compose: https://docs.docker.com/compose/install/");
 // Generated healthchecks use `start_interval`, which older engines/compose reject.
 const MIN_DOCKER_ENGINE_VERSION = [25, 0, 0];
 const MIN_DOCKER_COMPOSE_VERSION = [2, 20, 2];
@@ -188,7 +188,7 @@ export async function checkDockerVersions(exec = execAsync) {
         fix: "Update Docker Desktop, or on Linux update docker-ce and the docker-compose-plugin package",
     };
 }
-const checkTilt = createExecCheck("Tilt CLI", "tilt version", "Tilt CLI installed", process.platform === "win32"
+export const checkTilt = createExecCheck("Tilt CLI", "tilt version", "Tilt CLI installed", process.platform === "win32"
     ? "tilt.exe not found on PATH. Install Tilt from https://docs.tilt.dev/install.html"
     : "Tilt CLI not found", `Install Tilt: brew install tilt (macOS) or see https://docs.tilt.dev/install.html. Setup guide: ${QUICKSTART_DOCS_URL}`);
 function checkEnvironmentVariables() {
@@ -804,6 +804,8 @@ export const doctorCommand = new Command("doctor")
     .option("--no-ping", "Skip pinging running services' /health endpoints")
     .option("--ping-timeout <ms>", "Per-service ping timeout in milliseconds", String(DEFAULT_PING_TIMEOUT_MS))
     .action(async (options) => {
+    const { formatColdPreflight, runColdPreflight } = await import("../utils/cold-preflight.js");
+    console.log(formatColdPreflight(await runColdPreflight()));
     console.log(`\n${chalk.bold("🔍 TDK Doctor")}\n`);
     console.log("Checking environment...\n");
     const pingTimeout = Number.parseInt(options.pingTimeout, 10);
