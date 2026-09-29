@@ -2,36 +2,43 @@
 
 # TDK — Tilt Development Kit
 
-**Run your whole microservice landscape locally. No Kubernetes.**
+**A whole microservice project, running on your laptop. No Kubernetes cluster required.**
 
-One CLI that scaffolds your services and runs the whole landscape locally with hot reload, health checks, a proxy, and Postgres, all built on [Tilt](https://tilt.dev). Tested at scale: a 100-service fixture (small generated `/health` services) boots from nothing on a clean CI runner in about 8 minutes, and holds about 1.7 GiB of memory ([details](#cold-boot-on-a-clean-machine-ci)).
+Scaffold services, bring up a stack, and edit code with hot reload. TDK wires together Docker, [Tilt](https://tilt.dev), health checks, a local proxy, and Postgres into one repeatable local workflow.
 
 [![npm version](https://img.shields.io/npm/v/@tdk-landscape/tdk-cli-core.svg?style=flat&color=blue)](https://www.npmjs.com/package/@tdk-landscape/tdk-cli-core)
 [![CI](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/ci.yml/badge.svg)](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/ci.yml)
-[![Quickstart E2E](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/quickstart-e2e.yml/badge.svg)](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/quickstart-e2e.yml)
-[![ERP scale E2E](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/erp-scale-e2e.yml/badge.svg)](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/erp-scale-e2e.yml)
-[![Example apps E2E](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/examples-e2e.yml/badge.svg?branch=main)](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/examples-e2e.yml)
-[![Known Vulnerabilities](https://snyk.io/test/github/tdk-landscape/tdk-cli-core/badge.svg)](https://snyk.io/test/github/tdk-landscape/tdk-cli-core)
-[![Socket Badge](https://badge.socket.dev/npm/package/@tdk-landscape/tdk-cli-core/latest)](https://socket.dev/npm/package/@tdk-landscape/tdk-cli-core/overview)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-[Website](https://tdk-landscape.github.io/tdk-website) · [Quickstart](https://tdk-landscape.github.io/tdk-website/docs/quickstart/) · [Examples](https://tdk-landscape.github.io/tdk-website/docs/examples/) · [Demo](https://tdk-landscape.github.io/tdk-demo-animation/) · [Report a bug](https://github.com/tdk-landscape/tdk-cli-core/issues/new/choose)
+[Quickstart](https://tdk-landscape.github.io/tdk-website/docs/quickstart/) · [Examples](https://tdk-landscape.github.io/tdk-website/docs/examples/) · [100-service benchmark](#benchmark-100-services-on-one-laptop) · [Report a bug](https://github.com/tdk-landscape/tdk-cli-core/issues/new/choose)
 
 </div>
 
 ```bash
 npm install -g @tdk-landscape/tdk-cli-core
-mkdir shop && cd shop                                   # tdk writes files into the current directory
-tdk project --yes                                       # set up the project
-tdk resource orders-api --type backend --stack shop     # scaffold a service
-tdk up shop                                             # run it with hot reload
+mkdir shop && cd shop
+tdk project --yes
+tdk resource orders-api --type backend --stack shop
+tdk up shop
 ```
 
-![tdk scaffolding a backend and a frontend, then listing the stack](docs/demo.svg)
+![TDK scaffolds a backend and frontend, then brings the stack up with Tilt and routes requests locally](docs/demo.svg)
 
-![npm downloads, last month](docs/npm-downloads.svg)
+**See it work:** one CLI command creates a service; `tdk up shop` starts it with hot reload and routes it at a local URL. The same workflow has been exercised against a 100-service example (see the benchmark below).
 
-**Requirements:** Docker (Desktop, OrbStack or Colima; Engine 25+, Compose 2.20+), [Tilt](https://docs.tilt.dev/install.html), [Bun](https://bun.sh) for the generated services, and Node.js 22.12+ for the CLI. Ports 80, 443 and 5432 must be free (a local Postgres is the usual conflict). macOS and Linux are supported. Windows is untested (WSL2 may work). Run `tdk doctor` to check all of it.
+**Requirements:** Docker (Desktop, OrbStack or Colima; Engine 25+, Compose 2.20+), [Tilt](https://docs.tilt.dev/install.html), [Bun](https://bun.sh) for generated services, and Node.js 22.12+ for the CLI. macOS and Linux are supported; Windows is untested. Run `tdk doctor` to check your setup.
+
+**Scale, with receipts:** 100 generated services reached healthy in **112 seconds** after their images were built. A clean CI runner built and started all 100 in **472 seconds** across 111 containers. These are deliberately small `/health` fixtures, not production workloads; the scripts, machine details, and caveats are [documented here](#benchmark-100-services-on-one-laptop).
+
+## Pick your path
+
+| If you want to… | Start here |
+|---|---|
+| See a complete TDK project | Run the [SaaS starter](https://github.com/tdk-landscape/tdk-saas-starter), [restaurant example](https://github.com/tdk-landscape/tdk-restaurant-example), or [100-service ERP](https://github.com/tdk-landscape/tdk-erp-system). |
+| Make a first contribution | Browse [good first issues](https://github.com/tdk-landscape/tdk-cli-core/labels/good%20first%20issue) or [help wanted](https://github.com/tdk-landscape/tdk-cli-core/labels/help%20wanted), then follow the [first-contribution guide](docs/contributing/README.md). |
+| Check TDK on your hardware | Run the [container benchmark](scripts/benchmark/README.md) and share Linux, Apple Silicon, or low-memory results in [the benchmark issue](https://github.com/tdk-landscape/tdk-cli-core/issues/125). |
+| Explore the implementation | Start with the [CLI](cli/README.md), [Tilt engine](engine/README.md), or [service discovery](discovery/). |
+| Bring a different framework or workflow | Read the [frontend provider guide](docs/frontend-framework-providers.md) or [propose an idea](https://github.com/tdk-landscape/tdk-cli-core/issues/new?template=feature_request.yml). |
 
 This is the core monorepo for TDK: the `tdk` CLI, the Starlark-based Tilt orchestration engine that powers it, and the discovery system that turns a directory of services into a running local landscape.
 
