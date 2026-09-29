@@ -2,22 +2,27 @@
 
 ## Use TDK when
 
-Use TDK when a team wants a generated local development landscape with service discovery, stack commands, health checks, and the Tilt UI. TDK is for local development; it does not deploy or validate production infrastructure.
+- New TypeScript/Bun services
+- You want one `service.json` per service
+- You do not want Kubernetes locally
 
 ## Do not use TDK when
 
-Do not use TDK when the project needs Kubernetes APIs, production parity, or direct ownership of every orchestration file. A small, stable set of containers may be simpler to maintain directly in Compose.
+- You already have a Compose or Tilt setup you like
+- The apps are not containers
+- You need native Windows
+- You need TDK to generate Go/Java/Python apps (use bring-your-own)
 
 ## vs docker compose
 
-Compose runs containers from YAML that you maintain. TDK generates Compose configuration from service manifests and adds stack-level lifecycle controls through Tilt. Choose Compose for direct control over that YAML; choose TDK when generated conventions and stack lifecycle commands save work.
+TDK generates compose-like Docker + Tilt live update. Compose is simpler for 2–3 services you already wrote.
 
 ## vs raw Tilt
 
-Raw Tilt provides the development loop and UI with direct control over the Tiltfile. TDK generates a Tiltfile and service configuration around it. Choose raw Tilt when you want to maintain orchestration yourself; choose TDK when you want TDK to generate it.
+TDK writes the Tiltfile for you. If you already maintain a Tiltfile, stay on Tilt.
 
 ## Known limits
 
-- Generated defaults may not fit unusual ports, health checks, build contexts, or networking; inspect generated files when needed.
-- The 100-service benchmark uses tiny `/health` stubs, not real apps.
-- Cold startup depends on image and package downloads, disk speed, and available memory. TDK cannot make a cold machine boot as fast as a warm cache.
+- Community is small
+- Generators are TypeScript-first
+- 100-service benchmark uses tiny `/health` stubs, not real apps

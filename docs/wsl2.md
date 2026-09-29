@@ -3,24 +3,18 @@
 TDK supports Ubuntu on WSL2. Native Windows is not supported.
 
 ## Install
+1. Install Docker Desktop and enable WSL2 integration for your distro.
+2. In Ubuntu: install Tilt.
+3. In Ubuntu:
 
-1. Install TDK from your Ubuntu shell:
-
-```bash
 curl -fsSL https://tdk-landscape.github.io/install.sh | sh
-```
-
-2. Install Docker Desktop for Windows, enable the WSL 2 based engine, and enable integration for your Ubuntu distribution. Install Node.js, Bun, and Tilt in Ubuntu. Verify Docker with `docker version` and `docker compose version`.
-
-3. Create and start the example project:
-
-```bash
+tdk doctor
 tdk project example
 cd tdk-example
 tdk up
-```
 
-## Common failures
+Open the URL printed by tdk networks from Windows browser. *.localhost should work on recent Windows.
 
-- IIS may occupy ports 80 or 443, which TDK uses for Traefik. Stop IIS or change its bindings, then run `tdk doctor`.
-- Keep projects in the WSL Linux filesystem (for example, `~/src`) to avoid slow file watching and permission issues on mounted Windows drives.
+Common failures
+Docker not visible in WSL: enable the distro in Docker Desktop → Resources → WSL integration.
+Port 80 taken by Windows IIS: stop IIS or skip host bind docs if TDK uses Traefik on 80.
