@@ -33,7 +33,7 @@ Want to inspect a stack before starting containers? `tdk up shop --dry-run` show
 
 ![npm downloads, last month](docs/npm-downloads.svg)
 
-**Requirements:** Docker (Desktop, OrbStack or Colima; Engine 25+, Compose 2.20+), [Tilt](https://docs.tilt.dev/install.html), [Bun](https://bun.sh) for the generated services, and Node.js 22.12+ for the CLI. Ports 80, 443 and 5432 must be free (a local Postgres is the usual conflict). macOS and Linux are supported. Windows is untested (WSL2 may work). Run `tdk doctor` to check all of it.
+**Requirements:** Docker (Desktop, OrbStack or Colima; Engine 25+, Compose 2.20+), [Tilt](https://docs.tilt.dev/install.html), [Bun](https://bun.sh) for the generated services, and Node.js 22.12+ for npm installs. Ports 80, 443 and 5432 must be free (a local Postgres is the usual conflict). macOS and Linux releases are available. Native Windows AMD64 CLI support has merged, and Windows CI checks startup and platform behavior, but the Windows binary release and real Windows 11 acceptance run are still pending. On Windows, use Docker Desktop with Linux containers; WSL2 Ubuntu works as Linux. Run `tdk doctor` to check your setup.
 
 This is the core monorepo for TDK: the `tdk` CLI, the Starlark-based Tilt orchestration engine that powers it, and the discovery system that turns a directory of services into a running local landscape.
 
