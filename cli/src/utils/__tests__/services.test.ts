@@ -111,7 +111,7 @@ describe("discoverResources", () => {
     expect(() => discoverResources()).toThrow("Could not find project root");
   });
 
-  it("should error mention Tiltfile in message", async () => {
+  it("should explain which project file is required", async () => {
     vi.mocked(findProjectRoot).mockReturnValue(null);
     const { discoverResources } = await import("../services.js");
     try {
@@ -119,7 +119,7 @@ describe("discoverResources", () => {
       expect.unreachable("Should have thrown");
     } catch (err) {
       expect((err as Error).message).toContain("project root");
-      expect((err as Error).message).toContain("Tiltfile");
+      expect((err as Error).message).toContain(".tdk/project.json");
     }
   });
 });
