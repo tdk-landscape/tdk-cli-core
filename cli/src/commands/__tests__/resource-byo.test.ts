@@ -1,35 +1,31 @@
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { resourceCommand } from "../../commands/resource.js";
+import { resolveByoPort, resourceCommand } from "../../commands/resource.js";
+import { resourcesCommand } from "../../commands/resources.js";
+import { upCommand } from "../../commands/up.js";
 import { discoverResourcesFromRoot } from "../../utils/services.js";
+
+const originalCwd = process.cwd();
 
 describe("bring-your-own resource type", () => {
   let tempDir: string;
 
   beforeEach(() => {
-    tempDir = "/tmp/tdk-byo-test-" + Date.now();
-    mkdirSync(tempDir, { recursive: true });
-  });
-
-  afterEach(() => {
-    rmSync(tempDir, { recursive: true, force: true });
-  });
-
-  it("should create service.json with appType: bring-your-own", async () => {
-    // Create a minimal project structure
+    tempDir = mkdtempSync(join(tmpdir(), "tdk-byo-test-"));
     mkdirSync(join(tempDir, ".tdk"), { recursive: true });
     writeFileSync(
       join(tempDir, ".tdk", "project.json"),
       JSON.stringify({
         version: "1.0.0",
         project: { name: "test", version: "1.0.0" },
-        phases: {
-          pre_alpha: { name: "pre_alpha", description: "", enabledStacks: [] },
-          alpha: { name: "alpha", description: "", enabledStacks: [] },
-          beta: { name: "beta", description: "", enabledStacks: [] },
-          out_of_scope: { name: "out_of_scope", description: "", enabledStacks: [] },
-        },
+        phases: Object.fromEntries(
+          ["pre_alpha", "alpha", "beta", "out_of_scope"].map((name) => [
+            name,
+            { name, description: "", enabledStacks: [] },
+          ]),
+        ),
         optional_infra: {
           monitoring: false,
           elk: false,
@@ -40,134 +36,118 @@ describe("bring-your-own resource type", () => {
         discovery: { paths: ["services/**"] },
       }),
     );
+    process.chdir(tempDir);
+  });
 
-    // Create the resource directory
-    const resourcePath = join(tempDir, "services", "shop", "widget");
-    mkdirSync(resourcePath, { recursive: true });
+  afterEach(() => {
+    process.chdir(originalCwd);
+    rmSync(tempDir, { recursive: true, force: true });
+  });
 
-    // Simulate command execution
-    const serviceJsonPath = join(resourcePath, "service.json");
-    const serviceJson = {
+  async function createByo(args: string[] = []): Promise<string> {
+    await resourceCommand.parseAsync(
+      ["node", "tdk", "widget", "--type", "byo", "--stack", "shop", "--yes", ...args],
+      { from: "node" },
+    );
+    return join(tempDir, "services", "shop", "widget");
+  }
+
+  it("creates a discoverable service.json without scaffolding source", async () => {
+    const resourcePath = await createByo();
+    const service = JSON.parse(readFileSync(join(resourcePath, "service.json"), "utf-8"));
+
+    expect(service).toMatchObject({
       appName: "widget",
       appType: "bring-your-own",
       stack: "shop",
-      port: 4500,
+      port: expect.any(Number),
       healthCheckPath: "/health",
       dockerfile: "./Dockerfile",
-    };
-    writeFileSync(serviceJsonPath, JSON.stringify(serviceJson, null, 2));
-
-    // Verify the service.json was created correctly
-    const createdServiceJson = JSON.parse(readFileSync(serviceJsonPath, "utf-8"));
-    expect(createdServiceJson.appType).toBe("bring-your-own");
-    expect(createdServiceJson.appName).toBe("widget");
-    expect(createdServiceJson.stack).toBe("shop");
-    expect(createdServiceJson.port).toBe(4500);
-    expect(createdServiceJson.healthCheckPath).toBe("/health");
-    expect(createdServiceJson.dockerfile).toBe("./Dockerfile");
+    });
+    expect(service).not.toHaveProperty("exposeViaProxy");
+    expect(existsSync(join(resourcePath, "src"))).toBe(false);
+    expect(existsSync(join(resourcePath, "package.json"))).toBe(false);
+    expect(existsSync(join(resourcePath, "tsconfig.json"))).toBe(false);
+    expect(existsSync(join(resourcePath, "tests"))).toBe(false);
+    expect(discoverResourcesFromRoot(tempDir).map((resource) => resource.name)).toContain("widget");
   });
 
-  it("should not create src/ directory for bring-your-own type", async () => {
-    const resourcePath = join(tempDir, "services", "shop", "widget");
-    mkdirSync(resourcePath, { recursive: true });
+  it("lists the resource through tdk resources and tdk up --dry-run", async () => {
+    await createByo();
+    const output: string[] = [];
+    const originalLog = console.log;
+    console.log = (...args: unknown[]) => output.push(args.join(" "));
 
-    const serviceJsonPath = join(resourcePath, "service.json");
-    const serviceJson = {
-      appName: "widget",
-      appType: "bring-your-own",
-      stack: "shop",
-      port: 4500,
-      healthCheckPath: "/health",
-      dockerfile: "./Dockerfile",
-    };
-    writeFileSync(serviceJsonPath, JSON.stringify(serviceJson, null, 2));
+    try {
+      await resourcesCommand.parseAsync(["node", "tdk", "--stack", "shop"], { from: "node" });
+      expect(output.join("\n")).toContain("widget [shop]");
 
-    // Verify src directory does not exist
-    const srcPath = join(resourcePath, "src");
-    const { existsSync } = await import("node:fs");
-    expect(existsSync(srcPath)).toBe(false);
+      output.length = 0;
+      await upCommand.parseAsync(["node", "tdk", "shop", "--dry-run"], { from: "node" });
+      expect(output.join("\n")).toContain('Would start 1 service from stack "shop"');
+      expect(output.join("\n")).toContain("- widget");
+    } finally {
+      console.log = originalLog;
+    }
   });
 
-  it("should create Dockerfile stub when none exists", async () => {
-    const resourcePath = join(tempDir, "services", "shop", "widget");
-    mkdirSync(resourcePath, { recursive: true });
+  it("creates a port-matched Dockerfile stub when none exists", async () => {
+    const resourcePath = await createByo();
+    const service = JSON.parse(readFileSync(join(resourcePath, "service.json"), "utf-8"));
+    const dockerfile = readFileSync(join(resourcePath, "Dockerfile"), "utf-8");
+    const healthConfig = readFileSync(join(resourcePath, "health.conf"), "utf-8");
 
-    const serviceJsonPath = join(resourcePath, "service.json");
-    const serviceJson = {
-      appName: "widget",
-      appType: "bring-your-own",
-      stack: "shop",
-      port: 4500,
-      healthCheckPath: "/health",
-      dockerfile: "./Dockerfile",
-    };
-    writeFileSync(serviceJsonPath, JSON.stringify(serviceJson, null, 2));
-
-    // Create Dockerfile stub
-    const dockerfilePath = join(resourcePath, "Dockerfile");
-    const dockerfileContent = `FROM nginx:1.27-alpine
-COPY health.conf /etc/nginx/conf.d/default.conf
-EXPOSE 80
-`;
-    writeFileSync(dockerfilePath, dockerfileContent);
-
-    // Verify Dockerfile was created
-    const { existsSync } = await import("node:fs");
-    expect(existsSync(dockerfilePath)).toBe(true);
-
-    const createdDockerfile = readFileSync(dockerfilePath, "utf-8");
-    expect(createdDockerfile).toContain("FROM nginx:1.27-alpine");
-    expect(createdDockerfile).toContain("health.conf");
+    expect(dockerfile).toContain(`EXPOSE ${service.port}`);
+    expect(healthConfig).toContain(`listen ${service.port}`);
   });
 
-  it("should write image field and not write Dockerfile when --image is provided", async () => {
-    const resourcePath = join(tempDir, "services", "shop", "widget");
-    mkdirSync(resourcePath, { recursive: true });
+  it("uses --image without writing a Dockerfile", async () => {
+    const resourcePath = await createByo(["--image", "nginx:alpine"]);
+    const service = JSON.parse(readFileSync(join(resourcePath, "service.json"), "utf-8"));
 
-    const serviceJsonPath = join(resourcePath, "service.json");
-    const serviceJson = {
-      appName: "widget",
-      appType: "bring-your-own",
-      stack: "shop",
-      port: 4500,
-      healthCheckPath: "/health",
-      image: "nginx:alpine",
-    };
-    writeFileSync(serviceJsonPath, JSON.stringify(serviceJson, null, 2));
-
-    // Verify image field is set
-    const createdServiceJson = JSON.parse(readFileSync(serviceJsonPath, "utf-8"));
-    expect(createdServiceJson.image).toBe("nginx:alpine");
-    expect(createdServiceJson.dockerfile).toBeUndefined();
-
-    // Verify Dockerfile was not created
-    const { existsSync } = await import("node:fs");
-    const dockerfilePath = join(resourcePath, "Dockerfile");
-    expect(existsSync(dockerfilePath)).toBe(false);
+    expect(service.image).toBe("nginx:alpine");
+    expect(service).not.toHaveProperty("dockerfile");
+    expect(existsSync(join(resourcePath, "Dockerfile"))).toBe(false);
   });
 
-  it("should not overwrite existing Dockerfile", async () => {
+  it("does not overwrite an existing Dockerfile", async () => {
     const resourcePath = join(tempDir, "services", "shop", "widget");
     mkdirSync(resourcePath, { recursive: true });
-
-    // Create existing Dockerfile
     const dockerfilePath = join(resourcePath, "Dockerfile");
     const existingContent = "# Custom Dockerfile\nFROM ubuntu:latest\n";
     writeFileSync(dockerfilePath, existingContent);
+    const existingAgents = "# Preserve these service instructions\n";
+    writeFileSync(join(resourcePath, "AGENTS.md"), existingAgents);
 
-    const serviceJsonPath = join(resourcePath, "service.json");
-    const serviceJson = {
-      appName: "widget",
-      appType: "bring-your-own",
-      stack: "shop",
-      port: 4500,
-      healthCheckPath: "/health",
-      dockerfile: "./Dockerfile",
-    };
-    writeFileSync(serviceJsonPath, JSON.stringify(serviceJson, null, 2));
+    await createByo();
 
-    // Verify existing Dockerfile was not overwritten
-    const createdDockerfile = readFileSync(dockerfilePath, "utf-8");
-    expect(createdDockerfile).toBe(existingContent);
+    expect(readFileSync(dockerfilePath, "utf-8")).toBe(existingContent);
+    expect(readFileSync(join(resourcePath, "AGENTS.md"), "utf-8")).toBe(existingAgents);
+  });
+
+  it("supports a nested Dockerfile path, a custom port, and --no-proxy", async () => {
+    const resourcePath = await createByo([
+      "--dockerfile",
+      "container/Dockerfile",
+      "--port",
+      "4550",
+      "--no-proxy",
+    ]);
+    const service = JSON.parse(readFileSync(join(resourcePath, "service.json"), "utf-8"));
+
+    expect(service.port).toBe(4550);
+    expect(service.dockerfile).toBe("container/Dockerfile");
+    expect(service.exposeViaProxy).toBe(false);
+    expect(readFileSync(join(resourcePath, "container", "Dockerfile"), "utf-8")).toContain(
+      "EXPOSE 4550",
+    );
+  });
+
+  it("rejects malformed, out-of-range, and conflicting custom ports", () => {
+    expect(() => resolveByoPort("4550x", 4000, [])).toThrow(/integer from 4000 through 5999/);
+    expect(() => resolveByoPort("3999", 4000, [])).toThrow(/integer from 4000 through 5999/);
+    expect(() => resolveByoPort("4550", 4000, [{ config: { port: 4550 } }])).toThrow(
+      /already assigned/,
+    );
   });
 });

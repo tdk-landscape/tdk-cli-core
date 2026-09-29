@@ -349,6 +349,11 @@ describe("service.json schema", () => {
     // additionalProperties is false, so a provider missing from the enum makes every
     // service.json that `tdk resource --framework <id>` writes schema-invalid.
     expect(schema.additionalProperties).toBe(false);
+    expect(schema.properties.appType.enum).toContain("bring-your-own");
+    expect(schema.properties.stack.type).toBe("string");
+    expect(schema.properties.stack.enum).toBeUndefined();
+    expect(schema.properties.image.type).toBe("string");
+    expect(schema.properties.exposeViaProxy.type).toBe("boolean");
     expect([...schema.properties.framework.enum].sort()).toEqual(
       Object.keys(FRONTEND_FRAMEWORKS).sort(),
     );

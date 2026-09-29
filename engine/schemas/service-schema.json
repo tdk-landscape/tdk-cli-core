@@ -149,27 +149,16 @@
       "description": "Custom Dockerfile path relative to resource directory. Optional for bring-your-own type.",
       "type": "string"
     },
+    "exposeViaProxy": {
+      "description": "Whether this bring-your-own resource receives a Traefik route. Defaults to true.",
+      "type": "boolean"
+    },
     "image": {
       "description": "Docker image name instead of building from Dockerfile. Optional for bring-your-own type.",
       "type": "string"
     },
     "stack": {
       "description": "Technology stack this resource belongs to.\nUsed for:\n• Database naming: TDK_{stack}\n• Traefik routing: /api/{stack}\n• NATS queue: {stack}_backend_svc",
-      "enum": [
-        "user",
-        "team",
-        "auth",
-        "order",
-        "order-planner",
-        "service",
-        "inventory",
-        "billing",
-        "notification",
-        "analytics",
-        "profile",
-        "platform",
-        "product"
-      ],
       "type": "string"
     },
     "params": {

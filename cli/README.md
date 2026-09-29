@@ -274,6 +274,7 @@ tdk --help
 tdk resource --help
 tdk stack --help
 tdk up --help
+tdk eject --help
 ```
 
 ---
@@ -282,6 +283,7 @@ tdk up --help
 
 - [Main README](../README.md)
 - [Feature flags](../docs/FEATURES.md)
+- [Bring-your-own resources](../docs/byo.md)
 - [Architecture](../engine/docs/README.md)
 - [Tilt Extension](../ext/)
 

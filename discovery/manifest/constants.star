@@ -28,7 +28,7 @@ MANIFEST_DEFAULTS = {
 }
 
 # Valid app types
-VALID_APP_TYPES = ["backend", "frontend", "library", "migrator", "sdk", "worker"]
+VALID_APP_TYPES = ["backend", "frontend", "library", "migrator", "sdk", "worker", "bring-your-own"]
 
 # Default syncs
 DEFAULT_SYNCS = ["src", "prisma"]

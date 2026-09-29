@@ -41,6 +41,8 @@ concurrency:
 jobs:
   quickstart:
     name: 🧭 README quickstart on a clean machine
+    # This Ubuntu Linux-container boot verifies the Linux path only; Windows
+    # currently has CLI smoke coverage, not a full landscape acceptance run.
     # A failed release publishes nothing, so there is nothing to boot.
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest

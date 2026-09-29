@@ -126,6 +126,8 @@ def _build_generated_file_list(resource_config, resource_path, manifest):
     """
     files = []
     app_type = manifest.get('appType', 'backend')
+    if app_type == 'bring-your-own':
+        return []
     is_frontend = resource_config.get('frontend', False) or app_type == 'frontend'
 
     # Vite
@@ -267,6 +269,11 @@ def _generate_all_configs_for_resource(
     write_file = ctx['write_file']
     should_enable = ctx['should_enable']
     global_config = ctx['global_config']
+
+    if manifest.get('appType') == 'bring-your-own':
+        _generate_env_file(manifest, backend_manifest, write_file)
+        _generate_yaml_manifest(resource_path, manifest, write_file)
+        return
     
     # WORKAROUND: Prevent infinite recursion by checking recursion depth
     # Use a unique key per resource to track depth, avoiding interference between different resources
@@ -525,7 +532,7 @@ def create_manifest_config_resource(
     local_resource(
         name=config_gen_resource_name,
         cmd=log_cmd,
-        deps=[manifest_path, package_json_path],
+        deps=[manifest_path] if manifest.get('appType') == 'bring-your-own' else [manifest_path, package_json_path],
         labels=['config-gen', resource_name],
         allow_parallel=True,
         auto_init=auto_init_config_gen

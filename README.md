@@ -34,7 +34,7 @@ Want to inspect a stack before starting containers? `tdk up shop --dry-run` show
 
 ![npm downloads, last month](docs/npm-downloads.svg)
 
-**Requirements:** Docker (Desktop, OrbStack or Colima; Engine 25+, Compose 2.20+), [Tilt](https://docs.tilt.dev/install.html), [Bun](https://bun.sh) for the generated services, and Node.js 22.12+ for npm installs. Ports 80, 443 and 5432 must be free (a local Postgres is the usual conflict). macOS and Linux releases are available. Native Windows AMD64 CLI support has merged, and Windows CI checks startup and platform behavior, but the Windows binary release and real Windows 11 acceptance run are still pending. On Windows, use Docker Desktop with Linux containers; WSL2 Ubuntu works as Linux. Run `tdk doctor` to check your setup.
+**Requirements:** Docker (Desktop, OrbStack or Colima; Engine 25+, Compose 2.20+), [Tilt](https://docs.tilt.dev/install.html), [Bun](https://bun.sh) for the generated services, and Node.js 22.12+ for npm installs. Ports 80, 443 and 5432 must be free (a local Postgres is the usual conflict). macOS and Linux releases are available. On Windows, use Ubuntu on WSL2 with Docker Desktop's WSL integration; full landscape startup is currently supported through that Linux environment. See the [WSL2 setup guide](docs/wsl2.md). Run `tdk doctor` to check your setup.
 
 This is the core monorepo for TDK: the `tdk` CLI, the Starlark-based Tilt orchestration engine that powers it, and the discovery system that turns a directory of services into a running local landscape.
 
@@ -168,6 +168,8 @@ TDK has no telemetry or analytics. The CLI only goes online when you ask it to:
 **Why not just docker compose?** For a handful of services, compose is fine. TDK generates the compose files for you. It adds hot reload through Tilt, one-command scaffolding with matching Dockerfiles, and a stack-level `tdk up` for large systems where starting everything is too slow.
 
 **How is this different from Skaffold, Garden, DevSpace or Tilt itself?** Skaffold, Garden and DevSpace are built around Kubernetes, and plain Tilt leaves the Tiltfile to you. TDK runs on plain Docker with no cluster, and generates both the services and the Tilt config from a `service.json` per service.
+
+See the [honest comparison](docs/compare-honest.md) for tradeoffs and cases where TDK may not fit.
 
 **Do I need 100 microservices?** No. Two services work the same way. The 100-service example is a stress test to show the overhead stays flat.
 
