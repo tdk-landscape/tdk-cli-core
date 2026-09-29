@@ -121,9 +121,6 @@ jobs:
           npm install -g "@tdk-landscape/tdk-cli-core@${TDK_VERSION}"
           tdk --version
 
-      - name: tdk doctor (machine only)
-        run: tdk doctor
-
       - name: Scaffold the quickstart project
         run: |
           if sudo ss -ltn 2>/dev/null | grep -q ':5432 '; then
