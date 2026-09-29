@@ -63,16 +63,16 @@ export const errorFactories = {
         "Path must be within the project directory",
         'Path cannot contain special characters like <>:"|?*',
     ]),
-    notInProject: () => new TdkError("Could not find project root (no Tiltfile found)", [
-        "Run this from within a project that has a Tiltfile",
-        "Run `tdk project` to initialize a new project",
+    notInProject: () => new TdkError("Could not find project root (no .tdk/project.json found)", [
+        "Run this from within a TDK project",
+        "Run `tdk project --yes` to initialize a new project",
     ]),
 };
 export function requireProjectRoot() {
     const projectRoot = findProjectRoot();
     if (!projectRoot) {
-        console.error(chalk.red("Error: Could not find project root (no Tiltfile found)."));
-        console.error(chalk.gray("Run this from within a project that has a Tiltfile."));
+        console.error(chalk.red("Error: Could not find project root (no .tdk/project.json found)."));
+        console.error(chalk.gray("Run `tdk project --yes` to initialize a new project."));
         process.exit(1);
     }
     return projectRoot;

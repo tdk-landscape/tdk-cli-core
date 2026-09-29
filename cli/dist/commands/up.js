@@ -4,7 +4,7 @@ import { Command } from "commander";
 import { ensureProjectRuntimeAssets } from "../generator/template-engine.js";
 import { handleDryRun } from "../utils/command-helpers.js";
 import { checkHostPorts } from "../utils/doctor-runtime.js";
-import { errorFactories, handleTiltFailure, withTiltCheck } from "../utils/errors.js";
+import { errorFactories, handleTiltFailure, requireProjectRoot, runCommand, withTiltCheck, } from "../utils/errors.js";
 import { formatCount } from "../utils/formatting.js";
 import { findProjectRoot } from "../utils/paths.js";
 import { findAvailablePort } from "../utils/port-assignment.js";
@@ -21,15 +21,19 @@ export const upCommand = new Command("up")
     .option("--dry-run", "Show what would be started without starting", false)
     .option("-f, --force", "Kill existing Tilt process before starting", false)
     .action(async (stackName, options) => {
-    await withTiltCheck(async () => {
-        const projectRoot = findProjectRoot() ?? process.cwd();
-        const copiedAssets = ensureProjectRuntimeAssets(projectRoot);
-        if (copiedAssets.length > 0 && options.verbose && !options.quiet) {
-            console.log(chalk.gray(`Refreshed runtime assets: ${copiedAssets.join(", ")}`));
-        }
-        const newlyEnabledStacks = enableDiscoveredStacks(projectRoot);
-        if (newlyEnabledStacks.length > 0 && !options.quiet) {
-            console.log(chalk.gray(`Added ${newlyEnabledStacks.join(", ")} to the pre_alpha phase in .tdk/project.json`));
+    const action = async () => {
+        const projectRoot = options.dryRun
+            ? requireProjectRoot()
+            : (findProjectRoot() ?? process.cwd());
+        if (!options.dryRun) {
+            const copiedAssets = ensureProjectRuntimeAssets(projectRoot);
+            if (copiedAssets.length > 0 && options.verbose && !options.quiet) {
+                console.log(chalk.gray(`Refreshed runtime assets: ${copiedAssets.join(", ")}`));
+            }
+            const newlyEnabledStacks = enableDiscoveredStacks(projectRoot);
+            if (newlyEnabledStacks.length > 0 && !options.quiet) {
+                console.log(chalk.gray(`Added ${newlyEnabledStacks.join(", ")} to the pre_alpha phase in .tdk/project.json`));
+            }
         }
         let servicesToStart;
         let stackDescription;
@@ -52,7 +56,7 @@ export const upCommand = new Command("up")
         }
         const serviceNames = servicesToStart.map((s) => s.name);
         if (!options.quiet) {
-            console.log(chalk.blue(`Starting ${formatCount(serviceNames.length, "service")} from ${stackDescription}...`));
+            console.log(chalk.blue(`${options.dryRun ? "Would start" : "Starting"} ${formatCount(serviceNames.length, "service")} from ${stackDescription}...`));
             serviceNames.forEach((name) => {
                 console.log(chalk.gray(`  - ${name}`));
             });
@@ -133,6 +137,12 @@ export const upCommand = new Command("up")
         if (result.exitCode !== 0) {
             handleTiltFailure("up", result.exitCode);
         }
-    });
+    };
+    if (options.dryRun) {
+        await runCommand(action);
+    }
+    else {
+        await withTiltCheck(action);
+    }
 });
 //# sourceMappingURL=up.js.map

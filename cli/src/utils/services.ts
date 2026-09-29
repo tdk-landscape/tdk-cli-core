@@ -103,7 +103,7 @@ export function discoverResources(): DiscoveredResource[] {
 
   if (!projectRoot) {
     throw new Error(
-      "Could not find project root (no Tiltfile found). Make sure you're in a root project.",
+      "Could not find project root (no .tdk/project.json found). Run `tdk project --yes` first.",
     );
   }
 
