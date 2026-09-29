@@ -39,7 +39,7 @@ jobs:
         run: |
           npm run build
           npm pack --pack-destination "$RUNNER_TEMP"
-          npm install --global "$RUNNER_TEMP"/tdk-landscape-tdk-cli-core-*.tgz
+          npm install --global "$RUNNER_TEMP"/tdk-cli-internal-*.tgz
           tdk --version
 
       - name: Install JSON Schema validator
