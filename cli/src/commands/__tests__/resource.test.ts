@@ -351,6 +351,10 @@ describe("service.json schema", () => {
     expect([...schema.properties.framework.enum].sort()).toEqual(
       Object.keys(FRONTEND_FRAMEWORKS).sort(),
     );
+    expect(schema.properties.sablier.properties.deferStart).toMatchObject({
+      default: false,
+      type: "boolean",
+    });
     expect(createServiceJson("web", "frontend", "app", 3000, [], "vue").framework).toBe("vue");
   });
 });
