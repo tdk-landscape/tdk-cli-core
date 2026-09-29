@@ -9,14 +9,16 @@ if [[ ! -f "$source_repo/.claude-plugin/marketplace.json" ]]; then
   exit 1
 fi
 
-mkdir -p "$repo_root/.claude-plugin" "$repo_root/.claude/skills"
+mkdir -p "$repo_root/.claude-plugin" "$repo_root/.claude/skills" "$repo_root/.agents/skills"
 cp "$source_repo/.claude-plugin/marketplace.json" "$repo_root/.claude-plugin/marketplace.json"
 rm -rf "$repo_root/.claude-plugin/tdk-cli"
 cp -R "$source_repo/plugins/tdk-cli/.claude-plugin" "$repo_root/.claude-plugin/tdk-cli"
 find "$repo_root/.claude/skills" -mindepth 1 -maxdepth 1 -type d -exec rm -rf {} +
+find "$repo_root/.agents/skills" -mindepth 1 -maxdepth 1 -type l -exec rm -f {} +
 for skill in "$source_repo"/plugins/tdk-cli/skills/*; do
   [[ -d "$skill" ]] || continue
   name="$(basename "$skill")"
   mkdir -p "$repo_root/.claude/skills/$name"
   cp "$skill/SKILL.md" "$repo_root/.claude/skills/$name/SKILL.md"
+  ln -sfn "../../.claude/skills/$name" "$repo_root/.agents/skills/$name"
 done
