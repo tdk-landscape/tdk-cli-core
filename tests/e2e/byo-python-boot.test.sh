@@ -37,18 +37,15 @@ fi
 command -v jq >/dev/null 2>&1 || { echo "jq is required" >&2; exit 1; }
 
 rm -rf "$PROJECT_DIR"
-mkdir -p "$PROJECT_DIR/.tdk" "$RESOURCE_DIR"
-cat > "$PROJECT_DIR/.tdk/project.json" <<'JSON'
-{
-  "version": "1.0.0",
-  "project": { "name": "byo-python-boot-e2e", "version": "1.0.0" },
-  "discovery": { "paths": ["services/**"] }
-}
-JSON
-
-cp -a "$FIXTURE_DIR/." "$RESOURCE_DIR/"
+mkdir -p "$PROJECT_DIR"
 cd "$PROJECT_DIR"
 
+# This job has Docker, Tilt, and the runner's 5432 conflict cleared, so use
+# the real initializer to generate .tdk/.tdk-out before starting the stack.
+"$CLI" project --yes
+
+mkdir -p "$RESOURCE_DIR"
+cp -a "$FIXTURE_DIR/." "$RESOURCE_DIR/"
 "$CLI" resource legacy --type byo --stack shop --dockerfile ./Dockerfile --port 4500 --yes
 
 test -f services/shop/legacy/service.json
@@ -113,7 +110,7 @@ while (( $(date +%s) <= deadline )); do
   fi
 
   # Fall back to the TDK project Traefik route, then the published container port.
-  candidates+=("http://app.byo-python-boot-e2e.localhost/legacy/health" "http://127.0.0.1:4500/health")
+  candidates+=("http://app.tdk-byo-python-boot.localhost/legacy/health" "http://127.0.0.1:4500/health")
   for url in "${candidates[@]}"; do
     (( $(date +%s) <= deadline )) || break
     if probe_url "$url"; then
