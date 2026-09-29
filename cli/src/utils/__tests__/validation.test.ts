@@ -142,7 +142,15 @@ describe("sanitizeForShell", () => {
 
 describe("VALID_RESOURCE_TYPES", () => {
   it("should include all expected types", () => {
-    const expected = ["backend", "frontend", "library", "sdk", "worker", "migrator", "bring-your-own"];
+    const expected = [
+      "backend",
+      "frontend",
+      "library",
+      "sdk",
+      "worker",
+      "migrator",
+      "bring-your-own",
+    ];
     expect(VALID_RESOURCE_TYPES.sort()).toEqual(expected.sort());
   });
 });
