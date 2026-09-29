@@ -6,21 +6,21 @@ body:
   - type: input
     id: os
     attributes:
-      label: Operating system
+      label: OS
       placeholder: Ubuntu 24.04, macOS 15, Windows 11 with WSL2
     validations:
       required: true
   - type: input
     id: version
     attributes:
-      label: TDK version
+      label: tdk --version
       placeholder: Output of `tdk --version`
     validations:
       required: true
   - type: input
     id: minutes
     attributes:
-      label: Minutes to first boot
+      label: Minutes until first healthy URL
       placeholder: For example, 8
     validations:
       required: true
@@ -34,7 +34,7 @@ body:
   - type: textarea
     id: cmd
     attributes:
-      label: Command you ran
+      label: Commands you ran
       description: Include whether this was a fresh install or an existing project.
       render: shell
     validations:

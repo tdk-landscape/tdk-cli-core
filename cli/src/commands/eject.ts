@@ -10,11 +10,11 @@ export const EJECTED_CONTENT = `# Ejected from TDK
 
 ## Keep
 
-Keep the generated Tiltfile, Docker Compose files, and Traefik configuration. These files run your local landscape without the TDK CLI.
+Keep the generated Tiltfile, Docker Compose files, and Traefik configuration. Tilt and Docker use these files to run your local landscape.
 
 ## Optional to delete
 
-You may delete the TDK project metadata and generated files after confirming the kept files contain everything your project needs.
+After checking that the files above contain everything you need, you may delete the TDK project metadata and generated files. Keep any files you have edited or rely on.
 
 ## To go back
 

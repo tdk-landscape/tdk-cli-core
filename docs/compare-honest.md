@@ -2,22 +2,22 @@
 
 ## Use TDK
 
-Use TDK when a team wants a generated local landscape with service discovery, stack commands, health checks, and a shared Tilt UI. TDK is a local development tool and does not deploy or validate production infrastructure.
+Use TDK when a team wants a generated local development landscape with service discovery, stack commands, health checks, and the Tilt UI. TDK is for local development; it does not deploy or validate production infrastructure.
 
 ## Do not use TDK
 
-Use another tool when the project needs Kubernetes APIs, production parity, or direct ownership of every orchestration file. A small, stable set of containers may be simpler to maintain in Compose directly.
+Do not use TDK when the project needs Kubernetes APIs, production parity, or direct ownership of every orchestration file. A small, stable set of containers may be simpler to maintain directly in Compose.
 
 ## vs Compose
 
-Docker Compose runs a set of containers from YAML you maintain. TDK generates Compose configuration from service manifests and adds stack-level lifecycle controls through Tilt. Compose gives direct control; TDK reduces repeated setup and adds conventions.
+Compose runs containers from YAML that you maintain. TDK generates Compose configuration from service manifests and adds stack-level lifecycle controls through Tilt. Choose Compose for direct control over that YAML; choose TDK when generated conventions and stack lifecycle commands save work.
 
 ## vs raw Tilt
 
-Tilt provides the development loop and UI. TDK generates a Tiltfile and service configuration around it. Using raw Tilt gives more control and requires maintaining that configuration yourself.
+Raw Tilt provides the development loop and UI with direct control over the Tiltfile. TDK generates a Tiltfile and service configuration around it. Choose raw Tilt when you want to maintain orchestration yourself; choose TDK when you want TDK to generate it.
 
 ## Known limits
 
 - Generated defaults may not fit unusual ports, health checks, build contexts, or networking; inspect generated files when needed.
-- The 100-service benchmark uses generated stubs with a small `/health` endpoint, not production applications.
+- The 100-service benchmark uses stubs, not production applications.
 - Cold startup depends on image and package downloads, disk speed, and available memory. TDK cannot make a cold machine boot as fast as a warm cache.
