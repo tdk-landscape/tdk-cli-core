@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Published CLI version to test (latest if empty)"
+        description: "CLI version to test (local checkout if empty; latest or exact version also accepted)"
         type: string
         default: ""
   schedule:
@@ -36,7 +36,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: main
+          ref: ${{ github.event_name == 'workflow_run' && 'main' || github.ref }}
           persist-credentials: false
       - uses: actions/setup-node@v7
         with:
@@ -59,6 +59,8 @@ jobs:
             version="$(node -p "require('./package.json').version")"
           elif [ -n "$VERSION_INPUT" ]; then
             version="$VERSION_INPUT"
+          elif [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            version="local"
           else
             version="latest"
           fi
@@ -85,7 +87,12 @@ jobs:
         env:
           TDK_VERSION: ${{ steps.version.outputs.version }}
         run: |
-          npm install -g "@tdk-landscape/tdk-cli-core@${TDK_VERSION}"
+          if [ "$TDK_VERSION" = "local" ]; then
+            tarball="$(npm pack --ignore-scripts --silent | tail -1)"
+            npm install -g "./$tarball"
+          else
+            npm install -g "@tdk-landscape/tdk-cli-core@${TDK_VERSION}"
+          fi
           tdk --version
 
       - name: Run the deferred cold-start scenario
@@ -112,4 +119,6 @@ jobs:
 
       - name: Stop TDK project
         if: always()
-        run: tdk down || true
+        run: |
+          cd "$RUNNER_TEMP/tdk-cold-start" 2>/dev/null || exit 0
+          tdk down || true
