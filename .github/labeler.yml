@@ -15,6 +15,7 @@
       - any-glob-to-any-file:
           - "cli/src/components/**"
           - "cli/src/commands/ui.tsx"
+          - "cli/src/commands/__tests__/*ui*.test.ts"
           - "ext/ui-enhancements/**"
 
 "area: doctor":
@@ -76,6 +77,7 @@
       - any-glob-to-any-file:
           - "tests/**"
           - "**/*.test.ts"
+          - "**/*.test.tsx"
           - "**/tests/**"
           - "cli/src/**/__tests__/**"
 
@@ -161,6 +163,7 @@ examples:
           - "install.sh"
           - "scripts/release-binaries.sh"
           - "scripts/stage-npm-engine.sh"
+          - "release-dist*/**"
 
 # Contributor-facing docs and repository automation
 documentation:
@@ -246,7 +249,9 @@ ci:
   - changed-files:
       - any-glob-to-any-file:
           - "**/*.js"
+          - "**/*.jsx"
           - "**/*.mjs"
+          - "**/*.cjs"
 
 "tech: hono":
   - changed-files:
@@ -293,7 +298,8 @@ ci:
       - any-glob-to-any-file:
           - "engine/topologies/tilt/resources/infra-loader.star"
           - "engine/topologies/platform/docker/compose/compose.star"
-          - "discovery/services/platform/cdc/nats-*/**"
+          - "discovery/services/platform/cdc/**/nats*/**"
+          - "discovery/services/platform/cdc/**/service.yaml"
           - "docs/FEATURES.md"
 
 "tech: biome":
@@ -308,6 +314,7 @@ ci:
   - changed-files:
       - any-glob-to-any-file:
           - "cli/**/*.test.ts"
+          - "cli/**/*.test.tsx"
           - "cli/package.json"
           - ".github/workflows/ci.yml"
 
@@ -318,6 +325,7 @@ ci:
           - "engine/assets/docker/**"
           - "shared-platform-engineering/docker-templates/**"
           - "cli/shared-platform-engineering/docker-templates/**"
+          - "discovery/**/docker-compose*.yml"
           - "engine/topologies/tilt/resources/infra-loader.star"
 
 "tech: tilt":
