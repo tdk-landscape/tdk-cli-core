@@ -34,7 +34,7 @@ Want to inspect a stack before starting containers? `tdk up shop --dry-run` show
 
 ![npm downloads, last month](docs/npm-downloads.svg)
 
-**Requirements:** Docker (Desktop, OrbStack or Colima; Engine 25+, Compose 2.20+), [Tilt](https://docs.tilt.dev/install.html), [Bun](https://bun.sh) for the generated services, and Node.js 22.12+ for npm installs. Ports 80, 443 and 5432 must be free (a local Postgres is the usual conflict). macOS and Linux releases are available. Native Windows AMD64 CLI support has merged, and Windows CI checks startup and platform behavior, but the Windows binary release and real Windows 11 acceptance run are still pending. On Windows, use Docker Desktop with Linux containers; WSL2 Ubuntu works as Linux. Run `tdk doctor` to check your setup.
+**Requirements:** Docker (Desktop, OrbStack or Colima; Engine 25+, Compose 2.20+), [Tilt](https://docs.tilt.dev/install.html), [Bun](https://bun.sh) for the generated services, and Node.js 22.12+ for npm installs. Ports 80, 443 and 5432 must be free (a local Postgres is the usual conflict). macOS and Linux releases are available. Windows native is unsupported. WSL2 Ubuntu is supported. See docs/wsl2.md. Run `tdk doctor` to check your setup.
 
 This is the core monorepo for TDK: the `tdk` CLI, the Starlark-based Tilt orchestration engine that powers it, and the discovery system that turns a directory of services into a running local landscape.
 
@@ -169,6 +169,8 @@ TDK has no telemetry or analytics. The CLI only goes online when you ask it to:
 
 **How is this different from Skaffold, Garden, DevSpace or Tilt itself?** Skaffold, Garden and DevSpace are built around Kubernetes, and plain Tilt leaves the Tiltfile to you. TDK runs on plain Docker with no cluster, and generates both the services and the Tilt config from a `service.json` per service.
 
+See the [honest comparison](docs/compare-honest.md) for tradeoffs and cases where TDK may not fit.
+
 **Do I need 100 microservices?** No. Two services work the same way. The 100-service example is a stress test to show the overhead stays flat.
 
 **Is TDK affiliated with Tilt or Docker?** No. TDK is an independent project built on top of [Tilt](https://tilt.dev), which is maintained by Docker, Inc.
@@ -194,7 +196,7 @@ npx @tdk-landscape/tdk-cli-core doctor
 ```
 
 Ranked first failures: Node 22.12+, Docker Engine 25+, Compose 2.20.2+, Tilt, Bun 1.2+, and ports 80/443/5432.
-Bun, Prisma, and NATS are generated tech-stack concerns after `tdk project`; NATS is required only when the feature is enabled.
+Install Bun 1.2+ as a machine prerequisite. `tdk project` generates the stack configuration; Prisma and NATS are project-specific, and NATS is required only when the feature is enabled.
 
 ```bash
 tdk doctor

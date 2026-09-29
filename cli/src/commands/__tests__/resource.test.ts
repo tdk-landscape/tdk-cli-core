@@ -316,7 +316,7 @@ describe("resource command", () => {
 
   describe("resource type validation", () => {
     it("should only accept valid resource types via isCreatableResourceType", () => {
-      const validTypes = ["backend", "frontend", "worker"];
+      const validTypes = ["backend", "frontend", "worker", "bring-your-own"];
       const invalidTypes = ["api", "microservice", "service", "app", "library", "sdk"];
 
       for (const type of validTypes) {
@@ -332,7 +332,8 @@ describe("resource command", () => {
       expect(CREATABLE_RESOURCE_TYPES).toContain("backend");
       expect(CREATABLE_RESOURCE_TYPES).toContain("frontend");
       expect(CREATABLE_RESOURCE_TYPES).toContain("worker");
-      expect(CREATABLE_RESOURCE_TYPES).toHaveLength(3);
+      expect(CREATABLE_RESOURCE_TYPES).toContain("bring-your-own");
+      expect(CREATABLE_RESOURCE_TYPES).toHaveLength(4);
     });
   });
 });
@@ -348,6 +349,11 @@ describe("service.json schema", () => {
     // additionalProperties is false, so a provider missing from the enum makes every
     // service.json that `tdk resource --framework <id>` writes schema-invalid.
     expect(schema.additionalProperties).toBe(false);
+    expect(schema.properties.appType.enum).toContain("bring-your-own");
+    expect(schema.properties.stack.type).toBe("string");
+    expect(schema.properties.stack.enum).toBeUndefined();
+    expect(schema.properties.image.type).toBe("string");
+    expect(schema.properties.exposeViaProxy.type).toBe("boolean");
     expect([...schema.properties.framework.enum].sort()).toEqual(
       Object.keys(FRONTEND_FRAMEWORKS).sort(),
     );

@@ -4,7 +4,7 @@ import { dirname, join, normalize, relative } from "node:path";
 import chalk from "chalk";
 import { Command } from "commander";
 import { hasVerdaccioLicense } from "../generator/extension-fetch.js";
-import { MASTER_CONFIG_FILES, QUICKSTART_DOCS_URL, REQUIRED_PACKAGE_SCRIPTS, } from "../utils/constants.js";
+import { MASTER_CONFIG_FILES, REQUIRED_PACKAGE_SCRIPTS } from "../utils/constants.js";
 import { isPathDiscovered, readDiscoveryPaths } from "../utils/discovery-paths.js";
 import { checkHealthRoutes, checkHostPorts, checkIngressPorts, checkPrivateNpmRegistry, checkTiltResourceHealth, projectConfigEnablesVerdaccio, summarizeServiceProbes, } from "../utils/doctor-runtime.js";
 import { checkDockerNetworkCapacity, checkFrontendBackendUrls, checkNatsBroker, checkResourcePackageJson, checkServiceUrlPorts, checkTiltInstances, } from "../utils/doctor-wiring.js";
@@ -20,6 +20,21 @@ export { checkIngressPorts, checkPrivateNpmRegistry, checkTiltResourceHealth, su
 // A wedged Docker daemon makes `docker ps` block forever instead of failing,
 // and doctor is exactly the tool people run when their environment is broken.
 const EXEC_TIMEOUT_MS = 10_000;
+export const DOCTOR_FIXES = {
+    dockerMissing: "See https://docs.docker.com/get-docker/",
+    dockerDaemonDown: "Start Docker Desktop, OrbStack, or Colima, then retry: tdk doctor",
+    tiltMissing: "curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash",
+    bunMissing: "curl -fsSL https://bun.sh/install | bash",
+    port80: "Stop the process bound to port 80, or stop local nginx/caddy. Then: tdk doctor",
+    port5432: "Stop local Postgres or change the host port. Then: tdk doctor",
+    notProject: "tdk project --yes",
+};
+export const WSL2_DOCTOR_MESSAGE = "WSL2 detected. Use Docker Desktop WSL integration. Guide: docs/wsl2.md";
+export function getDoctorOutcomeMessage(inProject, allPassed) {
+    if (!allPassed)
+        return "Doctor failed. Fix the items above, then run: tdk doctor";
+    return inProject ? "Doctor passed. Next: tdk up" : "Doctor passed. Next: tdk project example";
+}
 function isTimeout(err) {
     return isExecTimeout(err);
 }
@@ -67,10 +82,12 @@ export async function checkDockerRuntime() {
             return {
                 name: "Container Runtime",
                 didPass: false,
-                message: "Docker is not running. Start Docker Desktop, wait until it is Running, then retry tdk doctor.",
+                message: "Docker is not running",
+                fix: DOCTOR_FIXES.dockerDaemonDown,
             };
         }
     }
+    const hasDockerCli = Boolean(findOnPath("docker"));
     try {
         await execAsync("docker ps", EXEC_TIMEOUT_MS);
         return {
@@ -84,8 +101,8 @@ export async function checkDockerRuntime() {
             return {
                 name: "Container Runtime",
                 didPass: false,
-                message: `Docker daemon is not responding (\`docker ps\` hung for ${EXEC_TIMEOUT_MS / 1000}s)`,
-                fix: "Restart the runtime: quit and reopen Docker Desktop, or run `colima restart`",
+                message: "Docker daemon is not responding",
+                fix: DOCTOR_FIXES.dockerDaemonDown,
             };
         }
     }
@@ -102,7 +119,7 @@ export async function checkDockerRuntime() {
             name: "Container Runtime",
             didPass: false,
             message: "Colima is installed but not running",
-            fix: "Start Colima: colima start",
+            fix: DOCTOR_FIXES.dockerDaemonDown,
         };
     }
     if (await succeeds("podman ps")) {
@@ -112,11 +129,19 @@ export async function checkDockerRuntime() {
             message: "Podman is running",
         };
     }
+    if (hasDockerCli) {
+        return {
+            name: "Container Runtime",
+            didPass: false,
+            message: "Docker daemon is not running",
+            fix: DOCTOR_FIXES.dockerDaemonDown,
+        };
+    }
     return {
         name: "Container Runtime",
         didPass: false,
-        message: "No container runtime (Docker/Colima/Podman) is running",
-        fix: `Start: colima start (recommended) OR open -a Docker (macOS) OR sudo systemctl start docker (Linux). Setup guide: ${QUICKSTART_DOCS_URL}`,
+        message: "Docker is not running",
+        fix: DOCTOR_FIXES.dockerMissing,
     };
 }
 export const checkDockerCompose = createExecCheck("Docker Compose", "docker compose version", "Docker Compose plugin available", "Docker Compose plugin not found", "Install Docker Compose: https://docs.docker.com/compose/install/");
@@ -188,9 +213,46 @@ export async function checkDockerVersions(exec = execAsync) {
         fix: "Update Docker Desktop, or on Linux update docker-ce and the docker-compose-plugin package",
     };
 }
-export const checkTilt = createExecCheck("Tilt CLI", "tilt version", "Tilt CLI installed", process.platform === "win32"
-    ? "tilt.exe not found on PATH. Install Tilt from https://docs.tilt.dev/install.html"
-    : "Tilt CLI not found", `Install Tilt: brew install tilt (macOS) or see https://docs.tilt.dev/install.html. Setup guide: ${QUICKSTART_DOCS_URL}`);
+export const checkTilt = createExecCheck("Tilt CLI", "tilt version", "Tilt CLI installed", "Tilt CLI not found", DOCTOR_FIXES.tiltMissing);
+export async function checkBun() {
+    const projectRoot = findProjectRoot();
+    if (!projectRoot) {
+        return {
+            name: "Bun",
+            didPass: true,
+            isSkipped: true,
+            message: "Not in a project - skipping Bun check",
+        };
+    }
+    const resources = discoverResourcesFromRoot(projectRoot);
+    const hasGeneratedJsServices = resources.some((resource) => resource.config?.appType === "backend" ||
+        resource.config?.appType === "frontend" ||
+        resource.config?.appType === "worker");
+    if (!hasGeneratedJsServices) {
+        return {
+            name: "Bun",
+            didPass: true,
+            isSkipped: true,
+            message: "No generated JS services - skipping Bun check",
+        };
+    }
+    try {
+        await execAsync("bun --version", EXEC_TIMEOUT_MS);
+        return {
+            name: "Bun",
+            didPass: true,
+            message: "Bun is available",
+        };
+    }
+    catch {
+        return {
+            name: "Bun",
+            didPass: false,
+            message: "Bun is not available",
+            fix: DOCTOR_FIXES.bunMissing,
+        };
+    }
+}
 function checkEnvironmentVariables() {
     const projectRoot = findProjectRoot() ?? process.cwd();
     const validation = validateEnvFile(projectRoot);
@@ -805,8 +867,11 @@ export const doctorCommand = new Command("doctor")
     .option("--ping-timeout <ms>", "Per-service ping timeout in milliseconds", String(DEFAULT_PING_TIMEOUT_MS))
     .action(async (options) => {
     const { formatColdPreflight, runColdPreflight } = await import("../utils/cold-preflight.js");
-    console.log(formatColdPreflight(await runColdPreflight()));
+    console.log(formatColdPreflight(await runColdPreflight(), { includeSuccessFooter: false }));
     console.log(`\n${chalk.bold("🔍 TDK Doctor")}\n`);
+    if (process.env.WSL_DISTRO_NAME) {
+        console.log(`${WSL2_DOCTOR_MESSAGE}\n`);
+    }
     console.log("Checking environment...\n");
     const pingTimeout = Number.parseInt(options.pingTimeout, 10);
     if (!Number.isFinite(pingTimeout) || pingTimeout <= 0) {
@@ -825,6 +890,7 @@ export const doctorCommand = new Command("doctor")
         checkTilt,
         checkDockerCompose,
         checkDockerVersions,
+        checkBun,
         // Each project needs several networks; a full address pool fails `tdk up` late.
         () => checkDockerNetworkCapacity(),
     ];
@@ -870,7 +936,15 @@ export const doctorCommand = new Command("doctor")
     // project. Only the machine checks mean anything there; the project checks
     // would all fail with "run tdk project".
     const inProject = Boolean(findProjectRoot());
-    const checks = inProject ? [...machineChecks, ...projectChecks] : machineChecks;
+    const notProjectCheck = () => ({
+        name: "Not a TDK project",
+        didPass: false,
+        message: "Not in a TDK project",
+        fix: DOCTOR_FIXES.notProject,
+    });
+    const checks = inProject
+        ? [...machineChecks, ...projectChecks]
+        : [...machineChecks, notProjectCheck];
     // Machine checks are independent and mostly wait on child processes, so start
     // them all now and print in the original order. Project checks stay sequential.
     const startedMachineChecks = machineChecks.map((checkFn) => Promise.resolve().then(checkFn));
@@ -902,26 +976,10 @@ export const doctorCommand = new Command("doctor")
     if (allPassed && !inProject) {
         console.log(`${chalk.gray("○")} ${chalk.gray("Not in a TDK project, so project checks were skipped")}`);
         console.log("");
-        console.log(`${chalk.green(chalk.bold("✓"))} This machine is ready for TDK`);
-        console.log("");
-        console.log("Next steps:");
-        console.log("  1. mkdir my-app && cd my-app");
-        console.log("  2. tdk project --yes");
-        console.log("  3. tdk resource api --type backend --stack my-app");
-        console.log("  4. tdk up my-app");
     }
-    else if (allPassed) {
-        console.log(`${chalk.green(chalk.bold("✓"))} Environment ready for TDK`);
-        console.log("");
-        console.log("Next steps:");
-        console.log("  1. Run: tdk up");
-        console.log("  2. Open: http://localhost:10350");
-    }
-    else {
-        console.log(`${chalk.red(chalk.bold("✗"))} Environment not ready`);
-        console.log("");
-        console.log("Fix the issues above, then run: tdk doctor");
+    const outcome = getDoctorOutcomeMessage(inProject, allPassed);
+    console.log(`${allPassed ? chalk.green(chalk.bold("✓")) : chalk.red(chalk.bold("✗"))} ${outcome}`);
+    if (!allPassed)
         process.exit(1);
-    }
 });
 //# sourceMappingURL=doctor.js.map

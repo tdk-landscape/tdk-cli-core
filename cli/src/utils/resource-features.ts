@@ -8,7 +8,10 @@
  * Backend services: prisma (enabled by default)
  */
 
-export type ResourceType = "frontend" | "backend" | "worker" | "migrator" | "sdk";
+import type { ResourceType as ImportResourceType } from "../types/index.js";
+
+// Re-export the ResourceType from types/index to avoid conflicts
+export type ResourceType = ImportResourceType;
 
 export interface ResourceFeature {
   name: string;
@@ -194,6 +197,11 @@ export const RESOURCE_FEATURES: Record<string, ResourceFeature> = {
  * Get default features for a resource type
  */
 export function getDefaultFeaturesForResourceType(appType: ResourceType): string[] {
+  // bring-your-own doesn't generate application code, so no features
+  if (appType === "bring-your-own") {
+    return [];
+  }
+
   const defaults: string[] = [];
 
   for (const [key, feature] of Object.entries(RESOURCE_FEATURES)) {

@@ -2,10 +2,22 @@ import { Command } from "commander";
 import type { CheckResult } from "../types/index.js";
 import { type ExecAsync } from "../utils/exec-async.js";
 export { checkIngressPorts, checkPrivateNpmRegistry, checkTiltResourceHealth, summarizeServiceProbes, summarizeTiltBuildError, } from "../utils/doctor-runtime.js";
+export declare const DOCTOR_FIXES: {
+    readonly dockerMissing: "See https://docs.docker.com/get-docker/";
+    readonly dockerDaemonDown: "Start Docker Desktop, OrbStack, or Colima, then retry: tdk doctor";
+    readonly tiltMissing: "curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash";
+    readonly bunMissing: "curl -fsSL https://bun.sh/install | bash";
+    readonly port80: "Stop the process bound to port 80, or stop local nginx/caddy. Then: tdk doctor";
+    readonly port5432: "Stop local Postgres or change the host port. Then: tdk doctor";
+    readonly notProject: "tdk project --yes";
+};
+export declare const WSL2_DOCTOR_MESSAGE = "WSL2 detected. Use Docker Desktop WSL integration. Guide: docs/wsl2.md";
+export declare function getDoctorOutcomeMessage(inProject: boolean, allPassed: boolean): string;
 export declare function checkDockerRuntime(): Promise<CheckResult>;
 export declare const checkDockerCompose: () => Promise<CheckResult>;
 export declare function checkDockerVersions(exec?: ExecAsync): Promise<CheckResult>;
 export declare const checkTilt: () => Promise<CheckResult>;
+export declare function checkBun(): Promise<CheckResult>;
 /**
  * Tilt only builds resources under `discovery.paths`, but the CLI finds every service.json,
  * so a resource outside them is listed and given a URL by `tdk up` yet never started.

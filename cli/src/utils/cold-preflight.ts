@@ -31,6 +31,8 @@ export type PreflightResult = {
 
 type Check = () => Promise<CheckResult> | CheckResult;
 
+/** Converts a doctor check result into the preflight's compact display item. */
+
 function item(id: PreflightItem["id"], result: CheckResult): PreflightItem {
   return {
     id,
@@ -40,6 +42,7 @@ function item(id: PreflightItem["id"], result: CheckResult): PreflightItem {
   };
 }
 
+/** Returns whether a Node version is below the CLI's 22.12 minimum. */
 export function nodeTooOld(version: string): boolean {
   const [major = 0, minor = 0] = String(version)
     .split(".")
@@ -59,6 +62,19 @@ async function safeCheck(
   } catch {
     return { id, ok: false, message: fallback };
   }
+}
+
+/** Requires a Docker engine and Compose version check to complete successfully. */
+export function requireVerifiedDockerVersions(result: CheckResult): CheckResult {
+  if (!result.isSkipped) return result;
+  return {
+    ...result,
+    didPass: false,
+    isSkipped: false,
+    message: `Could not verify Docker Engine/Compose minimum versions: ${result.message}`,
+    fix:
+      result.fix ?? "Start Docker and ensure Docker Engine 25+ and Compose 2.20.2+ are installed.",
+  };
 }
 
 function usesPrisma(projectRoot: string): boolean {
@@ -96,7 +112,7 @@ export async function runColdPreflight(opts: { cwd?: string } = {}): Promise<Pre
           checkDockerVersions(),
         ]);
         if (!compose.didPass) return compose;
-        return versions;
+        return requireVerifiedDockerVersions(versions);
       },
       "Docker Engine or Compose version check failed",
     ),
@@ -120,7 +136,7 @@ export async function runColdPreflight(opts: { cwd?: string } = {}): Promise<Pre
     id: "bun",
     ok: bun,
     message: bun ? "Bun 1.2+ is available on PATH" : "Bun 1.2+ not found on PATH",
-    fix: bun ? undefined : "Install Bun 1.2+: https://bun.sh",
+    fix: bun ? undefined : "curl -fsSL https://bun.sh/install | bash",
   });
   const [hostPorts, ingressPorts] = await Promise.all([
     safeCheck("ports", checkHostPorts, "Could not check required host ports"),
@@ -193,29 +209,37 @@ export async function runColdPreflight(opts: { cwd?: string } = {}): Promise<Pre
   const machineFailed = failures.some((check) =>
     ["node", "docker", "compose", "tilt", "bun", "ports"].includes(check.id),
   );
+  const bunFailed = failures.some((check) => check.id === "bun");
   const header = failures.length
     ? machineFailed
-      ? "Cold start blocked. Bun/Prisma/NATS are not the first failure.\nThey are generated after `tdk project`. Fix the machine checks below."
+      ? bunFailed
+        ? "Cold start blocked. Bun 1.2+ must be installed on PATH.\nPrisma/NATS configuration is project-specific and generated after `tdk project`. Fix the machine checks below."
+        : "Cold start blocked. Bun/Prisma/NATS are not the first failure.\nThey are generated after `tdk project`. Fix the machine checks below."
       : "Machine is ready. Project wiring is not."
     : "";
   const footer = failures.length
     ? ""
     : inProject
       ? "Environment ready for TDK"
-      : "This machine is ready for TDK.\nNext: mkdir my-app && cd my-app && tdk project --yes";
+      : "This machine is ready for TDK.\nNext: tdk project --yes";
   return { ok: failures.length === 0, inProject, items: failures, header, footer };
 }
 
-export function formatColdPreflight(result: PreflightResult): string {
+/** Formats only failed preflight checks and the applicable readiness message. */
+export function formatColdPreflight(
+  result: PreflightResult,
+  options: { includeSuccessFooter?: boolean } = {},
+): string {
   const lines = [result.header];
   for (const check of result.items) {
     lines.push(`FAIL ${check.id.padEnd(7)} ${check.message}`);
     if (check.fix) lines.push(`  ${check.fix}`);
   }
-  if (result.footer) lines.push(result.footer);
+  if (result.footer && (options.includeSuccessFooter ?? true)) lines.push(result.footer);
   return lines.filter(Boolean).join("\n");
 }
 
+/** Exits before machine-dependent command work when any machine check fails. */
 export async function assertMachineReadyOrExit(): Promise<void> {
   const result = await runColdPreflight();
   const machineFailure = result.items.some((check) =>

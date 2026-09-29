@@ -13,11 +13,13 @@ export const VALID_RESOURCE_TYPES: ResourceType[] = [
   "sdk",
   "worker",
   "migrator",
+  "bring-your-own",
 ] as const;
 
 // Frontend/library/sdk services are served statically or consumed as
 // packages, so they never need a "start" script - only backend/worker/
 // migrator processes are run in production via `<runtime> run start`.
+// bring-your-own doesn't generate application code, so no scripts required.
 export const REQUIRED_PACKAGE_SCRIPTS: Record<ResourceType, readonly string[]> = {
   backend: ["dev", "build", "start"],
   worker: ["dev", "build", "start"],
@@ -25,6 +27,7 @@ export const REQUIRED_PACKAGE_SCRIPTS: Record<ResourceType, readonly string[]> =
   frontend: ["dev", "build"],
   library: ["dev", "build"],
   sdk: ["dev", "build"],
+  "bring-your-own": [],
 } as const;
 
 // Version specifiers that pin nothing at all - a fresh `bun install`/`npm install`
@@ -42,6 +45,7 @@ export const OPTIONAL_INFRA_SERVICES = [
 export const PORT_RANGES = {
   frontend: { base: 3000, min: 3000, max: 3999, range: "3000-3999" as const },
   backend: { base: 4000, min: 4000, max: 4999, range: "4000-4999" as const },
+  "bring-your-own": { base: 4000, min: 4000, max: 5999, range: "4000-5999" as const },
   worker: { base: 6000, min: 6000, max: 6999, range: "6000-6999" as const },
   health: { base: 5000, min: 5000, max: 5999, range: "5000-5999" as const },
   migrator: { base: 7000, min: 7000, max: 7999, range: "7000-7999" as const },

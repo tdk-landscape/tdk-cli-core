@@ -10,6 +10,10 @@ import { findOnPath } from "./which.js";
 const EXEC_TIMEOUT_MS = 10_000;
 const REGISTRY_PROBE_TIMEOUT_MS = 3_000;
 const DEFAULT_VERDACCIO_URL = "http://localhost:4873";
+export const HOST_PORT_FIXES = {
+    port80: "Stop the process bound to port 80, or stop local nginx/caddy. Then: tdk doctor",
+    port5432: "Stop local Postgres or change the host port. Then: tdk doctor",
+};
 function runHostCommand(exec, command, args, shellCommand, options) {
     if (process.platform === "win32") {
         return execFileSync(findOnPath(command) ?? command, args, {
@@ -473,7 +477,8 @@ export async function checkHostPorts(exec = execSync, projectName = getProjectNa
     for (const port of inUse) {
         const holder = holders.find((h) => h.publishedPorts.includes(port));
         if (!holder) {
-            problems.push(`${port} (${HOST_PORTS[port]}) is used by a program on this machine`);
+            const detail = port === 5432 ? "; inspect it with lsof -nP -iTCP:5432" : "";
+            problems.push(`${port} (${HOST_PORTS[port]}) is used by a program on this machine${detail}`);
         }
         else if (port === 5432 && !isOwn(holder.name)) {
             problems.push(`${port} (${HOST_PORTS[port]}) is published by container ${holder.name}`);
@@ -483,14 +488,21 @@ export async function checkHostPorts(exec = execSync, projectName = getProjectNa
         return { name: "Host Ports", didPass: true, message: "Host ports are held by this project" };
     }
     const first = inUse.find((port) => problems.some((p) => p.startsWith(`${port} `))) ?? inUse[0];
+    let fix;
+    if (first === 80) {
+        fix = HOST_PORT_FIXES.port80;
+    }
+    else if (first === 5432) {
+        fix = HOST_PORT_FIXES.port5432;
+    }
+    else {
+        fix = `Stop the process bound to port ${first}. Then: tdk doctor`;
+    }
     return {
         name: "Host Ports",
         didPass: false,
         message: `Ports TDK needs are taken:\n    ${problems.join("\n    ")}`,
-        fix: process.platform === "win32"
-            ? `Find the process with \`Get-NetTCPConnection -LocalPort ${first} -State Listen\` in PowerShell, stop it, then run \`tdk up\`.`
-            : `Find what holds a port with \`lsof -nP -iTCP:${first} -sTCP:LISTEN\` and stop it ` +
-                "(for a local Postgres: `brew services stop postgresql` or quit Postgres.app), then run `tdk up`.",
+        fix,
     };
 }
 /**

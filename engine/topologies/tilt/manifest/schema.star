@@ -64,11 +64,9 @@ MANIFEST_SCHEMA = {
         'default': 'backend',
     },
     'stack': {
-        'type': 'enum',
+        'type': 'string',
         'required': True,
-        'constraints': {
-            'values': VALID_STACKS,
-        },
+        'constraints': {'min_length': 1},
         'description': 'Technology stack this resource belongs to',
         'example': 'user',
     },

@@ -18,7 +18,7 @@ describe("checkHostPorts", () => {
     const result = await checkHostPorts(noDocker, "shop", inUse([5432]));
     expect(result.didPass).toBe(false);
     expect(result.message).toContain("5432 (Postgres) is used by a program on this machine");
-    expect(result.fix).toContain("lsof -nP -iTCP:5432");
+    expect(result.message).toContain("lsof -nP -iTCP:5432");
   });
 
   it("accepts ports published by this project's own containers", async () => {

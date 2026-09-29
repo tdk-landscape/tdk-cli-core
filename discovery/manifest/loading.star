@@ -39,7 +39,7 @@ def get_default_syncs_for_type(app_type, features=None):
     if features == None:
         features = []
 
-    syncs = list(DEFAULT_SYNCS.get(app_type, ['src', 'package.json']))
+    syncs = list(DEFAULT_SYNCS.get(app_type, [] if app_type == 'bring-your-own' else ['src', 'package.json']))
 
     # Add prisma to syncs if using prisma feature
     if app_type == 'backend' and 'prisma' in features and 'prisma' not in syncs:
@@ -261,7 +261,11 @@ def _apply_manifest_defaults(manifest, resource_path):
     features = result.get('featuresEnabled', [])
     result['usePrisma'] = 'prisma' in features
     result['useNats'] = 'nats' in features
-    result['useTraefik'] = 'traefik' in features or app_type in ['backend', 'sdk']
+    result['useTraefik'] = (
+        'traefik' in features
+        or app_type in ['backend', 'sdk']
+        or (app_type == 'bring-your-own' and result.get('exposeViaProxy', True))
+    )
 
     # Extract stack from path if not set
     if 'stack' not in result:
@@ -278,7 +282,7 @@ def _apply_manifest_defaults(manifest, resource_path):
     
     # 🎯 SMART TRAEFIK CONFIG (Convention over Configuration)
     # Apply to backends and SDKs that need Traefik routing
-    if result['useTraefik'] and app_type in ['backend', 'sdk']:
+    if result['useTraefik'] and app_type in ['backend', 'sdk', 'bring-your-own']:
         existing_traefik = result.get('traefik', {})
         # Use apiPath from root level if available, otherwise use default pattern
         root_api_path = result.get('apiPath')

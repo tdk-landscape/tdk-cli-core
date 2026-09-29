@@ -7,7 +7,8 @@
  * Frontend services: api-client, env-config, api-index (enabled by default)
  * Backend services: prisma (enabled by default)
  */
-export type ResourceType = "frontend" | "backend" | "worker" | "migrator" | "sdk";
+import type { ResourceType as ImportResourceType } from "../types/index.js";
+export type ResourceType = ImportResourceType;
 export interface ResourceFeature {
     name: string;
     description: string;

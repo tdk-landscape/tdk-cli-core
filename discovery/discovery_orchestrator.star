@@ -77,7 +77,7 @@ def _determine_app_type(manifest, resource_path):
     Determine app type from manifest or service path.
     """
     # Check if manifest has explicit appType
-    if manifest.get("appType") in ["frontend", "backend", "library", "migrator", "sdk", "worker", "infra"]:
+    if manifest.get("appType") in ["frontend", "backend", "library", "migrator", "sdk", "worker", "infra", "bring-your-own"]:
         return manifest["appType"]
     
     # Extract from path
@@ -120,7 +120,7 @@ def normalize_manifest(manifest, resource_path):
 
     resource = {
         "name": app_name,
-        "dockerfile": app_name + "/" + dockerfile,
+        "dockerfile": dockerfile if app_type == "bring-your-own" else app_name + "/" + dockerfile,
         "syncs": syncs,
         "port": port,
         "stack": stack,

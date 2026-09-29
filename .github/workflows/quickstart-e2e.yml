@@ -41,6 +41,8 @@ concurrency:
 jobs:
   quickstart:
     name: 🧭 README quickstart on a clean machine
+    # This Ubuntu Linux-container boot verifies the Linux path only; Windows
+    # currently has CLI smoke coverage, not a full landscape acceptance run.
     # A failed release publishes nothing, so there is nothing to boot.
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
@@ -119,9 +121,6 @@ jobs:
           npm install -g "@tdk-landscape/tdk-cli-core@${TDK_VERSION}"
           tdk --version
 
-      - name: tdk doctor (machine only)
-        run: tdk doctor
-
       - name: Scaffold the quickstart project
         run: |
           if sudo ss -ltn 2>/dev/null | grep -q ':5432 '; then
@@ -132,6 +131,7 @@ jobs:
           fi
           mkdir -p "$RUNNER_TEMP/shop" && cd "$RUNNER_TEMP/shop"
           tdk project --yes
+          tdk doctor
           printf 'y\n' | tdk resource orders-api --type backend --stack shop
           # Frontends go through the framework providers and their Starlark Vite
           # templates. Published versions from before --framework existed skip

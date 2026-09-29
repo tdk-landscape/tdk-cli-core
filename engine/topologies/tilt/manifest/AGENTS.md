@@ -46,7 +46,7 @@ load("./constants.star", "MANIFEST_FILENAME")
 ```json
 {
   "appName": "resource-name-backend",
-  "appType": "backend",  // frontend, backend, library, migrator, sdk, worker
+  "appType": "backend",  // frontend, backend, library, migrator, sdk, worker, bring-your-own
   "stack": "order",
   "port": 4000,
   "features": ["nats", "prisma", "vite-node"],
