@@ -1,0 +1,33 @@
+name: Windows CLI smoke
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  windows-smoke:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22.x
+
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+
+      - name: Typecheck CLI
+        run: npm run typecheck
+
+      - name: Run CLI help
+        run: node bin/tdk.js --help
+        working-directory: cli
+
+      - name: Run Windows platform unit tests
+        run: npm test -- --run src/utils/platform.test.ts src/utils/which.test.ts src/utils/windows-doctor.test.ts
+        working-directory: cli

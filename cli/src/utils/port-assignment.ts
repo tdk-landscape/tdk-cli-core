@@ -1,5 +1,4 @@
-import { spawn } from "node:child_process";
-import { createConnection } from "node:net";
+import { createConnection, createServer } from "node:net";
 import type { DiscoveredResource, PortAssignableResourceType } from "../types/index.js";
 import { PORT_RANGES } from "./constants.js";
 
@@ -25,29 +24,20 @@ function isPortAvailable(port: number): Promise<boolean> {
 
 export async function checkPortStatus(port: number): Promise<"running" | "stopped" | "unknown"> {
   return new Promise((resolve) => {
-    const child = spawn("lsof", ["-Pi", `:${port}`, "-sTCP:LISTEN"], {
-      timeout: 3000,
-      stdio: "pipe",
-    });
-
-    let hasOutput = false;
-
-    child.stdout?.on("data", () => {
-      hasOutput = true;
-    });
-
-    child.on("close", (code) => {
-      // lsof returns 0 if it found something, 1 if nothing found
-      if (code === 0) {
-        resolve("running");
-      } else {
-        resolve(hasOutput ? "running" : "stopped");
-      }
-    });
-
-    child.on("error", () => {
+    const server = createServer();
+    const timer = setTimeout(() => {
+      server.close();
       resolve("unknown");
+    }, 3000);
+    server.once("error", (error: NodeJS.ErrnoException) => {
+      clearTimeout(timer);
+      resolve(error.code === "EADDRINUSE" ? "running" : "unknown");
     });
+    server.once("listening", () => {
+      clearTimeout(timer);
+      server.close(() => resolve("stopped"));
+    });
+    server.listen(port, "127.0.0.1");
   });
 }
 

@@ -1,4 +1,4 @@
-import { execSync, spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import chalk from "chalk";
 import { Command } from "commander";
 import { readProjectConfig } from "../generator/template-engine.js";
@@ -17,6 +17,7 @@ import {
 import { findProjectRoot } from "../utils/paths.js";
 import { checkPortStatus } from "../utils/port-assignment.js";
 import { isValidPort, sanitizeForShell } from "../utils/validation.js";
+import { findOnPath } from "../utils/which.js";
 
 function execSafe(
   command: string,
@@ -24,8 +25,10 @@ function execSafe(
   options: { encoding?: string; timeout?: number } = {},
 ): Promise<string> {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
+    const child = spawn(findOnPath(command) ?? command, args, {
       timeout: options.timeout || 5000,
+      shell: false,
+      windowsHide: process.platform === "win32",
     });
 
     let stdout = "";
@@ -65,9 +68,10 @@ function determineDefaultDomain(): string {
 
   const domains = new Set<string>();
   try {
-    const traefikLabels = execSync(
-      'docker ps --filter "label=traefik.enable=true" --format "{{.Labels}}" 2>/dev/null',
-      { encoding: "utf-8" },
+    const traefikLabels = execFileSync(
+      findOnPath("docker") ?? "docker",
+      ["ps", "--filter", "label=traefik.enable=true", "--format", "{{.Labels}}"],
+      { encoding: "utf-8", windowsHide: process.platform === "win32" },
     );
 
     // Capture every Host(`...`) in a rule (multi-host rules included), avoid ReDoS with bounded classes
@@ -173,7 +177,13 @@ async function checkServiceStatus(
       return "running";
     }
     if (portStatus === "unknown") {
-      console.warn(chalk.yellow(`⚠️ Could not check port ${port} (lsof unavailable)`));
+      console.warn(
+        chalk.yellow(
+          process.platform === "win32"
+            ? `⚠️ Could not check port ${port} with the Windows TCP probe`
+            : `⚠️ Could not check port ${port} (port probe unavailable)`,
+        ),
+      );
     }
   }
 
@@ -231,6 +241,9 @@ export const networksCommand = new Command("networks")
             stack: s.stack,
             basePath: s.config.basePath,
             url,
+            ...(process.platform === "win32"
+              ? { loopbackUrl: `http://127.0.0.1:80/${basePath}`.replace(/\/$/, "") }
+              : {}),
             port,
             status,
           };
@@ -260,6 +273,7 @@ export const networksCommand = new Command("networks")
     if (options.raw) {
       for (const service of filteredServices) {
         console.log(service.url);
+        if (service.loopbackUrl) console.log(service.loopbackUrl);
       }
       process.exit(0);
     }
@@ -306,6 +320,11 @@ export const networksCommand = new Command("networks")
         const statusLabel = service.status !== "running" ? chalk.gray(` [${service.status}]`) : "";
 
         console.log(`  ${statusEmoji} ${chalk.white(namePart)}  ${urlPart}${statusLabel}`);
+        if (service.loopbackUrl) {
+          console.log(
+            `     ${chalk.gray(`Loopback: ${service.loopbackUrl} (Host: ${new URL(service.url).hostname})`)}`,
+          );
+        }
       }
     }
     console.log();

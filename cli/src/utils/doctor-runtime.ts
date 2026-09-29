@@ -1,4 +1,4 @@
-import { execSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { join } from "node:path";
@@ -7,10 +7,27 @@ import { formatCount } from "./formatting.js";
 import { findProjectRoot } from "./paths.js";
 import { getProjectName, type HealthProbe } from "./service-urls.js";
 import { discoverResources, discoverResourcesFromRoot } from "./services.js";
+import { findOnPath } from "./which.js";
 
 const EXEC_TIMEOUT_MS = 10_000;
 const REGISTRY_PROBE_TIMEOUT_MS = 3_000;
 const DEFAULT_VERDACCIO_URL = "http://localhost:4873";
+
+function runHostCommand(
+  exec: typeof execSync,
+  command: string,
+  args: string[],
+  shellCommand: string,
+  options: { stdio?: "pipe"; encoding: "utf-8"; timeout: number },
+): string {
+  if (process.platform === "win32") {
+    return execFileSync(findOnPath(command) ?? command, args, {
+      ...options,
+      windowsHide: true,
+    });
+  }
+  return exec(shellCommand, options);
+}
 
 /** Host ports Traefik publishes for local ingress. Without these, app routes never come up. */
 export const INGRESS_PORTS = [80, 443] as const;
@@ -326,11 +343,17 @@ export function checkPrivateNpmRegistry(
 
   let containerRunning = false;
   try {
-    const names = exec("docker ps --format '{{.Names}}'", {
-      stdio: "pipe",
-      encoding: "utf-8",
-      timeout: EXEC_TIMEOUT_MS,
-    });
+    const names = runHostCommand(
+      exec,
+      "docker",
+      ["ps", "--format", "{{.Names}}"],
+      "docker ps --format '{{.Names}}'",
+      {
+        stdio: "pipe",
+        encoding: "utf-8",
+        timeout: EXEC_TIMEOUT_MS,
+      },
+    );
     containerRunning = /verdaccio/i.test(names);
   } catch {
     // Docker may be down; other doctor checks cover that.
@@ -340,14 +363,26 @@ export function checkPrivateNpmRegistry(
   let httpDetail = "";
   try {
     // curl is more reliable than fetch in the compiled CLI binary environments.
-    const probe = exec(
-      `curl -fsS -o /dev/null -w '%{http_code}' --max-time 2 ${JSON.stringify(registryUrl)}`,
-      {
-        stdio: "pipe",
-        encoding: "utf-8",
-        timeout: REGISTRY_PROBE_TIMEOUT_MS + 1_000,
-      },
-    ).trim();
+    const probe =
+      process.platform === "win32"
+        ? execFileSync(
+            "curl.exe",
+            ["-fsS", "-o", "NUL", "-w", "%{http_code}", "--max-time", "2", registryUrl],
+            {
+              stdio: "pipe",
+              encoding: "utf-8",
+              timeout: REGISTRY_PROBE_TIMEOUT_MS + 1_000,
+              windowsHide: true,
+            },
+          ).trim()
+        : exec(
+            `curl -fsS -o /dev/null -w '%{http_code}' --max-time 2 ${JSON.stringify(registryUrl)}`,
+            {
+              stdio: "pipe",
+              encoding: "utf-8",
+              timeout: REGISTRY_PROBE_TIMEOUT_MS + 1_000,
+            },
+          ).trim();
     httpOk = /^[23]\d\d$/.test(probe);
     httpDetail = `HTTP ${probe}`;
   } catch (error) {
@@ -394,11 +429,17 @@ export function checkIngressPorts(
   let dockerPs = "";
 
   try {
-    dockerPs = exec("docker ps --format '{{.Names}}\\t{{.Ports}}'", {
-      stdio: "pipe",
-      encoding: "utf-8",
-      timeout: EXEC_TIMEOUT_MS,
-    });
+    dockerPs = runHostCommand(
+      exec,
+      "docker",
+      ["ps", "--format", "{{.Names}}\\t{{.Ports}}"],
+      "docker ps --format '{{.Names}}\\t{{.Ports}}'",
+      {
+        stdio: "pipe",
+        encoding: "utf-8",
+        timeout: EXEC_TIMEOUT_MS,
+      },
+    );
   } catch {
     return {
       name: "Ingress Ports",
@@ -561,11 +602,17 @@ export async function checkHostPorts(
 
   let dockerPs = "";
   try {
-    dockerPs = exec("docker ps --format '{{.Names}}\\t{{.Ports}}'", {
-      stdio: "pipe",
-      encoding: "utf-8",
-      timeout: EXEC_TIMEOUT_MS,
-    });
+    dockerPs = runHostCommand(
+      exec,
+      "docker",
+      ["ps", "--format", "{{.Names}}\\t{{.Ports}}"],
+      "docker ps --format '{{.Names}}\\t{{.Ports}}'",
+      {
+        stdio: "pipe",
+        encoding: "utf-8",
+        timeout: EXEC_TIMEOUT_MS,
+      },
+    );
   } catch {
     // Can't attribute ports without Docker; treat them as held by the host.
   }
@@ -595,8 +642,10 @@ export async function checkHostPorts(
     didPass: false,
     message: `Ports TDK needs are taken:\n    ${problems.join("\n    ")}`,
     fix:
-      `Find what holds a port with \`lsof -nP -iTCP:${first} -sTCP:LISTEN\` and stop it ` +
-      "(for a local Postgres: `brew services stop postgresql` or quit Postgres.app), then run `tdk up`.",
+      process.platform === "win32"
+        ? `Find the process with \`Get-NetTCPConnection -LocalPort ${first} -State Listen\` in PowerShell, stop it, then run \`tdk up\`.`
+        : `Find what holds a port with \`lsof -nP -iTCP:${first} -sTCP:LISTEN\` and stop it ` +
+          "(for a local Postgres: `brew services stop postgresql` or quit Postgres.app), then run `tdk up`.",
   };
 }
 
@@ -608,11 +657,17 @@ export async function checkHostPorts(
 export function checkTiltResourceHealth(exec: typeof execSync = execSync): CheckResult {
   let jsonText = "";
   try {
-    jsonText = exec("tilt get uiresources -o json", {
-      stdio: "pipe",
-      encoding: "utf-8",
-      timeout: EXEC_TIMEOUT_MS,
-    });
+    jsonText = runHostCommand(
+      exec,
+      "tilt",
+      ["get", "uiresources", "-o", "json"],
+      "tilt get uiresources -o json",
+      {
+        stdio: "pipe",
+        encoding: "utf-8",
+        timeout: EXEC_TIMEOUT_MS,
+      },
+    );
   } catch {
     return {
       name: "Tilt Resources",
@@ -736,11 +791,17 @@ export function probeContainerRuntimeError(
   exec: typeof execSync = execSync,
 ): string | null {
   try {
-    const names = exec("docker ps -a --format '{{.Names}}'", {
-      stdio: "pipe",
-      encoding: "utf-8",
-      timeout: EXEC_TIMEOUT_MS,
-    })
+    const names = runHostCommand(
+      exec,
+      "docker",
+      ["ps", "-a", "--format", "{{.Names}}"],
+      "docker ps -a --format '{{.Names}}'",
+      {
+        stdio: "pipe",
+        encoding: "utf-8",
+        timeout: EXEC_TIMEOUT_MS,
+      },
+    )
       .split("\n")
       .map((line) => line.trim())
       .filter(Boolean);
@@ -750,11 +811,17 @@ export function probeContainerRuntimeError(
       names.find((name) => name.includes(resourceName));
     if (!match) return null;
 
-    const logs = exec(`docker logs --tail 120 ${JSON.stringify(match)} 2>&1`, {
-      stdio: "pipe",
-      encoding: "utf-8",
-      timeout: EXEC_TIMEOUT_MS,
-    });
+    const logs = runHostCommand(
+      exec,
+      "docker",
+      ["logs", "--tail", "120", match],
+      `docker logs --tail 120 ${JSON.stringify(match)} 2>&1`,
+      {
+        stdio: "pipe",
+        encoding: "utf-8",
+        timeout: EXEC_TIMEOUT_MS,
+      },
+    );
 
     if (/getaddrinfo ENOTFOUND/i.test(logs) && /kafka:9092/i.test(logs)) {
       return "runtime crash: Kafka broker unreachable (getaddrinfo ENOTFOUND kafka:9092)";
