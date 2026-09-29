@@ -87,8 +87,6 @@
           - "scripts/**"
           - "Makefile"
           - ".pre-commit-config.yaml"
-          - "knip.json"
-          - ".gitignore"
 
 "area: benchmarks":
   - changed-files:
@@ -96,61 +94,12 @@
           - "benchmarks/**"
           - "scripts/benchmark/**"
 
-benchmark:
-  - changed-files:
-      - any-glob-to-any-file:
-          - "benchmarks/**"
-          - "scripts/benchmark/**"
-          - "scripts/e2e/**"
-
-performance:
-  - changed-files:
-      - any-glob-to-any-file:
-          - "benchmarks/**"
-          - "scripts/benchmark/**"
-          - "scripts/measure-idle-footprint.sh"
-          - "engine/assets/scripts/mac-m1-resource-monitor.sh"
-          - "engine/topologies/platform/docker/layers/**"
-
 "area: platform":
   - changed-files:
       - any-glob-to-any-file:
           - "platform/**"
           - "shared-platform-engineering/**"
           - "cli/shared-platform-engineering/**"
-
-"area: contributor-guides":
-  - changed-files:
-      - any-glob-to-any-file:
-          - "CONTRIBUTING.md"
-          - "docs/contributing/**"
-          - "docs/frontend-framework-providers.md"
-          - ".github/pull_request_template.md"
-
-"area: github-actions":
-  - changed-files:
-      - any-glob-to-any-file:
-          - ".github/workflows/**"
-          - ".github/labeler.yml"
-          - ".github/dependabot.yml"
-          - ".github/zizmor.yml"
-
-"area: repository-config":
-  - changed-files:
-      - any-glob-to-any-file:
-          - ".gitignore"
-          - "knip.json"
-          - ".pre-commit-config.yaml"
-          - "Makefile"
-
-examples:
-  - changed-files:
-      - any-glob-to-any-file:
-          - "cli/src/utils/project-templates.ts"
-          - "cli/src/commands/__tests__/saas-starter-integration.test.ts"
-          - "cli/src/commands/__tests__/project-resource-features-e2e.test.ts"
-          - "docs/demo.svg"
-          - "scripts/record-demo.sh"
 
 "area: packaging":
   - changed-files:
@@ -185,7 +134,6 @@ guide:
           - "engine/docs/**"
           - "cli/README.md"
           - "CONTRIBUTING.md"
-          - ".github/pull_request_template.md"
 
 agents:
   - changed-files:
@@ -208,7 +156,6 @@ community:
       - any-glob-to-any-file:
           - "CODE_OF_CONDUCT.md"
           - "SECURITY.md"
-          - "LICENSE"
           - ".github/ISSUE_TEMPLATE/**"
 
 design:
@@ -242,6 +189,7 @@ ci:
           - "bun.lock"
           - "package.json"
           - "cli/package.json"
+          - "cli/src/**"
           - "engine/topologies/platform/docker/layers/bun_helpers.star"
           - "shared-platform-engineering/docker-templates/bun-*.sh"
 
