@@ -150,8 +150,8 @@ export const RESOURCE_FEATURES = {
         applies_to: ["backend", "frontend"],
         enabled_by_default: false,
         category: "premium",
-        generator_file: "engine/topologies/platform/docker/networking/sablier_container_cycle.star (stub; real generator in tdk-cli-extensions/premium/networking/), engine/topologies/platform/docker/networking/traefik.star, engine/topologies/platform/docker/compose/traefik_standalone.star (deferStart wake gateway + static route), engine/topologies/platform/docker/compose/compose.star (deferStart depends_on)",
-        output_file: "(Traefik + Sablier Docker labels on the resource's own compose service; with deferStart, also a generated Traefik file-provider dynamic-config entry and a depends_on block)",
+        generator_file: "engine/topologies/platform/docker/networking/sablier_container_cycle.star (stub; real generator in tdk-cli-extensions/premium/networking/), engine/topologies/platform/docker/networking/traefik.star, engine/topologies/platform/docker/compose/traefik_standalone.star (deferStart wake gateway + static route), engine/topologies/tilt/resources/orchestrator/apply_compose_resource_registration.star (deferred image prebuild + wake route wiring)",
+        output_file: "(Traefik + Sablier Docker labels on the resource's own compose service; with deferStart, also a generated Traefik file-provider dynamic-config entry, wake gateway, and image prebuild resource)",
     },
 };
 /**

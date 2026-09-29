@@ -13,6 +13,7 @@
 - [x] 2.5 Add reciprocal links from the root README and relevant subsystem docs so newcomers can discover the contributor path.
 - [x] 2.6 Configure GitHub area labels from changed paths and synchronize labels when the PR diff changes, using only the permissions needed to update PR labels.
 - [x] 2.7 Make the PR template a path-aware guide to affected-area steps and checks, document the always-run and path-triggered workflows, and repair stale links.
+- [ ] 2.8 Expand label rules to the repository's current source, test, docs, tooling, and config paths; confirm representative path labels and inspect labels assigned to a test PR.
 
 ## 3. Verify the documentation
 

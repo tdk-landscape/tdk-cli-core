@@ -9,6 +9,7 @@ The repository welcomes contributions, but its newcomer guidance only gives a ge
 - Explain the proposal/spec workflow for changes that alter architecture, manifests, generated output, or user-visible behavior, with links to representative examples such as the Vue provider change.
 - Give contributors a reusable pull request checklist covering scope, compatibility, tests, documentation, CI, and concrete before/after evidence.
 - Apply area labels to pull requests from changed paths and make the PR template guide authors to the steps and checks for each affected area.
+- Cover the repository's actual source, test, documentation, tooling, and configuration paths, with focused technology labels where a changed path identifies a stack clearly.
 - Explain which GitHub workflows run for all pull requests versus selected changed paths.
 - Cross-check commands and paths against the current repository and remove or flag stale internal-only instructions that could mislead newcomers.
 

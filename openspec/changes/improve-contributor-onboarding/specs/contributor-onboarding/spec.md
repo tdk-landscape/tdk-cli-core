@@ -40,7 +40,7 @@ The repository SHALL explain how to use OpenSpec for changes that affect user-vi
 - **THEN** they can inspect the archived Vue provider change's proposal, design, and tasks as a complete feature workflow example
 
 ### Requirement: Pull request instructions make work reviewable
-The repository SHALL provide a reusable PR checklist covering the change's purpose and scope, compatibility, relevant tests/checks, documentation updates, and reproducible evidence. The checklist SHALL ask contributors to distinguish checks they ran from checks they did not run and include before/after evidence when it helps demonstrate changed behavior. Contributor guidance SHALL explain which GitHub workflows run for every PR and which workflows use changed-file path filters. GitHub automation SHALL apply and synchronize area labels from changed file paths. The PR template SHALL help authors select the affected areas and find the matching contribution guidance and checks.
+The repository SHALL provide a reusable PR checklist covering the change's purpose and scope, compatibility, relevant tests/checks, documentation updates, and reproducible evidence. The checklist SHALL ask contributors to distinguish checks they ran from checks they did not run and include before/after evidence when it helps demonstrate changed behavior. Contributor guidance SHALL explain which GitHub workflows run for every PR and which workflows use changed-file path filters. GitHub automation SHALL apply and synchronize labels from changed file paths across the repository's main code, test, documentation, tooling, and configuration areas. It SHALL also apply a technology label when the path identifies a relevant stack. The PR template SHALL help authors select the affected areas and find the matching contribution guidance and checks.
 
 #### Scenario: Contributor prepares a feature pull request
 - **WHEN** a contributor prepares a pull request for a new tool, database, framework, or other feature
@@ -58,3 +58,7 @@ The repository SHALL provide a reusable PR checklist covering the change's purpo
 #### Scenario: Contributor follows path-specific PR guidance
 - **WHEN** a contributor selects an affected area in the pull request template
 - **THEN** the template points them to the relevant implementation steps, compatibility checks, documentation, and expected CI workflows for that area
+
+#### Scenario: Framework files receive focused labels
+- **WHEN** a pull request changes a registered frontend provider, its Vite generator, or provider tests
+- **THEN** GitHub applies the frontend-framework area label and the relevant technology labels from the changed paths
