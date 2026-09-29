@@ -111,8 +111,13 @@ while :; do
     fi
   fi
 
-  # Fall back to the TDK project Traefik route, then the published container port.
-  candidates+=("http://app.tdk-byo-python-boot.localhost/legacy/health" "http://127.0.0.1:4500/health")
+  # BYO services use the backend project route (`/api/<resource-name>`),
+  # which strips that prefix before forwarding to the container.
+  candidates+=(
+    "http://api.tdk-byo-python-boot.localhost/api/legacy/health"
+    "http://app.tdk-byo-python-boot.localhost/legacy/health"
+    "http://127.0.0.1:4500/health"
+  )
   for url in "${candidates[@]}"; do
     (( $(date +%s) <= deadline )) || break
     if probe_url "$url"; then
