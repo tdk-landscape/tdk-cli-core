@@ -5,6 +5,7 @@ on:
   pull_request:
     paths:
       - "cli/src/commands/resource.ts"
+      - "cli/src/commands/up.ts"
       - "engine/schemas/service-schema.json"
       - "tests/e2e/fixtures/byo-python-health/**"
       - "tests/e2e/byo-python.test.sh"

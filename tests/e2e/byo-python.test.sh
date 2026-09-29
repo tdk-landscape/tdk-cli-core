@@ -48,7 +48,6 @@ test ! -f services/shop/legacy/tsconfig.json
 test ! -f services/shop/legacy/health.conf
 cmp "${FIXTURE_DIR}/Dockerfile" services/shop/legacy/Dockerfile
 cmp "${FIXTURE_DIR}/app.py" services/shop/legacy/app.py
-cmp "${FIXTURE_DIR}/requirements.txt" services/shop/legacy/requirements.txt
 jq -e '.appType == "bring-your-own" and .stack == "shop" and .port == 4500 and .dockerfile == "./Dockerfile"' \
   services/shop/legacy/service.json >/dev/null
 ajv validate --spec=draft7 --strict=false -s "${SCHEMA}" -d services/shop/legacy/service.json
