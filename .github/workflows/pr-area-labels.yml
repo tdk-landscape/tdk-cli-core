@@ -1,0 +1,21 @@
+name: 🏷️ PR area labels
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  label:
+    name: Apply labels from changed paths
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Apply matching area labels
+        uses: actions/labeler@v7
+        with:
+          sync-labels: true

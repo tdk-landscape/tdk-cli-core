@@ -63,7 +63,7 @@ After opening it, GitHub runs CI. If a check fails, read its log, fix the issue 
 
 ## What GitHub runs
 
-You do not need to add a label to start these checks. **This repository does not automatically add area labels based on changed folders.** Labels organize work; workflow path rules decide which automation runs.
+The [PR template](../../.github/pull_request_template.md) asks you to select the areas you changed and opens short instructions for each area. GitHub also adds matching `area:*` labels from changed paths and removes stale area labels when you push an updated diff. Labels organize the PR; workflow path rules decide which automation runs.
 
 - **Every pull request:** [CI](../../.github/workflows/ci.yml) runs lint, typecheck, CLI tests, and a package smoke check. Some extra CI jobs depend on which files changed or repository settings.
 - **Runtime files changed:** [Quickstart E2E](../../.github/workflows/quickstart-e2e.yml) also runs when a PR changes files under `cli/`, `engine/`, or `discovery/`, or changes `Tiltfile`, `package.json`, or that workflow file.

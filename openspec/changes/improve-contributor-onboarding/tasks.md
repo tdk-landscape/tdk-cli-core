@@ -11,7 +11,8 @@
 - [x] 2.3 Add proportional OpenSpec guidance and link the archived Vue provider change as a worked example.
 - [x] 2.4 Add a reusable PR checklist for scope, compatibility, tests, docs, and reproducible evidence, preserving useful existing test-evidence detail.
 - [x] 2.5 Add reciprocal links from the root README and relevant subsystem docs so newcomers can discover the contributor path.
-- [x] 2.6 Document the current PR template, always-run checks, changed-path workflow triggers, and whether folder-based area labels are configured; repair stale template links.
+- [x] 2.6 Configure GitHub area labels from changed paths and synchronize labels when the PR diff changes, using only the permissions needed to update PR labels.
+- [x] 2.7 Make the PR template a path-aware guide to affected-area steps and checks, document the always-run and path-triggered workflows, and repair stale links.
 
 ## 3. Verify the documentation
 

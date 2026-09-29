@@ -1,0 +1,55 @@
+"area: cli":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "cli/**"
+          - "package.json"
+          - "bun.lock"
+
+"area: frontend-frameworks":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "cli/src/frontend-frameworks/**"
+          - "cli/src/commands/__tests__/resource-frameworks-e2e.test.ts"
+          - "cli/src/commands/__tests__/frontend-vite-generator.test.ts"
+          - "engine/topologies/tilt/generators/vite/**"
+          - "engine/topologies/tilt/generators/typescript/frontend_tsconfig.star"
+          - "engine/schemas/service-schema.json"
+          - "docs/frontend-framework-providers.md"
+
+"area: infrastructure":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "engine/topologies/tilt/resources/**"
+          - "engine/topologies/platform/**"
+          - "docs/FEATURES.md"
+
+"area: engine":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "engine/**"
+          - "Tiltfile"
+
+"area: discovery":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "discovery/**"
+
+"area: github-actions":
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/workflows/**"
+          - ".github/labeler.yml"
+
+"area: contributor-guides":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "CONTRIBUTING.md"
+          - "docs/contributing/**"
+          - ".github/pull_request_template.md"
+
+"area: documentation":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "docs/**"
+          - "*.md"
+          - "**/*.md"
