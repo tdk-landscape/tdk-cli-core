@@ -262,13 +262,14 @@ def _generate_single_backend_entry(resource_path, resource_name, res, manifest, 
     # them a Traefik route advertises an endpoint that can never answer, and giving
     # them an HTTP healthcheck marks a perfectly healthy worker as unhealthy forever.
     is_worker = manifest.get('appType') == 'worker' if manifest else False
+    is_byo = manifest.get('appType') == 'bring-your-own' if manifest else False
     is_proxy_disabled_byo = (
-        manifest.get('appType') == 'bring-your-own' and not manifest.get('exposeViaProxy', True)
+        is_byo and not manifest.get('exposeViaProxy', True)
     ) if manifest else False
 
     if is_worker or is_proxy_disabled_byo:
         traefik_labels = '      - "traefik.enable=false"'
-        healthcheck_section = "" if is_worker else """    healthcheck:
+        healthcheck_section = "" if is_worker or is_byo else """    healthcheck:
       test: ["CMD", "curl", "-f", "--max-time", "5", "http://localhost:{internal_port}{health_path}"]
 """.format(internal_port=internal_port, health_path=health_path) + compose_healthcheck_timing()
     else:
@@ -284,7 +285,10 @@ def _generate_single_backend_entry(resource_path, resource_name, res, manifest, 
             health_path=traefik_health_path,
             manifest=manifest,
         )
-        healthcheck_section = """    healthcheck:
+        # BYO images may not contain curl. Traefik uses its own HTTP health
+        # check labels above, so don't mark an otherwise healthy container
+        # unhealthy because the image lacks a command TDK cannot require.
+        healthcheck_section = "" if is_byo else """    healthcheck:
       test: ["CMD", "curl", "-f", "--max-time", "5", "http://localhost:{internal_port}{health_path}"]
 """.format(internal_port=internal_port, health_path=health_path) + compose_healthcheck_timing()
     infisical_env = get_infisical_environment_vars(as_array=True, resource_name=res_name)

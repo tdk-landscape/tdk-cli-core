@@ -52,3 +52,19 @@ def test_byo_compose_build_uses_service_directory_as_context():
     assert "context: {build_context}" in byo_branch
     assert "dockerfile: {dockerfile}" in byo_branch
     assert "compose_build_config(" not in byo_branch
+
+
+def test_byo_compose_does_not_require_curl_inside_the_image():
+    source = (
+        Path(__file__).resolve().parents[2]
+        / "engine"
+        / "topologies"
+        / "platform"
+        / "docker"
+        / "compose"
+        / "compose.star"
+    ).read_text()
+
+    assert "is_byo = manifest.get('appType') == 'bring-your-own'" in source
+    assert '"" if is_worker or is_byo else """    healthcheck:' in source
+    assert '"" if is_byo else """    healthcheck:' in source
