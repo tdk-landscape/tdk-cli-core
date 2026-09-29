@@ -4,12 +4,12 @@
 
 ## Which parts of TDK changed?
 
-This template is the same for every PR. Select every area that matches your changed files, then expand the matching instructions below. GitHub adds matching `area:*` labels after the label workflow is available on the base branch.
+GitHub uses one static PR template, so it cannot hide or add checklist items based on your diff. Use this quick routing guide: open **Files changed**, match your paths below, then complete only those rows. A PR can match several rows. The label workflow adds matching `area:*` labels automatically once the labeler change is on the base branch; labels are a hint, not a checklist.
 
 - [ ] CLI (`cli/src/`)
 - [ ] Terminal UI or environment diagnostics (`cli/src/components/`, `doctor`)
-- [ ] Frontend framework provider (CLI framework files, Vite templates, frontend schema)
-- [ ] Database or infrastructure (`engine/topologies/platform/`, infrastructure resources, platform services)
+- [ ] Frontend framework provider (`cli/src/frontend-frameworks/`, `engine/topologies/tilt/generators/vite/`, frontend schemas or templates)
+- [ ] Database or infrastructure (`engine/topologies/platform/`, `engine/topologies/tilt/resources/`, `discovery/services/platform/`)
 - [ ] Engine or service discovery (`engine/`, `discovery/`, `Tiltfile`)
 - [ ] Extension or shared platform package (`ext/`, `shared-platform-engineering/`)
 - [ ] Tests, scripts, or benchmarks (`tests/`, `scripts/`, `benchmarks/`)
@@ -18,6 +18,20 @@ This template is the same for every PR. Select every area that matches your chan
 - [ ] Contributor, agent, or user documentation
 
 Open the matching guide below. If more than one area changed, follow every matching guide.
+
+| If your changed files include… | Follow… |
+| --- | --- |
+| `cli/src/frontend-frameworks/**`, Vite templates/config generators, or frontend schemas | **Frontend framework provider** |
+| `engine/topologies/platform/**/*.star` | **Starlark platform / Docker / networking / database** and **Engine or service discovery** |
+| `engine/topologies/tilt/**/*.star` or `Tiltfile` | **Starlark / Tilt generators and resources** and **Engine or service discovery** |
+| `discovery/services/platform/**` or `discovery/services/**/*.yaml` | **Database or infrastructure tool** and **Engine or service discovery** |
+| `cli/src/**/*.ts`, `cli/src/**/*.tsx`, or `cli/dist/**` | **CLI command or generated output**; include the TUI/doctor guide too when those paths changed |
+| `ext/**` or `shared-platform-engineering/**` | **Extension or shared platform package** |
+| `tests/**`, `**/*.test.ts`, `**/*.test.tsx`, or `scripts/**` | **Tests, scripts, or benchmarks** |
+| `openspec/**`, `specs/**`, or `engine/schemas/**` | **OpenSpec, schemas, or generated contracts** |
+| `.github/**`, package manifests, or lockfiles | **GitHub Actions or repository setup** |
+
+For example: a new database usually changes Tilt `.star` files, Docker/Compose `.star` files, a service manifest, and tests. Follow every matching row, then document how to enable it and how to check both enabled and disabled behavior.
 
 <details>
 <summary>CLI command or generated output</summary>
@@ -58,6 +72,17 @@ Open the matching guide below. If more than one area changed, follow every match
 - Check startup order, health/readiness, environment/secrets, disable behavior, and cleanup.
 - Test the enabled and disabled paths and update `docs/FEATURES.md` or the relevant CLI guide.
 - Run the CLI checks; use `TDK_REQUIRE_TILT=1` for Starlark generator tests.
+
+</details>
+
+<details>
+<summary>Starlark platform, Docker, networking, or Tilt resource</summary>
+
+- Identify the entry point and follow its imports: platform code is under `engine/topologies/platform/`; Tilt code is under `engine/topologies/tilt/`.
+- Preserve deterministic generation and existing output contracts. Update golden/fixture tests when generated output changes.
+- For a new infrastructure resource, check registration, dependencies/startup order, health/readiness, disable behavior, and cleanup.
+- Run the targeted Starlark/Tilt tests. Use `cd cli && TDK_REQUIRE_TILT=1 npm test` for CLI tests that require Tilt; use `make test-tilt-engine` for `tests/tilt-engine/` when its Python environment is available.
+- Include a small before/after generated-output example in **Evidence**.
 
 </details>
 
