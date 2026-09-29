@@ -1,5 +1,7 @@
 # .tilt-engine/
 
+> **Contributing to the current engine:** follow the [engine and discovery recipe](../docs/contributing/02-feature-recipes.md#change-the-engine-or-service-discovery). This README contains older architecture notes; check paths against the current `engine/topologies/` source before relying on them.
+
 **Tilt Platform Framework Code**
 
 This directory contains the TDK Landscape Tilt infrastructure framework - the code that powers our local development orchestration.

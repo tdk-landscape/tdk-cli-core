@@ -8,7 +8,7 @@ Lets a resource opt out of `tdk up`'s normal sequential bring-up and instead sta
 
 ### Requirement: Deferred Start Opt-In
 
-A resource with a `sablier` manifest block SHALL be able to mark itself deferred for the current `tdk up` run. A deferred resource's image SHALL still be built during `tdk up`, but its container SHALL NOT be started as part of `tdk up`'s normal bring-up sequence.
+A backend resource with a `sablier` manifest block SHALL be able to mark itself deferred for the current `tdk up` run. A deferred resource's image SHALL still be built during `tdk up`, but its container SHALL NOT be started as part of `tdk up`'s normal bring-up sequence. `deferStart` requires `sablier.enable: true` and remains subject to the Sablier license gate.
 
 #### Scenario: Deferred resource is not started during tdk up
 
@@ -35,14 +35,15 @@ A deferred resource's Traefik route SHALL be registered and routable regardless 
 - **WHEN** a deferred resource has run at least once this session and its container is now stopped
 - **THEN** a request to that resource's route still reaches Traefik and is recognized as targeting that resource, using the same or an equivalent route as before it ever ran
 
-### Requirement: First Request Triggers And Prioritizes Startup
+### Requirement: First Request Starts The Deferred Resource Outside Tilt's Normal Queue
 
-The first request to a deferred resource's route SHALL start that resource's container and SHALL cause the resource to be prioritized ahead of the landscape's normal remaining bring-up order, rather than waiting for that order to reach it naturally.
+The first request to a deferred resource's route SHALL start that resource's container without waiting for Tilt's normal resource build and startup ordering. When its prebuilt image is available, the wake gateway SHALL start it directly through its generated Compose invocation. This bypasses Tilt's build queue, but startup can still be delayed by Docker daemon contention; while the start continues, the caller SHALL receive a bounded response as specified by "A Waking Request Waits For Health, Not Just Start".
 
 #### Scenario: Request during a large, in-progress tdk up
 
 - **WHEN** a request is made to a deferred resource's route while `tdk up` is still bringing up other, unrelated resources elsewhere in the landscape
-- **THEN** the deferred resource is started and reaches a healthy state without waiting for the rest of the landscape's bring-up to complete first
+- **THEN** the deferred resource's start is dispatched without waiting for Tilt's normal resource queue to reach it
+- **AND** the caller receives the resource response if it becomes healthy within the hold window, or a `503` with `Retry-After` if it does not
 
 #### Scenario: Request after tdk up has finished
 
@@ -51,12 +52,18 @@ The first request to a deferred resource's route SHALL start that resource's con
 
 ### Requirement: Waking A Resource Also Wakes Its Required Dependencies
 
-Waking a deferred resource SHALL also wake any of its required startup dependencies (the same dependencies already used to sequence Tilt's own bring-up, e.g. its database or messaging broker) that are not currently running, and SHALL wait for each to be ready before evaluating the resource's own health.
+Waking a deferred resource SHALL also wake required dependencies that are themselves deferred resources and SHALL wait for each to be ready before evaluating the requesting resource's own health. Dependencies managed as always-on infrastructure by the normal `tdk up` flow are not sent through the wake gateway; this change does not guarantee recovery of an infrastructure dependency that is stopped or unhealthy.
 
-#### Scenario: Deferred resource depends on a cold database
+#### Scenario: Deferred resource depends on another deferred resource
 
-- **WHEN** a request wakes a deferred resource whose required dependencies include another resource that is not currently running
-- **THEN** that dependency is also started as part of the same wake, and the requesting resource's health checks are not evaluated against a still-cold dependency
+- **WHEN** a request wakes a deferred resource whose required dependencies include another deferred resource that is not currently running
+- **THEN** that deferred dependency is also started as part of the same wake, and the requesting resource's health checks are not evaluated against a still-cold dependency
+
+#### Scenario: Always-on infrastructure dependency is unavailable
+
+- **WHEN** a request wakes a deferred resource whose database or messaging infrastructure is stopped or unhealthy
+- **THEN** this change makes no promise to start or recover that infrastructure dependency
+- **AND** the wake fails or times out according to the configured wake timeout rather than reporting the resource healthy
 
 #### Scenario: Unrelated resource is not woken
 

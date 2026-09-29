@@ -2,6 +2,8 @@
 
 > Command reference for the `tdk` CLI. For what TDK is, installation, badges, and the benchmark, see the **[main README](../README.md)**.
 
+New to contributing? Start with the [step-by-step contributor guide](../docs/contributing/README.md). To add a Vite frontend framework, see the [frontend provider guide](../docs/frontend-framework-providers.md).
+
 ---
 
 ## 🏗️ Project-Stack-Resource Commands

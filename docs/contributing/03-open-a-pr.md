@@ -1,0 +1,73 @@
+# 3. Check your change and open a pull request
+
+## Run the checks for your change
+
+Run checks from the repository root unless a command says otherwise.
+
+| Change | Checks to run |
+|---|---|
+| CLI code or generated CLI behavior | `bun run typecheck`, `bun run lint`, `bun run test` |
+| Engine/Starlark generator used by the CLI tests | Run `bun run typecheck`, `bun run lint`, and `cd cli && TDK_REQUIRE_TILT=1 npm test`. The CI test job installs Tilt and sets this flag. |
+| Python engine test area | Run the relevant test file with `pytest`, or `make test-tilt-engine` for that suite. These Python checks are not run by `.github/workflows/ci.yml`. |
+| Docs only | Check links and commands you changed; read the page once as a newcomer. |
+
+Do not say a check passed unless you ran it. If you cannot run a check, say so and give the reason.
+
+## Show what changed
+
+For a bug fix or behavior change, use the same steps on `main` and your branch when possible. Paste the real before-and-after output; do not recreate it from memory. Include the command, project or fixture, and any setup needed to repeat it. Cover the empty, error, or recovery cases named in the issue.
+
+If you test the built CLI entry point, run `bun run build` first so it does not use old compiled files. Check interactive commands such as `tdk ui` in a real terminal. If an automated test is missing, say why and link an issue to add it.
+
+## Push your branch
+
+If you have write access to the repository:
+
+```bash
+git add path/to/your/files
+git commit -m "Describe the change"
+git push -u origin my-change
+```
+
+If you are contributing from a fork, push to your fork and open a pull request from that branch.
+
+## Open the pull request
+
+Go to the repository on GitHub. Click **Compare & pull request** for your branch, or choose **Pull requests → New pull request**. Select `main` as the base branch, then fill in:
+
+```markdown
+## What changed
+<!-- One or two sentences. Link the issue with Fixes #123 when applicable. -->
+
+## How I checked it
+- [ ] `bun run typecheck`
+- [ ] `bun run lint`
+- [ ] `bun run test`
+- [ ] Other check: ...
+
+## Evidence
+<!-- Paste useful output or show before/after behavior. Say what you did not check. -->
+```
+
+Delete checklist items that do not apply. Add a screenshot or real terminal output when it helps a reviewer see the change. Never include passwords, tokens, private URLs, or personal file paths.
+
+## Before you click “Create pull request”
+
+- [ ] The PR does one main thing.
+- [ ] I linked the issue or explained why the change is useful.
+- [ ] I updated docs or examples affected by the change.
+- [ ] I listed the checks I actually ran and noted any gaps.
+- [ ] I included before/after evidence when behavior changed.
+
+After opening it, GitHub runs CI. If a check fails, read its log, fix the issue on the same branch, push again, and the PR updates automatically. Then answer reviewer questions on the PR.
+
+## What GitHub runs
+
+You do not need to add a label to start these checks. **This repository does not automatically add area labels based on changed folders.** Labels organize work; workflow path rules decide which automation runs.
+
+- **Every pull request:** [CI](../../.github/workflows/ci.yml) runs lint, typecheck, CLI tests, and a package smoke check. Some extra CI jobs depend on which files changed or repository settings.
+- **Runtime files changed:** [Quickstart E2E](../../.github/workflows/quickstart-e2e.yml) also runs when a PR changes files under `cli/`, `engine/`, or `discovery/`, or changes `Tiltfile`, `package.json`, or that workflow file.
+- **Framework example:** adding Vue, React, or another provider changes `cli/` and `engine/`, so both the always-run CI and Quickstart E2E run.
+- **Docs-only change:** the always-run CI still runs. Quickstart E2E does not run unless the PR also changes one of its listed paths.
+
+Other example-app and 100-service checks run on a schedule or by manual request, not on each PR. You can always see a workflow's trigger paths at the top of its file in `.github/workflows/`.

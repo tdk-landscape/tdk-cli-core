@@ -179,7 +179,7 @@ make test-fast      # fast unit tests, no external deps
 make pre-commit-run # run pre-commit hooks on all files
 ```
 
-`npm run typecheck` / `npm run lint` / `npm run test` delegate to the `cli/` workspace. See [cli/AGENTS.md](cli/AGENTS.md) for coding conventions if you're contributing to the CLI, and [engine/AGENTS.md](engine/AGENTS.md) for the Starlark topology framework.
+`npm run typecheck` / `npm run lint` / `npm run test` delegate to the `cli/` workspace. If you're contributing, start with the [step-by-step contributor guide](docs/contributing/README.md) for subsystem-specific instructions.
 
 ## Environment check
 
@@ -192,7 +192,7 @@ Checks Docker, Compose and Tilt. Inside a project it also checks the generated c
 ## Community
 
 - **Questions and ideas:** [open an issue](https://github.com/tdk-landscape/tdk-cli-core/issues/new/choose).
-- **Contributing:** see [CONTRIBUTING.md](CONTRIBUTING.md). Issues labeled [`good first issue`](https://github.com/tdk-landscape/tdk-cli-core/labels/good%20first%20issue) are a good place to start.
+- **Contributing:** see [CONTRIBUTING.md](CONTRIBUTING.md) and the [step-by-step guide](docs/contributing/README.md). Issues labeled [`good first issue`](https://github.com/tdk-landscape/tdk-cli-core/labels/good%20first%20issue) are a good place to start.
 - **Security:** see [SECURITY.md](SECURITY.md). Please don't report vulnerabilities in public issues.
 - **Examples:** [ERP system (100 services)](https://github.com/tdk-landscape/tdk-erp-system), [SaaS starter](https://github.com/tdk-landscape/tdk-saas-starter), [restaurant](https://github.com/tdk-landscape/tdk-restaurant-example), [ecommerce (Vue + Hono)](https://github.com/tdk-landscape/tdk-ecommerce-example).
 
