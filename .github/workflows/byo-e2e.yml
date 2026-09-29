@@ -36,14 +36,14 @@ jobs:
 
       - name: Pack and install this checkout's CLI
         working-directory: cli
-        run: |
+        run: | # zizmor: ignore[adhoc-packages] install the built CLI tarball as users do
           npm run build
           npm pack --pack-destination "$RUNNER_TEMP"
           npm install --global "$RUNNER_TEMP"/tdk-cli-internal-*.tgz
           tdk --version
 
       - name: Install JSON Schema validator
-        run: npm install --global ajv-cli@5.0.0
+        run: npm install --global ajv-cli@5.0.0 # zizmor: ignore[adhoc-packages] install the test's schema validator
 
       - name: Exercise BYO Python dry-run contract
         run: bash tests/e2e/byo-python.test.sh
