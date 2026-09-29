@@ -12,7 +12,7 @@ Use another tool when the project needs Kubernetes APIs, production parity, or d
 
 Docker Compose runs a set of containers from YAML you maintain. TDK generates Compose configuration from service manifests and adds stack-level lifecycle controls through Tilt. Compose gives direct control; TDK reduces repeated setup and adds conventions.
 
-## vs Tilt
+## vs raw Tilt
 
 Tilt provides the development loop and UI. TDK generates a Tiltfile and service configuration around it. Using raw Tilt gives more control and requires maintaining that configuration yourself.
 

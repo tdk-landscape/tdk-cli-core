@@ -18,7 +18,7 @@ You may delete the TDK project metadata and generated files after confirming the
 
 ## To go back
 
-Run \`tdk project --yes\` to regenerate TDK project files. Back up any manual changes first.
+Run \`tdk config regenerate\` to regenerate the TDK configuration.
 `;
 
 export const ejectCommand = new Command("eject")

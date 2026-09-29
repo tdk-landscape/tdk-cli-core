@@ -1,7 +1,7 @@
 name: I booted TDK
 description: Share evidence from your first TDK run
 title: "boot: "
-labels: [show-and-tell]
+labels: ["show-and-tell"]
 body:
   - type: input
     id: os
