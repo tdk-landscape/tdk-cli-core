@@ -46,6 +46,7 @@ When `tdk up` successfully launches Tilt, it MUST print a first-win next-steps b
     run: tdk networks
   Stop: tdk down
   ```
+- **AND** it uses port 10350 unless that port is unavailable, in which case it reports the selected Tilt UI port without a trailing slash
 
 ### Requirement: Bring-Your-Own resource type
 The CLI and engine MUST support `bring-your-own` (and `byo`) resources without generating application code.
@@ -53,10 +54,14 @@ The CLI and engine MUST support `bring-your-own` (and `byo`) resources without g
 #### Scenario: Scaffold bring-your-own service
 - **WHEN** running `tdk resource <name> --type bring-your-own --stack <stack>`
 - **THEN** it creates `services/<stack>/<name>/service.json` with `appType: "bring-your-own"`
-- **AND** it creates `Dockerfile` and `health.conf` stubs only if `--dockerfile` is omitted and none exists
+- **AND** when `--image` is absent, it creates a port-matched `Dockerfile` and `health.conf` at the selected Dockerfile path only if that file does not exist
 - **AND** it creates `AGENTS.md`
 - **AND** it does NOT create `src/`, `package.json`, or test files
 - **AND** port defaults to next free in 4000-5999 range unless `--port` is specified
+- **AND** `--image <image>` records the exact image and does not create a Dockerfile
+- **AND** `--dockerfile <path>` is relative to the resource directory and remains inside it
+- **AND** custom stack names are accepted as free-form strings
+- **AND** `--no-proxy` disables the Traefik route using the schema-supported `exposeViaProxy: false` field
 
 ### Requirement: `tdk eject` command
 The CLI MUST support an `eject` command to retain Tilt and Docker files while stopping CLI dependency.
@@ -74,3 +79,43 @@ The CLI MUST support an `eject` command to retain Tilt and Docker files while st
 #### Scenario: Run eject with dry-run
 - **WHEN** running `tdk eject --dry-run`
 - **THEN** it lists files kept/created without writing `EJECTED.md`
+
+### Requirement: WSL2 is the documented Windows development path
+TDK MUST document Ubuntu on WSL2 with Docker Desktop WSL integration as the Windows landscape path and MUST state that native PowerShell/Command Prompt landscape startup is unsupported.
+
+#### Scenario: Windows user follows platform guidance
+- **WHEN** a user reads the README or runs `tdk doctor` in WSL2
+- **THEN** they are directed to `docs/wsl2.md` and Docker Desktop WSL integration
+- **AND** Linux-only quickstart E2E coverage is identified as Linux coverage, not Windows acceptance
+
+### Requirement: Honest product comparison
+The comparison page MUST explain when TDK is useful, its tradeoffs, and where Compose, Tilt, or Kubernetes-oriented tools may fit better.
+
+#### Scenario: Reader compares tools
+- **WHEN** a reader opens `docs/compare-honest.md`
+- **THEN** the page has the headings `TDK and Docker Compose`, `TDK and Tilt`, `TDK and Kubernetes tools`, and `When TDK may not fit`
+- **AND** README FAQ links to the page
+
+### Requirement: First-boot evidence template
+The repository MUST provide `.github/ISSUE_TEMPLATE/i-booted-tdk.yml` for external users to report first-run evidence.
+
+#### Scenario: User reports a first boot
+- **WHEN** a user selects the template
+- **THEN** it asks for OS, TDK version, command, result, and friction
+- **AND** it reminds users to remove credentials and secrets
+
+### Requirement: Realistic twelve-service shop reference
+The repository MUST describe a twelve-application commerce landscape with real responsibilities, dependencies, readiness conditions, and measurement limits; it MUST distinguish the application count from shared infrastructure and generated health-only benchmark fixtures.
+
+#### Scenario: Reader evaluates the reference architecture
+- **WHEN** a reader opens `docs/examples/shop-real.md`
+- **THEN** they can identify twelve distinct service responsibilities and their stateful/external dependencies
+- **AND** the page makes no claim that the described services are already implemented or benchmarked
+
+### Requirement: Cold-boot measurement notes
+The repository MUST include a repeatable cold-boot procedure and script that records actual environment versions, Tilt startup time, service health-ready time, and failures without clearing or misrepresenting caches.
+
+#### Scenario: Maintainer records a cold boot
+- **WHEN** a maintainer runs `scripts/cold-boot-notes.sh` against a prepared project
+- **THEN** it records the environment and measured outcomes in `cold-boot-results/`
+- **AND** it preserves failure output and documents that caches are not cleared automatically

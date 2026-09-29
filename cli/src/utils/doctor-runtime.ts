@@ -13,6 +13,11 @@ const EXEC_TIMEOUT_MS = 10_000;
 const REGISTRY_PROBE_TIMEOUT_MS = 3_000;
 const DEFAULT_VERDACCIO_URL = "http://localhost:4873";
 
+export const HOST_PORT_FIXES = {
+  port80: "Stop the process bound to port 80, or stop local nginx/caddy. Then: tdk doctor",
+  port5432: "Stop local Postgres or change the host port. Then: tdk doctor",
+} as const;
+
 function runHostCommand(
   exec: typeof execSync,
   command: string,
@@ -639,9 +644,9 @@ export async function checkHostPorts(
   const first = inUse.find((port) => problems.some((p) => p.startsWith(`${port} `))) ?? inUse[0];
   let fix: string;
   if (first === 80) {
-    fix = "Stop the process bound to port 80, or stop local nginx/caddy. Then: tdk doctor";
+    fix = HOST_PORT_FIXES.port80;
   } else if (first === 5432) {
-    fix = "Stop local Postgres or change the host port. Then: tdk doctor";
+    fix = HOST_PORT_FIXES.port5432;
   } else {
     fix = `Stop the process bound to port ${first}. Then: tdk doctor`;
   }

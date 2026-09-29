@@ -5,11 +5,7 @@ import chalk from "chalk";
 import { Command } from "commander";
 import { hasVerdaccioLicense } from "../generator/extension-fetch.js";
 import type { CheckResult } from "../types/index.js";
-import {
-  MASTER_CONFIG_FILES,
-  QUICKSTART_DOCS_URL,
-  REQUIRED_PACKAGE_SCRIPTS,
-} from "../utils/constants.js";
+import { MASTER_CONFIG_FILES, REQUIRED_PACKAGE_SCRIPTS } from "../utils/constants.js";
 import { isPathDiscovered, readDiscoveryPaths } from "../utils/discovery-paths.js";
 import {
   checkHealthRoutes,
@@ -17,6 +13,7 @@ import {
   checkIngressPorts,
   checkPrivateNpmRegistry,
   checkTiltResourceHealth,
+  HOST_PORT_FIXES,
   projectConfigEnablesVerdaccio,
   summarizeServiceProbes,
 } from "../utils/doctor-runtime.js";
@@ -52,6 +49,23 @@ export {
 // A wedged Docker daemon makes `docker ps` block forever instead of failing,
 // and doctor is exactly the tool people run when their environment is broken.
 const EXEC_TIMEOUT_MS = 10_000;
+
+export const DOCTOR_FIXES = {
+  dockerMissing: "See https://docs.docker.com/get-docker/",
+  dockerDaemonDown: "Start Docker Desktop, OrbStack, or Colima, then retry: tdk doctor",
+  tiltMissing:
+    "curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash",
+  bunMissing: "curl -fsSL https://bun.sh/install | bash",
+  port80: HOST_PORT_FIXES.port80,
+  port5432: HOST_PORT_FIXES.port5432,
+  notProject: "tdk project --yes",
+  wsl2: "WSL2 detected. Use Docker Desktop WSL integration. Guide: docs/wsl2.md",
+} as const;
+
+export function getDoctorOutcomeMessage(inProject: boolean, allPassed: boolean): string {
+  if (!allPassed) return "Doctor failed. Fix the items above, then run: tdk doctor";
+  return inProject ? "Doctor passed. Next: tdk up" : "Doctor passed. Next: tdk project example";
+}
 
 function isTimeout(err: unknown): boolean {
   return isExecTimeout(err);
@@ -107,7 +121,7 @@ export async function checkDockerRuntime(): Promise<CheckResult> {
         name: "Container Runtime",
         didPass: false,
         message: "Docker is not running",
-        fix: "Start Docker Desktop, OrbStack, or Colima, then retry: tdk doctor",
+        fix: DOCTOR_FIXES.dockerDaemonDown,
       };
     }
   }
@@ -126,7 +140,7 @@ export async function checkDockerRuntime(): Promise<CheckResult> {
         name: "Container Runtime",
         didPass: false,
         message: "Docker daemon is not responding",
-        fix: "Start Docker Desktop, OrbStack, or Colima, then retry: tdk doctor",
+        fix: DOCTOR_FIXES.dockerDaemonDown,
       };
     }
   }
@@ -144,7 +158,7 @@ export async function checkDockerRuntime(): Promise<CheckResult> {
       name: "Container Runtime",
       didPass: false,
       message: "Colima is installed but not running",
-      fix: "Start Docker Desktop, OrbStack, or Colima, then retry: tdk doctor",
+      fix: DOCTOR_FIXES.dockerDaemonDown,
     };
   }
   if (await succeeds("podman ps")) {
@@ -160,7 +174,7 @@ export async function checkDockerRuntime(): Promise<CheckResult> {
       name: "Container Runtime",
       didPass: false,
       message: "Docker daemon is not running",
-      fix: "Start Docker Desktop, OrbStack, or Colima, then retry: tdk doctor",
+      fix: DOCTOR_FIXES.dockerDaemonDown,
     };
   }
 
@@ -168,7 +182,7 @@ export async function checkDockerRuntime(): Promise<CheckResult> {
     name: "Container Runtime",
     didPass: false,
     message: "Docker is not running",
-    fix: "See https://docs.docker.com/get-docker/",
+    fix: DOCTOR_FIXES.dockerMissing,
   };
 }
 
@@ -262,7 +276,7 @@ export const checkTilt = createExecCheck(
   "tilt version",
   "Tilt CLI installed",
   "Tilt CLI not found",
-  "curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash",
+  DOCTOR_FIXES.tiltMissing,
 );
 
 export async function checkBun(): Promise<CheckResult> {
@@ -305,7 +319,7 @@ export async function checkBun(): Promise<CheckResult> {
       name: "Bun",
       didPass: false,
       message: "Bun is not available",
-      fix: "curl -fsSL https://bun.sh/install | bash",
+      fix: DOCTOR_FIXES.bunMissing,
     };
   }
 }
@@ -1074,7 +1088,7 @@ export const doctorCommand = new Command("doctor")
     console.log(`\n${chalk.bold("🔍 TDK Doctor")}\n`);
 
     if (process.env.WSL_DISTRO_NAME) {
-      console.log("WSL2 detected. Use Docker Desktop WSL integration. Guide: docs/wsl2.md\n");
+      console.log(`${DOCTOR_FIXES.wsl2}\n`);
     }
 
     console.log("Checking environment...\n");
@@ -1149,7 +1163,7 @@ export const doctorCommand = new Command("doctor")
       name: "Not a TDK project",
       didPass: false,
       message: "Not in a TDK project",
-      fix: "tdk project --yes",
+      fix: DOCTOR_FIXES.notProject,
     });
     const checks = inProject
       ? [...machineChecks, ...projectChecks]
@@ -1192,13 +1206,10 @@ export const doctorCommand = new Command("doctor")
         `${chalk.gray("○")} ${chalk.gray("Not in a TDK project, so project checks were skipped")}`,
       );
       console.log("");
-      console.log(`${chalk.green(chalk.bold("✓"))} Doctor passed. Next: tdk project example`);
-    } else if (allPassed) {
-      console.log(`${chalk.green(chalk.bold("✓"))} Doctor passed. Next: tdk up`);
-    } else {
-      console.log(
-        `${chalk.red(chalk.bold("✗"))} Doctor failed. Fix the items above, then run: tdk doctor`,
-      );
-      process.exit(1);
     }
+    const outcome = getDoctorOutcomeMessage(inProject, allPassed);
+    console.log(
+      `${allPassed ? chalk.green(chalk.bold("✓")) : chalk.red(chalk.bold("✗"))} ${outcome}`,
+    );
+    if (!allPassed) process.exit(1);
   });

@@ -2,7 +2,7 @@
 
 The supported Windows development path is Ubuntu on WSL2 with Docker Desktop's WSL integration.
 TDK's CLI runs as a Linux program inside the distribution, and Docker Desktop provides the Linux
-container engine.
+container engine. Full landscape startup from native PowerShell or Command Prompt is unsupported.
 
 ## Setup
 

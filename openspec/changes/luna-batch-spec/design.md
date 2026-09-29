@@ -2,10 +2,10 @@
 
 The user provided an engineering spec ("Rules for Luna") outlining 8 concrete tickets to improve the developer experience and honesty of TDK:
 1. Exact fix commands in `tdk doctor`.
-2. First-win post-start summary block after `tdk up`.
+2. First-win startup summary block once the Tilt UI port is reachable after `tdk up` begins.
 3. Support for `bring-your-own` (`byo`) resources in CLI, schemas, and templates without app code scaffolding.
 4. `tdk eject` command with `EJECTED.md` to prevent lock-in.
-5. WSL2 first-class path docs & doctor notification.
+5. WSL2 first-class path docs & doctor notification; native Windows shell landscape startup is unsupported.
 6. Honest comparison doc (`docs/compare-honest.md`).
 7. First-boot issue template (`.github/ISSUE_TEMPLATE/i-booted-tdk.yml`).
 8. Honest 12-service reference architecture and cold-boot note script.
@@ -50,7 +50,7 @@ Strict execution guidelines require touching only designated files, using exact 
 
 ### 4. `tdk eject` Command (`eject.ts`)
 - Implement `tdk eject [--dry-run] [--yes]` inside project root.
-- Ensure generated files are up-to-date or verify regeneration.
+- Verify the generated Tilt output exists; inventory files the user will keep without regenerating or overwriting them during eject.
 - Write root `EJECTED.md` with the required exact content.
 - Print exact message:
   ```text
@@ -63,7 +63,8 @@ Strict execution guidelines require touching only designated files, using exact 
 - `docs/wsl2.md` and workflow comment in `.github/workflows/quickstart-e2e.yml`.
 - `docs/compare-honest.md` and README link.
 - `.github/ISSUE_TEMPLATE/i-booted-tdk.yml`.
-- `docs/examples/shop-real.md`, `docs/cold-boot-shop-real.md`, `scripts/cold-boot-notes.sh`.
+- `docs/examples/shop-real.md` describes twelve distinct application responsibilities, dependencies, and meaningful readiness checks without claiming those applications are implemented.
+- `docs/cold-boot-shop-real.md` and `scripts/cold-boot-notes.sh` record environment versions, Tilt startup, service health readiness, failures, and cache state without clearing caches or inventing timings.
 
 ## Risks & Mitigations
 - Divergence of test expectations: tests must strictly verify exact string matches.
