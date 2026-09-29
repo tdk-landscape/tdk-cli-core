@@ -111,6 +111,8 @@ export async function checkDockerRuntime(): Promise<CheckResult> {
       };
     }
   }
+  const hasDockerCli = Boolean(findOnPath("docker"));
+
   try {
     await execAsync("docker ps", EXEC_TIMEOUT_MS);
     return {
@@ -152,6 +154,16 @@ export async function checkDockerRuntime(): Promise<CheckResult> {
       message: "Podman is running",
     };
   }
+
+  if (hasDockerCli) {
+    return {
+      name: "Container Runtime",
+      didPass: false,
+      message: "Docker daemon is not running",
+      fix: "Start Docker Desktop, OrbStack, or Colima, then retry: tdk doctor",
+    };
+  }
+
   return {
     name: "Container Runtime",
     didPass: false,
@@ -1180,7 +1192,7 @@ export const doctorCommand = new Command("doctor")
         `${chalk.gray("○")} ${chalk.gray("Not in a TDK project, so project checks were skipped")}`,
       );
       console.log("");
-      console.log(`${chalk.green(chalk.bold("✓"))} Doctor passed. Next: tdk project --yes`);
+      console.log(`${chalk.green(chalk.bold("✓"))} Doctor passed. Next: tdk project example`);
     } else if (allPassed) {
       console.log(`${chalk.green(chalk.bold("✓"))} Doctor passed. Next: tdk up`);
     } else {
