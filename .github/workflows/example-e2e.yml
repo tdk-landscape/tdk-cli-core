@@ -20,6 +20,8 @@ jobs:
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v7
         with:
           node-version: 22
@@ -35,8 +37,16 @@ jobs:
           sudo DEBIAN_FRONTEND=noninteractive apt-get remove --purge -y 'postgresql*' >/dev/null 2>&1 || true
           sudo fuser -k 80/tcp 443/tcp 5432/tcp 2>/dev/null || true
 
-      - name: Install the candidate TDK package
-        run: npm install --global .
+      - name: Build and pack the candidate TDK package
+        run: |
+          bun install --frozen-lockfile
+          npm run build
+          npm pack --pack-destination "$RUNNER_TEMP"
+
+      - name: Pack and install the candidate TDK package
+        run: | # zizmor: ignore[adhoc-packages] installs our own freshly packed tarball
+          npm pack --pack-destination "$RUNNER_TEMP"
+          npm install --global "$RUNNER_TEMP"/tdk-landscape-tdk-cli-core-*.tgz
 
       - name: Clone and configure the bundled example
         run: |
@@ -98,13 +108,14 @@ jobs:
 
       - name: Diagnostics on failure
         if: failure() || cancelled()
-        working-directory: tdk-example
         run: |
+          if [ ! -d tdk-example ]; then exit 0; fi
+          cd tdk-example
           tail -160 up.log 2>/dev/null || true
           docker ps -a --format 'table {{.Names}}\t{{.Status}}' || true
           tdk doctor || true
 
       - name: Stop example
         if: always()
-        working-directory: tdk-example
-        run: tdk down || true
+        run: |
+          if [ -d tdk-example ]; then cd tdk-example && tdk down || true; fi
