@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 export const SERVICE_MANIFEST_SCHEMA_VERSION = 1;
+export const SERVICE_MANIFEST_SCHEMA_URL = "https://tdk-landscape.github.io/schema.service.json";
 const KNOWN_SERVICE_FIELDS = new Set([
     "$schema",
     "apiBasePath",

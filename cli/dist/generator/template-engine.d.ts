@@ -57,6 +57,10 @@ export declare function verifyMasterConfigs(projectRoot: string): {
     valid: boolean;
     errors: string[];
     warnings: string[];
+    diffs: Array<{
+        file: string;
+        diff: string;
+    }>;
 };
 export {};
 //# sourceMappingURL=template-engine.d.ts.map

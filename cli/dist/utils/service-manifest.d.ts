@@ -1,4 +1,5 @@
 export declare const SERVICE_MANIFEST_SCHEMA_VERSION = 1;
+export declare const SERVICE_MANIFEST_SCHEMA_URL = "https://tdk-landscape.github.io/schema.service.json";
 export interface ServiceManifestValidation {
     errors: string[];
     warnings: string[];

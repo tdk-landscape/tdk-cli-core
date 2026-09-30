@@ -99,6 +99,17 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun run typecheck
 
+  published-schema:
+    name: 📜 Published service schema
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Verify published schema matches the source of truth
+        run: node scripts/check-published-service-schema.mjs
+
   test:
     name: 🧪 Test
     runs-on: ubuntu-latest

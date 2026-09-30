@@ -14,8 +14,10 @@ import type { JsonValue, ProjectConfig } from "../types/index.js";
 import { isMasterConfigFileName } from "../types/index.js";
 import { assertValid } from "../utils/command-helpers.js";
 import { MASTER_CONFIG_FILES } from "../utils/constants.js";
-import { requireProjectRoot, runCommand } from "../utils/errors.js";
+import { errorFactories, requireProjectRoot, runCommand } from "../utils/errors.js";
 import { writeJsonFile } from "../utils/file-helpers.js";
+import { createMachineEnvelope, writeMachineError } from "../utils/machine-output.js";
+import { findProjectRoot } from "../utils/paths.js";
 import {
   SERVICE_MANIFEST_SCHEMA_VERSION,
   validateServiceManifest,
@@ -229,12 +231,30 @@ export const configCommand = new Command("config")
   .addCommand(
     new Command("verify")
       .description("Verify that generated files match .tdk/project.json")
-      .action(async () => {
-        await runCommand(async () => {
-          const projectRoot = requireProjectRoot();
+      .option("--json", "Emit a machine-readable verification report")
+      .action(async (options) => {
+        const action = async (): Promise<void> => {
+          const projectRoot = options.json ? findProjectRoot() : requireProjectRoot();
+          if (!projectRoot) throw errorFactories.notInProject();
+
+          const result = verifyMasterConfigs(projectRoot);
+
+          if (options.json) {
+            console.log(
+              JSON.stringify(
+                createMachineEnvelope({
+                  valid: result.valid,
+                  errors: result.errors,
+                  warnings: result.warnings,
+                  diffs: result.diffs,
+                }),
+              ),
+            );
+            if (!result.valid) process.exit(1);
+            return;
+          }
 
           console.log(chalk.blue("🔍 Verifying configuration...\n"));
-          const result = verifyMasterConfigs(projectRoot);
 
           for (const warning of result.warnings) {
             console.warn(chalk.yellow(`⚠️  ${warning}`));
@@ -248,10 +268,21 @@ export const configCommand = new Command("config")
             for (const error of result.errors) {
               console.log(chalk.gray(`   - ${error}`));
             }
+            for (const { diff } of result.diffs) console.log(chalk.gray(`\n${diff}`));
             console.log(chalk.gray("\nRun `tdk config regenerate` to fix."));
             process.exit(1);
           }
-        });
+        };
+
+        if (options.json) {
+          try {
+            await action();
+          } catch (error) {
+            writeMachineError(error);
+          }
+          return;
+        }
+        await runCommand(action);
       }),
   )
   .addCommand(

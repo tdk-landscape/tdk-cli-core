@@ -8,6 +8,11 @@ import type { CheckResult } from "../types/index.js";
 import { MASTER_CONFIG_FILES, REQUIRED_PACKAGE_SCRIPTS } from "../utils/constants.js";
 import { isPathDiscovered, readDiscoveryPaths } from "../utils/discovery-paths.js";
 import {
+  collectDoctorChecks,
+  createDoctorReport,
+  getDoctorExitCode,
+} from "../utils/doctor-report.js";
+import {
   checkHealthRoutes,
   checkHostPorts,
   checkIngressPorts,
@@ -104,8 +109,12 @@ export function checkWslProjectLocation(
 
 /** Failures are shown before passing statuses, with a 5432 conflict first. */
 export function orderDoctorResults(results: CheckResult[]): CheckResult[] {
-  const failures = results.filter((result) => !result.didPass && !result.isSkipped);
-  const remaining = results.filter((result) => result.didPass || result.isSkipped);
+  const failures = results.filter(
+    (result) => !result.didPass && !result.isSkipped && !result.isWarning,
+  );
+  const remaining = results.filter(
+    (result) => result.didPass || result.isSkipped || result.isWarning,
+  );
   failures.sort((left, right) => {
     const rank = (result: CheckResult) =>
       result.name === "Host Ports" && /\b5432\b/.test(result.message)
@@ -1185,6 +1194,16 @@ async function checkServiceHealth(timeoutMs: number): Promise<CheckResult> {
 
 export const doctorCommand = new Command("doctor")
   .description("Check environment readiness for TDK")
+  .option("--json", "Output a versioned JSON readiness report", false)
+  .exitOverride((error) => {
+    if (error.exitCode === 0) process.exit(0);
+    if (doctorCommand.opts().json) {
+      console.log(
+        JSON.stringify(createDoctorReport([], false, [{ code: "USAGE", message: error.message }])),
+      );
+    }
+    process.exit(2);
+  })
   .option("--no-ping", "Skip pinging running services' /health endpoints")
   .option("--strict", "Fail warnings such as a WSL project under /mnt/c")
   .option(
@@ -1193,20 +1212,47 @@ export const doctorCommand = new Command("doctor")
     String(DEFAULT_PING_TIMEOUT_MS),
   )
   .action(async (options) => {
+    // Validate before running any probe; parseInt would silently accept "100ms" or "1.5".
+    const pingTimeout = Number(options.pingTimeout);
+    if (
+      !/^\d+$/.test(options.pingTimeout) ||
+      !Number.isSafeInteger(pingTimeout) ||
+      pingTimeout <= 0
+    ) {
+      const message = "--ping-timeout must be a positive integer number of milliseconds";
+      if (options.json)
+        console.log(JSON.stringify(createDoctorReport([], false, [{ code: "USAGE", message }])));
+      console.error(message);
+      process.exit(2);
+      return;
+    }
+
     if (process.platform === "win32") {
+      if (options.json) {
+        console.log(
+          JSON.stringify(
+            createDoctorReport(
+              [
+                {
+                  name: "Native Windows support",
+                  didPass: false,
+                  message: NATIVE_WINDOWS_DOCTOR_MESSAGE,
+                  fix: "Use WSL2 Ubuntu with Docker Desktop integration. Guide: docs/wsl2.md",
+                },
+              ],
+              Boolean(findProjectRoot()),
+            ),
+          ),
+        );
+      }
       console.error(NATIVE_WINDOWS_DOCTOR_MESSAGE);
       process.exit(1);
       return;
     }
 
-    console.log(`\n${chalk.bold("🔍 TDK Doctor")}\n`);
-
-    console.log("Checking environment...\n");
-
-    const pingTimeout = Number.parseInt(options.pingTimeout, 10);
-    if (!Number.isFinite(pingTimeout) || pingTimeout <= 0) {
-      console.log(`${chalk.red("✗")} --ping-timeout must be a positive number of milliseconds`);
-      process.exit(1);
+    if (!options.json) {
+      console.log(`\n${chalk.bold("🔍 TDK Doctor")}\n`);
+      console.log("Checking environment...\n");
     }
 
     const machineChecks: Array<() => CheckResult | Promise<CheckResult>> = [
@@ -1262,25 +1308,23 @@ export const doctorCommand = new Command("doctor")
     // project. Only the machine checks mean anything there; the project checks
     // would all fail with "run tdk project".
     const inProject = Boolean(findProjectRoot());
-    const checks = inProject ? [...machineChecks, ...projectChecks] : [...machineChecks];
-
-    // Machine checks are independent and mostly wait on child processes, so run
-    // them concurrently. Project checks stay sequential; rendering ranks failures first.
-    const startedMachineChecks = machineChecks.map((checkFn) => Promise.resolve().then(checkFn));
-
-    const results: CheckResult[] = [];
-
-    for (const [index, checkFn] of checks.entries()) {
-      const result = await (startedMachineChecks[index] ?? checkFn());
-      results.push(result);
+    const { checks: results, errors } = await collectDoctorChecks(
+      machineChecks,
+      inProject ? projectChecks : [],
+    );
+    const report = createDoctorReport(orderDoctorResults(results), inProject, errors);
+    const exitCode = getDoctorExitCode(report);
+    const allPassed = report.data.ready;
+    if (options.json) {
+      console.log(JSON.stringify(report));
+      for (const error of errors) console.error(error.message);
+      if (exitCode !== 0) process.exit(exitCode);
+      return;
     }
-
-    // Let machine checks finish before process.exit so their probes can clean up.
-    await Promise.allSettled(startedMachineChecks);
-
-    const allPassed = results.every((result) => result.didPass || result.isSkipped);
+    for (const error of errors)
+      console.error(`${chalk.red("✗")} Doctor check failed: ${error.message}`);
     for (const result of orderDoctorResults(results)) {
-      if (!result.didPass && !result.isSkipped) {
+      if (!result.didPass && !result.isSkipped && !result.isWarning) {
         console.log(`${chalk.red("✗")} ${result.message}`);
         if (result.fix) console.log(`${chalk.blue("ℹ")} Fix: ${result.fix}`);
       } else if (result.isWarning) {
@@ -1306,5 +1350,5 @@ export const doctorCommand = new Command("doctor")
     console.log(
       `${allPassed ? chalk.green(chalk.bold("✓")) : chalk.red(chalk.bold("✗"))} ${outcome}`,
     );
-    if (!allPassed) process.exit(1);
+    if (exitCode !== 0) process.exit(exitCode);
   });

@@ -1,0 +1,26 @@
+import type { CheckResult } from "../types/index.js";
+export interface DoctorError {
+    code: "USAGE" | "INTERNAL";
+    message: string;
+}
+export interface DoctorReport {
+    schemaVersion: 1;
+    data: {
+        ready: boolean;
+        inProject: boolean;
+        checks: CheckResult[];
+    };
+    errors: DoctorError[];
+}
+type DoctorCheck = () => CheckResult | Promise<CheckResult>;
+/** Wait for concurrent probes to finish even if one throws, so they can release resources. */
+export declare function collectDoctorChecks(machineChecks: DoctorCheck[], projectChecks: DoctorCheck[]): Promise<{
+    checks: CheckResult[];
+    errors: DoctorError[];
+}>;
+/** Produce the same readiness decision for human and machine consumers. */
+export declare function createDoctorReport(checks: CheckResult[], inProject: boolean, errors?: DoctorError[]): DoctorReport;
+/** 0: ready (warnings permitted), 1: blocking findings, 2: usage/internal failure. */
+export declare function getDoctorExitCode(report: DoctorReport): 0 | 1 | 2;
+export {};
+//# sourceMappingURL=doctor-report.d.ts.map
