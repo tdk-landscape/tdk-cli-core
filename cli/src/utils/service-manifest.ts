@@ -13,6 +13,7 @@ const KNOWN_SERVICE_FIELDS = new Set([
   "databaseName",
   "dependencies",
   "dev",
+  "dependsOn",
   "dockerfile",
   "enabled",
   "exposeViaProxy",

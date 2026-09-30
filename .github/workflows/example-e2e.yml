@@ -64,11 +64,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          tdk up > up.log 2>&1 &
+          tdk up shop > up.log 2>&1 &
           tdk_pid=$!
           cleanup() {
+            status=$?
+            if [ "$status" -ne 0 ]; then
+              echo "Example E2E failed; collecting container and NATS logs before teardown"
+              docker ps -a --format 'table {{.Names}}\t{{.Status}}' || true
+              docker logs tdk_example_nats 2>&1 | tail -200 || true
+              tilt get uiresources -o json 2>&1 | jq -r '.items[] | "\(.metadata.name): update=\(.status.updateStatus // "-") runtime=\(.status.runtimeStatus // "-") error=\((.status.buildHistory // [] | map(.error // empty) | first) // "-")"' || true
+            fi
             kill "$tdk_pid" 2>/dev/null || true
             tdk down >/dev/null 2>&1 || true
+            return "$status"
           }
           trap cleanup EXIT
 
@@ -116,7 +124,7 @@ jobs:
           cd tdk-example
           tail -160 up.log 2>/dev/null || true
           docker ps -a --format 'table {{.Names}}\t{{.Status}}' || true
-          tdk doctor || true
+          docker logs tdk_example_nats 2>&1 | tail -200 || true
 
       - name: Stop example
         if: always()
