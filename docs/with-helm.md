@@ -1,13 +1,19 @@
 # TDK + Helm (they are not alternatives)
 
-TDK runs many services on your laptop with Docker + Tilt. Helm still deploys the cluster.
+`tdk up` is not a cluster. It starts Docker containers on your laptop through Tilt.
+
+`service.json` is not `values.yaml`. `service.json` describes the local service (ports, stack, health URL). `values.yaml` configures Kubernetes objects (Deployment, Service, Ingress).
+
+Keep Helm for production (app-template or the chart you already use). TDK does not install those charts or replace Helm.
 
 ```text
-Laptop:  service.json  ->  tdk up  ->  Docker + Tilt + Traefik *.localhost
-Cluster: same image    ->  Helm / Flux / Argo  ->  Deployment + Service + Ingress
+Local:   tdk up shop      → containers on the laptop, *.localhost
+Cluster: helm upgrade …   → Deployment/Service in Kubernetes
 ```
 
-TDK is the local development inner loop. It scaffolds services, generates local Dockerfile layers and Tilt configuration, starts local proxy/Postgres services, and lets you run a subset of stacks. Helm and your cluster tooling own replicas, readiness/liveness probes, ingress class and hosts, PVCs, node selectors, IRSA, HPA, and other production policy.
+TDK runs many services on your laptop with Docker + Tilt. Helm still deploys the cluster.
+
+TDK is the local development inner loop. It scaffolds services, generates local Dockerfile layers and Tilt configuration, starts local proxy/Postgres services, and lets you choose which local services to run. Helm and your cluster tooling own replicas, readiness/liveness probes, ingress class and hosts, PVCs, node selectors, IRSA, HPA, and other production policy.
 
 Keep your existing bjw-s app-template, official charts, homegrown charts, Kustomize, Flux, or Argo workflow. TDK does not require a cluster for `tdk up` and does not replace the production release path. Skip TDK when `helm install`, Compose, or your existing Tilt setup already gives you a working local environment.
 
@@ -17,15 +23,15 @@ These fields are related ideas, not a one-to-one configuration translation. Loca
 
 `service.json` configures TDK's laptop development loop. Helm `values.yaml` configures chart resources for Kubernetes. Shared concepts such as an image name or port must be deliberately carried across; the files are not equivalent, and TDK does not generate Helm values.
 
-| TDK `service.json` or local behavior | Typical Helm / app-template concept | Boundary |
-|---|---|---|
-| `appName` | Release name or controller id | Identity only; chart naming is configurable. |
-| `appType` | Controller type (Deployment, Job, CronJob) | TDK type does not select or configure the cluster controller. |
-| `port` | `service.main.ports.http.port` | Confirm the container and Service ports for your image. |
-| `healthCheckPath` | Readiness or liveness probe path | Add and tune probes for cluster operation explicitly. |
-| `dependsOn` | Deployment ordering, hooks, or init behavior | Local dependency ordering is not a cluster startup contract. |
-| Traefik `*.localhost` route | Ingress or Gateway API host | Configure class, DNS, TLS, and routing in your cluster workflow. |
-| Local Postgres feature | External database or a chart dependency | Choose lifecycle, persistence, credentials, and backups for production. |
+| Not the same file. | TDK `service.json` / local behavior | Helm / app-template values | Boundary |
+|---|---|---|---|
+| Local service manifest | `appName` | Release name or controller id | Identity only; chart naming is configurable. |
+| Local service manifest | `appType` | Controller type (Deployment, Job, CronJob) | TDK type does not select or configure the cluster controller. |
+| Local service manifest | `port` | `service.main.ports.http.port` | Confirm the container and Service ports for your image. |
+| Local service manifest | `healthCheckPath` | Readiness or liveness probe path | Add and tune probes for cluster operation explicitly. |
+| Local service manifest | `dependsOn` | Deployment ordering, hooks, or init behavior | Local dependency ordering is not a cluster startup contract. |
+| Local service behavior | Traefik `*.localhost` route | Ingress or Gateway API host | Configure class, DNS, TLS, and routing in your cluster workflow. |
+| Local service behavior | Local Postgres feature | External database or a chart dependency | Choose lifecycle, persistence, credentials, and backups for production. |
 
 ## One backend through both paths
 
@@ -39,7 +45,7 @@ tdk up shop
 
 TDK runs the service through Docker and Tilt with hot reload and a local `*.localhost` route. See the [runnable one-backend example](../examples/one-backend/README.md) for the manifest, code, exact URL, health request, and cleanup.
 
-The matching [handwritten app-template values](../examples/one-backend-helm/values.yaml) use the same service source and show an explicit image repository, tag, and HTTP port. Before Helm can use it, build and publish that image through your existing CI/build workflow to a registry your cluster can access. TDK's local Docker image is not published automatically.
+Yes: keep [bjw-s-labs/app-template for production](../examples/one-backend-helm/README.md). TDK never takes that over. The handwritten [app-template values](../examples/one-backend-helm/values.yaml) describe Kubernetes resources for the same service source and show an explicit image repository, tag, and HTTP port. Before Helm can use it, build and publish that image through your existing CI/build workflow to a registry your cluster can access. TDK's local Docker image is not published automatically.
 
 The example pins the official `oci://ghcr.io/bjw-s-labs/helm/app-template` chart to `5.2.1`. The [official chart documentation](https://bjw-s-labs.github.io/helm-charts/docs/app-template/), [5.2.1 release notes](https://github.com/bjw-s-labs/helm-charts/releases/tag/app-template-5.2.1), and [matching values schema](https://raw.githubusercontent.com/bjw-s-labs/helm-charts/app-template-5.2.1/charts/other/app-template/values.schema.json) describe the chart contract. Fetch the pinned chart, then lint and render the sample without installing it:
 

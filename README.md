@@ -1,5 +1,16 @@
 # TDK — Tilt Development Kit
 
+`tdk up` is not a cluster. It starts Docker containers on your laptop through Tilt.
+
+`service.json` is not `values.yaml`. `service.json` describes the local service (ports, stack, health URL). `values.yaml` configures Kubernetes objects (Deployment, Service, Ingress).
+
+Keep Helm for production (app-template or the chart you already use). TDK does not install those charts or replace Helm.
+
+```text
+Local:   tdk up shop      → containers on the laptop, *.localhost
+Cluster: helm upgrade …   → Deployment/Service in Kubernetes
+```
+
 TDK runs many services on your laptop with Docker + Tilt. Helm still deploys the cluster.
 
 ## When not to use TDK
@@ -23,7 +34,7 @@ tdk resource orders-api --type backend --stack shop --yes
 tdk up shop
 ```
 
-`tdk up shop` runs the local stack on your laptop with Docker + Tilt; it does not start a Kubernetes cluster. Helm values configure the separate cluster deployment. [How TDK sits next to Helm](docs/with-helm.md) · [Configuration and editor schemas](docs/configuration.md) · [One-backend example](examples/one-backend/README.md) · [Full landscape example](examples/tdk-example/README.md)
+`tdk up shop` runs the local stack on your laptop with Docker + Tilt; it does not start a Kubernetes cluster. Helm values configure the separate cluster deployment. [How TDK sits next to Helm](docs/with-helm.md) · [Configuration and editor schemas](docs/configuration.md) · [One-backend example](examples/one-backend/README.md) · [Full multi-service example](examples/tdk-example/README.md)
 
 [![npm version](https://img.shields.io/npm/v/@tdk-landscape/tdk-cli-core.svg?style=flat&color=blue)](https://www.npmjs.com/package/@tdk-landscape/tdk-cli-core)
 [![CI](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/ci.yml/badge.svg)](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/ci.yml)
