@@ -42,6 +42,25 @@ jobs:
       - run: bun install --frozen-lockfile
         working-directory: cli
 
+      # The compiled binary's project-generation smoke test runs tdk doctor,
+      # which requires Tilt and the TDK host ports to be available.
+      - name: Install Tilt for the release binary smoke test
+        run: curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash
+
+      - name: Free required host ports for the release binary smoke test
+        run: |
+          sudo systemctl stop postgresql.socket 'postgresql@*.socket' 2>/dev/null || true
+          sudo systemctl stop postgresql.service 'postgresql@*.service' 2>/dev/null || true
+          sudo DEBIAN_FRONTEND=noninteractive apt-get remove --purge -y 'postgresql*' 2>&1 | sudo tee /tmp/pg-purge.log > /dev/null || true
+          sudo fuser -k 80/tcp 443/tcp 5432/tcp 2>/dev/null || true
+          sleep 2
+          if sudo ss -ltn 2>/dev/null | grep -Eq ':(80|443|5432) '; then
+            echo "::error::a required TDK host port is still in use"
+            sudo ss -ltnp | grep -E ':(80|443|5432) ' || true
+            tail -50 /tmp/pg-purge.log || true
+            exit 1
+          fi
+
       # This workflow runs on every package.json change, not only version
       # bumps. A dependency update or other package.json edit used to rebuild
       # the binaries from new code and re-upload them over the release that
