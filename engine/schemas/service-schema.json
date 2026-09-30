@@ -1,7 +1,7 @@
 {
   "$id": "https://tdk-landscape.github.io/schema.service.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "additionalProperties": false,
+  "additionalProperties": true,
   "allOf": [
     {
       "if": {
@@ -288,6 +288,11 @@
       ],
       "type": "string"
     },
+    "schemaVersion": {
+      "const": 1,
+      "description": "Version of the TDK service manifest contract.",
+      "type": "integer"
+    },
     "sablier": {
       "description": "On-demand scaling: stop this container when idle, wake it on the next request.\nNot recommended for databases or other stateful resources with in-flight writes.\n(Premium - requires TDK_LICENSE_KEY; see hasSablierLicense() in extension-fetch.ts)",
       "properties": {
@@ -342,7 +347,8 @@
   "required": [
     "appName",
     "appType",
-    "stack"
+    "stack",
+    "schemaVersion"
   ],
   "title": "TDK Landscape Resource Configuration",
   "type": "object"

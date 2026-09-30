@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import chalk from "chalk";
 import { Command } from "commander";
@@ -10,6 +10,8 @@ import { assertValid } from "../utils/command-helpers.js";
 import { MASTER_CONFIG_FILES } from "../utils/constants.js";
 import { requireProjectRoot, runCommand } from "../utils/errors.js";
 import { writeJsonFile } from "../utils/file-helpers.js";
+import { SERVICE_MANIFEST_SCHEMA_VERSION, validateServiceManifest, } from "../utils/service-manifest.js";
+import { discoverServiceManifestPaths } from "../utils/services.js";
 import { validateOptionalInfraService } from "../utils/validation.js";
 /**
  * Serialize ProjectConfig to JSON-safe value.
@@ -116,6 +118,59 @@ export const configCommand = new Command("config")
         console.log(chalk.green("\n✅ Configuration regenerated!"));
     });
 }))
+    .addCommand(new Command("migrate")
+    .description("Migrate service.json files to the current schema version")
+    .action(async () => {
+    await runCommand(async () => {
+        const projectRoot = requireProjectRoot();
+        const failures = [];
+        const pendingMigrations = [];
+        for (const filePath of discoverServiceManifestPaths(projectRoot)) {
+            let manifest;
+            try {
+                manifest = JSON.parse(readFileSync(filePath, "utf-8"));
+            }
+            catch (error) {
+                failures.push(`${filePath}: ${error instanceof Error ? error.message : String(error)}`);
+                continue;
+            }
+            if (!manifest || typeof manifest !== "object" || Array.isArray(manifest)) {
+                failures.push(`${filePath}: expected a JSON object`);
+                continue;
+            }
+            const record = manifest;
+            if (record.appType === undefined && typeof record.type === "string") {
+                record.appType = record.type;
+            }
+            if (record.schemaVersion === SERVICE_MANIFEST_SCHEMA_VERSION)
+                continue;
+            if (record.schemaVersion !== undefined) {
+                failures.push(`${filePath}.schemaVersion: cannot migrate unsupported version ${String(record.schemaVersion)} automatically`);
+                continue;
+            }
+            const validation = validateServiceManifest({ ...record, schemaVersion: SERVICE_MANIFEST_SCHEMA_VERSION }, filePath);
+            if (validation.errors.length > 0) {
+                failures.push(...validation.errors);
+                continue;
+            }
+            for (const warning of validation.warnings) {
+                console.warn(chalk.yellow(`⚠️  ${warning}`));
+            }
+            record.schemaVersion = SERVICE_MANIFEST_SCHEMA_VERSION;
+            pendingMigrations.push({ filePath, manifest: record });
+        }
+        for (const failure of failures)
+            console.error(chalk.red(`❌ ${failure}`));
+        if (failures.length > 0)
+            process.exit(1);
+        for (const migration of pendingMigrations) {
+            writeFileSync(migration.filePath, `${JSON.stringify(migration.manifest, null, 2)}\n`);
+        }
+        const migrated = pendingMigrations.length;
+        console.log(chalk.green(`✅ Migrated ${migrated} service.json file${migrated === 1 ? "" : "s"} to schema version ${SERVICE_MANIFEST_SCHEMA_VERSION}.`));
+        console.log(chalk.yellow("Review the diff; unknown fields were preserved."));
+    });
+}))
     .addCommand(new Command("verify")
     .description("Verify that generated files match .tdk/project.json")
     .action(async () => {
@@ -123,6 +178,9 @@ export const configCommand = new Command("config")
         const projectRoot = requireProjectRoot();
         console.log(chalk.blue("🔍 Verifying configuration...\n"));
         const result = verifyMasterConfigs(projectRoot);
+        for (const warning of result.warnings) {
+            console.warn(chalk.yellow(`⚠️  ${warning}`));
+        }
         if (result.valid) {
             console.log(chalk.green("✅ All files are in sync!"));
             return;

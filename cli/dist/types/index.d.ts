@@ -8,9 +8,11 @@ export interface DiscoveredResource {
     type?: ResourceType;
 }
 export interface ResourceConfig {
+    [key: string]: unknown;
     appName: string;
     appType: "backend" | "frontend" | "library" | "sdk" | "worker" | "migrator" | "bring-your-own";
     stack?: string;
+    schemaVersion?: number;
     port?: number;
     replicas?: number;
     runtime?: string;

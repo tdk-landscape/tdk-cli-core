@@ -13,6 +13,7 @@ import { showCommandHeader } from "../utils/formatting.js";
 import { assignPort } from "../utils/port-assignment.js";
 import { promptSelect, promptText } from "../utils/prompt.js";
 import { getDefaultFeaturesForResourceType } from "../utils/resource-features.js";
+import { SERVICE_MANIFEST_SCHEMA_VERSION } from "../utils/service-manifest.js";
 import { discoverResources } from "../utils/services.js";
 import { createKebabCaseValidator, isPathSafe, validateResourceName } from "../utils/validation.js";
 export const BASE_TEMPLATE = {
@@ -76,6 +77,7 @@ export function createServiceJson(name, type, stack, port, extraFeatures = [], f
     }
     return {
         ...base,
+        schemaVersion: SERVICE_MANIFEST_SCHEMA_VERSION,
         appName: name,
         appType: type,
         featuresEnabled: [...getDefaultFeaturesForResourceType(type), ...extraFeatures],
@@ -492,6 +494,7 @@ export const resourceCommand = new Command("resource")
             // Update with new values while preserving existing fields
             const updatedServiceJson = {
                 ...existingServiceJson,
+                schemaVersion: existingServiceJson.schemaVersion ?? SERVICE_MANIFEST_SCHEMA_VERSION,
                 appName: resourceName,
                 appType: resourceType === "sdk" ? "sdk" : existingServiceJson.appType || resourceType,
                 stack: stackName,
@@ -522,6 +525,7 @@ export const resourceCommand = new Command("resource")
             mkdirSync(fullPath, { recursive: true });
             // Create service.json
             const byoServiceJson = {
+                schemaVersion: SERVICE_MANIFEST_SCHEMA_VERSION,
                 appName: resourceName,
                 appType: "bring-your-own",
                 stack: stackName,
