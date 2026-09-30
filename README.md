@@ -11,6 +11,8 @@ TDK runs many services on your laptop with Docker + Tilt. Helm still deploys the
 [![Socket Badge](https://badge.socket.dev/npm/package/@tdk-landscape/tdk-cli-core/latest)](https://socket.dev/npm/package/@tdk-landscape/tdk-cli-core/overview)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+[Website](https://tdk-landscape.github.io/tdk-website) · [Quickstart](https://tdk-landscape.github.io/tdk-website/docs/quickstart/) · [Examples](https://tdk-landscape.github.io/tdk-website/docs/examples/) · [Demo](https://tdk-landscape.github.io/tdk-demo-animation/) · [Report a bug](https://github.com/tdk-landscape/tdk-cli-core/issues/new/choose)
+
 ## Installation
 
 Install the CLI from npm (requires Node.js 22.12+) or use the prebuilt binary (no Node.js or Bun required):
@@ -32,6 +34,21 @@ tdk networks
 ```
 
 `tdk up shop --dry-run` previews selected local services and URLs before starting containers. The default starter is Bun/TypeScript; TDK's core role is running local containers through Docker + Tilt, not providing a Node.js application framework. See the [one-backend example](examples/one-backend/README.md).
+
+![TDK scaffolding a backend and a frontend, then listing the stack](docs/demo.svg)
+
+*Scaffolding a backend and frontend, then listing the stack.*
+
+## Why TDK?
+
+| | Compose | Local Kubernetes (kind, minikube) | Plain Tilt | **TDK** |
+|---|---|---|---|---|
+| Scaffold a service in one command | ❌ | ❌ | ❌ | ✅ `tdk resource` |
+| Hot reload on file change | ⚠️ `compose watch` config | ⚠️ extra tooling | ✅ | ✅ |
+| Health-checked startup order | ✅ | ✅ | ⚠️ configure it yourself | ✅ |
+| Needs a cluster | No | Yes | Optional | **No** |
+
+100 generated health-check services reached healthy in 112 s, using about 1.6 GiB in service-container memory on a 16 GB machine. [Details and caveats](docs/scale-bench.md).
 
 ## When not to use TDK
 
