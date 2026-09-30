@@ -117,6 +117,11 @@ jobs:
         with:
           node-version: 22
       - run: bun install --frozen-lockfile
+      - name: Free host Postgres port before project integration tests
+        run: |
+          sudo systemctl stop postgresql.socket 'postgresql@*.socket' 2>/dev/null || true
+          sudo systemctl stop postgresql.service 'postgresql@*.service' 2>/dev/null || true
+          sudo fuser -k 5432/tcp 2>/dev/null || true
       - run: npm test
         env:
           TDK_REQUIRE_TILT: '1'
