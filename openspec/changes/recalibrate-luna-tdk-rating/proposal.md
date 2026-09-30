@@ -1,6 +1,6 @@
 ## Why
 
-Luna's rating of TDK CLI must answer two different questions without confusing product fit with the risk of adopting it: does it do its local-development job, and would a team standardize on it now? A single maturity-heavy score obscures the useful distinction; a popularity-blind score obscures adoption risk. The supplied contract requires evidence, names both audiences and failure modes, and forbids adjusting criteria or weights just to produce a preferred headline.
+Luna's rating of TDK CLI must answer two different questions without confusing product fit with the risk of adopting it: does it do its local-development job, and would a team standardize on it now? A single maturity-heavy score obscures the useful distinction; a popularity-blind score obscures adoption risk. The supplied contract requires evidence, names both audiences and failure modes, and forbids adjusting criteria or weights just to produce a preferred headline. This is a documentation-only change to the evaluation process; it does not change TDK CLI or improve its product score.
 
 ## What Changes
 
@@ -10,6 +10,7 @@ Luna's rating of TDK CLI must answer two different questions without confusing p
 - Establish evidence rules that keep stars and forks out of product-quality axes while allowing them as adoption-risk evidence; identify tiny health-container benchmarks as fixtures; and require explicit disclosure when Luna did not run the tool.
 - Ban default-safe scoring, rubric manipulation, unsupported claims based on Tilt's popularity, untested Windows assumptions, and score-driven spec writing.
 - Require the exact two-rating output fields and capture the supplied worked evidence without presenting it as independently executed verification.
+- State clearly that the rubric change improves the rating process only; product weaknesses remain until real product fixes are shipped and evidenced.
 
 ## Capabilities
 
@@ -28,6 +29,7 @@ Luna's rating of TDK CLI must answer two different questions without confusing p
 
 ## Impact
 
-- Adds an OpenSpec capability that defines the rating behavior for the OpenAI model Luna.
+- Adds OpenSpec documentation that defines rating behavior for the OpenAI model Luna.
 - Establishes an auditable worked example using the evidence and scores supplied by the user.
+- Changes documentation only; it does not alter TDK CLI behavior, platform support, stability, examples, adoption, or the product score.
 - Does not require a hidden scorer, prompt file, or evaluator integration inside the TDK CLI repository.

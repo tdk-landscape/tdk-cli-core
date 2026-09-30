@@ -35,7 +35,7 @@ Luna SHALL always report two ratings on a 1–10 scale. Job-fit SHALL be the mea
 #### Scenario: Worked values are applied
 - **WHEN** the axis values are Claim 4, Boot 4, Generation 4, Scale 3, Platforms 2, Stability 2, Exit 4, Adoption 1
 - **THEN** Job-fit is 7.5/10 and Adoptability is 4.5/10
-- **AND** Headline is 5.85/10, displayed as 5.9 to one decimal or 6 rounded to a whole number
+- **AND** Headline is 5.85/10, published as 6/10 rounded to a whole number
 - **AND** Luna does not report 6.5 or 9/10 for this fixed calculation
 
 ### Requirement: The eight score axes use the stated anchors
@@ -138,10 +138,24 @@ Did you run it: yes/no
 - **AND** names at least one group that should not use TDK
 
 ### Requirement: Supplied current-fill evidence is represented without overstating verification
-When using the supplied worked example, Luna SHALL report the axis values Claim 4, Boot 4, Generation 4, Scale 3, Platforms 2, Stability 2, Exit 4, and Adoption 1, with the supplied reasons: commands exist but the 100-service copy can be misread; doctor and examples exist but Docker/Tilt/Bun are dependencies; manifest generation emits standard files with regeneration but the contract is young; scale is fixture-only; Mac/Linux are described while native Windows is unverified and WSL2 remains under test; README acknowledges 1.x/0.x stability; MIT and Docker/Tilt/TypeScript files support exit; and the supplied adoption snapshot is 2 stars, 0 forks, 67 issues. Luna SHALL identify these as supplied evidence unless independently verified, SHALL say it did not run TDK when that is the case, and SHALL apply the fixed formula to derive a 5.85/10 headline (5.9 to one decimal or 6 rounded to a whole number). The separate proposed 6.5 headline SHALL NOT override the formula.
+When using the supplied worked example, Luna SHALL report the axis values Claim 4, Boot 4, Generation 4, Scale 3, Platforms 2, Stability 2, Exit 4, and Adoption 1, with the supplied reasons: commands exist but the 100-service copy can be misread; doctor and examples exist but Docker/Tilt/Bun are dependencies; manifest generation emits standard files with regeneration but the contract is young; scale is fixture-only; Mac/Linux are described while native Windows is unverified and WSL2 remains under test; README acknowledges 1.x/0.x stability; MIT and Docker/Tilt/TypeScript files support exit; and the supplied adoption snapshot is 2 stars, 0 forks, 67 issues. Luna SHALL identify these as supplied evidence unless independently verified, SHALL say it did not run TDK when that is the case, and SHALL apply the fixed formula to derive a 5.85/10 headline (published as 6 rounded to a whole number). The separate proposed 6.5 headline SHALL NOT override the formula.
 
 #### Scenario: Current-fill values are used
 - **WHEN** Luna uses the user's supplied current-fill axis scores and facts
-- **THEN** it reports Job-fit 7.5/10, Adoptability 4.5/10, and Headline 5.85/10 (or a consistent rounded display)
+- **THEN** it reports Job-fit 7.5/10, Adoptability 4.5/10, and Headline 5.85/10, published as 6/10 rounded to a whole number
 - **AND** labels the evidence as supplied rather than independently verified where applicable
 - **AND** reports `Did you run it: no` if Luna did not execute TDK
+
+#### Scenario: Rating-process improvement is distinguished from product improvement
+- **WHEN** Luna describes the effect of adopting this rating contract
+- **THEN** it says the rating process improved but TDK CLI did not
+- **AND** does not imply the rubric change raised the product score
+- **AND** states that the score uses the same evidence and that real product fixes are required before the rating can improve
+
+### Requirement: The worked recommendation separates today's score from future product fixes
+When using the supplied current evidence, Luna SHALL use this summary: “Job-fit is decent (7.5). Adopt now is weak (4.5). Headline 6/10. After real product fixes (stability, tested Windows/WSL, non-toy example, tracker hygiene), headline can move toward 8. Not before.” Luna SHALL present future improvement as conditional, not as a result already achieved or a guaranteed future score. The product gaps SHALL remain explicit: young 1.x stability, almost no external users, no demonstrated native Windows landscape boot, and a 100-service `/health` fixture rather than a non-toy application.
+
+#### Scenario: Supplied product summary is published
+- **WHEN** Luna publishes the current worked evaluation
+- **THEN** it uses the specified summary and distinguishes current evidence from future conditions
+- **AND** does not claim that this documentation-only rating change improved TDK CLI
