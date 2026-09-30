@@ -93,7 +93,7 @@ jobs:
               const fs = require("fs");
               for (const file of ["package.json", "cli/package.json"]) {
                 const before = fs.readFileSync(file, "utf8");
-                const after = before.replace(/("version":\s*")[^"]+/, (_, key) => key + process.argv[1] + "\"");
+                const after = before.replace(/("version":\s*")[^"]+"/, (_, key) => key + process.argv[1] + "\"");
                 if (after === before) throw new Error("no version field in " + file);
                 fs.writeFileSync(file, after);
               }
@@ -215,7 +215,7 @@ jobs:
             const fs = require("fs");
             for (const file of ["package.json", "cli/package.json"]) {
               const before = fs.readFileSync(file, "utf8");
-              const after = before.replace(/("version":\s*")[^"]+/, (_, key) => key + process.argv[1] + "\"");
+              const after = before.replace(/("version":\s*")[^"]+"/, (_, key) => key + process.argv[1] + "\"");
               if (after === before) throw new Error("no version field in " + file);
               fs.writeFileSync(file, after);
             }
