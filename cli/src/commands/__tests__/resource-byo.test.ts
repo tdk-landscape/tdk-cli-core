@@ -44,11 +44,17 @@ describe("bring-your-own resource type", () => {
     rmSync(tempDir, { recursive: true, force: true });
   });
 
-  async function createByo(args: string[] = []): Promise<string> {
-    await resourceCommand.parseAsync(
-      ["node", "tdk", "widget", "--type", "byo", "--stack", "shop", "--yes", ...args],
-      { from: "node" },
-    );
+  async function createByo(args: string[] = [], output?: string[]): Promise<string> {
+    const originalLog = console.log;
+    if (output) console.log = (...values: unknown[]) => output.push(values.join(" "));
+    try {
+      await resourceCommand.parseAsync(
+        ["node", "tdk", "widget", "--type", "byo", "--stack", "shop", "--yes", ...args],
+        { from: "node" },
+      );
+    } finally {
+      if (output) console.log = originalLog;
+    }
     return join(tempDir, "services", "shop", "widget");
   }
 
@@ -145,6 +151,15 @@ describe("bring-your-own resource type", () => {
       "COPY container/health.conf",
     );
     expect(existsSync(join(resourcePath, "container", "health.conf"))).toBe(true);
+  });
+
+  it("prints and stores the requested custom port", async () => {
+    const output: string[] = [];
+    const resourcePath = await createByo(["--port", "4500"], output);
+    const service = JSON.parse(readFileSync(join(resourcePath, "service.json"), "utf-8"));
+
+    expect(output.join("\n")).toContain("Port: 4500");
+    expect(service.port).toBe(4500);
   });
 
   it("rejects malformed, out-of-range, and conflicting custom ports", () => {

@@ -1,0 +1,3 @@
+schema: spec-driven
+created: 2026-09-30
+goal: Honor the requested port when creating a BYO resource
