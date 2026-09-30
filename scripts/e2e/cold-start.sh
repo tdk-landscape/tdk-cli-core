@@ -3,6 +3,7 @@ set -euo pipefail
 
 project_dir="${1:?usage: cold-start.sh PROJECT_DIR}"
 cd "$project_dir"
+export TDK_PREMIUM_DIAGNOSTICS=1
 
 echo "::group::Scaffold deferred and deliberately slow backends"
 tdk project --yes
@@ -44,8 +45,10 @@ if manifest.get("sablier") != {"enable": True, "deferStart": True}:
     raise SystemExit(f"cold-api service manifest lost its deferred Sablier config: {manifest.get('sablier')!r}")
 
 overlay = Path(".tdk/.tdk-out/tdk-cli-ext/engine/topologies/platform/docker/networking/sablier_container_cycle.star")
-if not overlay.exists() or "No internal license check here" not in overlay.read_text():
-    raise SystemExit("TDK_LICENSE_KEY did not unlock the Sablier overlay; grant the 'sablier' resource to this Actions key")
+if not overlay.exists():
+    raise SystemExit("Sablier overlay file was not applied; inspect the Premium entitlement probes, bundle contents, and Sablier entitlement check above to identify whether access or the published bundle is missing it")
+if "No internal license check here" not in overlay.read_text():
+    raise SystemExit("Sablier overlay file exists but does not contain the expected licensed implementation; inspect the published bundle/version")
 print("Verified cold-api deferStart manifest and licensed Sablier overlay")
 PY
 echo "Running tdk doctor after resource generation and before tdk up"

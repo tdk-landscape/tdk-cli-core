@@ -109,6 +109,7 @@ async function fetchPremium(key, resource, projectId) {
     return fetch(`${url}&key=${encodeURIComponent(key)}`);
 }
 async function fetchPremiumBundle(key, projectId) {
+    const attempts = [];
     for (const resource of KNOWN_RESOURCES) {
         let res;
         try {
@@ -119,18 +120,23 @@ async function fetchPremiumBundle(key, projectId) {
             return null;
         }
         if (res.ok) {
-            return Buffer.from(await res.arrayBuffer());
+            const bundle = Buffer.from(await res.arrayBuffer());
+            console.info(`🔎 Premium entitlement probe: granted resource=${resource} (HTTP ${res.status}); prior denials=${attempts.join(", ") || "none"}`);
+            console.info(`🔎 Premium bundle download: ${bundle.byteLength} bytes`);
+            return bundle;
         }
         if (res.status === 401 || res.status === 403) {
             // Not granted for this specific resource name - try the next one
             // before concluding the key has nothing to offer.
+            attempts.push(`${resource}=${res.status}`);
             continue;
         }
         // Anything else (404 missing bundle release, 502 upstream failure,
         // etc.) won't be fixed by trying a different resource name.
-        console.warn(`⚠️  Premium fetch failed: HTTP ${res.status}`);
+        console.warn(`⚠️  Premium fetch failed: ${resource} returned HTTP ${res.status}; prior entitlement probes: ${attempts.join(", ") || "none"}`);
         return null;
     }
+    console.warn(`⚠️  Premium entitlement probes denied: ${attempts.join(", ")}`);
     return null;
 }
 /**
@@ -146,6 +152,7 @@ export async function applyPremiumOverlay(projectRoot, destDir) {
         return false;
     const tarballPath = cacheTarballPath(key);
     if (!isCacheFresh(tarballPath)) {
+        console.info("🔎 Premium bundle cache: miss; requesting bundle from distribution service");
         const projectId = getOrCreateProjectId(projectRoot);
         const bundle = await fetchPremiumBundle(key, projectId);
         if (!bundle) {
@@ -155,19 +162,34 @@ export async function applyPremiumOverlay(projectRoot, destDir) {
         mkdirSync(join(tarballPath, ".."), { recursive: true });
         writeFileSync(tarballPath, bundle);
     }
+    else {
+        console.info("🔎 Premium bundle cache: hit (cached bundle reused)");
+    }
     try {
         const extractDir = join(tarballPath, "..", "extracted");
         mkdirSync(extractDir, { recursive: true });
         extractTarball(readFileSync(tarballPath), extractDir);
         let applied = 0;
+        const missing = [];
         for (const [src, dest] of Object.entries(PREMIUM_PATH_MAP)) {
             const from = join(extractDir, src);
-            if (!existsSync(from))
+            if (!existsSync(from)) {
+                missing.push(src);
                 continue;
+            }
             const to = join(destDir, dest);
             mkdirSync(join(to, ".."), { recursive: true });
             writeFileSync(to, readFileSync(from));
             applied++;
+        }
+        const sablierPath = join(extractDir, "networking/sablier_container_cycle.star");
+        console.info(`🔎 Premium bundle contents: mapped=${applied}/${Object.keys(PREMIUM_PATH_MAP).length}; sablier_overlay=${existsSync(sablierPath) ? "present" : "MISSING"}`);
+        if (missing.length > 0) {
+            console.info(`🔎 Premium bundle missing mapped files: ${missing.join(", ")}`);
+        }
+        if (!existsSync(sablierPath) && process.env.TDK_PREMIUM_DIAGNOSTICS === "1") {
+            const sablierGranted = await hasSablierLicense(projectRoot);
+            console.info(`🔎 Sablier entitlement check: ${sablierGranted ? "granted" : "not confirmed"}; compare with sablier_overlay above to distinguish license access from bundle contents`);
         }
         if (applied > 0) {
             console.log(`✓ Premium resources unlocked (${applied} file${applied === 1 ? "" : "s"})`);
@@ -211,6 +233,7 @@ async function hasLiveResourceLicense(projectRoot, resource) {
     if (isCacheFresh(cachePath)) {
         try {
             const cached = JSON.parse(readFileSync(cachePath, "utf-8"));
+            console.info(`🔎 ${resource} entitlement probe: cache=${cached.granted === true ? "granted" : "denied"}`);
             return cached.granted === true;
         }
         catch {
@@ -222,6 +245,7 @@ async function hasLiveResourceLicense(projectRoot, resource) {
     try {
         const res = await fetchPremium(key, resource, projectId);
         granted = res.ok;
+        console.info(`🔎 ${resource} entitlement probe: HTTP ${res.status} (${granted ? "granted" : "denied"})`);
         // Drain the body (a full premium.tar.gz on success) so we don't leave
         // it dangling - we only need the status, not the content.
         if (res.body) {
