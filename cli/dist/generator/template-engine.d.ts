@@ -52,6 +52,7 @@ export declare class TemplateEngine {
 export declare function generateDatabaseManagementCompose(projectConfig: ProjectConfig): string;
 export declare function readProjectConfig(projectRoot: string): ProjectConfig;
 export declare function generateMasterConfigs(projectRoot: string): Promise<void>;
+export declare function findCliAssetRoot(): string | null;
 export declare function ensureProjectRuntimeAssets(projectRoot: string): string[];
 export declare function verifyMasterConfigs(projectRoot: string): {
     valid: boolean;

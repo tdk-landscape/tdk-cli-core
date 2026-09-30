@@ -66,7 +66,9 @@ export const runtimeCommand = new Command("runtime")
     } else {
       console.error(
         [
-          assetRoot ? `Incomplete TDK runtime assets at ${assetRoot}` : "TDK runtime assets not found",
+          assetRoot
+            ? `Incomplete TDK runtime assets at ${assetRoot}`
+            : "TDK runtime assets not found",
           ...missing.map((path) => `Missing: ${path}`),
           ...templateErrors,
         ].join("\n"),

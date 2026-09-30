@@ -494,7 +494,7 @@ function findSelfContainedEngineRoot() {
     }
     return null;
 }
-function findCliAssetRoot() {
+export function findCliAssetRoot() {
     let dir = import.meta.dirname || process.cwd();
     for (let i = 0; i < 8; i++) {
         if (fs.existsSync(path.join(dir, "shared-platform-engineering", "docker-templates"))) {
