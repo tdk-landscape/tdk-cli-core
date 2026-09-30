@@ -32,6 +32,7 @@ Sectioned README with the full badge row and docs index, one-backend examples, e
 - First human Helm-user review: **failed** after more than 10 minutes. Their answers, relayed by the user, were: (1) “it runnning a clister like”; (2) “prod”; (3) “same completely same”; (4) “no its only tdk for local”. These showed confusion about the local runtime, Helm's role, and whether app-template can remain in production. The blunt local/cluster statements and contrast block were added to both docs.
 - Reader's additional initial impression: TDK was “only for nodejs things.”
 - Second human review, uncoached after the blunt first-screen rewrite: duration not reported. Answers as relayed by the user: (1) “laptop”; (2) “no helm , its templator engine tdk cli for local env”; (3) “not same its mega manifest”; (4) “yes without tdk , its sepoate”. The user judged it mostly a pass: Q1, Q3, and Q4 were understood; Q2 did not clearly state that Helm remains for cluster templating. Added an explicit sentence to both docs at that point. The reader's raw answer and unknown duration remain the evidence; no synthetic self-review is acceptance evidence. The README has since been simplified again to one positioning sentence plus a single Helm-guide link; the second pass predates this version.
+- Q2 retest (uncoached): “its not same”. Click moment: the autogen folder — generated local files, not Helm values. User confirms this passes Q2; human review is no longer the merge blocker.
 - No claim is made that the live website was verified or published.
 
 ## Follow-up
