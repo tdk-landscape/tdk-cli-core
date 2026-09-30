@@ -23,7 +23,7 @@ tdk resource orders-api --type backend --stack shop --yes
 tdk up shop
 ```
 
-TDK starts the local stack on Docker + Tilt. [How TDK sits next to Helm](docs/with-helm.md) · [Configuration and editor schemas](docs/configuration.md) · [One-backend example](examples/one-backend/README.md) · [Full landscape example](examples/tdk-example/README.md)
+`tdk up shop` runs the local stack on your laptop with Docker + Tilt; it does not start a Kubernetes cluster. Helm values configure the separate cluster deployment. [How TDK sits next to Helm](docs/with-helm.md) · [Configuration and editor schemas](docs/configuration.md) · [One-backend example](examples/one-backend/README.md) · [Full landscape example](examples/tdk-example/README.md)
 
 [![npm version](https://img.shields.io/npm/v/@tdk-landscape/tdk-cli-core.svg?style=flat&color=blue)](https://www.npmjs.com/package/@tdk-landscape/tdk-cli-core)
 [![CI](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/ci.yml/badge.svg)](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/ci.yml)

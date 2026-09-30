@@ -27,7 +27,7 @@ Docs, one-backend examples, editor schemas, contributor guidance, issue form sco
 - Local example smoke and full `tdk up`: `tdk project --yes` stalled without output in both the installed CLI and the current worktree CLI, so it was stopped. No local health request or cleanup result is claimed. Docker/Tilt availability was not established.
 - Fresh website build/preview: skipped because the website worktree requires Bundler 2.6.9, which is not installed. HTTP inspection of the stale checked-in `_site` returned 200 for home/configuration/compare but 404 for `/docs/with-helm/`; those stale files were not treated as verification of the changed source.
 - Doctor machine-readable output and exit behavior: not checked; help alone does not verify these contracts.
-- Timed Helm-user review: pending. No named participant or scheduled time was supplied, so the four answers have not been recorded. Do not merge until a named reviewer completes it or a session is scheduled.
+- Timed Helm-user review: the reader spent more than 10 minutes. Their answers, relayed by the user, were: (1) “it runnning a clister like” — misunderstands that `tdk up` runs Docker + Tilt locally; (2) “prod” — ambiguous/incomplete; (3) “same completely same” — incorrectly treats `service.json` and Helm values as equivalent; (4) “no its only tdk for local” — does not clearly confirm whether they can keep app-template for production. The purpose was not understood without coaching; tightened README and Helm guide copy accordingly. Ask the reader the same four questions again before counting this review as passed.
 - No claim is made that the live website was verified or published.
 
 ## Follow-up

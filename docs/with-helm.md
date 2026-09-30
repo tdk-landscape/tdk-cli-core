@@ -15,6 +15,8 @@ Keep your existing bjw-s app-template, official charts, homegrown charts, Kustom
 
 These fields are related ideas, not a one-to-one configuration translation. Local startup order, routes, and resource types do not define a cluster release.
 
+`service.json` configures TDK's laptop development loop. Helm `values.yaml` configures chart resources for Kubernetes. Shared concepts such as an image name or port must be deliberately carried across; the files are not equivalent, and TDK does not generate Helm values.
+
 | TDK `service.json` or local behavior | Typical Helm / app-template concept | Boundary |
 |---|---|---|
 | `appName` | Release name or controller id | Identity only; chart naming is configurable. |
