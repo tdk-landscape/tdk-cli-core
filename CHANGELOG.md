@@ -4,6 +4,8 @@ Notable changes to the `tdk` CLI. Versions match [npm](https://www.npmjs.com/pac
 
 ## Unreleased
 
+## 1.3.80 (2026-09-30)
+
 - Add `tdk doctor --json` with schema-versioned readiness, checks, and structured errors; diagnostics remain on stderr.
 - Stabilize doctor exits: 0 ready, 1 blocking findings, 2 invalid arguments/internal check failures. Invalid `--ping-timeout` now exits 2 instead of 1 and rejects fractional/unit-suffixed values.
 - Add versioned `--json` envelopes to `tdk status`, `tdk resources`, and `tdk networks`; existing `networks --json` array consumers can migrate with `--json-legacy` through CLI 1.4.x. The compatibility flag is scheduled for removal in 1.5.0.
