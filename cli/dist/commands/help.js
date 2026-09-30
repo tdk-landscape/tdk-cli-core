@@ -1,7 +1,7 @@
 import chalk from "chalk";
 import pkg from "../../package.json" with { type: "json" };
 const TDK_BANNER = `
-  ${chalk.bold.cyan("tdk")} ${chalk.gray(`v${pkg.version}`)}  ${chalk.white("Tilt Development Kit: run your microservices locally")}
+  ${chalk.bold.cyan("tdk")} ${chalk.gray(`v${pkg.version}`)}  ${chalk.white("TDK runs many services locally with Docker + Tilt; Helm deploys the cluster")}
 `;
 const COMMAND_GROUPS = [
     {
@@ -78,7 +78,8 @@ function formatCommand(name, desc, alias, color) {
 }
 export function showHelp() {
     console.log(TDK_BANNER);
-    console.log(chalk.bold.white("\n  Project → Phase → Stack → Resource\n"));
+    console.log(chalk.gray("\n  Local development inner loop; TDK does not replace Helm for cluster deployments.\n"));
+    console.log(chalk.bold.white("  Project → Phase → Stack → Resource\n"));
     console.log(chalk.gray("  Usage: tdk [command] [options]\n"));
     console.log(chalk.bold.yellow("  Global Options:"));
     console.log(`  ${chalk.cyan("-v, --version".padEnd(20))} ${chalk.white("Display version number")}`);

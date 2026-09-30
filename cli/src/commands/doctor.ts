@@ -1227,6 +1227,12 @@ export const doctorCommand = new Command("doctor")
       return;
     }
 
+    if (!options.json) {
+      console.log(
+        "TDK doctor checks your local Docker + Tilt development environment; it does not check cluster deployments.",
+      );
+    }
+
     if (process.platform === "win32") {
       if (options.json) {
         console.log(
