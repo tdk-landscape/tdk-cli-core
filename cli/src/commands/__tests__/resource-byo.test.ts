@@ -10,8 +10,10 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { networksCommand } from "../../commands/networks.js";
 import { resolveByoPort, resourceCommand } from "../../commands/resource.js";
 import { resourcesCommand } from "../../commands/resources.js";
+import { statusCommand } from "../../commands/status.js";
 import { upCommand } from "../../commands/up.js";
 import { discoverResourcesFromRoot } from "../../utils/services.js";
 
@@ -106,13 +108,41 @@ describe("bring-your-own resource type", () => {
       expect(output.join("\n")).toContain("widget [shop]");
 
       output.length = 0;
+      await resourcesCommand.parseAsync(["node", "tdk", "--stack", "shop", "--json"], {
+        from: "node",
+      });
+      const resourcesReport = JSON.parse(output.join("\n"));
+      expect(resourcesReport.schemaVersion).toBe(1);
+      expect(resourcesReport.errors).toEqual([]);
+      expect(resourcesReport.data.resources).toMatchObject([
+        { name: "widget", stack: "shop", type: "bring-your-own" },
+      ]);
+
+      output.length = 0;
+      await statusCommand.parseAsync(["node", "tdk", "--json"], { from: "node" });
+      const statusReport = JSON.parse(output.join("\n"));
+      expect(statusReport.schemaVersion).toBe(1);
+      expect(statusReport.data.resources).toMatchObject([{ name: "widget", stack: "shop" }]);
+
+      output.length = 0;
+      await networksCommand.parseAsync(["node", "tdk", "--json"], { from: "node" });
+      const networksReport = JSON.parse(output.join("\n"));
+      expect(networksReport.schemaVersion).toBe(1);
+      expect(networksReport.errors).toEqual([]);
+      expect(networksReport.data.services).toEqual([]);
+
+      output.length = 0;
+      await networksCommand.parseAsync(["node", "tdk", "--json-legacy"], { from: "node" });
+      expect(JSON.parse(output.join("\n"))).toEqual([]);
+
+      output.length = 0;
       await upCommand.parseAsync(["node", "tdk", "shop", "--dry-run"], { from: "node" });
       expect(output.join("\n")).toContain('Would start 1 service from stack "shop"');
       expect(output.join("\n")).toContain("- widget");
     } finally {
       console.log = originalLog;
     }
-  });
+  }, 15_000);
 
   it("keeps --dry-run side-effect free even when --force is also set", async () => {
     await createByo();

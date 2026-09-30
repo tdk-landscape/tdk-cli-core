@@ -1,5 +1,26 @@
 ## ADDED Requirements
 
+### Requirement: First-run host port selection
+The CLI and generated landscape MUST start without requiring host ports 80, 443, or 5432 to be free. The selected host ports MUST be passed consistently to Docker Compose, health checks, and printed URLs. Explicit user configuration MUST take precedence over automatic selection. Automatic selections MUST be bounded, reported with the resulting endpoint and an override instruction, and persisted only as part of an actual startup (never by doctor or dry-run). When the standard localhost hostname cannot be used, the CLI MUST print a numeric loopback URL that reaches the published ingress port.
+
+#### Scenario: Standard ports are occupied
+- **WHEN** ports 80, 443, or 5432 are already bound by unrelated host services
+- **THEN** `tdk up` selects available fallback ports and starts the landscape without stopping those services
+- **AND** prints URLs using the selected ingress port and the matching Postgres host port
+
+#### Scenario: User overrides are configured
+- **WHEN** a user explicitly configures ingress or Postgres host ports
+- **THEN** those values take precedence over automatic port selection
+- **AND** a conflicting explicit value produces a clear actionable error
+
+#### Scenario: Doctor or dry-run checks ports
+- **WHEN** `tdk doctor` or `tdk up --dry-run` runs
+- **THEN** it does not persist port assignments or alter generated project files
+
+#### Scenario: Wildcard localhost DNS is unavailable
+- **WHEN** a Windows/WSL host cannot resolve the generated `*.localhost` hostname
+- **THEN** `tdk networks` and successful `tdk up` output include a numeric loopback URL with the selected ingress port
+
 ### Requirement: Native platform and architecture mapping
 The CLI SHALL recognize `process.platform === "win32"` as Windows and `process.arch === "x64"` as AMD64, while keeping Linux and macOS mappings unchanged. Windows ARM64 SHALL be unsupported in v1. The executable name SHALL be `tdk.exe` on Windows and `tdk` on Unix. Platform paths SHALL use `node:path` APIs.
 

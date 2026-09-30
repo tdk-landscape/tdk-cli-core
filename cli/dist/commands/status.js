@@ -3,15 +3,17 @@ import { Command } from "commander";
 import { createDiscoveryContext } from "../utils/discovery-context.js";
 import { runCommand } from "../utils/errors.js";
 import { formatCount, showDetail, showStep } from "../utils/formatting.js";
+import { createMachineEnvelope, writeMachineError } from "../utils/machine-output.js";
 import { getTiltfilePath, isTiltAvailable, runTilt } from "../utils/tilt.js";
 export const statusCommand = new Command("status")
     .description("Show status of resources and stacks")
+    .option("--json", "Output a versioned JSON status report", false)
     .option("-v, --verbose", "Show detailed information", false)
     .option("--stacks", "Show stack information (default)", true)
     .option("--resources", "Show all discovered resources", false)
     .option("--tilt", "Show tilt resource status", false)
     .action(async (options) => {
-    await runCommand(async () => {
+    const action = async () => {
         let tiltAvailable = false;
         try {
             tiltAvailable = await isTiltAvailable();
@@ -20,13 +22,59 @@ export const statusCommand = new Command("status")
             // Tilt not available (spawn error)
             tiltAvailable = false;
         }
-        showStep("TDK Status\n");
-        console.log(chalk.bold("Tilt:"), tiltAvailable ? chalk.green("available") : chalk.red("not found"));
-        if (!tiltAvailable) {
-            showDetail("Install Tilt: https://docs.tilt.dev/install.html");
+        if (!options.json) {
+            showStep("TDK Status\n");
+            console.log(chalk.bold("Tilt:"), tiltAvailable ? chalk.green("available") : chalk.red("not found"));
+            if (!tiltAvailable) {
+                showDetail("Install Tilt: https://docs.tilt.dev/install.html");
+            }
+            console.log();
         }
-        console.log();
         const discovery = createDiscoveryContext();
+        let tiltResources = null;
+        let queryError = null;
+        if (options.json && options.tilt && tiltAvailable) {
+            const result = await runTilt("get", ["-f", getTiltfilePath(), "resources", "--output=json"], {
+                inheritStdio: false,
+            });
+            if (result.exitCode === 0) {
+                try {
+                    tiltResources = JSON.parse(result.stdout);
+                }
+                catch (error) {
+                    queryError = `Tilt returned invalid JSON: ${error instanceof Error ? error.message : String(error)}`;
+                }
+            }
+            else {
+                queryError = result.stderr || "Could not retrieve Tilt resource status";
+            }
+        }
+        if (options.json) {
+            const errors = queryError ? [{ code: "TILT_STATUS_UNAVAILABLE", message: queryError }] : [];
+            const data = {
+                tilt: {
+                    available: tiltAvailable,
+                    resourcesQueried: options.tilt && tiltAvailable,
+                    resources: tiltResources,
+                },
+                resources: discovery.resources.map((resource) => ({
+                    name: resource.name,
+                    stack: resource.stack ?? null,
+                    type: resource.type ?? "unknown",
+                    port: resource.port ?? null,
+                })),
+                stacks: discovery.stacks.map((stack) => ({
+                    name: stack.name,
+                    resourceCount: stack.resourceCount,
+                })),
+            };
+            console.log(JSON.stringify(createMachineEnvelope(data, errors)));
+            if (errors.length > 0) {
+                console.error(queryError);
+                process.exit(1);
+            }
+            return;
+        }
         console.log(chalk.bold("Resources:"), `${discovery.resources.length} discovered`);
         console.log(chalk.bold("Stacks:"), `${discovery.stacks.length} defined`);
         if (discovery.stacks.length > 0) {
@@ -66,6 +114,16 @@ export const statusCommand = new Command("status")
         console.log();
         showDetail('Run "tdk list-stacks" to see all stacks.');
         showDetail('Run "tdk up <stack-name>" to start a stack.');
-    });
+    };
+    if (options.json) {
+        try {
+            await action();
+        }
+        catch (error) {
+            writeMachineError(error);
+        }
+        return;
+    }
+    await runCommand(action);
 });
 //# sourceMappingURL=status.js.map
