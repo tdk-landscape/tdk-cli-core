@@ -1,3 +1,4 @@
+import { createServer } from "node:net";
 import { describe, expect, it } from "vitest";
 import { createHostPortPlan } from "../host-port-plan.js";
 
@@ -45,5 +46,22 @@ describe("createHostPortPlan", () => {
         },
       }),
     ).rejects.toThrow("Set TDK_HTTP_PORT to a free port");
+  });
+
+  it("probes host publish availability on IPv4 loopback", async () => {
+    const server = createServer();
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const address = server.address();
+    if (!address || typeof address === "string") throw new Error("Expected an IP socket");
+    try {
+      await expect(
+        createHostPortPlan({
+          env: { TDK_HTTP_PORT: String(address.port) },
+          isAvailable: undefined,
+        }),
+      ).rejects.toThrow(`TDK_HTTP_PORT=${address.port} is already in use`);
+    } finally {
+      server.close();
+    }
   });
 });
