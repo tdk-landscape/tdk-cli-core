@@ -118,4 +118,7 @@ jobs:
       - name: Stop example
         if: always()
         run: |
-          if [ -d tdk-example ]; then cd tdk-example && tdk down || true; fi
+          if [ -d tdk-example ]; then
+            cd tdk-example
+            tdk down || true
+          fi
