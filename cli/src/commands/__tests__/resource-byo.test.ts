@@ -1,4 +1,12 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -8,6 +16,15 @@ import { upCommand } from "../../commands/up.js";
 import { discoverResourcesFromRoot } from "../../utils/services.js";
 
 const originalCwd = process.cwd();
+
+function snapshotTree(path: string): string[] {
+  if (!existsSync(path)) return [];
+  return readdirSync(path, { withFileTypes: true }).flatMap((entry) => {
+    const entryPath = join(path, entry.name);
+    if (entry.isDirectory()) return [entryPath, ...snapshotTree(entryPath)];
+    return [`${entryPath}:${readFileSync(entryPath, "utf-8")}`];
+  });
+}
 
 describe("bring-your-own resource type", () => {
   let tempDir: string;
@@ -94,6 +111,24 @@ describe("bring-your-own resource type", () => {
       expect(output.join("\n")).toContain("- widget");
     } finally {
       console.log = originalLog;
+    }
+  });
+
+  it("keeps --dry-run side-effect free even when --force is also set", async () => {
+    await createByo();
+    const before = snapshotTree(tempDir);
+    const originalTiltPort = process.env.TILT_PORT;
+    delete process.env.TILT_PORT;
+
+    try {
+      await upCommand.parseAsync(["node", "tdk", "shop", "--dry-run", "--force", "--quiet"], {
+        from: "node",
+      });
+      expect(snapshotTree(tempDir)).toEqual(before);
+      expect(process.env.TILT_PORT).toBeUndefined();
+    } finally {
+      if (originalTiltPort === undefined) delete process.env.TILT_PORT;
+      else process.env.TILT_PORT = originalTiltPort;
     }
   });
 

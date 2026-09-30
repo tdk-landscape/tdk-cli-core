@@ -1,17 +1,17 @@
-import { execFileSync, execSync } from "node:child_process";
 import { connect } from "node:net";
 import chalk from "chalk";
 import { Command } from "commander";
 import { ensureProjectRuntimeAssets } from "../generator/template-engine.js";
 import { handleDryRun } from "../utils/command-helpers.js";
 import { checkHostPorts } from "../utils/doctor-runtime.js";
-import { errorFactories, handleTiltFailure, requireProjectRoot, runCommand, withTiltCheck, } from "../utils/errors.js";
+import { errorFactories, handleTiltFailure, requireProjectRoot, runCommand, showErrorAndExit, withTiltCheck, } from "../utils/errors.js";
 import { formatCount } from "../utils/formatting.js";
 import { findProjectRoot } from "../utils/paths.js";
 import { findAvailablePort } from "../utils/port-assignment.js";
 import { appendHealthPath, resolveSubdomainBases } from "../utils/service-urls.js";
 import { discoverResources, discoverStacks, getResourcesForStack, stackExists, } from "../utils/services.js";
 import { buildTiltUpArgs, runTilt } from "../utils/tilt.js";
+import { stopTiltOnPort } from "../utils/tilt-process.js";
 import { enableDiscoveredStacks } from "./project.js";
 export function formatUpSuccess(port, appUrls = []) {
     return [
@@ -23,6 +23,11 @@ export function formatUpSuccess(port, appUrls = []) {
             : ["  run: tdk networks"]),
         "Stop: tdk down",
     ];
+}
+export function nativeWindowsUpRefusal(platform, allowNativeWindows) {
+    if (platform !== "win32" || allowNativeWindows === "1")
+        return null;
+    return "Native Windows is not supported for `tdk up`. Use WSL2 with Docker Desktop integration, then run `tdk doctor` inside your WSL project.";
 }
 function waitForTiltUi(port, timeoutMs = 30_000) {
     return new Promise((resolve) => {
@@ -55,6 +60,9 @@ export const upCommand = new Command("up")
     .option("--dry-run", "Show what would be started without starting", false)
     .option("-f, --force", "Kill existing Tilt process before starting", false)
     .action(async (stackName, options) => {
+    const platformRefusal = nativeWindowsUpRefusal(process.platform, process.env.TDK_ALLOW_NATIVE_WINDOWS);
+    if (platformRefusal)
+        showErrorAndExit(platformRefusal);
     if (!options.dryRun) {
         const { assertMachineReadyOrExit } = await import("../utils/cold-preflight.js");
         await assertMachineReadyOrExit();
@@ -135,30 +143,12 @@ export const upCommand = new Command("up")
             if (hostPorts.fix)
                 console.log(chalk.gray(`   ${hostPorts.fix}\n`));
         }
-        if (options.force && !options.quiet) {
-            console.log(chalk.yellow("Force flag set - killing any existing Tilt processes..."));
-            if (process.platform === "win32") {
-                try {
-                    execFileSync("taskkill.exe", ["/IM", "tilt.exe", "/F"], {
-                        stdio: "pipe",
-                        windowsHide: true,
-                    });
-                }
-                catch {
-                    // No existing Tilt process is a normal force-start state.
-                }
-            }
-            else {
-                execSync("killall tilt 2>/dev/null || true", { shell: "/bin/sh", stdio: "pipe" });
-            }
-            await new Promise((resolve) => setTimeout(resolve, 2000));
-        }
         const basePort = 10350;
         let port = basePort;
         if (process.env.TILT_PORT) {
             port = parseInt(process.env.TILT_PORT, 10);
         }
-        else {
+        else if (!options.force) {
             const availablePort = await findAvailablePort(basePort, 10);
             if (availablePort && availablePort !== basePort) {
                 port = availablePort;
@@ -169,6 +159,13 @@ export const upCommand = new Command("up")
             }
         }
         process.env.TILT_PORT = port.toString();
+        if (options.force) {
+            if (!options.quiet) {
+                console.log(chalk.yellow(`Force flag set - stopping Tilt on port ${port} if running...`));
+            }
+            stopTiltOnPort(port);
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+        }
         const tiltArgs = buildTiltUpArgs(focusServiceNames, {
             verbose: options.verbose,
             quiet: options.quiet,
