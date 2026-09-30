@@ -33,3 +33,5 @@ Docs, one-backend examples, editor schemas, contributor guidance, issue form sco
 ## Follow-up
 
 Schedule the ten-minute reader review with a named Helm user, complete the website preview with its pinned Bundler, and review both worktrees before merging. Keep runtime CI evidence out of the PR's claims.
+
+Website preview skipped: Bundler 2.6.9 missing; source inspected only.
