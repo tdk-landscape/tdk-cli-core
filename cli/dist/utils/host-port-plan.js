@@ -13,7 +13,9 @@ async function isHostPortAvailable(port) {
     return new Promise((resolve) => {
         const server = createServer();
         server.once("error", () => resolve(false));
-        server.listen(port, "0.0.0.0", () => server.close(() => resolve(true)));
+        // Docker Desktop and Windows publish these host ports through IPv4 loopback.
+        // Match that target instead of probing wildcard binds that may differ by OS.
+        server.listen(port, "127.0.0.1", () => server.close(() => resolve(true)));
     });
 }
 function parsePort(name, value) {
