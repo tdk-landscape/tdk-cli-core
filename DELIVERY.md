@@ -23,6 +23,7 @@ Sectioned README with the full badge row and docs index, one-backend examples, e
 - Website source inspection confirms the canonical hero sentence, schema-first configuration page, Helm navigation/sidebar links, and the one-row comparison: “Helm / app-template: Render Kubernetes for the cluster”; “TDK: Generate and run the laptop stack”; “Same image optional; different control plane.”
 - GitHub About description was set and verified as: “TDK runs many services on your laptop with Docker + Tilt. Helm still deploys the cluster.”
 - Scope inspection confirms no runtime schema/service-manifest contract edits and no Helm export implementation.
+- CI workflow `36774232501` passed on the exact core PR head `c6fdbd4` (workflow_dispatch): lint, typecheck, unit tests, package build/install smoke, and workflow audit. This does not include `tdk up` or quickstart-e2e.
 
 ## Skipped or pending
 
@@ -37,6 +38,6 @@ Sectioned README with the full badge row and docs index, one-backend examples, e
 
 ## Follow-up
 
-Keep both PRs in Draft while the revised first screen and corrected Helm boundary are reviewed. Do not treat runtime CI evidence as proof of this positioning change.
+Core PR #195 is ready for review. GitHub currently reports it conflicts with `main` (five commits behind); reconcile and rerun PR CI before merging. The successful workflow_dispatch run above validates the current head but is not attached as a PR check run. Website PR #24 remains Draft; its fresh-preview skip is explicit, and it can merge after core #195 if that limitation is accepted. Do not treat runtime CI evidence as proof of this positioning change.
 
 Website preview skipped: Bundler 2.6.9 missing; source inspected only.
