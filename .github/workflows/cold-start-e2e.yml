@@ -91,6 +91,14 @@ jobs:
             tarball="$(npm pack --ignore-scripts --silent | tail -1)"
             npm install -g "./$tarball"
           else
+            if [ "$TDK_VERSION" != "latest" ]; then
+              # The release workflow can complete before npm has propagated
+              # the package version to the registry.
+              for _ in $(seq 1 30); do
+                npm view "@tdk-landscape/tdk-cli-core@${TDK_VERSION}" version --prefer-online >/dev/null 2>&1 && break
+                sleep 10
+              done
+            fi
             npm install -g "@tdk-landscape/tdk-cli-core@${TDK_VERSION}"
           fi
           tdk --version
