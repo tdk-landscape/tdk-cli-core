@@ -12,12 +12,20 @@ export declare const DOCTOR_FIXES: {
     readonly notProject: "tdk project --yes";
 };
 export declare const WSL2_DOCTOR_MESSAGE = "WSL2 detected. Use Docker Desktop WSL integration. Guide: docs/wsl2.md";
+export declare const NATIVE_WINDOWS_DOCTOR_MESSAGE = "Native Windows landscape boot is unsupported. Use WSL2 Ubuntu with Docker Desktop integration. Guide: docs/wsl2.md";
+export declare const MIN_TILT_VERSION: readonly [0, 25, 0];
+export declare const MIN_BUN_VERSION: readonly [1, 2, 0];
+export declare function versionMeetsMinimum(raw: string, minimum: readonly number[]): boolean;
+export declare function checkWslProjectLocation(projectPath: string, strict: boolean, isWsl?: boolean): CheckResult;
+/** Failures are shown before passing statuses, with a 5432 conflict first. */
+export declare function orderDoctorResults(results: CheckResult[]): CheckResult[];
 export declare function getDoctorOutcomeMessage(inProject: boolean, allPassed: boolean): string;
 export declare function checkDockerRuntime(): Promise<CheckResult>;
 export declare const checkDockerCompose: () => Promise<CheckResult>;
 export declare function checkDockerVersions(exec?: ExecAsync): Promise<CheckResult>;
-export declare const checkTilt: () => Promise<CheckResult>;
-export declare function checkBun(): Promise<CheckResult>;
+export declare function checkTilt(exec?: ExecAsync): Promise<CheckResult>;
+export declare function checkDockerOperatingSystem(exec?: ExecAsync): Promise<CheckResult>;
+export declare function checkBun(exec?: ExecAsync): Promise<CheckResult>;
 /**
  * Tilt only builds resources under `discovery.paths`, but the CLI finds every service.json,
  * so a resource outside them is listed and given a URL by `tdk up` yet never started.

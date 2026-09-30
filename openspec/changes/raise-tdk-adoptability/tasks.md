@@ -1,9 +1,9 @@
 ## 1. Doctor and platform contract
 
-- [ ] 1.1 Implement native-Windows doctor refusal with WSL2 Ubuntu + Docker Desktop integration guidance and `docs/wsl2.md` link.
-- [ ] 1.2 Implement doctor checks for Docker daemon/OS, Tilt and conditional Bun minimum versions, required ports, and WSL `/mnt/c` placement.
-- [ ] 1.3 Order doctor remediation output so a bound 5432 is in the first failure block; print fixes before status and exit 1 on any required failure.
-- [ ] 1.4 Add tests for ranked port failures, strict WSL path behavior, tool floors, and non-zero native-Windows doctor behavior.
+- [x] 1.1 Implement native-Windows doctor refusal with WSL2 Ubuntu + Docker Desktop integration guidance and `docs/wsl2.md` link.
+- [x] 1.2 Implement doctor checks for Docker daemon/OS, Tilt and conditional Bun minimum versions, required ports, and WSL `/mnt/c` placement.
+- [x] 1.3 Order doctor remediation output so a bound 5432 is in the first failure block; print fixes before status and exit 1 on any required failure.
+- [x] 1.4 Add tests for ranked port failures, strict WSL path behavior, tool floors, and non-zero native-Windows doctor behavior.
 
 ## 2. `tdk up` lifecycle guarantees
 
@@ -33,7 +33,7 @@
 
 - [ ] 5.1 Write concise `docs/wsl2.md` setup commands for clean Ubuntu WSL, Docker Desktop integration, doctor, and example boot.
 - [ ] 5.2 Add `scripts/wsl2-smoke.sh` to run doctor, start the example, exercise its write path, and tear down the stack.
-- [ ] 5.3 If a suitable GitHub WSL runner is unavailable, keep any WSL job report-only and retain Ubuntu `example-e2e` as the required gate.
+- [ ] 5.3 With no WSL runner available, keep WSL validation to the smoke script and docs; retain Ubuntu `example-e2e` as the required CI gate.
 
 ## 6. Release evidence and tracker hygiene
 

@@ -15,7 +15,6 @@ import { findProjectRoot } from "../utils/paths.js";
 import { buildHealthTargets, pingHealthTargets } from "../utils/service-urls.js";
 import { discoverResourcesFromRoot } from "../utils/services.js";
 import { findOnPath } from "../utils/which.js";
-import { checkWindowsDockerMode, checkWindowsHostConfiguration, checkWindowsRuntimeTools, } from "../utils/windows-doctor.js";
 export { checkIngressPorts, checkPrivateNpmRegistry, checkTiltResourceHealth, summarizeServiceProbes, summarizeTiltBuildError, } from "../utils/doctor-runtime.js";
 // A wedged Docker daemon makes `docker ps` block forever instead of failing,
 // and doctor is exactly the tool people run when their environment is broken.
@@ -30,6 +29,57 @@ export const DOCTOR_FIXES = {
     notProject: "tdk project --yes",
 };
 export const WSL2_DOCTOR_MESSAGE = "WSL2 detected. Use Docker Desktop WSL integration. Guide: docs/wsl2.md";
+export const NATIVE_WINDOWS_DOCTOR_MESSAGE = "Native Windows landscape boot is unsupported. Use WSL2 Ubuntu with Docker Desktop integration. Guide: docs/wsl2.md";
+export const MIN_TILT_VERSION = [0, 25, 0];
+export const MIN_BUN_VERSION = [1, 2, 0];
+export function versionMeetsMinimum(raw, minimum) {
+    const version = parseVersion(raw);
+    if (!version)
+        return false;
+    return isAtLeast(version, minimum);
+}
+export function checkWslProjectLocation(projectPath, strict, isWsl = process.platform === "linux" && Boolean(process.env.WSL_DISTRO_NAME)) {
+    if (!isWsl) {
+        return {
+            name: "WSL project location",
+            didPass: true,
+            isSkipped: true,
+            message: "Not running in WSL2 - skipped project filesystem check",
+        };
+    }
+    const normalized = projectPath.replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase();
+    if (normalized !== "/mnt/c" && !normalized.startsWith("/mnt/c/")) {
+        return {
+            name: "WSL project location",
+            didPass: true,
+            message: `${WSL2_DOCTOR_MESSAGE} Project is on the WSL filesystem.`,
+        };
+    }
+    const message = `${WSL2_DOCTOR_MESSAGE} Project is under /mnt/c (${projectPath}); hot reload may be broken. Move it into the WSL filesystem, such as ~/projects.`;
+    return {
+        name: "WSL project location",
+        didPass: !strict,
+        isWarning: !strict,
+        message,
+        fix: "Move the repository under your WSL home directory (for example, ~/projects) and retry tdk doctor.",
+    };
+}
+/** Failures are shown before passing statuses, with a 5432 conflict first. */
+export function orderDoctorResults(results) {
+    const failures = results.filter((result) => !result.didPass && !result.isSkipped);
+    const remaining = results.filter((result) => result.didPass || result.isSkipped);
+    failures.sort((left, right) => {
+        const rank = (result) => result.name === "Host Ports" && /\b5432\b/.test(result.message)
+            ? 0
+            : result.name === "Host Ports"
+                ? 1
+                : result.name === "Ingress Ports"
+                    ? 2
+                    : 3;
+        return rank(left) - rank(right);
+    });
+    return [...failures, ...remaining];
+}
 export function getDoctorOutcomeMessage(inProject, allPassed) {
     if (!allPassed)
         return "Doctor failed. Fix the items above, then run: tdk doctor";
@@ -213,8 +263,55 @@ export async function checkDockerVersions(exec = execAsync) {
         fix: "Update Docker Desktop, or on Linux update docker-ce and the docker-compose-plugin package",
     };
 }
-export const checkTilt = createExecCheck("Tilt CLI", "tilt version", "Tilt CLI installed", "Tilt CLI not found", DOCTOR_FIXES.tiltMissing);
-export async function checkBun() {
+export async function checkTilt(exec = execAsync) {
+    let raw;
+    try {
+        raw = String(await exec("tilt version", EXEC_TIMEOUT_MS)).trim();
+    }
+    catch {
+        return {
+            name: "Tilt CLI",
+            didPass: false,
+            message: "Tilt CLI not found",
+            fix: DOCTOR_FIXES.tiltMissing,
+        };
+    }
+    if (!versionMeetsMinimum(raw, MIN_TILT_VERSION)) {
+        return {
+            name: "Tilt CLI",
+            didPass: false,
+            message: `Tilt ${raw || "version unknown"} is below the required v0.25.0 floor`,
+            fix: "Install Tilt v0.25.0 or newer: https://docs.tilt.dev/install.html",
+        };
+    }
+    return { name: "Tilt CLI", didPass: true, message: `Tilt ${raw} is available` };
+}
+export async function checkDockerOperatingSystem(exec = execAsync) {
+    let osType;
+    try {
+        osType = String(await exec("docker info --format '{{.OSType}}'", EXEC_TIMEOUT_MS))
+            .trim()
+            .toLowerCase();
+    }
+    catch {
+        return {
+            name: "Docker OS",
+            didPass: true,
+            isSkipped: true,
+            message: "Docker OS unavailable - daemon failure reported separately",
+        };
+    }
+    if (osType !== "linux") {
+        return {
+            name: "Docker OS",
+            didPass: false,
+            message: `Docker is using the ${osType || "unknown"} engine; TDK requires Linux containers`,
+            fix: "Switch Docker Desktop to Linux containers, enable WSL2 integration, then retry tdk doctor.",
+        };
+    }
+    return { name: "Docker OS", didPass: true, message: "Docker is using Linux containers" };
+}
+export async function checkBun(exec = execAsync) {
     const projectRoot = findProjectRoot();
     if (!projectRoot) {
         return {
@@ -237,11 +334,19 @@ export async function checkBun() {
         };
     }
     try {
-        await execAsync("bun --version", EXEC_TIMEOUT_MS);
+        const rawVersion = String(await exec("bun --version", EXEC_TIMEOUT_MS)).trim();
+        if (!versionMeetsMinimum(rawVersion, MIN_BUN_VERSION)) {
+            return {
+                name: "Bun",
+                didPass: false,
+                message: `Bun ${rawVersion || "version unknown"} is below the required 1.2.0 floor`,
+                fix: "Install Bun 1.2.0 or newer: https://bun.sh/install",
+            };
+        }
         return {
             name: "Bun",
             didPass: true,
-            message: "Bun is available",
+            message: `Bun ${rawVersion} is available`,
         };
     }
     catch {
@@ -864,14 +969,15 @@ async function checkServiceHealth(timeoutMs) {
 export const doctorCommand = new Command("doctor")
     .description("Check environment readiness for TDK")
     .option("--no-ping", "Skip pinging running services' /health endpoints")
+    .option("--strict", "Fail warnings such as a WSL project under /mnt/c")
     .option("--ping-timeout <ms>", "Per-service ping timeout in milliseconds", String(DEFAULT_PING_TIMEOUT_MS))
     .action(async (options) => {
-    const { formatColdPreflight, runColdPreflight } = await import("../utils/cold-preflight.js");
-    console.log(formatColdPreflight(await runColdPreflight(), { includeSuccessFooter: false }));
-    console.log(`\n${chalk.bold("🔍 TDK Doctor")}\n`);
-    if (process.env.WSL_DISTRO_NAME) {
-        console.log(`${WSL2_DOCTOR_MESSAGE}\n`);
+    if (process.platform === "win32") {
+        console.error(NATIVE_WINDOWS_DOCTOR_MESSAGE);
+        process.exit(1);
+        return;
     }
+    console.log(`\n${chalk.bold("🔍 TDK Doctor")}\n`);
     console.log("Checking environment...\n");
     const pingTimeout = Number.parseInt(options.pingTimeout, 10);
     if (!Number.isFinite(pingTimeout) || pingTimeout <= 0) {
@@ -879,18 +985,15 @@ export const doctorCommand = new Command("doctor")
         process.exit(1);
     }
     const machineChecks = [
-        ...(process.platform === "win32"
-            ? [
-                async () => checkWindowsRuntimeTools(),
-                async () => checkWindowsDockerMode(),
-                checkWindowsHostConfiguration,
-            ]
-            : []),
+        () => checkHostPorts(),
+        () => checkIngressPorts(),
         checkDockerRuntime,
+        checkDockerOperatingSystem,
         checkTilt,
         checkDockerCompose,
         checkDockerVersions,
         checkBun,
+        () => checkWslProjectLocation(findProjectRoot() ?? process.cwd(), options.strict),
         // Each project needs several networks; a full address pool fails `tdk up` late.
         () => checkDockerNetworkCapacity(),
     ];
@@ -911,10 +1014,6 @@ export const doctorCommand = new Command("doctor")
         () => checkNatsBroker(),
         () => checkTiltInstances(),
         checkEnvironmentVariables,
-        // Preflight: catch "port 80 already allocated" BEFORE claiming ready.
-        checkIngressPorts,
-        // Preflight: a local Postgres or web server on 5432/80/443.
-        () => checkHostPorts(),
         // Preflight: Verdaccio down causes ImageBuild bun install ConnectionRefused.
         async () => {
             const root = findProjectRoot() ?? process.cwd();
@@ -936,42 +1035,38 @@ export const doctorCommand = new Command("doctor")
     // project. Only the machine checks mean anything there; the project checks
     // would all fail with "run tdk project".
     const inProject = Boolean(findProjectRoot());
-    const notProjectCheck = () => ({
-        name: "Not a TDK project",
-        didPass: false,
-        message: "Not in a TDK project",
-        fix: DOCTOR_FIXES.notProject,
-    });
-    const checks = inProject
-        ? [...machineChecks, ...projectChecks]
-        : [...machineChecks, notProjectCheck];
-    // Machine checks are independent and mostly wait on child processes, so start
-    // them all now and print in the original order. Project checks stay sequential.
+    const checks = inProject ? [...machineChecks, ...projectChecks] : [...machineChecks];
+    // Machine checks are independent and mostly wait on child processes, so run
+    // them concurrently. Project checks stay sequential; rendering ranks failures first.
     const startedMachineChecks = machineChecks.map((checkFn) => Promise.resolve().then(checkFn));
-    let allPassed = true;
+    const results = [];
     for (const [index, checkFn] of checks.entries()) {
         const result = await (startedMachineChecks[index] ?? checkFn());
-        if (result.isSkipped) {
-            console.log(`${chalk.gray("○")} ${chalk.gray(result.message)}`);
-            if (result.fix) {
-                console.log(`${chalk.blue("ℹ")} ${result.fix}`);
-            }
+        results.push(result);
+    }
+    // Let machine checks finish before process.exit so their probes can clean up.
+    await Promise.allSettled(startedMachineChecks);
+    const allPassed = results.every((result) => result.didPass || result.isSkipped);
+    for (const result of orderDoctorResults(results)) {
+        if (!result.didPass && !result.isSkipped) {
+            console.log(`${chalk.red("✗")} ${result.message}`);
+            if (result.fix)
+                console.log(`${chalk.blue("ℹ")} Fix: ${result.fix}`);
         }
-        else if (result.didPass) {
-            console.log(`${chalk.green("✓")} ${result.message}`);
+        else if (result.isWarning) {
+            console.log(`${chalk.yellow("⚠")} ${chalk.yellow(result.message)}`);
+            if (result.fix)
+                console.log(`${chalk.blue("ℹ")} Fix: ${result.fix}`);
+        }
+        else if (result.isSkipped) {
+            console.log(`${chalk.gray("○")} ${chalk.gray(result.message)}`);
+            if (result.fix)
+                console.log(`${chalk.blue("ℹ")} ${result.fix}`);
         }
         else {
-            console.log(`${chalk.red("✗")} ${result.message}`);
-            if (result.fix) {
-                console.log(`${chalk.blue("ℹ")} Fix: ${result.fix}`);
-            }
-            allPassed = false;
-            break;
+            console.log(`${chalk.green("✓")} ${result.message}`);
         }
     }
-    // A failed check stops the loop early; let the rest finish so the network
-    // probe can clean up before process.exit.
-    await Promise.allSettled(startedMachineChecks);
     console.log("");
     if (allPassed && !inProject) {
         console.log(`${chalk.gray("○")} ${chalk.gray("Not in a TDK project, so project checks were skipped")}`);
