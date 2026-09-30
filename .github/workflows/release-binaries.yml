@@ -7,6 +7,18 @@ on:
     paths:
       - "package.json"
       - "cli/package.json"
+  pull_request:
+    paths:
+      - ".github/workflows/release-binaries.yml"
+      - "package.json"
+      - "cli/**"
+      - "scripts/release-binaries.sh"
+      - "Tiltfile"
+      - "engine/**"
+      - "discovery/**"
+      - "specs/**"
+      - "ext/**"
+      - "shared-platform-engineering/docker-templates/**"
 
 permissions:
   contents: read
@@ -14,7 +26,7 @@ permissions:
 # Queue releases instead of running them side by side: two runs for the same
 # version upload the same assets and one fails with "already exists".
 concurrency:
-  group: release
+  group: ${{ github.event_name == 'pull_request' && format('release-smoke-{0}', github.event.pull_request.number) || 'release' }}
   cancel-in-progress: false
 
 jobs:
@@ -170,6 +182,7 @@ jobs:
           }
 
   publish:
+    if: github.event_name != 'pull_request'
     needs: [build, windows-smoke]
     runs-on: ubuntu-latest
     permissions:
