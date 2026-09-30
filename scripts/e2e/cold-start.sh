@@ -49,9 +49,10 @@ if not overlay.exists():
     raise SystemExit("Sablier overlay file was not applied; inspect the Premium entitlement probes, bundle contents, and Sablier entitlement check above to identify whether access or the published bundle is missing it")
 overlay_text = " ".join(overlay.read_text().split())
 licensed_markers = {
-    "license-gated overlay marker": "No internal license check here",
     "Sablier endpoint": 'SABLIER_INTERNAL_URL = "http://sablier:10000"',
     "Sablier label implementation": "def sablier_container_labels(manifest, res_name, indent):",
+    "Sablier middleware labels": ".plugin.sablier.sablierUrl=",
+    "non-running container routing": "traefik.docker.allownonrunning=true",
 }
 missing_markers = [label for label, marker in licensed_markers.items() if marker not in overlay_text]
 if missing_markers:
