@@ -592,7 +592,7 @@ function findSelfContainedEngineRoot(): string | null {
   return null;
 }
 
-function findCliAssetRoot(): string | null {
+export function findCliAssetRoot(): string | null {
   let dir = import.meta.dirname || process.cwd();
   for (let i = 0; i < 8; i++) {
     if (fs.existsSync(path.join(dir, "shared-platform-engineering", "docker-templates"))) {

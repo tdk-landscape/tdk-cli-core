@@ -6,7 +6,7 @@ The existing pipeline in `tdk-cli-core` cross-compiles the Windows AMD64 executa
 
 **Goals:**
 - Prevent promotion of a release to latest unless the required Windows executable and companion assets are verified.
-- Exercise the release candidate on Windows with checksum, version, and project-generation checks using the installed layout.
+- Exercise the release candidate on Windows with checksum, version, and engine/template-resolution checks using the installed layout.
 - Verify both downloaded archives in the PowerShell installer.
 - Keep public Windows release language tied to passing release evidence.
 
@@ -17,18 +17,18 @@ The existing pipeline in `tdk-cli-core` cross-compiles the Windows AMD64 executa
 
 ## Decisions
 
-- **Smoke the release candidate on Windows before npm and latest promotion.** Build once, make the candidate assets available to the Windows job, and run `--version` plus `project --yes` with the engine extracted beside the executable. This catches runtime/layout failures that Linux PE validation cannot. If publication remains a single workflow, retain the draft state until the Windows gate passes; if workflow constraints require an artifact handoff, use the same built files rather than rebuilding for Windows.
-- **Treat release assets as a fixed contract.** Validate the four existing Unix binaries, Windows executable, engine archive, checksum manifest, and versioned ZIP. Check the Windows executable is non-empty and starts with `MZ`; ensure its checksum and ZIP entries exist; after publication, inspect the release asset list. Promote as latest only after gates pass.
+- **Smoke the release candidate on Windows before npm and latest promotion.** Build once, hand the exact candidate files to the Windows job as a workflow artifact, and run `--version` plus `runtime --check-assets --json` with the engine extracted beside the executable. This catches runtime/layout failures that Linux PE validation cannot without requiring Docker Desktop or changing the project command's readiness behavior. Publish only after this gate passes.
+- **Treat release assets as a required contract.** Validate the four existing Unix binaries, Windows executable, engine archive, checksum manifest, and versioned ZIP. Check all required local assets, checksum entries, and intended ZIP members; after upload, compare remote asset names and bytes with the candidate. Allow additional release assets that are not part of this workflow. Promote as latest only after gates pass.
 - **Verify checksums from the published manifest.** The installer will compare both executable and engine SHA-256 values against `checksums.txt` before extracting/installing. Missing entries and mismatches fail with actionable errors.
 - **Make documentation evidence-gated.** Keep pending/caveat wording until the latest release has the asset and the Windows smoke succeeds. Update the release repository README, installation story, website quick start, and framework index in the corresponding repositories once evidence exists. Retain Docker Desktop Linux-container mode and AMD64 limits.
 - **Keep manual full-boot acceptance separate from the release blocker.** Document a Windows 11 AMD64 checklist for install, doctor, scaffold, and optional `tdk up`; do not make Docker Desktop a hosted CI prerequisite.
 
-Alternatives considered: testing only the compiled file on Linux is insufficient for runtime behavior; testing `main` instead of the release candidate does not establish that the uploaded assets match; publishing latest before smoke would expose unverified assets. Rebuilding separately on Windows risks artifacts differing from those users download.
+Alternatives considered: testing only the compiled file on Linux is insufficient for runtime behavior; testing `main` instead of the release candidate does not establish that the uploaded assets match; publishing latest before smoke would expose unverified assets. Rebuilding separately on Windows risks artifacts differing from those users download. Downloading a draft release in the Windows job would require cross-repository release credentials; a workflow artifact passes the exact build output without that token.
 
 ## Risks / Trade-offs
 
-- [Draft-release permissions or asset-download behavior may complicate smoke sequencing] → Keep the candidate in a draft until verification, or use a workflow artifact containing the exact release files.
-- [Windows runner environment may lack required external tooling] → Keep the smoke limited to CLI version and project scaffold; do not require Docker.
+- [A job could accidentally rebuild after smoke] → Publish from the same workflow artifact that the Windows job downloaded; never rebuild in the publish job.
+- [Windows runner environment may lack Docker/Tilt] → Keep the smoke limited to CLI version and packaged runtime asset resolution; do not require Docker.
 - [Checksum manifest formatting may differ across platforms] → Parse by exact asset filename and fail clearly when an entry is absent or malformed.
 - [Manual Windows 11 acceptance cannot run on hosted CI] → Record it as a release-readiness checklist and keep broader support language gated on that evidence.
 
@@ -42,10 +42,4 @@ Alternatives considered: testing only the compiled file on Linux is insufficient
 
 ## Open Questions
 
-- Confirm whether the release workflow can download draft assets using its existing `BINARY_RELEASE_TOKEN`; if not, the smoke job should consume the exact build artifact before promotion.
-- Define where the manual Windows 11 acceptance result is recorded so documentation maintainers can verify it before removing the caveat.
-
-
-## Implementation Finding
-
-The current `tdk project --yes` command unconditionally runs `assertMachineReadyOrExit()`, which requires Docker, Compose, Tilt, Bun, and available host ports before it creates project files. This conflicts with the spec's Windows smoke requirement that `project --yes` pass without Docker Desktop. Resolve this contract before implementing the Windows smoke: either define a narrowly scoped supported smoke mode that skips machine readiness while still exercising engine/template resolution, or revise the smoke to provide the required Windows runtime dependencies. Do not claim a no-Docker project smoke until the command behavior supports it.
+- Record the manual Windows 11 acceptance result in a tracked document before removing full-stack support caveats. This result is distinct from the hosted runtime-assets smoke and must not be inferred from it.

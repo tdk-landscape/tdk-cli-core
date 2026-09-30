@@ -9,8 +9,7 @@ on:
       - "cli/package.json"
 
 permissions:
-  contents: write # push the automatic version bump back to main
-  id-token: write
+  contents: read
 
 # Queue releases instead of running them side by side: two runs for the same
 # version upload the same assets and one fails with "already exists".
@@ -19,8 +18,163 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release:
+  build:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      bumped: ${{ steps.version.outputs.bumped }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24.15.0
+          package-manager-cache: false
+
+      - run: bun install --frozen-lockfile
+        working-directory: cli
+
+      # The Linux compiled-binary project-generation smoke test runs tdk doctor,
+      # which requires Tilt and the TDK host ports to be available.
+      - name: Install Tilt for the Linux release binary smoke test
+        run: curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash
+
+      - name: Free required host ports for the Linux release binary smoke test
+        run: |
+          sudo systemctl stop postgresql.socket 'postgresql@*.socket' 2>/dev/null || true
+          sudo systemctl stop postgresql.service 'postgresql@*.service' 2>/dev/null || true
+          sudo DEBIAN_FRONTEND=noninteractive apt-get remove --purge -y 'postgresql*' 2>&1 | sudo tee /tmp/pg-purge.log > /dev/null || true
+          sudo fuser -k 80/tcp 443/tcp 5432/tcp 2>/dev/null || true
+          sleep 2
+          if sudo ss -ltn 2>/dev/null | grep -Eq ':(80|443|5432) '; then
+            echo "::error::a required TDK host port is still in use"
+            sudo ss -ltnp | grep -E ':(80|443|5432) ' || true
+            tail -50 /tmp/pg-purge.log || true
+            exit 1
+          fi
+
+      # Choose the release version before the binary build so candidate assets,
+      # the smoke job, and the npm package all use one version.
+      - name: Pick an unreleased version
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          current=$(node -p "require('./package.json').version")
+          version="$current"
+          while npm view "@tdk-landscape/tdk-cli-core@${version}" version >/dev/null 2>&1 \
+            || gh release view "v${version}" --repo tdk-landscape/tdk-cli-releases >/dev/null 2>&1; do
+            version=$(node -p 'const [a, b, c] = process.argv[1].split(".").map(Number); [a, b, c + 1].join(".")' "$version")
+          done
+          if [ "$version" = "$current" ]; then
+            echo "Releasing ${version}."
+            echo "bumped=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::${current} is already released; releasing this commit as ${version}."
+            node -e '
+              const fs = require("fs");
+              for (const file of ["package.json", "cli/package.json"]) {
+                const before = fs.readFileSync(file, "utf8");
+                const after = before.replace(/("version":\s*")[^"]+/, (_, key) => key + process.argv[1] + "\"");
+                if (after === before) throw new Error("no version field in " + file);
+                fs.writeFileSync(file, after);
+              }
+            ' "$version"
+            echo "bumped=true" >> "$GITHUB_OUTPUT"
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Build release candidate
+        run: scripts/release-binaries.sh
+
+      - name: Upload exact release candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-dist-${{ steps.version.outputs.version }}
+          path: release-dist-${{ steps.version.outputs.version }}/
+          if-no-files-found: error
+          retention-days: 2
+
+  windows-smoke:
+    needs: build
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Download exact release candidate
+        uses: actions/download-artifact@v4
+        with:
+          name: release-dist-${{ needs.build.outputs.version }}
+          path: release-dist
+
+      - name: Verify checksums, version, and bundled runtime layout
+        shell: pwsh
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $releaseDir = Join-Path $PWD "release-dist"
+          $checksumFile = Join-Path $releaseDir "checksums.txt"
+
+          function Get-ExpectedHash([string]$AssetName) {
+            $found = @()
+            foreach ($line in Get-Content -LiteralPath $checksumFile) {
+              if ($line -match '^(?<hash>[0-9A-Fa-f]{64})[ \t]{2}(?<name>.+)$' -and $Matches.name -eq $AssetName) {
+                $found += $Matches.hash.ToLowerInvariant()
+              }
+            }
+            if ($found.Count -ne 1) {
+              throw "checksums.txt must contain exactly one entry for $AssetName"
+            }
+            return $found[0]
+          }
+
+          foreach ($asset in @("tdk-windows-amd64.exe", "tdk-cli-engine.tar.gz")) {
+            $assetPath = Join-Path $releaseDir $asset
+            if (!(Test-Path -LiteralPath $assetPath -PathType Leaf)) {
+              throw "Release candidate is missing $asset"
+            }
+            $expected = Get-ExpectedHash $asset
+            $actual = (Get-FileHash -LiteralPath $assetPath -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($actual -ne $expected) {
+              throw "SHA-256 mismatch for $asset; expected $expected, got $actual"
+            }
+          }
+
+          $exePath = Join-Path $releaseDir "tdk.exe"
+          Copy-Item -LiteralPath (Join-Path $releaseDir "tdk-windows-amd64.exe") -Destination $exePath
+          tar -xzf (Join-Path $releaseDir "tdk-cli-engine.tar.gz") -C $releaseDir
+          if ($LASTEXITCODE -ne 0) { throw "Engine archive extraction failed" }
+
+          $actualVersion = (& $exePath --version).Trim()
+          if ($LASTEXITCODE -ne 0) { throw "tdk.exe --version failed" }
+          if ($actualVersion -ne $env:VERSION) {
+            throw "Version mismatch: expected $env:VERSION, got $actualVersion"
+          }
+
+          $runtimeJson = & $exePath runtime --check-assets --json
+          if ($LASTEXITCODE -ne 0) { throw "tdk.exe runtime --check-assets failed: $runtimeJson" }
+          $runtime = $runtimeJson | ConvertFrom-Json
+          if (!$runtime.ok) { throw "Runtime asset check failed: $runtimeJson" }
+
+          $expectedRoot = (Resolve-Path -LiteralPath (Join-Path $releaseDir "tdk-cli")).Path.TrimEnd("\\")
+          $actualRoot = (Resolve-Path -LiteralPath $runtime.assetRoot).Path.TrimEnd("\\")
+          if (![string]::Equals($actualRoot, $expectedRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+            throw "Expected adjacent engine root '$expectedRoot', got '$actualRoot'"
+          }
+
+  publish:
+    needs: [build, windows-smoke]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
     steps:
       - uses: actions/checkout@v7
         with:
@@ -39,86 +193,48 @@ jobs:
       - name: Update npm for trusted publishing
         run: npm install -g npm@latest # zizmor: ignore[adhoc-packages] trusted publishing needs a current npm
 
+      - name: Restore selected release version
+        if: needs.build.outputs.bumped == 'true'
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          node -e '
+            const fs = require("fs");
+            for (const file of ["package.json", "cli/package.json"]) {
+              const before = fs.readFileSync(file, "utf8");
+              const after = before.replace(/("version":\s*")[^"]+/, (_, key) => key + process.argv[1] + "\"");
+              if (after === before) throw new Error("no version field in " + file);
+              fs.writeFileSync(file, after);
+            }
+          ' "$VERSION"
+
       - run: bun install --frozen-lockfile
         working-directory: cli
 
-      # The compiled binary's project-generation smoke test runs tdk doctor,
-      # which requires Tilt and the TDK host ports to be available.
-      - name: Install Tilt for the release binary smoke test
-        run: curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash
-
-      - name: Free required host ports for the release binary smoke test
-        run: |
-          sudo systemctl stop postgresql.socket 'postgresql@*.socket' 2>/dev/null || true
-          sudo systemctl stop postgresql.service 'postgresql@*.service' 2>/dev/null || true
-          sudo DEBIAN_FRONTEND=noninteractive apt-get remove --purge -y 'postgresql*' 2>&1 | sudo tee /tmp/pg-purge.log > /dev/null || true
-          sudo fuser -k 80/tcp 443/tcp 5432/tcp 2>/dev/null || true
-          sleep 2
-          if sudo ss -ltn 2>/dev/null | grep -Eq ':(80|443|5432) '; then
-            echo "::error::a required TDK host port is still in use"
-            sudo ss -ltnp | grep -E ':(80|443|5432) ' || true
-            tail -50 /tmp/pg-purge.log || true
-            exit 1
-          fi
-
-      # This workflow runs on every package.json change, not only version
-      # bumps. A dependency update or other package.json edit used to rebuild
-      # the binaries from new code and re-upload them over the release that
-      # already had this version, while npm skipped it as "already published":
-      # new code under an old version number. Instead, move to the next patch
-      # version that is neither on npm nor a tdk-cli-releases tag. Must run
-      # before the build: the CLI reads its version from cli/package.json.
-      - name: Pick an unreleased version
-        id: version
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          current=$(node -p "require('./package.json').version")
-          version="$current"
-          while npm view "@tdk-landscape/tdk-cli-core@${version}" version >/dev/null 2>&1 \
-            || gh release view "v${version}" --repo tdk-landscape/tdk-cli-releases >/dev/null 2>&1; do
-            version=$(node -p 'const [a, b, c] = process.argv[1].split(".").map(Number); [a, b, c + 1].join(".")' "$version")
-          done
-          if [ "$version" = "$current" ]; then
-            echo "Releasing ${version}."
-            echo "bumped=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "::notice::${current} is already released; releasing this commit as ${version}."
-            # Edit only the version line: `npm version` would reinstall the
-            # workspaces and touch the bun-installed node_modules.
-            node -e '
-              const fs = require("fs");
-              for (const file of ["package.json", "cli/package.json"]) {
-                const before = fs.readFileSync(file, "utf8");
-                const after = before.replace(/("version":\s*")[^"]+"/, (_, key) => key + process.argv[1] + "\"");
-                if (after === before) throw new Error("no version field in " + file);
-                fs.writeFileSync(file, after);
-              }
-            ' "$version"
-            echo "bumped=true" >> "$GITHUB_OUTPUT"
-          fi
-          echo "version=${version}" >> "$GITHUB_OUTPUT"
-
-      # cli/bin/tdk.js loads cli/dist/cli.js, so the npm package is broken
-      # unless the CLI is compiled before `npm publish`.
       - run: npm run build
 
-      - run: scripts/release-binaries.sh --publish
+      - name: Download exact release candidate
+        uses: actions/download-artifact@v4
+        with:
+          name: release-dist-${{ needs.build.outputs.version }}
+          path: release-dist-${{ needs.build.outputs.version }}
+
+      - name: Publish verified binary release
+        run: scripts/release-binaries.sh --publish-only
         env:
           GH_TOKEN: ${{ secrets.BINARY_RELEASE_TOKEN }}
 
-      - name: Verify Windows release binary
-        run: test -s "release-dist-${VERSION}/tdk-windows-amd64.exe"
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-
-      # The root package is the public package. It owns the tdk bin entry and
-      # already contains the compiled CLI plus the bundled engine assets.
+      # The root package owns the public tdk bin entry and compiled CLI.
       - name: Publish to npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          VERSION: ${{ needs.build.outputs.version }}
         run: |
           PKG_VERSION=$(node -p "require('./package.json').version")
+          if [ "$PKG_VERSION" != "$VERSION" ]; then
+            echo "::error::Expected package version $VERSION, got $PKG_VERSION"
+            exit 1
+          fi
           if npm view "@tdk-landscape/tdk-cli-core@${PKG_VERSION}" version >/dev/null 2>&1; then
             echo "@tdk-landscape/tdk-cli-core@${PKG_VERSION} is already published, skipping."
           else
@@ -129,15 +245,13 @@ jobs:
       # github.token doesn't trigger workflows, so this can't loop. If it
       # fails, the release is still out; the next run bumps past it anyway.
       - name: Commit the version bump
-        if: steps.version.outputs.bumped == 'true'
+        if: needs.build.outputs.bumped == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ steps.version.outputs.version }}
+          VERSION: ${{ needs.build.outputs.version }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
-          # CHANGELOG versions match npm: file the "Unreleased" entries under
-          # this version, leaving an empty "Unreleased" section above it.
           node -e '
             const fs = require("fs");
             const [version, date] = process.argv.slice(1);
@@ -145,9 +259,9 @@ jobs:
             const lines = fs.readFileSync("CHANGELOG.md", "utf8").split("\n");
             const start = lines.indexOf("## Unreleased");
             if (start === -1) process.exit(0);
-            let end = lines.findIndex((l, i) => i > start && l.startsWith("## "));
+            let end = lines.findIndex((line, index) => index > start && line.startsWith("## "));
             if (end === -1) end = lines.length;
-            if (!lines.slice(start + 1, end).some((l) => l.trim())) process.exit(0);
+            if (!lines.slice(start + 1, end).some((line) => line.trim())) process.exit(0);
             lines.splice(start + 1, 0, "", "## " + version + " (" + date + ")");
             fs.writeFileSync("CHANGELOG.md", lines.join("\n"));
           ' "$VERSION" "$(date -u +%F)"

@@ -12,14 +12,14 @@ Each release promoted as latest SHALL include `tdk-windows-amd64.exe`, `tdk-cli-
 - **THEN** the release workflow fails and the candidate is not promoted as latest
 
 ### Requirement: Windows release candidate passes runtime smoke
-The release pipeline SHALL run the exact candidate executable on a Windows AMD64 runner with the candidate engine archive extracted to a sibling `tdk-cli` directory. The smoke SHALL verify the executable and engine archive checksums, require `tdk.exe --version` to equal the candidate version, and require `tdk.exe project --yes` in an empty directory to exit successfully without engine/template-not-found errors. The smoke SHALL NOT require Docker Desktop.
+The release pipeline SHALL run the exact candidate executable on a Windows AMD64 runner with the candidate engine archive extracted to a sibling `tdk-cli` directory. The smoke SHALL verify the executable and engine archive checksums, require `tdk.exe --version` to equal the candidate version, and run `tdk.exe runtime --check-assets --json`. The runtime check SHALL confirm that the resolved asset root is the adjacent `tdk-cli` directory and that required engine, template, and Docker-template assets can be read. The smoke SHALL NOT require Docker Desktop and SHALL NOT claim that `tdk up` works on Windows.
 
 #### Scenario: Windows candidate smoke passes
-- **WHEN** checksums match and the executable runs the version and project commands successfully with the adjacent engine
+- **WHEN** checksums match, the version matches the candidate, and the runtime check resolves all required assets from the adjacent engine directory
 - **THEN** the Windows smoke gate passes and the candidate may proceed to the remaining release gates
 
 #### Scenario: Windows candidate smoke fails
-- **WHEN** checksum verification, version comparison, or project scaffolding fails
+- **WHEN** checksum verification, version comparison, or runtime asset resolution fails
 - **THEN** publication SHALL stop before npm publication and latest promotion
 
 ### Requirement: PowerShell installer verifies engine integrity

@@ -65,6 +65,11 @@ const COMMAND_GROUPS = [
         alias: "regenerate, verify, edit",
       },
       { name: "doctor", desc: "Check environment readiness", alias: "" },
+      {
+        name: "runtime",
+        desc: "Inspect packaged engine and template assets",
+        alias: "--check-assets",
+      },
       { name: "completion", desc: "Generate shell completions", alias: "--install --shell zsh" },
       { name: "upgrade, update", desc: "Self-update to latest version", alias: "--force" },
       { name: "version, -v", desc: "Display version number", alias: "" },

@@ -1,8 +1,8 @@
 ## 1. Release asset contract and workflow gates
 
-- [x] 1.1 Audit `tdk-cli-core` release script/workflow and make required release assets explicit, including non-empty PE `MZ` validation, EXE checksum/ZIP inclusion, and published asset-list verification.
-- [ ] 1.2 Add a Windows AMD64 smoke job that consumes the exact candidate assets, verifies EXE and engine hashes, checks version parity, and runs `project --yes` with the sibling engine layout.
-- [ ] 1.3 Order publication so a failed asset or Windows runtime gate prevents npm publication and latest promotion; verify release concurrency still prevents same-version races.
+- [x] 1.1 Validate required local and remote release assets, including PE `MZ`, complete checksums, ZIP membership, and byte-for-byte uploaded asset verification before latest promotion.
+- [x] 1.2 Add `tdk runtime --check-assets --json` to verify the bundled engine and templates without machine-readiness checks; cover the executable's adjacent `tdk-cli` layout.
+- [x] 1.3 Split release build, Windows smoke, and publication into dependent jobs that pass the exact same workflow artifact; ensure failed gates prevent npm publication and latest promotion, and preserve release concurrency/version-bump behavior.
 
 ## 2. Installer integrity
 
@@ -18,6 +18,6 @@
 
 ## 4. Release verification
 
-- [ ] 4.1 Run release workflow asset checks and Windows smoke against a candidate, confirming checksum, version, project scaffold, ZIP membership, and release asset listing.
+- [ ] 4.1 Run release workflow asset checks and Windows smoke against a candidate, confirming checksum, version, runtime asset resolution, ZIP membership, and release asset listing.
 - [ ] 4.2 Verify the latest-download URL returns successfully and the PowerShell installer works on a clean Windows 11 AMD64 environment.
 - [ ] 4.3 Complete and record the manual Windows 11 AMD64 checklist and confirm public docs make no claim beyond the evidence.
