@@ -25,10 +25,12 @@ Use exactly “TDK runs many services on your laptop with Docker + Tilt. Helm st
 
 Alternative: independently phrased descriptions are shorter but recreate the current ambiguity. Do not advertise generated file counts as user value.
 
-### 2. A short README is the entry point
-Order: one-liner; when-not-to-use then when-to-use (six combined bullets maximum); exactly five runnable onboarding commands; links to “How this sits next to Helm” and the service schema; then badges, installation prerequisites, and concise platform/status information. Select the five commands from verified current CLI syntax, including setup, resource creation, and `tdk up <stack>`; prerequisite installation can be described below. Put bench, monorepo map, premium detail, and telemetry in linked `docs/` pages while retaining their honest limitations and support status.
+### 2. A sectioned README with an unmistakable first screen
+The first screen states that `tdk up` runs Docker containers on the laptop, that `service.json` and Helm `values.yaml` have different jobs, and that Helm remains the production cluster templating workflow. It explicitly says TDK is not a Node.js framework and distinguishes the default Bun/TypeScript starter from TDK's Docker + Tilt role. Show the local/cluster contrast before badges or feature details.
 
-Alternative: another comparison table above the current long README still forces readers to infer the product boundary.
+After that boundary, keep the README useful as the GitHub landing page: badges; Installation with npm and the prebuilt binary; exactly five runnable Quick start commands; a compact “Why TDK?” comparison; Docs links; when-not-to-use guidance; requirements/support; contributing and license. Include a short, carefully qualified pointer to the scale fixture, while keeping methodology, repository map, feature details, and telemetry in dedicated `docs/` pages. Add a docs index so readers can find those pages without restoring the old long-form README.
+
+Alternative: a short stub hides how to install and evaluate the CLI; restoring every architecture and benchmark detail to the root README recreates the old wall of text.
 
 ### 3. Helm guide describes ownership, not translation
 `docs/with-helm.md` is titled “TDK + Helm (they are not alternatives)”. Use two paths:
@@ -63,7 +65,7 @@ Core tasks modify only the core worktree. Website tasks require an isolated bran
 
 - [Website and About can lag core docs] -> Keep explicit companion tasks and verify all surfaces before declaring the rollout complete.
 - [App-template schema evolves] -> Pin chart version and validate sample values against its matching schema and rendering tools at implementation time.
-- [One-screen copy can hide requirements] -> Put installation and platform limitations immediately after the entry sequence with direct links.
+- [A compact entry page can hide requirements] -> Keep installation, a runnable quick start, platform limitations, and a documentation index on the README.
 - [Same image sounds like automatic publication] -> Explain user-owned image build/push and cluster registry access.
 - [Reviewer comprehension is subjective] -> Use a timed reader exercise with a Helm user; record answers and revise unclear copy.
 - [Editor schema hints can affect validation] -> Prefer editor associations when in-file hints are unsupported; retain existing validation contracts.

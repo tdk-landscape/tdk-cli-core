@@ -2,7 +2,7 @@
 
 TDK is a local development kit. It organizes microservices using a **Project → Stack → Resource** hierarchy, then uses Tilt to build, run, and hot-reload them locally. It generates a Tiltfile, Dockerfiles, and supporting configuration; Tilt runs the local containers. See [TDK + Helm](with-helm.md) for the production handoff.
 
-For a runnable one-service introduction, use [one-backend](../examples/one-backend/README.md). For a larger landscape, see the [bundled TDK project example](../examples/tdk-example/README.md) or create a template with `tdk project example`.
+For a runnable one-service introduction, use [one-backend](../examples/one-backend/README.md). For a larger local multi-service project, see the [bundled TDK project example](../examples/tdk-example/README.md) or create a template with `tdk project example`.
 
 A `.tdk/project.json` groups stacks into phases (`pre_alpha`, `alpha`, `beta`, `out_of_scope`) so a large system can be brought up in stages. `tdk up` runs stacks from the first three phases and adds newly discovered stacks to `pre_alpha`.
 

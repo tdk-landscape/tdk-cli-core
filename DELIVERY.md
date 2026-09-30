@@ -5,7 +5,7 @@ Website worktree: `docs/helm-handoff` (`tdk-website-helm-handoff-wt`).
 
 ## Shipped in the worktrees
 
-Docs, one-backend examples, editor schemas, contributor guidance, issue form scope questions, CLI intro copy, website copy, and GitHub About description.
+Sectioned README and docs index, one-backend examples, editor schemas, contributor guidance, issue form scope questions, CLI intro copy, website copy, and GitHub About description.
 
 ## Not shipped
 
@@ -14,6 +14,7 @@ Docs, one-backend examples, editor schemas, contributor guidance, issue form sco
 ## Verified
 
 - Link review: local Markdown references in `README.md`, `docs/with-helm.md`, `docs/project-overview.md`, `docs/compare-honest.md`, `examples/one-backend/README.md`, and `examples/one-backend-helm/README.md` resolve within the core worktree. Corrected the Helm example's source path to `../one-backend/services/one-backend/api`.
+- README/docs index links were also checked locally after the README reorganization; all relative targets exist.
 - External chart pages checked on 2026-09-30: [official app-template docs](https://bjw-s-labs.github.io/helm-charts/docs/app-template/) (HTTP 200), [app-template 5.2.1 release notes](https://github.com/bjw-s-labs/helm-charts/releases/tag/app-template-5.2.1) (HTTP 200), [5.2.1 values schema](https://raw.githubusercontent.com/bjw-s-labs/helm-charts/app-template-5.2.1/charts/other/app-template/values.schema.json) (HTTP 200). Chart OCI reference and schema/release versions match at `5.2.1`. Removed the chart examples link after it returned HTTP 404.
 - The public `main` guide URL used by website/issue links, `https://github.com/tdk-landscape/tdk-cli-core/blob/main/docs/with-helm.md`, returned HTTP 404 during this pre-merge check. Its target exists in the core worktree; recheck after merge before treating the cross-repository links as live.
 - Current worktree CLI help, run with bundled Node 24.19.0: `node cli/bin/tdk.js --help`, `node cli/bin/tdk.js doctor --help`, and `node cli/bin/tdk.js up --help`. The help describes the local service loop, contains no Helm install command as a TDK command, and the top-level output says “Tilt Development Kit: run your microservices locally.”
@@ -29,11 +30,11 @@ Docs, one-backend examples, editor schemas, contributor guidance, issue form sco
 - Doctor machine-readable output and exit behavior: not checked; help alone does not verify these contracts.
 - First human Helm-user review: **failed** after more than 10 minutes. Their answers, relayed by the user, were: (1) “it runnning a clister like”; (2) “prod”; (3) “same completely same”; (4) “no its only tdk for local”. These showed confusion about the local runtime, Helm's role, and whether app-template can remain in production. The blunt local/cluster statements and contrast block were added to both docs.
 - Reader's additional initial impression: TDK was “only for nodejs things.”
-- Second human review, uncoached after the first-screen rewrite: duration not reported. Answers as relayed by the user: (1) “laptop”; (2) “no helm , its templator engine tdk cli for local env”; (3) “not same its mega manifest”; (4) “yes without tdk , its sepoate”. Result: Q1, Q3, and Q4 understood; Q2 remained unclear because the reader described TDK as the templating engine and did not affirm Helm's cluster role. Added an explicit Helm-versus-TDK sentence to both docs. Do not record a pass until the reader confirms the revised Q2 understanding; no synthetic self-review is acceptance evidence.
+- Second human review, uncoached after the first-screen rewrite: duration not reported. Answers as relayed by the user: (1) “laptop”; (2) “no helm , its templator engine tdk cli for local env”; (3) “not same its mega manifest”; (4) “yes without tdk , its sepoate”. The user judged it mostly a pass: Q1, Q3, and Q4 were understood; Q2 did not clearly state that Helm remains for cluster templating. Added this explicit sentence to both docs: “TDK does not replace Helm. Helm remains the templating engine for the cluster. TDK only templates the laptop environment.” The reader's raw answer and unknown duration remain the evidence; no synthetic self-review is acceptance evidence.
 - No claim is made that the live website was verified or published.
 
 ## Follow-up
 
-Have the same Helm user retake the four-question review against only the revised README first screen and `docs/with-helm.md` first screen, with a ten-minute cap. Record their uncoached answers and actual time before considering the review passed. Keep runtime CI evidence out of the PR's claims.
+Keep both PRs in Draft while the revised first screen and corrected Helm boundary are reviewed. Do not treat runtime CI evidence as proof of this positioning change.
 
 Website preview skipped: Bundler 2.6.9 missing; source inspected only.
