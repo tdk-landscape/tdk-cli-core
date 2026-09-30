@@ -4,7 +4,7 @@
 
 **Run your whole microservice landscape locally. No Kubernetes.**
 
-One CLI that scaffolds your services and runs the whole landscape locally with hot reload, health checks, a proxy, and Postgres, all built on [Tilt](https://tilt.dev). Tested at scale: a 100-service fixture (small generated `/health` services) boots from nothing on a clean CI runner in about 8 minutes, and holds about 1.7 GiB of memory ([details](#cold-boot-on-a-clean-machine-ci)).
+One CLI that scaffolds your services and runs the whole landscape locally with hot reload, health checks, a proxy, and Postgres, all built on [Tilt](https://tilt.dev). The default product example demonstrates a routed Hono API + PostgreSQL + NATS worker + Vite UI workflow. Separately, a 100-service fixture bench (small generated `/health` services) boots from nothing on a clean CI runner in about 8 minutes, and holds about 1.7 GiB of memory ([details](#cold-boot-on-a-clean-machine-ci)).
 
 ## Status
 
@@ -17,7 +17,7 @@ Known limits: [docs/compare-honest.md](docs/compare-honest.md)
 [![npm version](https://img.shields.io/npm/v/@tdk-landscape/tdk-cli-core.svg?style=flat&color=blue)](https://www.npmjs.com/package/@tdk-landscape/tdk-cli-core)
 [![CI](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/ci.yml/badge.svg)](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/ci.yml)
 [![Quickstart E2E](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/quickstart-e2e.yml/badge.svg)](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/quickstart-e2e.yml)
-[![ERP scale E2E](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/erp-scale-e2e.yml/badge.svg)](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/erp-scale-e2e.yml)
+[![ERP fixture scale E2E](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/erp-scale-e2e.yml/badge.svg)](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/erp-scale-e2e.yml)
 [![Example apps E2E](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/examples-e2e.yml/badge.svg?branch=main)](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/examples-e2e.yml)
 [![Known Vulnerabilities](https://snyk.io/test/github/tdk-landscape/tdk-cli-core/badge.svg)](https://snyk.io/test/github/tdk-landscape/tdk-cli-core)
 [![Socket Badge](https://badge.socket.dev/npm/package/@tdk-landscape/tdk-cli-core/latest)](https://socket.dev/npm/package/@tdk-landscape/tdk-cli-core/overview)
@@ -59,9 +59,9 @@ This is the core monorepo for TDK: the `tdk` CLI, the Starlark-based Tilt orches
 
 TDK is not a replacement for Tilt: it generates the Tiltfile, Dockerfiles and compose files and then runs Tilt. If you already have a hand-written Tiltfile or compose setup you're happy with, TDK mostly saves you the boilerplate for the next service.
 
-## Benchmark: 100 services on one laptop
+## Fixture bench: 100 generated services on one laptop
 
-Measured with [`scripts/benchmark/container-scale.ts`](scripts/benchmark/README.md) against the 100-service [ERP example](https://github.com/tdk-landscape/tdk-erp-system) on a 16 GB machine (Docker VM: 7.75 GiB). Raw results are in [`benchmarks/results/`](benchmarks/results).
+Measured with [`scripts/benchmark/container-scale.ts`](scripts/benchmark/README.md) against the 100-service [`tdk-erp-system` fixture bench](https://github.com/tdk-landscape/tdk-erp-system), a scale fixture of generated `/health` services rather than an ERP product, on a 16 GB machine (Docker VM: 7.75 GiB). Raw results are in [`benchmarks/results/`](benchmarks/results).
 
 | Services | All healthy after | Total memory | Avg memory / service | Crashes / OOM kills |
 |---:|---:|---:|---:|---:|
@@ -81,7 +81,7 @@ What this does and doesn't measure:
 The table above is a warm start. Two workflows install the published CLI on a fresh GitHub-hosted Ubuntu runner and run `tdk up` from nothing, building every image:
 
 - [**Quickstart E2E**](.github/workflows/quickstart-e2e.yml): the commands from the top of this README, one scaffolded backend, until it answers `/health` through Traefik. About 4 minutes. Runs after each release and daily.
-- [**ERP scale E2E**](.github/workflows/erp-scale-e2e.yml): the 100-service example. [Run 36395860088](https://github.com/tdk-landscape/tdk-cli-core/actions/runs/36395860088) (CLI 1.3.72, 4 vCPU / 15 GB): **100 / 100 backends healthy through Traefik after 472 s**, 111 containers, 1.8 GiB used by all containers. Runs weekly.
+- [**ERP fixture scale E2E**](.github/workflows/erp-scale-e2e.yml): the 100-service generated-health fixture bench. [Run 36395860088](https://github.com/tdk-landscape/tdk-cli-core/actions/runs/36395860088) (CLI 1.3.72, 4 vCPU / 15 GB): **100 / 100 backends healthy through Traefik after 472 s**, 111 containers, 1.8 GiB used by all containers. Runs weekly.
 
 Both are Linux/Ubuntu CI fixtures: generated services answering `/health`, not a real business app. A green run means TDK can generate, build, route and health-check a landscape of that size on a clean Ubuntu runner. Windows now has a separate smoke workflow for CLI startup and unit tests, but it does not boot a full landscape on Windows. These CI runs also don't cover Apple Silicon or an existing repo you bring yourself.
 
@@ -179,7 +179,7 @@ TDK has no telemetry or analytics. The CLI only goes online when you ask it to:
 
 See the [honest comparison](docs/compare-honest.md) for tradeoffs and cases where TDK may not fit.
 
-**Do I need 100 microservices?** No. Two services work the same way. The 100-service example is a stress test to show the overhead stays flat.
+**Do I need 100 microservices?** No. Two services work the same way. The 100-service fixture bench is a stress test to show the overhead stays flat; it is not an ERP product example.
 
 **Is TDK affiliated with Tilt or Docker?** No. TDK is an independent project built on top of [Tilt](https://tilt.dev), which is maintained by Docker, Inc.
 
@@ -217,7 +217,7 @@ Checks Docker, Compose and Tilt. Inside a project it also checks the generated c
 - **Questions and ideas:** [open an issue](https://github.com/tdk-landscape/tdk-cli-core/issues/new/choose).
 - **Contributing:** see [CONTRIBUTING.md](CONTRIBUTING.md) and the [step-by-step guide](docs/contributing/README.md). Issues labeled [`good first issue`](https://github.com/tdk-landscape/tdk-cli-core/labels/good%20first%20issue) are a good place to start.
 - **Security:** see [SECURITY.md](SECURITY.md). Please don't report vulnerabilities in public issues.
-- **Examples:** [ERP system (100 services)](https://github.com/tdk-landscape/tdk-erp-system), [SaaS starter](https://github.com/tdk-landscape/tdk-saas-starter), [restaurant](https://github.com/tdk-landscape/tdk-restaurant-example), [ecommerce (Vue + Hono)](https://github.com/tdk-landscape/tdk-ecommerce-example).
+- **Examples:** bundled [TDK product example](examples/tdk-example), [ERP fixture bench (100 generated services)](https://github.com/tdk-landscape/tdk-erp-system), [SaaS starter](https://github.com/tdk-landscape/tdk-saas-starter), [restaurant](https://github.com/tdk-landscape/tdk-restaurant-example), [ecommerce (Vue + Hono)](https://github.com/tdk-landscape/tdk-ecommerce-example).
 
 ## License
 

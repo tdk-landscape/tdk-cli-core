@@ -1,7 +1,8 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { cpSync, existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { basename, dirname, join, resolve } from "node:path";
 import { cwd } from "node:process";
+import { fileURLToPath } from "node:url";
 import chalk from "chalk";
 import { Command } from "commander";
 import { generateMasterConfigs, readProjectConfig } from "../generator/template-engine.js";
@@ -94,13 +95,33 @@ async function cloneProjectTemplate(templateName, targetDir) {
     }
     showCommandHeader(`Cloning template: ${templateName}`);
     showDetail(`${template.description}\n`, 0);
-    showDetail(`Source: ${template.repo}`, 0);
+    showDetail(`Source: ${template.bundledPath ? "bundled TDK example" : template.repo}`, 0);
     showDetail(`Destination: ${destination}\n`, 0);
     try {
-        execFileSync("git", ["clone", template.repo, destination], { stdio: "inherit" });
+        if (template.bundledPath) {
+            const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../");
+            cpSync(resolve(packageRoot, template.bundledPath), destination, { recursive: true });
+            const projectSlug = basename(destination).replace(/-/g, "_");
+            for (const file of [
+                "services/platform/messaging/docker-compose.yml",
+                "services/shop/orders-api/service.json",
+                "services/shop/orders-api/src/index.ts",
+                "services/shop/orders-worker/service.json",
+                "services/shop/orders-worker/src/index.ts",
+            ]) {
+                const copiedPath = join(destination, file);
+                const contents = readFileSync(copiedPath, "utf-8");
+                writeFileSync(copiedPath, contents.replaceAll("tdk_example", projectSlug));
+            }
+        }
+        else {
+            execFileSync("git", ["clone", template.repo, destination], { stdio: "inherit" });
+        }
     }
     catch {
-        showErrorAndExit("git clone failed. Check you have git installed and network access.");
+        showErrorAndExit(template.bundledPath
+            ? "Bundled example copy failed. Reinstall the TDK CLI package and try again."
+            : "git clone failed. Check you have git installed and network access.");
     }
     console.log(chalk.green(`\n✅ Cloned "${templateName}" into ${dirName}/`));
     showDetail("\nNext steps:", 0);

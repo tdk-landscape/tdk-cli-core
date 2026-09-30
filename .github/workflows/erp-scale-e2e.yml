@@ -1,11 +1,12 @@
-# Boots the public 100-service ERP example (tdk-landscape/tdk-erp-system) on a
+# Boots the public 100-service fixture bench (tdk-landscape/tdk-erp-system), a
+# set of generated health-check services rather than a real ERP product, on a
 # clean GitHub-hosted runner with the published CLI and waits for every backend
 # to answer /health through Traefik. It backs the README's "100 services on a
 # 16 GB machine" claim with a measurement anyone can re-run.
 #
 # Manual and weekly only: a full boot builds ~107 images and takes a long time.
 # Use scope "one-stack" for a quick check (about 16 services).
-name: 🏭 ERP scale E2E
+name: 🏭 ERP fixture scale E2E
 
 on:
   workflow_dispatch:

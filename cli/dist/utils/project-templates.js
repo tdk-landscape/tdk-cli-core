@@ -1,4 +1,4 @@
-/** Starter projects `tdk project <name>` can clone. Keep in sync with the public tdk-landscape examples. */
+/** Public starter repositories plus the bundled default product example. */
 export const PROJECT_TEMPLATES = {
     restaurant: {
         repo: "https://github.com/tdk-landscape/tdk-restaurant-example.git",
@@ -22,7 +22,8 @@ export const PROJECT_TEMPLATES = {
     },
     example: {
         repo: "https://github.com/tdk-landscape/tdk-example.git",
-        description: "Minimal Project-Stack-Resource (PSR) demonstration",
+        bundledPath: "examples/tdk-example",
+        description: "Hono + Postgres + NATS worker + Vite example with a routed write path",
     },
 };
 //# sourceMappingURL=project-templates.js.map

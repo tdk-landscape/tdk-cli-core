@@ -23,11 +23,11 @@
 
 ## 4. Representative example and CI gate
 
-- [ ] 4.1 Add/promote the default example with Hono API, Postgres, a supported queue worker, Vite frontend, and Traefik UI/API routes.
-- [ ] 4.2 Implement and document a write path through the routed API that persists a row the worker can observe.
-- [ ] 4.3 Add Ubuntu `example-e2e` to run doctor, stack startup, health and write-path checks, cleanup, and `tdk config verify` within an eight-minute budget.
+- [x] 4.1 Add/promote the default example with Hono API, Postgres, a supported queue worker, Vite frontend, and Traefik UI/API routes.
+- [x] 4.2 Implement and document a write path through the routed API that persists a row the worker can observe.
+- [x] 4.3 Add Ubuntu `example-e2e` to run doctor, stack startup, health and write-path checks, cleanup, and `tdk config verify` within an eight-minute budget.
 - [ ] 4.4 Make Ubuntu `example-e2e` the required green gate on main.
-- [ ] 4.5 Label `tdk-erp-system` and each 100-service reference in README/benchmark docs as a fixture bench, not an ERP product.
+- [x] 4.5 Label `tdk-erp-system` and each 100-service reference in README/benchmark docs as a fixture bench, not an ERP product.
 
 ## 5. WSL2 documentation and smoke path
 
