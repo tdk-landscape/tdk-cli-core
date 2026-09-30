@@ -53,6 +53,32 @@ describe("Tilt force cleanup", () => {
     expect(runner).toHaveBeenCalledTimes(2);
   });
 
+  it("treats a successful empty port lookup as no existing Tilt process", () => {
+    const runner = vi.fn(() => "");
+    expect(stopTiltOnPort(10350, "linux", runner)).toEqual([]);
+  });
+
+  it("fails closed when listener discovery is unavailable", () => {
+    const missingLsof = Object.assign(new Error("lsof unavailable"), { code: "ENOENT" });
+    const runner = vi.fn(() => {
+      throw missingLsof;
+    });
+
+    expect(() => stopTiltOnPort(10350, "linux", runner)).toThrow(/Unable to inspect listeners/);
+  });
+
+  it("fails closed when lsof reports a discovery error", () => {
+    const lookupError = Object.assign(new Error("permission denied"), {
+      status: 1,
+      stderr: "lsof: WARNING: can't stat()",
+    });
+    const runner = vi.fn(() => {
+      throw lookupError;
+    });
+
+    expect(() => stopTiltOnPort(10350, "linux", runner)).toThrow(/Unable to inspect listeners/);
+  });
+
   it("terminates the Tilt process only on the configured port", () => {
     const runner = vi.fn((command: string) => {
       if (command === "lsof") return "123\n";

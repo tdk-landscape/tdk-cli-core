@@ -13,7 +13,7 @@ export function findTiltProcessIdsOnPort(port, platform = process.platform, comm
                 .filter((pid) => Number.isInteger(pid) && pid > 0);
         }
         catch {
-            return [];
+            throw new Error(`Unable to inspect Tilt listeners on port ${port} with PowerShell.`);
         }
     }
     let pids;
@@ -23,31 +23,30 @@ export function findTiltProcessIdsOnPort(port, platform = process.platform, comm
             .map(Number)
             .filter((pid) => Number.isInteger(pid) && pid > 0);
     }
-    catch {
-        return [];
+    catch (err) {
+        const commandErr = err;
+        const stderr = commandErr.stderr?.toString().trim();
+        if (commandErr?.status === 1 && !stderr)
+            return [];
+        throw new Error(`Unable to inspect listeners on port ${port}. Install lsof or resolve the lsof error before using --force.`, { cause: commandErr });
     }
     return pids.filter((pid) => {
         try {
             const name = commandRunner("ps", ["-p", String(pid), "-o", "comm="]).trim();
             return name.split(/[\\/]/).at(-1) === "tilt";
         }
-        catch {
-            return false;
+        catch (err) {
+            throw new Error(`Unable to identify the process listening on port ${port}.`, { cause: err });
         }
     });
 }
 export function stopTiltOnPort(port, platform = process.platform, commandRunner = run) {
     const pids = findTiltProcessIdsOnPort(port, platform, commandRunner);
     for (const pid of pids) {
-        try {
-            if (platform === "win32")
-                commandRunner("taskkill.exe", ["/PID", String(pid), "/F"]);
-            else
-                commandRunner("kill", ["-TERM", String(pid)]);
-        }
-        catch {
-            // The process may exit between the listener lookup and the termination request.
-        }
+        if (platform === "win32")
+            commandRunner("taskkill.exe", ["/PID", String(pid), "/F"]);
+        else
+            commandRunner("kill", ["-TERM", String(pid)]);
     }
     return pids;
 }
