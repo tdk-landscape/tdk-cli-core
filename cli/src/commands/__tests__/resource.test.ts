@@ -346,9 +346,10 @@ describe("service.json schema", () => {
     );
     const schema = JSON.parse(readFileSync(schemaPath, "utf-8"));
 
-    // additionalProperties is false, so a provider missing from the enum makes every
-    // service.json that `tdk resource --framework <id>` writes schema-invalid.
-    expect(schema.additionalProperties).toBe(false);
+    // Unknown user fields are preserved and warned about rather than rejected.
+    expect(schema.additionalProperties).toBe(true);
+    expect(schema.required).toContain("schemaVersion");
+    expect(schema.properties.schemaVersion).toMatchObject({ const: 1, type: "integer" });
     expect(schema.properties.appType.enum).toContain("bring-your-own");
     expect(schema.properties.stack.type).toBe("string");
     expect(schema.properties.stack.enum).toBeUndefined();
@@ -362,5 +363,6 @@ describe("service.json schema", () => {
       type: "boolean",
     });
     expect(createServiceJson("web", "frontend", "app", 3000, [], "vue").framework).toBe("vue");
+    expect(createServiceJson("web", "frontend", "app", 3000).schemaVersion).toBe(1);
   });
 });

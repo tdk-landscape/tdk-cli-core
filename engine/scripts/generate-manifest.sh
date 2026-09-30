@@ -170,12 +170,13 @@ main() {
     cat > "$manifest_file" << EOF
 {
   "\$schema": "../../.tilt/schemas/service-schema.json",
+  "schemaVersion": 1,
   "appName": "${full_name}",
   "appType": "${resource_type}",
   "stack": "${stack}",
   "port": ${port},
   "replicas": 1,
-  "features": ${features},
+  "featuresEnabled": ${features},
   "dependsOn": ${deps}
 }
 EOF

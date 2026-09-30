@@ -5,7 +5,9 @@ import Handlebars from "handlebars";
 import { PLATFORM_STANDARDS } from "../config/platform-standards.js";
 import type { JsonValue, ProjectConfig } from "../types/index.js";
 import { writeTextFile } from "../utils/file-helpers.js";
-import { discoverResourcesFromRoot } from "../utils/services.js";
+import { assertTdkGeneratedPath } from "../utils/generated-paths.js";
+import { validateServiceManifestFile } from "../utils/service-manifest.js";
+import { discoverResourcesFromRoot, discoverServiceManifestPaths } from "../utils/services.js";
 import { isStackFeatureEnabledInStacks } from "../utils/stack-features.js";
 import { hasSablierLicense, hasVerdaccioLicense } from "./extension-fetch.js";
 
@@ -65,7 +67,6 @@ function getEmbeddedTemplates(): Record<string, string> {
 
 interface GeneratorContext {
   version: string;
-  timestamp: string;
   tech: typeof PLATFORM_STANDARDS.tech;
   ports: typeof PLATFORM_STANDARDS.ports;
   health: typeof PLATFORM_STANDARDS.health;
@@ -173,7 +174,6 @@ export class TemplateEngine {
   buildContext(projectConfig: ProjectConfig): GeneratorContext {
     return {
       version: PLATFORM_STANDARDS.version,
-      timestamp: new Date().toISOString(),
       tech: PLATFORM_STANDARDS.tech,
       ports: PLATFORM_STANDARDS.ports,
       health: PLATFORM_STANDARDS.health,
@@ -465,7 +465,7 @@ async function warnIfSablierUnlicensed(projectRoot: string): Promise<void> {
 }
 
 function ensureRootWorkspaceManifest(projectRoot: string, projectConfig: ProjectConfig): boolean {
-  const packageJsonPath = path.join(projectRoot, "package.json");
+  const packageJsonPath = assertTdkGeneratedPath(projectRoot, "package.json");
   if (fs.existsSync(packageJsonPath)) {
     return false;
   }
@@ -526,23 +526,26 @@ export async function generateMasterConfigs(projectRoot: string): Promise<void> 
 
   for (const filename of ALL_GENERATED_FILES) {
     const content = files[filename];
-    const filePath = path.join(outputDir, filename);
+    const filePath = assertTdkGeneratedPath(projectRoot, path.join(".tdk", ".tdk-out", filename));
     writeTextFile(filePath, content);
     console.log(`✓ Generated: .tdk/.tdk-out/${filename}`);
   }
 
   if (isStackFeatureEnabledInStacks(projectConfig.phases, "database-management")) {
-    const composeDir = path.join(projectRoot, "services", "platform", "database-management");
+    const composePath = assertTdkGeneratedPath(
+      projectRoot,
+      path.join("services", "platform", "database-management", "docker-compose.yml"),
+    );
+    const composeDir = path.dirname(composePath);
     fs.mkdirSync(composeDir, { recursive: true });
-    const composePath = path.join(composeDir, "docker-compose.yml");
     writeTextFile(composePath, generateDatabaseManagementCompose(projectConfig));
     console.log("✓ Generated: services/platform/database-management/docker-compose.yml");
   }
 
   // Copy .tiltignore to project root so Tilt uses it
   const tiltignoreSource = path.join(outputDir, ".tiltignore");
-  const tiltignoreTarget = path.join(projectRoot, ".tiltignore");
-  if (fs.existsSync(tiltignoreSource)) {
+  const tiltignoreTarget = assertTdkGeneratedPath(projectRoot, ".tiltignore");
+  if (fs.existsSync(tiltignoreSource) && !fs.existsSync(tiltignoreTarget)) {
     fs.copyFileSync(tiltignoreSource, tiltignoreTarget);
     console.log(`✓ Copied: .tiltignore → project root`);
   }
@@ -627,7 +630,7 @@ export function ensureProjectRuntimeAssets(projectRoot: string): string[] {
 
   for (const parts of PROJECT_RUNTIME_ASSET_DIRS) {
     const source = path.join(sourceRoot, ...parts);
-    const target = path.join(projectRoot, ...parts);
+    const target = assertTdkGeneratedPath(projectRoot, path.join(...parts));
     if (!fs.existsSync(source)) {
       continue;
     }
@@ -653,8 +656,10 @@ export function ensureProjectRuntimeAssets(projectRoot: string): string[] {
 }
 
 async function vendorTdkExtension(projectRoot: string): Promise<void> {
-  const outputDir = path.join(projectRoot, ".tdk", ".tdk-out");
-  const vendoredDir = path.join(outputDir, "tdk-cli-ext");
+  const vendoredDir = assertTdkGeneratedPath(
+    projectRoot,
+    path.join(".tdk", ".tdk-out", "tdk-cli-ext"),
+  );
 
   // Source resolution order:
   //   1. $TDK_EXTENSION_SOURCE (explicit override)
@@ -724,8 +729,13 @@ async function vendorTdkExtension(projectRoot: string): Promise<void> {
   }
 }
 
-export function verifyMasterConfigs(projectRoot: string): { valid: boolean; errors: string[] } {
+export function verifyMasterConfigs(projectRoot: string): {
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
+} {
   const errors: string[] = [];
+  const warnings: string[] = [];
 
   const projectConfig = readProjectConfig(projectRoot);
   const engine = new TemplateEngine();
@@ -748,5 +758,71 @@ export function verifyMasterConfigs(projectRoot: string): { valid: boolean; erro
     }
   }
 
-  return { valid: errors.length === 0, errors };
+  const rootTiltIgnore = path.join(projectRoot, ".tiltignore");
+  if (!fs.existsSync(rootTiltIgnore)) {
+    errors.push("Missing file: .tiltignore");
+  } else if (fs.readFileSync(rootTiltIgnore, "utf-8") !== expectedFiles[".tiltignore"]) {
+    errors.push("Out of sync: .tiltignore (run 'tdk config regenerate')");
+  }
+
+  for (const manifestPath of discoverServiceManifestPaths(projectRoot)) {
+    const displayPath = path.relative(projectRoot, manifestPath).split(path.sep).join("/");
+    const validation = validateServiceManifestFile(manifestPath, displayPath);
+    errors.push(...validation.errors);
+    warnings.push(...validation.warnings);
+    errors.push(...verifyGeneratedResourceFiles(projectRoot, manifestPath));
+  }
+
+  return { valid: errors.length === 0, errors, warnings };
+}
+
+function verifyGeneratedResourceFiles(projectRoot: string, serviceJsonPath: string): string[] {
+  const serviceDir = path.dirname(serviceJsonPath);
+  const generatedDir = path.join(serviceDir, ".autogenerated");
+  if (!fs.existsSync(generatedDir)) return [];
+
+  const generatedFiles: Array<{ fullPath: string; relativeFile: string }> = [];
+  const collect = (directory: string, relativeDir = ""): void => {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      if (relativeDir === "" && entry.name === ".tdk-contract") continue;
+      const relativeFile = path.join(relativeDir, entry.name);
+      const fullPath = path.join(directory, entry.name);
+      if (entry.isDirectory()) collect(fullPath, relativeFile);
+      else if (entry.isFile()) generatedFiles.push({ fullPath, relativeFile });
+    }
+  };
+  collect(generatedDir);
+  if (generatedFiles.length === 0) return [];
+
+  const contractDir = path.join(generatedDir, ".tdk-contract");
+  const sourceSnapshot = path.join(contractDir, "service.json.source");
+  const errors: string[] = [];
+  if (!fs.existsSync(sourceSnapshot)) {
+    errors.push(
+      path.relative(projectRoot, sourceSnapshot) +
+        ": generated-file contract snapshot is missing (run tdk up to regenerate)",
+    );
+  } else if (
+    fs.readFileSync(sourceSnapshot, "utf-8") !== fs.readFileSync(serviceJsonPath, "utf-8")
+  ) {
+    errors.push(
+      path.relative(projectRoot, serviceJsonPath) +
+        ": service.json changed since generated outputs were written (run tdk up)",
+    );
+  }
+
+  for (const generated of generatedFiles) {
+    const snapshotPath = path.join(contractDir, generated.relativeFile);
+    const display = path.relative(projectRoot, generated.fullPath);
+    if (!fs.existsSync(snapshotPath)) {
+      errors.push(`${display}: generated-file snapshot is missing (run tdk up to regenerate)`);
+    } else if (
+      fs.readFileSync(generated.fullPath, "utf-8") !== fs.readFileSync(snapshotPath, "utf-8")
+    ) {
+      errors.push(
+        `${display}: generated file differs from its TDK snapshot (run tdk up to regenerate)`,
+      );
+    }
+  }
+  return errors;
 }

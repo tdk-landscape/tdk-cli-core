@@ -3,7 +3,6 @@ import type { ProjectConfig } from "../types/index.js";
 export declare function loadTemplate(filename: string): string;
 interface GeneratorContext {
     version: string;
-    timestamp: string;
     tech: typeof PLATFORM_STANDARDS.tech;
     ports: typeof PLATFORM_STANDARDS.ports;
     health: typeof PLATFORM_STANDARDS.health;
@@ -57,6 +56,7 @@ export declare function ensureProjectRuntimeAssets(projectRoot: string): string[
 export declare function verifyMasterConfigs(projectRoot: string): {
     valid: boolean;
     errors: string[];
+    warnings: string[];
 };
 export {};
 //# sourceMappingURL=template-engine.d.ts.map
