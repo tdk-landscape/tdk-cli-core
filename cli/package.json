@@ -1,7 +1,7 @@
 {
   "name": "tdk-cli-internal",
   "private": true,
-  "version": "1.3.77",
+  "version": "1.3.78",
   "description": "TDK CLI - Tilt Development Kit command line interface",
   "keywords": [
     "tdk",
