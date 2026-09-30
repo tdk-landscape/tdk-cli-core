@@ -2,6 +2,8 @@
 
 A small working landscape with a Hono API, PostgreSQL, a NATS worker, a Vite UI, and Traefik routes.
 
+This is a local demo, not a Helm chart.
+
 ```sh
 tdk doctor
 tdk project --yes

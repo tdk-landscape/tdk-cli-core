@@ -2,9 +2,17 @@
 
 # TDK — Tilt Development Kit
 
-**Run your whole microservice landscape locally. No Kubernetes.**
+TDK is a local development kit. It scaffolds services and runs a stack on your
+laptop with Docker and Tilt (hot reload, health, Traefik, Postgres).
 
-One CLI that scaffolds your services and runs the whole landscape locally with hot reload, health checks, a proxy, and Postgres, all built on [Tilt](https://tilt.dev). The default product example demonstrates a routed Hono API + PostgreSQL + NATS worker + Vite UI workflow. Separately, a 100-service fixture bench (small generated `/health` services) boots from nothing on a clean CI runner in about 8 minutes, and holds about 1.7 GiB of memory ([details](#cold-boot-on-a-clean-machine-ci)).
+It is not a Kubernetes packager. It does not replace Helm, Argo CD,
+Kustomize, or your production charts.
+
+Use TDK when local bring-up of many services is painful and you do not want a
+cluster on the laptop.
+
+Skip TDK if `helm install` (or your existing compose/Tilt/Skaffold) already
+gives you a working local or shared-dev environment.
 
 ## Status
 
@@ -27,6 +35,20 @@ Known limits: [docs/compare-honest.md](docs/compare-honest.md)
 [Website](https://tdk-landscape.github.io/tdk-website) · [Quickstart](https://tdk-landscape.github.io/tdk-website/docs/quickstart/) · [Examples](https://tdk-landscape.github.io/tdk-website/docs/examples/) · [Demo](https://tdk-landscape.github.io/tdk-demo-animation/) · [Report a bug](https://github.com/tdk-landscape/tdk-cli-core/issues/new/choose)
 
 </div>
+
+## When not to use TDK
+
+- Production or shared-cluster deploy is Helm/Argo/Kustomize — keep it.
+- Your local or namespace-per-dev environment already works.
+- You will not adopt `service.json` and generated files.
+
+## TDK is for you if
+
+- You have many services and want `tdk up <one stack>` on Docker.
+- You do not want kind or minikube as your daily path.
+- You want to generate services, run `tdk config verify`, and use Traefik `*.localhost` routes.
+
+Start with the [bundled product example](examples/tdk-example/README.md); its write path is covered by [example-e2e](.github/workflows/example-e2e.yml).
 
 ```bash
 npm install -g @tdk-landscape/tdk-cli-core

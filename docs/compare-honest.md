@@ -1,16 +1,16 @@
-# TDK vs Compose vs raw Tilt
+# Choosing TDK alongside your existing tools
 
-## Use TDK when
+## TDK and Helm
 
-- New TypeScript/Bun services
-- You want one `service.json` per service
-- You do not want Kubernetes locally
+- Helm packages and releases applications into a Kubernetes cluster.
+- TDK generates services and runs them on your laptop.
+- Typical split: TDK locally, Helm in CI or production.
+- Do not migrate charts into TDK.
 
-## Do not use TDK when
+## Keep your existing local setup when
 
-- You already have a Compose or Tilt setup you like
+- Your Compose or Tilt setup already works for you.
 - The apps are not containers
-- You need native Windows
 - You need TDK to generate Go/Java/Python apps (use bring-your-own)
 
 ## vs docker compose
