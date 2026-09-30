@@ -114,6 +114,11 @@ validate_release_assets() {
     return 1
   fi
 
+  if ! awk '$2 == "tdk-windows-amd64.exe" { found = 1 } END { exit !found }' "${RELEASE_DIR}/checksums.txt"; then
+    echo "checksums.txt is missing tdk-windows-amd64.exe" >&2
+    return 1
+  fi
+
   (
     cd "${RELEASE_DIR}"
     shasum -a 256 -c checksums.txt
