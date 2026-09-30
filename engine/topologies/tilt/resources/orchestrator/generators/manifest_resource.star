@@ -270,6 +270,11 @@ def _generate_all_configs_for_resource(
     should_enable = ctx['should_enable']
     global_config = ctx['global_config']
 
+    # Env generation needs the actual service directory on the manifest. Set it
+    # before the BYO fast path too; otherwise Compose references an env file that
+    # was never written for bring-your-own resources.
+    manifest['_resource_path'] = resource_path
+
     if manifest.get('appType') == 'bring-your-own':
         _generate_env_file(manifest, backend_manifest, write_file)
         _generate_yaml_manifest(resource_path, manifest, write_file)
@@ -285,9 +290,6 @@ def _generate_all_configs_for_resource(
     # Create a new context copy to avoid mutating shared state for other resources
     ctx = dict(ctx)
     ctx[recursion_key] = recursion_depth + 1
-    
-    # Add resource_path to manifest so generators can access it
-    manifest['_resource_path'] = resource_path
     
     # ==========================================================================
     # NEW: PRE-FLIGHT VALIDATIONS (v2.0)

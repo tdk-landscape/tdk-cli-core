@@ -83,7 +83,9 @@ probe_url() {
   return 1
 }
 
-while (( $(date +%s) <= deadline )); do
+while :; do
+  now=$(date +%s)
+  (( now <= deadline )) || break
   candidates=()
   # Prefer URLs TDK itself reports for the legacy service.
   remaining=$((deadline - $(date +%s)))
@@ -109,8 +111,13 @@ while (( $(date +%s) <= deadline )); do
     fi
   fi
 
-  # Fall back to the TDK project Traefik route, then the published container port.
-  candidates+=("http://app.tdk-byo-python-boot.localhost/legacy/health" "http://127.0.0.1:4500/health")
+  # BYO services use the backend project route (`/api/<resource-name>`),
+  # which strips that prefix before forwarding to the container.
+  candidates+=(
+    "http://api.tdk-byo-python-boot.localhost/api/legacy/health"
+    "http://app.tdk-byo-python-boot.localhost/legacy/health"
+    "http://127.0.0.1:4500/health"
+  )
   for url in "${candidates[@]}"; do
     (( $(date +%s) <= deadline )) || break
     if probe_url "$url"; then
@@ -122,10 +129,17 @@ while (( $(date +%s) <= deadline )); do
   if ! kill -0 "$up_pid" 2>/dev/null; then
     wait "$up_pid" || { echo "tdk up shop exited before health became ready"; tail -100 up.log; exit 1; }
   fi
-  elapsed=$(( $(date +%s) - started_at ))
+  now=$(date +%s)
+  elapsed=$(( now - started_at ))
   echo "Waiting for legacy /health ($elapsed/${PROBE_SECONDS}s)"
-  remaining=$((deadline - $(date +%s)))
-  (( remaining > 5 )) && sleep 5 || sleep "$remaining"
+  remaining=$((deadline - now))
+  if (( remaining <= 0 )); then
+    break
+  elif (( remaining > 5 )); then
+    sleep 5
+  else
+    sleep "$remaining"
+  fi
 done
 
 echo "No legacy health URL returned HTTP 200 with body ok within ${PROBE_SECONDS}s"
