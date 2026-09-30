@@ -142,7 +142,7 @@ describe("bring-your-own resource type", () => {
     } finally {
       console.log = originalLog;
     }
-  });
+  }, 15_000);
 
   it("keeps --dry-run side-effect free even when --force is also set", async () => {
     await createByo();

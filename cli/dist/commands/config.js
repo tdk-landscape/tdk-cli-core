@@ -8,8 +8,10 @@ import { generateMasterConfigs, readProjectConfig, TemplateEngine, verifyMasterC
 import { isMasterConfigFileName } from "../types/index.js";
 import { assertValid } from "../utils/command-helpers.js";
 import { MASTER_CONFIG_FILES } from "../utils/constants.js";
-import { requireProjectRoot, runCommand } from "../utils/errors.js";
+import { errorFactories, requireProjectRoot, runCommand } from "../utils/errors.js";
 import { writeJsonFile } from "../utils/file-helpers.js";
+import { createMachineEnvelope, writeMachineError } from "../utils/machine-output.js";
+import { findProjectRoot } from "../utils/paths.js";
 import { SERVICE_MANIFEST_SCHEMA_VERSION, validateServiceManifest, } from "../utils/service-manifest.js";
 import { discoverServiceManifestPaths } from "../utils/services.js";
 import { validateOptionalInfraService } from "../utils/validation.js";
@@ -175,20 +177,18 @@ export const configCommand = new Command("config")
     .description("Verify that generated files match .tdk/project.json")
     .option("--json", "Emit a machine-readable verification report")
     .action(async (options) => {
-    await runCommand(async () => {
-        const projectRoot = requireProjectRoot();
+    const action = async () => {
+        const projectRoot = options.json ? findProjectRoot() : requireProjectRoot();
+        if (!projectRoot)
+            throw errorFactories.notInProject();
         const result = verifyMasterConfigs(projectRoot);
         if (options.json) {
-            console.log(JSON.stringify({
-                schemaVersion: 1,
-                data: {
-                    valid: result.valid,
-                    errors: result.errors,
-                    warnings: result.warnings,
-                    diffs: result.diffs,
-                },
-                errors: [],
-            }));
+            console.log(JSON.stringify(createMachineEnvelope({
+                valid: result.valid,
+                errors: result.errors,
+                warnings: result.warnings,
+                diffs: result.diffs,
+            })));
             if (!result.valid)
                 process.exit(1);
             return;
@@ -211,7 +211,17 @@ export const configCommand = new Command("config")
             console.log(chalk.gray("\nRun `tdk config regenerate` to fix."));
             process.exit(1);
         }
-    });
+    };
+    if (options.json) {
+        try {
+            await action();
+        }
+        catch (error) {
+            writeMachineError(error);
+        }
+        return;
+    }
+    await runCommand(action);
 }))
     .addCommand(new Command("edit").description("Open .tdk/project.json in your $EDITOR").action(async () => {
     await runCommand(async () => {
