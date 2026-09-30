@@ -68,6 +68,7 @@ describe("resource command", () => {
       expect(serviceJson).toHaveProperty("dependencies");
       expect(serviceJson).toHaveProperty("build");
       expect(serviceJson).toHaveProperty("dev");
+      expect(serviceJson.$schema).toBe("https://tdk-landscape.github.io/schema.service.json");
     });
 
     it("should create valid frontend service.json using createServiceJson", () => {
@@ -364,5 +365,8 @@ describe("service.json schema", () => {
     });
     expect(createServiceJson("web", "frontend", "app", 3000, [], "vue").framework).toBe("vue");
     expect(createServiceJson("web", "frontend", "app", 3000).schemaVersion).toBe(1);
+    expect(createServiceJson("web", "frontend", "app", 3000).$schema).toContain(
+      "schema.service.json",
+    );
   });
 });

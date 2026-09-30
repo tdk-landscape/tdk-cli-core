@@ -23,7 +23,10 @@ import { showCommandHeader } from "../utils/formatting.js";
 import { assignPort } from "../utils/port-assignment.js";
 import { promptSelect, promptText } from "../utils/prompt.js";
 import { getDefaultFeaturesForResourceType } from "../utils/resource-features.js";
-import { SERVICE_MANIFEST_SCHEMA_VERSION } from "../utils/service-manifest.js";
+import {
+  SERVICE_MANIFEST_SCHEMA_URL,
+  SERVICE_MANIFEST_SCHEMA_VERSION,
+} from "../utils/service-manifest.js";
 import { discoverResources } from "../utils/services.js";
 import { createKebabCaseValidator, isPathSafe, validateResourceName } from "../utils/validation.js";
 
@@ -111,6 +114,7 @@ export function createServiceJson(
 
   return {
     ...base,
+    $schema: SERVICE_MANIFEST_SCHEMA_URL,
     schemaVersion: SERVICE_MANIFEST_SCHEMA_VERSION,
     appName: name,
     appType: type as ResourceType,
@@ -591,6 +595,7 @@ export const resourceCommand = new Command("resource")
         // Update with new values while preserving existing fields
         const updatedServiceJson = {
           ...existingServiceJson,
+          $schema: existingServiceJson.$schema ?? SERVICE_MANIFEST_SCHEMA_URL,
           schemaVersion: existingServiceJson.schemaVersion ?? SERVICE_MANIFEST_SCHEMA_VERSION,
           appName: resourceName,
           appType: resourceType === "sdk" ? "sdk" : existingServiceJson.appType || resourceType,
@@ -631,6 +636,7 @@ export const resourceCommand = new Command("resource")
 
         // Create service.json
         const byoServiceJson = {
+          $schema: SERVICE_MANIFEST_SCHEMA_URL,
           schemaVersion: SERVICE_MANIFEST_SCHEMA_VERSION,
           appName: resourceName,
           appType: "bring-your-own",

@@ -173,11 +173,27 @@ export const configCommand = new Command("config")
 }))
     .addCommand(new Command("verify")
     .description("Verify that generated files match .tdk/project.json")
-    .action(async () => {
+    .option("--json", "Emit a machine-readable verification report")
+    .action(async (options) => {
     await runCommand(async () => {
         const projectRoot = requireProjectRoot();
-        console.log(chalk.blue("🔍 Verifying configuration...\n"));
         const result = verifyMasterConfigs(projectRoot);
+        if (options.json) {
+            console.log(JSON.stringify({
+                schemaVersion: 1,
+                data: {
+                    valid: result.valid,
+                    errors: result.errors,
+                    warnings: result.warnings,
+                    diffs: result.diffs,
+                },
+                errors: [],
+            }));
+            if (!result.valid)
+                process.exit(1);
+            return;
+        }
+        console.log(chalk.blue("🔍 Verifying configuration...\n"));
         for (const warning of result.warnings) {
             console.warn(chalk.yellow(`⚠️  ${warning}`));
         }
@@ -190,6 +206,8 @@ export const configCommand = new Command("config")
             for (const error of result.errors) {
                 console.log(chalk.gray(`   - ${error}`));
             }
+            for (const { diff } of result.diffs)
+                console.log(chalk.gray(`\n${diff}`));
             console.log(chalk.gray("\nRun `tdk config regenerate` to fix."));
             process.exit(1);
         }

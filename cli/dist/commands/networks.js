@@ -6,6 +6,7 @@ import { getStackEmoji } from "../utils/constants.js";
 import { createDiscoveryContext } from "../utils/discovery-context.js";
 import { logVerbose, requireProjectRoot } from "../utils/errors.js";
 import { colorizeByStatus, DEFAULT_BOX_WIDTH, formatBoxLine, formatPadded, getStatusIcon, printBoxedHeader, } from "../utils/formatting.js";
+import { createMachineEnvelope, writeMachineError } from "../utils/machine-output.js";
 import { findProjectRoot } from "../utils/paths.js";
 import { checkPortStatus } from "../utils/port-assignment.js";
 import { isValidPort, sanitizeForShell } from "../utils/validation.js";
@@ -156,118 +157,137 @@ export const networksCommand = new Command("networks")
     .alias("urls")
     .alias("traefik")
     .option("-s, --stack <stack>", "Filter by stack name")
-    .option("--json", "Output as JSON")
+    .option("--json", "Output a versioned JSON response")
+    .option("--json-legacy", "Output the legacy JSON array (deprecated)")
     .option("--raw", "Output raw URLs only")
     .action(async (options) => {
-    const projectRoot = requireProjectRoot();
-    const discovery = createDiscoveryContext();
-    const baseDomain = determineDefaultDomain();
-    const bareDomain = baseDomain.replace(/^(app|api)\./, "");
-    const appDomain = `app.${bareDomain}`;
-    const apiDomain = `api.${bareDomain}`;
-    const services = discovery.resources;
-    const servicesWithUrls = await Promise.all(services
-        .filter((s) => typeof s.config?.basePath === "string")
-        .map(async (s) => {
-        const basePath = s.config.basePath.replace(/^\//, "");
-        const isBackend = s.config?.appType === "backend";
-        const host = isBackend ? apiDomain : appDomain;
-        const url = `http://${host}/${basePath}`;
-        const port = s.config.port;
-        const status = await checkServiceStatus(s.name, port, url);
-        return {
-            name: s.name,
-            stack: s.stack,
-            basePath: s.config.basePath,
-            url,
-            ...(process.platform === "win32"
-                ? { loopbackUrl: `http://127.0.0.1:80/${basePath}`.replace(/\/$/, "") }
-                : {}),
-            port,
-            status,
-        };
-    }));
-    const filteredServices = options.stack
-        ? servicesWithUrls.filter((s) => s.stack === options.stack)
-        : servicesWithUrls;
-    if (filteredServices.length === 0) {
-        if (options.stack) {
-            console.log(chalk.yellow(`⚠️ No services with basePath found in stack "${options.stack}"`));
+    const action = async () => {
+        const projectRoot = options.json || options.jsonLegacy ? findProjectRoot() : requireProjectRoot();
+        if (!projectRoot) {
+            throw new Error("Could not find project root (no .tdk/project.json found)");
         }
-        else {
-            console.log(chalk.yellow("⚠️ No services with basePath found"));
-            console.log(chalk.gray("\nAdd basePath to your service.json:"));
-            console.log(chalk.gray('  "basePath": "/my-service"'));
+        const discovery = createDiscoveryContext();
+        const baseDomain = determineDefaultDomain();
+        const bareDomain = baseDomain.replace(/^(app|api)\./, "");
+        const appDomain = `app.${bareDomain}`;
+        const apiDomain = `api.${bareDomain}`;
+        const services = discovery.resources;
+        const servicesWithUrls = await Promise.all(services
+            .filter((s) => typeof s.config?.basePath === "string")
+            .map(async (s) => {
+            const basePath = s.config.basePath.replace(/^\//, "");
+            const isBackend = s.config?.appType === "backend";
+            const host = isBackend ? apiDomain : appDomain;
+            const url = `http://${host}/${basePath}`;
+            const port = s.config.port;
+            const status = await checkServiceStatus(s.name, port, url);
+            return {
+                name: s.name,
+                stack: s.stack,
+                basePath: s.config.basePath,
+                url,
+                ...(process.platform === "win32"
+                    ? { loopbackUrl: `http://127.0.0.1:80/${basePath}`.replace(/\/$/, "") }
+                    : {}),
+                port,
+                status,
+            };
+        }));
+        const filteredServices = options.stack
+            ? servicesWithUrls.filter((s) => s.stack === options.stack)
+            : servicesWithUrls;
+        if (options.json || options.jsonLegacy) {
+            const output = options.jsonLegacy
+                ? filteredServices
+                : createMachineEnvelope({ services: filteredServices });
+            console.log(JSON.stringify(output, null, 2));
+            return;
         }
-        process.exit(0);
-    }
-    if (options.json) {
-        console.log(JSON.stringify(filteredServices, null, 2));
-        process.exit(0);
-    }
-    if (options.raw) {
-        for (const service of filteredServices) {
-            console.log(service.url);
-            if (service.loopbackUrl)
-                console.log(service.loopbackUrl);
+        if (filteredServices.length === 0) {
+            if (options.stack) {
+                console.log(chalk.yellow(`⚠️ No services with basePath found in stack "${options.stack}"`));
+            }
+            else {
+                console.log(chalk.yellow("⚠️ No services with basePath found"));
+                console.log(chalk.gray("\nAdd basePath to your service.json:"));
+                console.log(chalk.gray('  "basePath": "/my-service"'));
+            }
+            process.exit(0);
         }
-        process.exit(0);
-    }
-    printBoxedHeader("🌐  TRAEFIK NETWORKS", `Domain: http://${baseDomain}`, DEFAULT_BOX_WIDTH);
-    // Group services by stack using discovery context's stack names for consistent ordering
-    const stacks = new Map();
-    for (const stackName of discovery.stackNames) {
-        const stackServices = filteredServices.filter((s) => s.stack === stackName);
-        if (stackServices.length > 0) {
-            stacks.set(stackName, stackServices);
+        if (options.raw) {
+            for (const service of filteredServices) {
+                console.log(service.url);
+                if (service.loopbackUrl)
+                    console.log(service.loopbackUrl);
+            }
+            process.exit(0);
         }
-    }
-    // Add unstacked services to 'default' group
-    const unstackedServices = filteredServices.filter((s) => !s.stack);
-    if (unstackedServices.length > 0) {
-        stacks.set("default", unstackedServices);
-    }
-    let isFirstStack = true;
-    for (const [stackName, stackServices] of stacks) {
-        if (!isFirstStack) {
-            console.log();
-        }
-        isFirstStack = false;
-        const emoji = getStackEmoji(stackName);
-        const stackTitle = `${emoji}  ${stackName.toUpperCase()} STACK`;
-        console.log();
-        console.log(chalk.bold.white(stackTitle));
-        console.log(chalk.gray(formatBoxLine("━", DEFAULT_BOX_WIDTH - 4)));
-        for (const service of stackServices) {
-            const statusSymbol = getStatusIcon(service.status);
-            const statusEmoji = colorizeByStatus(statusSymbol, service.status);
-            const namePart = formatPadded(service.name, 22);
-            const urlPart = service.status === "running"
-                ? chalk.cyan.underline(service.url)
-                : chalk.gray(service.url); // Gray out URL if stopped
-            const statusLabel = service.status !== "running" ? chalk.gray(` [${service.status}]`) : "";
-            console.log(`  ${statusEmoji} ${chalk.white(namePart)}  ${urlPart}${statusLabel}`);
-            if (service.loopbackUrl) {
-                console.log(`     ${chalk.gray(`Loopback: ${service.loopbackUrl} (Host: ${new URL(service.url).hostname})`)}`);
+        printBoxedHeader("🌐  TRAEFIK NETWORKS", `Domain: http://${baseDomain}`, DEFAULT_BOX_WIDTH);
+        // Group services by stack using discovery context's stack names for consistent ordering
+        const stacks = new Map();
+        for (const stackName of discovery.stackNames) {
+            const stackServices = filteredServices.filter((s) => s.stack === stackName);
+            if (stackServices.length > 0) {
+                stacks.set(stackName, stackServices);
             }
         }
-    }
-    console.log();
-    console.log(chalk.gray(formatBoxLine("─", DEFAULT_BOX_WIDTH - 2)));
-    console.log(chalk.gray("🖱️  Click any URL above to open in browser"));
-    console.log(chalk.gray("📊 Status: ") +
-        chalk.green("✓ Running") +
-        " | " +
-        chalk.red("✗ Stopped") +
-        " | " +
-        chalk.gray("? Unknown"));
-    if (baseDomain === "localhost") {
+        // Add unstacked services to 'default' group
+        const unstackedServices = filteredServices.filter((s) => !s.stack);
+        if (unstackedServices.length > 0) {
+            stacks.set("default", unstackedServices);
+        }
+        let isFirstStack = true;
+        for (const [stackName, stackServices] of stacks) {
+            if (!isFirstStack) {
+                console.log();
+            }
+            isFirstStack = false;
+            const emoji = getStackEmoji(stackName);
+            const stackTitle = `${emoji}  ${stackName.toUpperCase()} STACK`;
+            console.log();
+            console.log(chalk.bold.white(stackTitle));
+            console.log(chalk.gray(formatBoxLine("━", DEFAULT_BOX_WIDTH - 4)));
+            for (const service of stackServices) {
+                const statusSymbol = getStatusIcon(service.status);
+                const statusEmoji = colorizeByStatus(statusSymbol, service.status);
+                const namePart = formatPadded(service.name, 22);
+                const urlPart = service.status === "running"
+                    ? chalk.cyan.underline(service.url)
+                    : chalk.gray(service.url); // Gray out URL if stopped
+                const statusLabel = service.status !== "running" ? chalk.gray(` [${service.status}]`) : "";
+                console.log(`  ${statusEmoji} ${chalk.white(namePart)}  ${urlPart}${statusLabel}`);
+                if (service.loopbackUrl) {
+                    console.log(`     ${chalk.gray(`Loopback: ${service.loopbackUrl} (Host: ${new URL(service.url).hostname})`)}`);
+                }
+            }
+        }
         console.log();
-        const projectConfig = readProjectConfig(projectRoot);
-        const projectName = projectConfig.project.name;
-        console.log(chalk.yellow("💡 Tip: Set custom domain with:"));
-        console.log(chalk.cyan(`   export TDK_PUBLIC_HOST=${projectName}.localhost`));
+        console.log(chalk.gray(formatBoxLine("─", DEFAULT_BOX_WIDTH - 2)));
+        console.log(chalk.gray("🖱️  Click any URL above to open in browser"));
+        console.log(chalk.gray("📊 Status: ") +
+            chalk.green("✓ Running") +
+            " | " +
+            chalk.red("✗ Stopped") +
+            " | " +
+            chalk.gray("? Unknown"));
+        if (baseDomain === "localhost") {
+            console.log();
+            const projectConfig = readProjectConfig(projectRoot);
+            const projectName = projectConfig.project.name;
+            console.log(chalk.yellow("💡 Tip: Set custom domain with:"));
+            console.log(chalk.cyan(`   export TDK_PUBLIC_HOST=${projectName}.localhost`));
+        }
+        console.log();
+    };
+    if (options.json || options.jsonLegacy) {
+        try {
+            await action();
+        }
+        catch (error) {
+            writeMachineError(error);
+        }
+        return;
     }
-    console.log();
+    await action();
 });
 //# sourceMappingURL=networks.js.map

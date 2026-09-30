@@ -733,9 +733,22 @@ export function verifyMasterConfigs(projectRoot: string): {
   valid: boolean;
   errors: string[];
   warnings: string[];
+  diffs: Array<{ file: string; diff: string }>;
 } {
   const errors: string[] = [];
   const warnings: string[] = [];
+  const diffs: Array<{ file: string; diff: string }> = [];
+
+  const addDrift = (displayPath: string, actual: string | undefined, expected: string) => {
+    if (actual === expected) return;
+    errors.push(
+      `${actual === undefined ? "Missing file" : "Out of sync"}: ${displayPath} (run 'tdk config regenerate')`,
+    );
+    diffs.push({
+      file: displayPath,
+      diff: createUnifiedDiff(displayPath, actual ?? "", expected),
+    });
+  };
 
   const projectConfig = readProjectConfig(projectRoot);
   const engine = new TemplateEngine();
@@ -747,23 +760,19 @@ export function verifyMasterConfigs(projectRoot: string): {
     const expectedContent = expectedFiles[filename];
     const filePath = path.join(outputDir, filename);
 
-    if (!fs.existsSync(filePath)) {
-      errors.push(`Missing file: .tdk/.tdk-out/${filename}`);
-      continue;
-    }
-
-    const actualContent = fs.readFileSync(filePath, "utf-8");
-    if (actualContent !== expectedContent) {
-      errors.push(`Out of sync: .tdk/.tdk-out/${filename} (run 'tdk config regenerate')`);
-    }
+    addDrift(
+      `.tdk/.tdk-out/${filename}`,
+      fs.existsSync(filePath) ? fs.readFileSync(filePath, "utf-8") : undefined,
+      expectedContent,
+    );
   }
 
   const rootTiltIgnore = path.join(projectRoot, ".tiltignore");
-  if (!fs.existsSync(rootTiltIgnore)) {
-    errors.push("Missing file: .tiltignore");
-  } else if (fs.readFileSync(rootTiltIgnore, "utf-8") !== expectedFiles[".tiltignore"]) {
-    errors.push("Out of sync: .tiltignore (run 'tdk config regenerate')");
-  }
+  addDrift(
+    ".tiltignore",
+    fs.existsSync(rootTiltIgnore) ? fs.readFileSync(rootTiltIgnore, "utf-8") : undefined,
+    expectedFiles[".tiltignore"],
+  );
 
   for (const manifestPath of discoverServiceManifestPaths(projectRoot)) {
     const displayPath = path.relative(projectRoot, manifestPath).split(path.sep).join("/");
@@ -773,7 +782,16 @@ export function verifyMasterConfigs(projectRoot: string): {
     errors.push(...verifyGeneratedResourceFiles(projectRoot, manifestPath));
   }
 
-  return { valid: errors.length === 0, errors, warnings };
+  return { valid: errors.length === 0, errors, warnings, diffs };
+}
+
+function createUnifiedDiff(file: string, actual: string, expected: string): string {
+  const oldLines = actual.replace(/\n$/, "").split("\n");
+  const newLines = expected.replace(/\n$/, "").split("\n");
+  const lines = [`--- a/${file}`, `+++ b/${file}`, `@@ -1,${oldLines.length} +1,${newLines.length} @@`];
+  for (const line of oldLines) lines.push(`-${line}`);
+  for (const line of newLines) lines.push(`+${line}`);
+  return lines.join("\n");
 }
 
 function verifyGeneratedResourceFiles(projectRoot: string, serviceJsonPath: string): string[] {

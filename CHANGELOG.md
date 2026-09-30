@@ -4,6 +4,12 @@ Notable changes to the `tdk` CLI. Versions match [npm](https://www.npmjs.com/pac
 
 ## Unreleased
 
+- Add `tdk doctor --json` with schema-versioned readiness, checks, and structured errors; diagnostics remain on stderr.
+- Stabilize doctor exits: 0 ready, 1 blocking findings, 2 invalid arguments/internal check failures. Invalid `--ping-timeout` now exits 2 instead of 1 and rejects fractional/unit-suffixed values.
+- Add versioned `--json` envelopes to `tdk status`, `tdk resources`, and `tdk networks`; existing `networks --json` array consumers can migrate with `--json-legacy` during the transition.
+- Add `tdk config verify --json` with drift summaries and unified diffs for missing or stale master outputs; verification remains read-only.
+
+
 ## 1.3.77 (2026-09-30)
 
 - `tdk up` no longer leaves `nats` (and any other service in `services/platform/messaging/docker-compose.yml`, e.g. a local mail catcher) disabled in Tilt. The pre-alpha default always goes through a focus-filter path that only re-enabled `init-networks`/`postgres`/`traefik`/`golden-layers-build`, so a resource with the `nats` feature retried its broker connection forever until you ran `tilt enable nats` by hand. Fixes #155.
