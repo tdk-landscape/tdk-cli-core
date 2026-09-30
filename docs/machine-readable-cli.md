@@ -16,13 +16,13 @@ Every response uses this envelope:
 
 Command data:
 
-- `status`: `tilt.available`, `tilt.resourcesQueried`, optional live `tilt.resources`, discovered `resources` (`name`, `stack`, `type`, `port`), and `stacks` (`name`, `resourceCount`). Without `--tilt`, resources are not queried and the field is `null`.
+- `status`: `tilt.available`, `tilt.resourcesQueried`, optional live `tilt.resources`, discovered manifest `resources` (`name`, `stack`, `type`, `port`), and `stacks` (`name`, `resourceCount`). Without `--tilt`, `tilt.resourcesQueried` is `false` and `tilt.resources` is `null`; the `resources` array is still the manifest inventory and does not report live health. Pass `--tilt` to query Tilt's live resource state. If Tilt is unavailable, `tilt.available` is `false` and no live query is made.
 - `resources`: `resources` with stable service name, stack, type, port, and manifest path.
 - `networks`: `services` with stable service name, stack, base path, URL, optional Windows loopback URL, service port, and reachability state (`running`, `stopped`, or `unknown`). An empty list means no discovered resource currently has a routable base path.
 - `doctor`: `ready`, `inProject`, and ordered `checks`, plus structured `errors` for usage/internal failures. Check entries preserve `name`, `didPass`, `message`, optional `fix`, `isWarning`, and `isSkipped`.
 - `config verify`: `valid`, `errors`, `warnings`, and `diffs`. Drift or missing tracked master outputs exits 1 and includes a unified diff; a valid project exits 0. JSON verification does not regenerate files.
 
-`networks --json` previously returned a bare array. It now returns the versioned envelope. During migration, `networks --json-legacy` returns the old array; migrate consumers to `data.services`. Existing text and raw output remain available.
+`networks --json` previously returned a bare array. It now returns the versioned envelope. During migration, `networks --json-legacy` returns the old array and is scheduled for removal in CLI version 1.5.0; migrate consumers before that release to `data.services`. Existing text and raw output remain available.
 
 Within schema version 1, additive fields are allowed. Clients should ignore unknown fields and reject unsupported major schema versions. Removing or renaming fields, changing their meaning, or changing collection shapes requires a versioned transition and migration notes. Text aliases and plural command aliases remain supported.
 
