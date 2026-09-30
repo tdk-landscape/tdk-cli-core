@@ -25,4 +25,4 @@ TDK writes the Tiltfile for you. If you already maintain a Tiltfile, stay on Til
 
 - Community is small
 - Generators are TypeScript-first
-- 100-service benchmark uses tiny `/health` stubs, not real apps
+- 100-service ERP-named benchmark is a fixture bench of tiny `/health` stubs, not a real ERP product or real application workload

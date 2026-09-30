@@ -1,0 +1,135 @@
+name: 🧪 Default example E2E
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: example-e2e-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  example-e2e:
+    name: example-e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install Tilt
+        run: curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash
+
+      - name: Free required host ports
+        run: |
+          sudo systemctl stop postgresql.socket 'postgresql@*.socket' 2>/dev/null || true
+          sudo systemctl stop postgresql.service 'postgresql@*.service' 2>/dev/null || true
+          sudo DEBIAN_FRONTEND=noninteractive apt-get remove --purge -y 'postgresql*' >/dev/null 2>&1 || true
+          sudo fuser -k 80/tcp 443/tcp 5432/tcp 2>/dev/null || true
+
+      - name: Build and pack the candidate TDK package
+        run: |
+          bun install --frozen-lockfile
+          npm run build
+          npm pack --pack-destination "$RUNNER_TEMP"
+
+      - name: Pack and install the candidate TDK package
+        run: | # zizmor: ignore[adhoc-packages] installs our own freshly packed tarball
+          tarball="$(npm pack --ignore-scripts --silent | tail -1)"
+          npm install --global "./$tarball"
+
+      - name: Clone and configure the bundled example
+        run: |
+          tdk project example --path tdk-example
+          cd tdk-example
+          tdk project --yes
+          # The product example intentionally uses only PostgreSQL and NATS.
+          # Keep its scaffold from enabling optional Infisical resources.
+          sed -i 's/^INFISICAL_ENABLED=.*/INFISICAL_ENABLED=false/' .env
+          tdk doctor --no-ping
+          tdk config verify
+
+      - name: Boot, health check, and prove the routed worker write path
+        working-directory: tdk-example
+        shell: bash
+        run: |
+          set -euo pipefail
+          tdk up shop > up.log 2>&1 &
+          tdk_pid=$!
+          cleanup() {
+            status=$?
+            if [ "$status" -ne 0 ]; then
+              echo "Example E2E failed; collecting container and NATS logs before teardown"
+              docker ps -a --format 'table {{.Names}}\t{{.Status}}' || true
+              docker logs tdk_example_nats 2>&1 | tail -200 || true
+              tilt get uiresources -o json 2>&1 | jq -r '.items[] | "\(.metadata.name): update=\(.status.updateStatus // "-") runtime=\(.status.runtimeStatus // "-") error=\((.status.buildHistory // [] | map(.error // empty) | first) // "-")"' || true
+            fi
+            kill "$tdk_pid" 2>/dev/null || true
+            tdk down >/dev/null 2>&1 || true
+            return "$status"
+          }
+          trap cleanup EXIT
+
+          for _ in $(seq 1 75); do
+            if grep -q 'Running tilt up' up.log; then break; fi
+            if ! kill -0 "$tdk_pid" 2>/dev/null; then tail -120 up.log; exit 1; fi
+            sleep 2
+          done
+          if ! grep -q 'Running tilt up' up.log; then tail -120 up.log; exit 1; fi
+
+          api=http://api.tdk-example.localhost/api/orders
+          app=http://app.tdk-example.localhost/orders-app/
+          for _ in $(seq 1 90); do
+            if curl -fsS "$api/health" >/dev/null && curl -fsS "$api/worker-ready" >/dev/null && curl -fsS "$app" >/dev/null; then break; fi
+            sleep 2
+          done
+          curl -fsS "$api/health" >/dev/null
+          curl -fsS "$api/worker-ready" >/dev/null
+          curl -fsS "$app" >/dev/null
+
+          order_id="$(curl -fsS -X POST "$api" -H 'content-type: application/json' \
+            -d '{"item":"CI coffee"}' | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>process.stdout.write(String(JSON.parse(s).order.id)))')"
+          echo "Created order $order_id through Traefik"
+
+          observed=false
+          for _ in $(seq 1 60); do
+            result="$(curl -fsS "$api/$order_id")"
+            seen="$(printf '%s' "$result" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>process.stdout.write(JSON.parse(s).order.workerSeenAt ? "yes" : "no"))')"
+            if [ "$seen" = yes ]; then observed=true; break; fi
+            sleep 1
+          done
+          if [ "$observed" != true ]; then
+            echo "Worker did not observe order $order_id" >&2
+            docker logs tdk_example_nats || true
+            tail -120 up.log
+            exit 1
+          fi
+          echo "NATS worker observed order $order_id"
+          tdk config verify
+
+      - name: Diagnostics on failure
+        if: failure() || cancelled()
+        run: |
+          if [ ! -d tdk-example ]; then exit 0; fi
+          cd tdk-example
+          tail -160 up.log 2>/dev/null || true
+          docker ps -a --format 'table {{.Names}}\t{{.Status}}' || true
+          docker logs tdk_example_nats 2>&1 | tail -200 || true
+
+      - name: Stop example
+        if: always()
+        run: |
+          if [ -d tdk-example ]; then
+            cd tdk-example
+            tdk down || true
+          fi

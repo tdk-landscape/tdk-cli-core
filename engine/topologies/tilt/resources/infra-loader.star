@@ -7,7 +7,7 @@
 #
 # This module centralizes infrastructure loading:
 # - Database (PostgreSQL, Redis)
-# - Messaging (NATS, Kafka)
+# - Messaging (Redis, NATS, Kafka)
 # - Secrets (Infisical)
 # - Registry (Verdaccio)
 # - Proxy (Traefik)
@@ -31,6 +31,13 @@ def _file_exists(path):
     """Check if a file exists."""
     result = str(local("test -f '{path}' && echo 'yes' || echo 'no'".format(path=path), quiet=True, echo_off=True)).strip()
     return result == 'yes'
+
+
+def _compose_has_service(compose_path, service_name):
+    """Check whether a Compose file declares a named service."""
+    document = read_yaml(compose_path, default={})
+    services = document.get('services', {}) if type(document) == 'dict' else {}
+    return service_name in services
 
 
 def _docker_compose(compose_paths, env_file):
@@ -116,8 +123,12 @@ def _load_database_management(should_enable, root_prefix="", env_file=None, writ
     if _file_exists(messaging_compose):
         print("DEBUG INFRA: Loading messaging compose from {}".format(messaging_compose))
         _docker_compose(messaging_compose, env_file)
-        dc_resource('redis', labels=['infra.messaging'], auto_init=False)
-        dc_resource('nats', labels=['infra.messaging'], auto_init=True)
+        # Register only services present in the project compose file. Minimal
+        # NATS-only examples should not need to add an unrelated Redis broker.
+        if _compose_has_service(messaging_compose, 'redis'):
+            dc_resource('redis', labels=['infra.messaging'], auto_init=False)
+        if _compose_has_service(messaging_compose, 'nats'):
+            dc_resource('nats', labels=['infra.messaging'], auto_init=True)
     else:
         print("DEBUG INFRA: Skipping messaging (compose file not found)")
     

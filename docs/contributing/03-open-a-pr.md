@@ -70,4 +70,4 @@ The [PR template](../../.github/pull_request_template.md) asks you to select the
 - **Framework example:** adding Vue, React, or another provider changes `cli/` and `engine/`, so both the always-run CI and Quickstart E2E run.
 - **Docs-only change:** the always-run CI still runs. Quickstart E2E does not run unless the PR also changes one of its listed paths.
 
-Other example-app and 100-service checks run on a schedule or by manual request, not on each PR. You can always see a workflow's trigger paths at the top of its file in `.github/workflows/`.
+Other example-app and 100-service fixture-bench checks run on a schedule or by manual request, not on each PR. You can always see a workflow's trigger paths at the top of its file in `.github/workflows/`.

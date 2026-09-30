@@ -26,6 +26,7 @@
     "specs",
     "ext",
     "shared-platform-engineering/docker-templates",
+    "examples/tdk-example",
     "cli/bin",
     "cli/dist/**/*.js",
     "cli/templates",

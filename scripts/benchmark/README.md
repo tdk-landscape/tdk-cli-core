@@ -8,7 +8,7 @@ bun scripts/benchmark/container-scale.ts --tiers 5,10 --gate 10
 bun scripts/benchmark/container-scale.ts --legacy-healthcheck  # old 10s probes, for comparison
 ```
 
-It uses the ERP images that `tdk up` already built in `../tdk-erp-system` (override with `--project` or `TDK_BENCH_PROJECT`). For each tier it starts N real service containers with the generated runtime settings (`--init`, 512 MiB / 0.5 CPU limits, healthchecks against `/health`). It then records:
+It uses the images built in `../tdk-erp-system`, a 100-service fixture bench of generated `/health` services (not an ERP product; override with `--project` or `TDK_BENCH_PROJECT`). For each tier it starts N service containers with the generated runtime settings (`--init`, 512 MiB / 0.5 CPU limits, healthchecks against `/health`). It then records:
 
 - launch time, first-healthy and all-healthy time
 - crashes and OOM kills, with each container's exit code and last log line
