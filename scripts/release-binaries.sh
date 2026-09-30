@@ -89,7 +89,45 @@ fi
     tdk-cli checksums.txt
 )
 
-echo "Built release assets in ${RELEASE_DIR}"
+validate_release_assets() {
+  local required=(
+    tdk-linux-amd64
+    tdk-linux-arm64
+    tdk-darwin-amd64
+    tdk-darwin-arm64
+    tdk-windows-amd64.exe
+    tdk-cli-engine.tar.gz
+    checksums.txt
+    "tdk-cli-${RELEASE_TAG}-binaries.zip"
+  )
+  local asset
+
+  for asset in "${required[@]}"; do
+    if [[ ! -s "${RELEASE_DIR}/${asset}" ]]; then
+      echo "Required release asset is missing or empty: ${asset}" >&2
+      return 1
+    fi
+  done
+
+  if [[ "$(head -c 2 "${RELEASE_DIR}/tdk-windows-amd64.exe" | od -An -t x1 | tr -d ' \n')" != "4d5a" ]]; then
+    echo "Windows binary is not a PE executable (missing MZ signature)" >&2
+    return 1
+  fi
+
+  (
+    cd "${RELEASE_DIR}"
+    shasum -a 256 -c checksums.txt
+  )
+
+  if ! unzip -Z1 "${RELEASE_DIR}/tdk-cli-${RELEASE_TAG}-binaries.zip" | grep -Fxq tdk-windows-amd64.exe; then
+    echo "Binary ZIP is missing tdk-windows-amd64.exe" >&2
+    return 1
+  fi
+}
+
+validate_release_assets
+
+echo "Built and validated release assets in ${RELEASE_DIR}"
 
 if [[ "${PUBLISH}" != "--publish" ]]; then
   exit 0
@@ -126,4 +164,16 @@ else
     --draft \
     "${ASSETS[@]}"
 fi
+# Verify that the remote release has every asset before making it latest.
+remote_assets="$(gh release view "${RELEASE_TAG}" --repo "${RELEASE_REPOSITORY}" --json assets --jq '.assets[].name')"
+for asset in \
+  tdk-linux-amd64 tdk-linux-arm64 tdk-darwin-amd64 tdk-darwin-arm64 \
+  tdk-windows-amd64.exe tdk-cli-engine.tar.gz checksums.txt \
+  "tdk-cli-${RELEASE_TAG}-binaries.zip"; do
+  if ! grep -Fxq "${asset}" <<<"${remote_assets}"; then
+    echo "Published release is missing required asset: ${asset}" >&2
+    exit 1
+  fi
+done
+
 gh release edit "${RELEASE_TAG}" --repo "${RELEASE_REPOSITORY}" --draft=false --latest
