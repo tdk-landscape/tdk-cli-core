@@ -8,9 +8,10 @@ One CLI that scaffolds your services and runs the whole landscape locally with h
 
 ## Status
 
-Supported: macOS, Linux.
-Windows: WSL2 Ubuntu only. Native Windows is unsupported.
-Stability: young (treat 1.x as 0.x caveats).
+Supported: macOS, Linux, Windows via WSL2 Ubuntu.
+Native Windows: CLI inspect only; `tdk up` unsupported.
+WSL2 smoke: local script only (no GitHub WSL runner).
+Stability: 1.x — generated files are a contract; verify in CI.
 Check your machine: `tdk doctor`
 Known limits: [docs/compare-honest.md](docs/compare-honest.md)
 
