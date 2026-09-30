@@ -788,7 +788,11 @@ export function verifyMasterConfigs(projectRoot: string): {
 function createUnifiedDiff(file: string, actual: string, expected: string): string {
   const oldLines = actual.replace(/\n$/, "").split("\n");
   const newLines = expected.replace(/\n$/, "").split("\n");
-  const lines = [`--- a/${file}`, `+++ b/${file}`, `@@ -1,${oldLines.length} +1,${newLines.length} @@`];
+  const lines = [
+    `--- a/${file}`,
+    `+++ b/${file}`,
+    `@@ -1,${oldLines.length} +1,${newLines.length} @@`,
+  ];
   for (const line of oldLines) lines.push(`-${line}`);
   for (const line of newLines) lines.push(`+${line}`);
   return lines.join("\n");
