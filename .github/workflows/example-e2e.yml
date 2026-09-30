@@ -53,6 +53,9 @@ jobs:
           tdk project example --path tdk-example
           cd tdk-example
           tdk project --yes
+          # The product example intentionally uses only PostgreSQL and NATS.
+          # Keep its scaffold from enabling optional Infisical resources.
+          sed -i 's/^INFISICAL_ENABLED=.*/INFISICAL_ENABLED=false/' .env
           tdk doctor --no-ping
           tdk config verify
 

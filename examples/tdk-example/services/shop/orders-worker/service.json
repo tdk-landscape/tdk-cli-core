@@ -4,6 +4,7 @@
   "appName": "orders-worker",
   "appType": "worker",
   "stack": "shop",
+  "port": 4001,
   "featuresEnabled": ["nats"],
   "params": {
     "NATS_URL": "nats://tdk_example_nats:4222"
