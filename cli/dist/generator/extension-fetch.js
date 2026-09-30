@@ -187,7 +187,8 @@ export async function applyPremiumOverlay(projectRoot, destDir) {
         if (missing.length > 0) {
             console.info(`🔎 Premium bundle missing mapped files: ${missing.join(", ")}`);
         }
-        if (!existsSync(sablierPath)) {
+        if (!existsSync(sablierPath) &&
+            process.env.TDK_PREMIUM_DIAGNOSTICS === "1") {
             const sablierGranted = await hasSablierLicense(projectRoot);
             console.info(`🔎 Sablier entitlement check: ${sablierGranted ? "granted" : "not confirmed"}; compare with sablier_overlay above to distinguish license access from bundle contents`);
         }

@@ -3,6 +3,7 @@ set -euo pipefail
 
 project_dir="${1:?usage: cold-start.sh PROJECT_DIR}"
 cd "$project_dir"
+export TDK_PREMIUM_DIAGNOSTICS=1
 
 echo "::group::Scaffold deferred and deliberately slow backends"
 tdk project --yes
