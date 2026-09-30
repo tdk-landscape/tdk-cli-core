@@ -25,6 +25,37 @@ describe("doctor report contract", () => {
     expect(getDoctorExitCode(report)).toBe(1);
   });
 
+  it("includes requested, chosen, explicit and reason fields for each planned port", () => {
+    const plan = {
+      ingressHttp: 8080,
+      ingressHttps: 8443,
+      postgres: 15432,
+      requested: { ingressHttp: 80, ingressHttps: 443, postgres: 5432 },
+      explicit: { ingressHttp: false, ingressHttps: true, postgres: false },
+      reason: {
+        ingressHttp: "selected from fallback range 8080-8180",
+        ingressHttps: "explicit override",
+        postgres: "selected from fallback range 15432-15532",
+      },
+    };
+    const report = createDoctorReport([passing], true, [], plan);
+    expect(report.data.ports).toEqual({
+      http: {
+        requested: 80,
+        chosen: 8080,
+        explicit: false,
+        reason: "selected from fallback range 8080-8180",
+      },
+      https: { requested: 443, chosen: 8443, explicit: true, reason: "explicit override" },
+      postgres: {
+        requested: 5432,
+        chosen: 15432,
+        explicit: false,
+        reason: "selected from fallback range 15432-15532",
+      },
+    });
+  });
+
   it("returns 2 for usage and internal errors even if other checks pass", () => {
     for (const code of ["USAGE", "INTERNAL"] as const) {
       const report = createDoctorReport([passing], false, [{ code, message: "Failed" }]);

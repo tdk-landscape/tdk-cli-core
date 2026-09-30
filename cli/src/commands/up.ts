@@ -3,7 +3,6 @@ import chalk from "chalk";
 import { Command } from "commander";
 import { ensureProjectRuntimeAssets } from "../generator/template-engine.js";
 import { handleDryRun } from "../utils/command-helpers.js";
-import { checkHostPorts } from "../utils/doctor-runtime.js";
 import {
   errorFactories,
   handleTiltFailure,
@@ -13,6 +12,12 @@ import {
   withTiltCheck,
 } from "../utils/errors.js";
 import { formatCount } from "../utils/formatting.js";
+import {
+  exportHostPortPlan,
+  getHostPortPlan,
+  writeSavedHostPortPlan,
+} from "../utils/host-port-config.js";
+import { formatHostPortPlan } from "../utils/host-port-plan.js";
 import { findProjectRoot } from "../utils/paths.js";
 import { findAvailablePort } from "../utils/port-assignment.js";
 import { appendHealthPath, resolveSubdomainBases } from "../utils/service-urls.js";
@@ -89,6 +94,9 @@ export const upCommand = new Command("up")
       const projectRoot = options.dryRun
         ? requireProjectRoot()
         : (findProjectRoot() ?? process.cwd());
+      const hostPortPlan = await getHostPortPlan(projectRoot, {
+        inspectDocker: !options.dryRun,
+      });
       if (!options.dryRun) {
         const copiedAssets = ensureProjectRuntimeAssets(projectRoot);
         if (copiedAssets.length > 0 && options.verbose && !options.quiet) {
@@ -143,7 +151,7 @@ export const upCommand = new Command("up")
           console.log(chalk.gray(`  - ${name}`));
         });
 
-        const { appBase, apiBase } = resolveSubdomainBases();
+        const { appBase, apiBase } = resolveSubdomainBases(hostPortPlan.ingressHttp);
         const frontends = servicesToStart.filter((s) => s.config?.appType === "frontend");
         const backends = servicesToStart.filter((s) => s.config?.appType === "backend");
 
@@ -179,17 +187,18 @@ export const upCommand = new Command("up")
       const dryRunCommand = stackName
         ? `tilt up -- --focus=${stackName} ${focusServiceNames.join(" ")}`
         : "tilt up";
+      if (!options.quiet) {
+        console.log(chalk.blue(formatHostPortPlan(hostPortPlan)));
+        console.log(
+          chalk.gray("Override with TDK_HTTP_PORT, TDK_HTTPS_PORT, or TDK_POSTGRES_PORT."),
+        );
+      }
       if (handleDryRun(options, "not starting services", dryRunCommand)) {
         return;
       }
 
-      // Warn rather than block: a stale local Postgres on 5432 makes Tilt fail
-      // halfway through startup with a bind error that's hard to read.
-      const hostPorts = await checkHostPorts();
-      if (!hostPorts.didPass && !options.quiet) {
-        console.log(chalk.yellow(`\n⚠️  ${hostPorts.message}`));
-        if (hostPorts.fix) console.log(chalk.gray(`   ${hostPorts.fix}\n`));
-      }
+      exportHostPortPlan(hostPortPlan);
+      writeSavedHostPortPlan(projectRoot, hostPortPlan);
 
       const basePort = 10350;
       let port = basePort;

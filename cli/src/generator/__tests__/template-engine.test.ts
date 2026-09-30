@@ -3,7 +3,13 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { generateMasterConfigs, loadTemplate, verifyMasterConfigs } from "../template-engine.js";
+import type { ProjectConfig } from "../../types/index.js";
+import {
+  generateDatabaseManagementCompose,
+  generateMasterConfigs,
+  loadTemplate,
+  verifyMasterConfigs,
+} from "../template-engine.js";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
 const readEngine = (rel: string) => fs.readFileSync(path.join(repoRoot, "engine", rel), "utf-8");
@@ -20,6 +26,13 @@ const REAL_TEMPLATES: Record<string, string> = {
 };
 
 describe("template-engine", () => {
+  it("interpolates the planned Postgres host port in generated database Compose", () => {
+    const compose = generateDatabaseManagementCompose({
+      project: { name: "port_test", version: "1.0.0" },
+    } as ProjectConfig);
+    expect(compose).toContain('"$' + '{TDK_POSTGRES_PORT:-15432}:5432"');
+  });
+
   it("preserves user files and detects service manifest and generated Dockerfile drift", async () => {
     const projectRoot = fs.mkdtempSync(path.join(os.tmpdir(), "tdk-generated-contract-"));
     const oldExtensionSource = process.env.TDK_EXTENSION_SOURCE;
@@ -155,7 +168,7 @@ describe("template-engine", () => {
       // renders only `traefik`; forcing the flag on renders all three.)
       const compose = readEngine("topologies/platform/docker/compose/traefik_standalone.star");
       expect(compose).toMatch(
-        /def generate_standalone_traefik_compose\(sablier_enabled\s*=\s*False\)/,
+        /def generate_standalone_traefik_compose\(sablier_enabled\s*=\s*False,\s*http_host_port\s*=\s*"8080",\s*https_host_port\s*=\s*"8443"\)/,
       );
       for (const marker of [
         "  sablier:\n",
@@ -172,7 +185,9 @@ describe("template-engine", () => {
       expect(compose).toMatch(/if sablier_enabled else ""/);
 
       const loader = readEngine("topologies/tilt/resources/infra-loader.star");
-      expect(loader).toMatch(/generate_standalone_traefik_compose\(sablier_enabled\)/);
+      expect(loader).toMatch(
+        /generate_standalone_traefik_compose\(\s*sablier_enabled,\s*os\.environ\.get\('TDK_HTTP_PORT', '8080'\),\s*os\.environ\.get\('TDK_HTTPS_PORT', '8443'\),?\s*\)/,
+      );
       expect(loader).toMatch(/sablier_middleware_suffix\(\{"sablier":\s*\{"enable":\s*True\}\}/);
     });
 

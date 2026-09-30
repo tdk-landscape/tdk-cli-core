@@ -1,5 +1,5 @@
 import { createServer } from "node:net";
-const DEFAULT_RANGES = {
+export const DEFAULT_HOST_PORT_RANGES = {
     ingressHttp: { start: 8080, end: 8180 },
     ingressHttps: { start: 8443, end: 8543 },
     postgres: { start: 15432, end: 15532 },
@@ -9,7 +9,8 @@ const ENV_KEYS = {
     ingressHttps: "TDK_HTTPS_PORT",
     postgres: "TDK_POSTGRES_PORT",
 };
-async function isHostPortAvailable(port) {
+const REQUESTED_PORTS = { ingressHttp: 80, ingressHttps: 443, postgres: 5432 };
+export async function isHostPortAvailable(port) {
     return new Promise((resolve) => {
         const server = createServer();
         server.once("error", () => resolve(false));
@@ -29,12 +30,13 @@ export async function createHostPortPlan(options = {}) {
     const env = options.env ?? process.env;
     const isAvailable = options.isAvailable ?? isHostPortAvailable;
     const explicitFlags = { ingressHttp: false, ingressHttps: false, postgres: false };
+    const reasons = { ingressHttp: "", ingressHttps: "", postgres: "" };
     const selected = { explicit: explicitFlags };
     const reserved = new Set();
     for (const key of ["ingressHttp", "ingressHttps", "postgres"]) {
         const envValue = env[ENV_KEYS[key]];
         const explicit = envValue !== undefined && envValue.trim() !== "";
-        const range = options.ranges?.[key] ?? DEFAULT_RANGES[key];
+        const range = options.ranges?.[key] ?? DEFAULT_HOST_PORT_RANGES[key];
         const candidates = explicit
             ? [parsePort(ENV_KEYS[key], envValue)]
             : Array.from({ length: range.end - range.start + 1 }, (_, index) => range.start + index);
@@ -56,7 +58,17 @@ export async function createHostPortPlan(options = {}) {
         reserved.add(chosen);
         selected[key] = chosen;
         explicitFlags[key] = explicit;
+        reasons[key] = explicit
+            ? "explicit override"
+            : `selected from fallback range ${range.start}-${range.end}`;
     }
-    return selected;
+    return {
+        ...selected,
+        requested: { ...REQUESTED_PORTS },
+        reason: reasons,
+    };
+}
+export function formatHostPortPlan(plan) {
+    return `Host ports: HTTP ${plan.ingressHttp}, HTTPS ${plan.ingressHttps}, Postgres ${plan.postgres}`;
 }
 //# sourceMappingURL=host-port-plan.js.map

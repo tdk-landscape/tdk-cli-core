@@ -305,7 +305,7 @@ export function checkPrivateNpmRegistry(exec = execSync, projectRoot = findProje
  * This is the exact failure mode that leaves apps never scheduled while doctor
  * previously reported "Environment ready".
  */
-export function checkIngressPorts(exec = execSync, projectName = getProjectName()) {
+export function checkIngressPorts(exec = execSync, projectName = getProjectName(), ports = INGRESS_PORTS) {
     const projectPrefix = toComposeProjectPrefix(projectName);
     let dockerPs = "";
     try {
@@ -323,7 +323,7 @@ export function checkIngressPorts(exec = execSync, projectName = getProjectName(
             message: "Docker not available - skipped ingress port check",
         };
     }
-    const holders = parsePublishedPortHolders(dockerPs, INGRESS_PORTS);
+    const holders = parsePublishedPortHolders(dockerPs, ports);
     const foreign = findForeignIngressHolders(holders, projectPrefix);
     if (foreign.length === 0) {
         const own = holders.filter((holder) => isOwnIngressContainer(holder.name, projectPrefix));
@@ -331,7 +331,7 @@ export function checkIngressPorts(exec = execSync, projectName = getProjectName(
             return {
                 name: "Ingress Ports",
                 didPass: true,
-                message: `Ingress ports ${INGRESS_PORTS.join("/")} held by this project's Traefik (${own
+                message: `Ingress ports ${ports.join("/")} held by this project's Traefik (${own
                     .map((h) => h.name)
                     .join(", ")})`,
             };
@@ -339,7 +339,7 @@ export function checkIngressPorts(exec = execSync, projectName = getProjectName(
         return {
             name: "Ingress Ports",
             didPass: true,
-            message: `Ingress ports ${INGRESS_PORTS.join("/")} are free for Traefik`,
+            message: `Ingress ports ${ports.join("/")} are free for Traefik`,
         };
     }
     const details = foreign

@@ -23,14 +23,14 @@ These are always enabled in the `pre_alpha` stack:
 - **Purpose**: Reverse proxy and API gateway for routing all services
 - **Default**: ✅ Enabled
 - **Service Name**: `proxy`
-- **Port**: 80 (HTTP), 443 (HTTPS)
+- **Container ports**: 80 (HTTP), 443 (HTTPS); host ports are selected at startup and shown by `tdk up` / `tdk networks`.
 - **Configuration**: Routes all HTTP traffic based on path/domain rules
 
 #### `database-management` (PostgreSQL)
 - **Purpose**: Primary relational database for data persistence
 - **Default**: ✅ Enabled
 - **Service Name**: `database-management`
-- **Port**: 5432
+- **Container port**: 5432; host port is selected at startup (`TDK_POSTGRES_PORT` overrides it).
 - **Database**: `app_dev` (default)
 - **Configuration**: Backend services use `DATABASE_URL` env var
 

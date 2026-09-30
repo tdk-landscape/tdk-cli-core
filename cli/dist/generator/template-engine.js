@@ -231,7 +231,7 @@ services:
       POSTGRES_PASSWORD: \${DB_PASSWORD}
       POSTGRES_DB: postgres
     ports:
-      - "5432:5432"
+      - "\${TDK_POSTGRES_PORT:-15432}:5432"
     volumes:
       - ${name}_postgres_data:/var/lib/postgresql/data
     networks:

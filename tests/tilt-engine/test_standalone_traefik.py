@@ -86,45 +86,13 @@ def _infra_loader_source() -> str:
     ).read_text()
 
 
-def test_standalone_traefik_stops_conflicting_container_before_compose_up():
-    """Two standalone TDK projects both generate Traefik with hardcoded host
-    ports 80/8080 (so api.{project}.localhost works without a port suffix), so
-    only one can bind port 80 at a time. `tdk up` on a new project must take
-    over the port from a stale Traefik left running by a previous project
-    rather than letting `docker compose up` die deep inside Tilt with a
-    cryptic "port is already allocated" networking error.
-    """
+def test_standalone_traefik_uses_selected_ports_without_stopping_other_projects():
+    """Traefik must use selected ingress ports without stopping a different project's proxy."""
     source = _infra_loader_source()
-    assert "_stop_conflicting_traefik" in source
-
-    # The takeover must run before docker_compose() is invoked for the
-    # standalone Traefik compose, not after. Search from the function body
-    # (not its definition line, which also contains the substring
-    # "..._traefik()").
-    load_standalone_def = source.index("def _load_standalone_traefik(")
-    stop_call = source.index("_stop_conflicting_traefik()", load_standalone_def)
-    docker_compose_call = source.index("_docker_compose(compose_file, env_file)", load_standalone_def)
-    assert load_standalone_def < stop_call < docker_compose_call
-
-
-def test_traefik_conflict_takeover_stops_other_project_and_logs_it():
-    source = _infra_loader_source()
-    stop_start = source.index("def _stop_conflicting_traefik():")
-    stop_body = source[stop_start:source.index("def _load_standalone_traefik(")]
-
-    # Detects other containers publishing the ports this project's Traefik needs.
-    assert "docker ps" in stop_body
-    assert "publish=80" in stop_body
-    assert "publish=8080" in stop_body
-
-    # Must not stop this project's own (already-running) Traefik.
-    assert "PlatformDockerConstants.PROJECT_NAME" in stop_body
-    assert "own_container" in stop_body
-
-    # Actually stops the other project's container and logs what was stopped,
-    # instead of just erroring out.
-    assert "docker stop" in stop_body
-    assert "print(" in stop_body
+    assert "_stop_conflicting_traefik" not in source
+    assert "os.environ.get('TDK_HTTP_PORT', '8080')" in source
+    assert "os.environ.get('TDK_HTTPS_PORT', '8443')" in source
+    assert "docker stop" not in source
 
 
 @pytest.mark.skipif(shutil.which("tilt") is None, reason="tilt CLI not installed")
@@ -136,7 +104,7 @@ def test_standalone_compose_enables_file_provider_and_wake_gateway(tmp_path):
     r = _run_starlark(
         tmp_path,
         "load('@COMPOSE/traefik_standalone.star', 'generate_standalone_traefik_compose')\n"
-        "r = {'yaml': generate_standalone_traefik_compose()}\n",
+        "r = {'yaml': generate_standalone_traefik_compose(True)}\n",
     )
     yaml_text = r["yaml"]
     assert "--providers.file.directory=/etc/traefik/dynamic" in yaml_text
@@ -144,6 +112,19 @@ def test_standalone_compose_enables_file_provider_and_wake_gateway(tmp_path):
     assert "/etc/traefik/dynamic:ro" in yaml_text
     assert "wake-gateway:" in yaml_text
     assert "/root/.tilt-dev:ro" in yaml_text
+
+
+@pytest.mark.skipif(shutil.which("tilt") is None, reason="tilt CLI not installed")
+def test_standalone_compose_uses_selected_ingress_ports(tmp_path):
+    r = _run_starlark(
+        tmp_path,
+        "os.environ['TDK_HTTP_PORT'] = '18080'\n"
+        "os.environ['TDK_HTTPS_PORT'] = '18443'\n"
+        "load('@COMPOSE/traefik_standalone.star', 'generate_standalone_traefik_compose')\n"
+        "r = {'yaml': generate_standalone_traefik_compose(False, os.environ['TDK_HTTP_PORT'], os.environ['TDK_HTTPS_PORT'])}\n",
+    )
+    assert '\"18080:80\"' in r["yaml"]
+    assert '\"18443:443\"' in r["yaml"]
 
 
 @pytest.mark.skipif(shutil.which("tilt") is None, reason="tilt CLI not installed")
@@ -155,6 +136,6 @@ def test_wake_gateway_mounts_project_root_at_its_own_absolute_path(tmp_path):
         tmp_path,
         "os.environ['TDK_PROJECT_ROOT'] = '/Users/dev/tdk-erp-system/.tdk/.tdk-out/../..'\n"
         "load('@COMPOSE/traefik_standalone.star', 'generate_standalone_traefik_compose')\n"
-        "r = {'yaml': generate_standalone_traefik_compose()}\n",
+        "r = {'yaml': generate_standalone_traefik_compose(True)}\n",
     )
     assert "- /Users/dev/tdk-erp-system:/Users/dev/tdk-erp-system:ro" in r["yaml"]

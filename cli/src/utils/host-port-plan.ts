@@ -4,11 +4,13 @@ export interface HostPortPlan {
   ingressHttp: number;
   ingressHttps: number;
   postgres: number;
+  requested: { ingressHttp: number; ingressHttps: number; postgres: number };
   explicit: {
     ingressHttp: boolean;
     ingressHttps: boolean;
     postgres: boolean;
   };
+  reason: { ingressHttp: string; ingressHttps: string; postgres: string };
 }
 
 export interface HostPortPlanOptions {
@@ -17,7 +19,7 @@ export interface HostPortPlanOptions {
   ranges?: Partial<Record<keyof HostPortPlan["explicit"], { start: number; end: number }>>;
 }
 
-const DEFAULT_RANGES = {
+export const DEFAULT_HOST_PORT_RANGES = {
   ingressHttp: { start: 8080, end: 8180 },
   ingressHttps: { start: 8443, end: 8543 },
   postgres: { start: 15432, end: 15532 },
@@ -28,8 +30,9 @@ const ENV_KEYS = {
   ingressHttps: "TDK_HTTPS_PORT",
   postgres: "TDK_POSTGRES_PORT",
 } as const;
+const REQUESTED_PORTS = { ingressHttp: 80, ingressHttps: 443, postgres: 5432 } as const;
 
-async function isHostPortAvailable(port: number): Promise<boolean> {
+export async function isHostPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
     const server = createServer();
     server.once("error", () => resolve(false));
@@ -53,13 +56,14 @@ export async function createHostPortPlan(options: HostPortPlanOptions = {}): Pro
   const env = options.env ?? process.env;
   const isAvailable = options.isAvailable ?? isHostPortAvailable;
   const explicitFlags = { ingressHttp: false, ingressHttps: false, postgres: false };
+  const reasons = { ingressHttp: "", ingressHttps: "", postgres: "" };
   const selected: Partial<HostPortPlan> = { explicit: explicitFlags };
   const reserved = new Set<number>();
 
   for (const key of ["ingressHttp", "ingressHttps", "postgres"] as const) {
     const envValue = env[ENV_KEYS[key]];
     const explicit = envValue !== undefined && envValue.trim() !== "";
-    const range = options.ranges?.[key] ?? DEFAULT_RANGES[key];
+    const range = options.ranges?.[key] ?? DEFAULT_HOST_PORT_RANGES[key];
     const candidates = explicit
       ? [parsePort(ENV_KEYS[key], envValue)]
       : Array.from({ length: range.end - range.start + 1 }, (_, index) => range.start + index);
@@ -85,7 +89,18 @@ export async function createHostPortPlan(options: HostPortPlanOptions = {}): Pro
     reserved.add(chosen);
     selected[key] = chosen;
     explicitFlags[key] = explicit;
+    reasons[key] = explicit
+      ? "explicit override"
+      : `selected from fallback range ${range.start}-${range.end}`;
   }
 
-  return selected as HostPortPlan;
+  return {
+    ...selected,
+    requested: { ...REQUESTED_PORTS },
+    reason: reasons,
+  } as HostPortPlan;
+}
+
+export function formatHostPortPlan(plan: HostPortPlan): string {
+  return `Host ports: HTTP ${plan.ingressHttp}, HTTPS ${plan.ingressHttps}, Postgres ${plan.postgres}`;
 }

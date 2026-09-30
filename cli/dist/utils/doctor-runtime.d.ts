@@ -64,7 +64,7 @@ export declare function checkPrivateNpmRegistry(exec?: typeof execSync, projectR
  * This is the exact failure mode that leaves apps never scheduled while doctor
  * previously reported "Environment ready".
  */
-export declare function checkIngressPorts(exec?: typeof execSync, projectName?: string): CheckResult;
+export declare function checkIngressPorts(exec?: typeof execSync, projectName?: string, ports?: readonly number[]): CheckResult;
 /** Host ports the generated stack publishes: Traefik (80, 443) and Postgres (5432). */
 export declare const HOST_PORTS: Record<number, string>;
 type PortState = "free" | "in-use" | "unknown";

@@ -31,22 +31,25 @@ export function getProjectName(): string {
   return "tdk-project";
 }
 
-export function resolveSubdomainBases(): { appBase: string; apiBase: string } {
+export function resolveSubdomainBases(ingressPort?: number): { appBase: string; apiBase: string } {
   const projectName = getProjectName();
-  const raw = process.env.TDK_SERVICE_BASE_URL ?? `http://${projectName}.localhost`;
+  const raw =
+    process.env.TDK_SERVICE_BASE_URL ??
+    `http://${projectName}.localhost${ingressPort ? `:${ingressPort}` : ""}`;
   try {
     const u = new URL(raw.includes("://") ? raw : `http://${raw}`);
     const host = u.hostname;
+    const port = u.port || (ingressPort ? String(ingressPort) : "");
     if (host === "localhost" || /^\d+\.\d+\.\d+\.\d+$/.test(host)) {
       return {
-        appBase: `${u.protocol}//${host}${u.port ? `:${u.port}` : ""}`,
-        apiBase: `${u.protocol}//${host}${u.port ? `:${u.port}` : ""}`,
+        appBase: `${u.protocol}//${host}${port ? `:${port}` : ""}`,
+        apiBase: `${u.protocol}//${host}${port ? `:${port}` : ""}`,
       };
     }
     const bare = host.replace(/^(app|api)\./, "");
     return {
-      appBase: `${u.protocol}//app.${bare}${u.port ? `:${u.port}` : ""}`,
-      apiBase: `${u.protocol}//api.${bare}${u.port ? `:${u.port}` : ""}`,
+      appBase: `${u.protocol}//app.${bare}${port ? `:${port}` : ""}`,
+      apiBase: `${u.protocol}//api.${bare}${port ? `:${port}` : ""}`,
     };
   } catch {
     return {
@@ -74,8 +77,11 @@ export function resolveServicePath(resource: DiscoveredResource): string {
  * Workers, libraries, SDKs and migrators have no Traefik route, so they are
  * skipped rather than reported as unreachable.
  */
-export function buildHealthTargets(resources: DiscoveredResource[]): HealthTarget[] {
-  const { appBase, apiBase } = resolveSubdomainBases();
+export function buildHealthTargets(
+  resources: DiscoveredResource[],
+  ingressPort?: number,
+): HealthTarget[] {
+  const { appBase, apiBase } = resolveSubdomainBases(ingressPort);
 
   return resources
     .filter(

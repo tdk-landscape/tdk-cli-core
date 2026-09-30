@@ -57,6 +57,22 @@ describe("resolveSubdomainBases", () => {
       apiBase: "http://localhost:8080",
     });
   });
+
+  it("adds the planned ingress port when a configured hostname has no port", () => {
+    process.env.TDK_SERVICE_BASE_URL = "http://demo.localhost";
+    expect(resolveSubdomainBases(8081)).toEqual({
+      appBase: "http://app.demo.localhost:8081",
+      apiBase: "http://api.demo.localhost:8081",
+    });
+  });
+
+  it("preserves an explicit port in the configured base URL", () => {
+    process.env.TDK_SERVICE_BASE_URL = "http://demo.localhost:9000";
+    expect(resolveSubdomainBases(8081)).toEqual({
+      appBase: "http://app.demo.localhost:9000",
+      apiBase: "http://api.demo.localhost:9000",
+    });
+  });
 });
 
 describe("resolveServicePath", () => {

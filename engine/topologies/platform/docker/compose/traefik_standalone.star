@@ -10,7 +10,7 @@ load("../config/healthcheck.star", "compose_healthcheck_timing")
 load("../networking/traefik_static_routes.star", "normalize_abs_path")
 
 
-def generate_standalone_traefik_compose(sablier_enabled = False):
+def generate_standalone_traefik_compose(sablier_enabled = False, http_host_port = "8080", https_host_port = "8443"):
     """Minimal Traefik that routes Docker labels on api.{project}.localhost.
 
     The Sablier plugin, the sablier container and the wake gateway are only
@@ -48,8 +48,8 @@ services:
       - "--entrypoints.websecure.address=:443"
       - "--log.level=INFO"
 {sablier_flags}    ports:
-      - "80:80"
-      - "8080:8080"
+      - "{http_host_port}:80"
+      - "{https_host_port}:443"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./{dynamic_dir_name}:/etc/traefik/dynamic:ro
@@ -65,6 +65,8 @@ services:
 """.format(
         name=name,
         network=network,
+        http_host_port=http_host_port,
+        https_host_port=https_host_port,
         healthcheck_timing=compose_healthcheck_timing(10),
         traefik_depends_on=_SABLIER_DEPENDS_ON if sablier_enabled else "",
         sablier_flags=_SABLIER_FLAGS if sablier_enabled else "",

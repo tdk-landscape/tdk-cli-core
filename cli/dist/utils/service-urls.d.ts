@@ -12,7 +12,7 @@ export interface HealthProbe extends HealthTarget {
     error?: string;
 }
 export declare function getProjectName(): string;
-export declare function resolveSubdomainBases(): {
+export declare function resolveSubdomainBases(ingressPort?: number): {
     appBase: string;
     apiBase: string;
 };
@@ -24,7 +24,7 @@ export declare function resolveServicePath(resource: DiscoveredResource): string
  * Workers, libraries, SDKs and migrators have no Traefik route, so they are
  * skipped rather than reported as unreachable.
  */
-export declare function buildHealthTargets(resources: DiscoveredResource[]): HealthTarget[];
+export declare function buildHealthTargets(resources: DiscoveredResource[], ingressPort?: number): HealthTarget[];
 export declare function pingHealthTarget(target: HealthTarget, timeoutMs: number): Promise<HealthProbe>;
 export declare function pingHealthTargets(targets: HealthTarget[], timeoutMs: number): Promise<HealthProbe[]>;
 //# sourceMappingURL=service-urls.d.ts.map

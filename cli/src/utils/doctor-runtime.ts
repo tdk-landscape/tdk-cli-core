@@ -429,6 +429,7 @@ export function checkPrivateNpmRegistry(
 export function checkIngressPorts(
   exec: typeof execSync = execSync,
   projectName: string = getProjectName(),
+  ports: readonly number[] = INGRESS_PORTS,
 ): CheckResult {
   const projectPrefix = toComposeProjectPrefix(projectName);
   let dockerPs = "";
@@ -454,7 +455,7 @@ export function checkIngressPorts(
     };
   }
 
-  const holders = parsePublishedPortHolders(dockerPs, INGRESS_PORTS);
+  const holders = parsePublishedPortHolders(dockerPs, ports);
   const foreign = findForeignIngressHolders(holders, projectPrefix);
 
   if (foreign.length === 0) {
@@ -463,7 +464,7 @@ export function checkIngressPorts(
       return {
         name: "Ingress Ports",
         didPass: true,
-        message: `Ingress ports ${INGRESS_PORTS.join("/")} held by this project's Traefik (${own
+        message: `Ingress ports ${ports.join("/")} held by this project's Traefik (${own
           .map((h) => h.name)
           .join(", ")})`,
       };
@@ -471,7 +472,7 @@ export function checkIngressPorts(
     return {
       name: "Ingress Ports",
       didPass: true,
-      message: `Ingress ports ${INGRESS_PORTS.join("/")} are free for Traefik`,
+      message: `Ingress ports ${ports.join("/")} are free for Traefik`,
     };
   }
 

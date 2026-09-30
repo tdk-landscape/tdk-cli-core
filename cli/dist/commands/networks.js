@@ -6,6 +6,8 @@ import { getStackEmoji } from "../utils/constants.js";
 import { createDiscoveryContext } from "../utils/discovery-context.js";
 import { logVerbose, requireProjectRoot } from "../utils/errors.js";
 import { colorizeByStatus, DEFAULT_BOX_WIDTH, formatBoxLine, formatPadded, getStatusIcon, printBoxedHeader, } from "../utils/formatting.js";
+import { readSavedHostPortPlan } from "../utils/host-port-config.js";
+import { createHostPortPlan } from "../utils/host-port-plan.js";
 import { createMachineEnvelope, writeMachineError } from "../utils/machine-output.js";
 import { findProjectRoot } from "../utils/paths.js";
 import { checkPortStatus } from "../utils/port-assignment.js";
@@ -166,6 +168,9 @@ export const networksCommand = new Command("networks")
         if (!projectRoot) {
             throw new Error("Could not find project root (no .tdk/project.json found)");
         }
+        const savedPlan = readSavedHostPortPlan(projectRoot);
+        const hostPortPlan = savedPlan ?? (await createHostPortPlan());
+        const httpPort = hostPortPlan.ingressHttp;
         const discovery = createDiscoveryContext();
         const baseDomain = determineDefaultDomain();
         const bareDomain = baseDomain.replace(/^(app|api)\./, "");
@@ -178,7 +183,7 @@ export const networksCommand = new Command("networks")
             const basePath = s.config.basePath.replace(/^\//, "");
             const isBackend = s.config?.appType === "backend";
             const host = isBackend ? apiDomain : appDomain;
-            const url = `http://${host}/${basePath}`;
+            const url = `http://${host}:${httpPort}/${basePath}`;
             const port = s.config.port;
             const status = await checkServiceStatus(s.name, port, url);
             return {
@@ -187,7 +192,7 @@ export const networksCommand = new Command("networks")
                 basePath: s.config.basePath,
                 url,
                 ...(process.platform === "win32"
-                    ? { loopbackUrl: `http://127.0.0.1:80/${basePath}`.replace(/\/$/, "") }
+                    ? { loopbackUrl: `http://127.0.0.1:${httpPort}/${basePath}`.replace(/\/$/, "") }
                     : {}),
                 port,
                 status,
@@ -222,7 +227,7 @@ export const networksCommand = new Command("networks")
             }
             process.exit(0);
         }
-        printBoxedHeader("🌐  TRAEFIK NETWORKS", `Domain: http://${baseDomain}`, DEFAULT_BOX_WIDTH);
+        printBoxedHeader("🌐  TRAEFIK NETWORKS", `Domain: http://${baseDomain}:${httpPort}`, DEFAULT_BOX_WIDTH);
         // Group services by stack using discovery context's stack names for consistent ordering
         const stacks = new Map();
         for (const stackName of discovery.stackNames) {

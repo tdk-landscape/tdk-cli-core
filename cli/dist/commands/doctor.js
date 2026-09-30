@@ -7,11 +7,13 @@ import { hasVerdaccioLicense } from "../generator/extension-fetch.js";
 import { MASTER_CONFIG_FILES, REQUIRED_PACKAGE_SCRIPTS } from "../utils/constants.js";
 import { isPathDiscovered, readDiscoveryPaths } from "../utils/discovery-paths.js";
 import { collectDoctorChecks, createDoctorReport, getDoctorExitCode, } from "../utils/doctor-report.js";
-import { checkHealthRoutes, checkHostPorts, checkIngressPorts, checkPrivateNpmRegistry, checkTiltResourceHealth, projectConfigEnablesVerdaccio, summarizeServiceProbes, } from "../utils/doctor-runtime.js";
+import { checkHealthRoutes, checkIngressPorts, checkPrivateNpmRegistry, checkTiltResourceHealth, projectConfigEnablesVerdaccio, summarizeServiceProbes, } from "../utils/doctor-runtime.js";
 import { checkDockerNetworkCapacity, checkFrontendBackendUrls, checkNatsBroker, checkResourcePackageJson, checkServiceUrlPorts, checkTiltInstances, } from "../utils/doctor-wiring.js";
 import { validateEnvFile } from "../utils/env-validator.js";
 import { execAsync, isExecTimeout } from "../utils/exec-async.js";
 import { formatCount } from "../utils/formatting.js";
+import { getHostPortPlan } from "../utils/host-port-config.js";
+import { createHostPortPlan } from "../utils/host-port-plan.js";
 import { findProjectRoot } from "../utils/paths.js";
 import { buildHealthTargets, pingHealthTargets } from "../utils/service-urls.js";
 import { discoverResourcesFromRoot } from "../utils/services.js";
@@ -954,9 +956,9 @@ const DEFAULT_PING_TIMEOUT_MS = 5000;
  * it catches the case where a container is running but Traefik never routed
  * to it, which `docker ps` alone will not show.
  */
-async function checkServiceHealth(timeoutMs) {
+async function checkServiceHealth(timeoutMs, ingressPort) {
     const projectRoot = findProjectRoot() ?? process.cwd();
-    const targets = buildHealthTargets(discoverResourcesFromRoot(projectRoot));
+    const targets = buildHealthTargets(discoverResourcesFromRoot(projectRoot), ingressPort);
     if (targets.length === 0) {
         return {
             name: "Service Health",
@@ -999,6 +1001,13 @@ export const doctorCommand = new Command("doctor")
     }
     if (process.platform === "win32") {
         if (options.json) {
+            let windowsPortPlan = null;
+            try {
+                windowsPortPlan = await createHostPortPlan();
+            }
+            catch {
+                /* The native-Windows platform finding remains the primary failure. */
+            }
             console.log(JSON.stringify(createDoctorReport([
                 {
                     name: "Native Windows support",
@@ -1006,7 +1015,7 @@ export const doctorCommand = new Command("doctor")
                     message: NATIVE_WINDOWS_DOCTOR_MESSAGE,
                     fix: "Use WSL2 Ubuntu with Docker Desktop integration. Guide: docs/wsl2.md",
                 },
-            ], Boolean(findProjectRoot()))));
+            ], Boolean(findProjectRoot()), [], windowsPortPlan)));
         }
         console.error(NATIVE_WINDOWS_DOCTOR_MESSAGE);
         process.exit(1);
@@ -1016,9 +1025,39 @@ export const doctorCommand = new Command("doctor")
         console.log(`\n${chalk.bold("🔍 TDK Doctor")}\n`);
         console.log("Checking environment...\n");
     }
+    const projectRoot = findProjectRoot();
+    let hostPortPlan;
+    let portPlanError;
+    try {
+        hostPortPlan = await getHostPortPlan(projectRoot ?? process.cwd());
+    }
+    catch (error) {
+        hostPortPlan = null;
+        portPlanError = error instanceof Error ? error.message : String(error);
+    }
     const machineChecks = [
-        () => checkHostPorts(),
-        () => checkIngressPorts(),
+        () => hostPortPlan
+            ? {
+                name: "Host Ports",
+                didPass: true,
+                message: `HTTP ${hostPortPlan.ingressHttp}, HTTPS ${hostPortPlan.ingressHttps}, Postgres ${hostPortPlan.postgres}`,
+            }
+            : {
+                name: "Host Ports",
+                didPass: false,
+                message: portPlanError ?? "Could not select host ports",
+                fix: "Set TDK_HTTP_PORT, TDK_HTTPS_PORT, or TDK_POSTGRES_PORT to available host ports.",
+            },
+        () => hostPortPlan
+            ? checkIngressPorts(execSync, undefined, [
+                hostPortPlan.ingressHttp,
+                hostPortPlan.ingressHttps,
+            ])
+            : {
+                name: "Ingress Ports",
+                didPass: false,
+                message: "Ingress port plan is unavailable",
+            },
         checkDockerRuntime,
         checkDockerOperatingSystem,
         checkTilt,
@@ -1061,14 +1100,14 @@ export const doctorCommand = new Command("doctor")
     ];
     // Runs last: needs routable services (and working Traefik) to mean anything.
     if (options.ping) {
-        projectChecks.push(() => checkServiceHealth(pingTimeout));
+        projectChecks.push(() => checkServiceHealth(pingTimeout, hostPortPlan?.ingressHttp));
     }
     // Right after installing, people run `tdk doctor` before they have a
     // project. Only the machine checks mean anything there; the project checks
     // would all fail with "run tdk project".
-    const inProject = Boolean(findProjectRoot());
+    const inProject = Boolean(projectRoot);
     const { checks: results, errors } = await collectDoctorChecks(machineChecks, inProject ? projectChecks : []);
-    const report = createDoctorReport(orderDoctorResults(results), inProject, errors);
+    const report = createDoctorReport(orderDoctorResults(results), inProject, errors, hostPortPlan);
     const exitCode = getDoctorExitCode(report);
     const allPassed = report.data.ready;
     if (options.json) {

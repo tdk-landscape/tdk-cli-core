@@ -1,6 +1,7 @@
 import { createServer } from "node:net";
 import { describe, expect, it } from "vitest";
-import { createHostPortPlan } from "../host-port-plan.js";
+import { createHostPortPlan, formatHostPortPlan } from "../host-port-plan.js";
+import { resolveSubdomainBases } from "../service-urls.js";
 
 describe("createHostPortPlan", () => {
   it("chooses bounded fallback ports when defaults are occupied", async () => {
@@ -18,7 +19,34 @@ describe("createHostPortPlan", () => {
       ingressHttps: 8444,
       postgres: 15433,
       explicit: { ingressHttp: false, ingressHttps: false, postgres: false },
+      requested: { ingressHttp: 80, ingressHttps: 443, postgres: 5432 },
+      reason: {
+        ingressHttp: "selected from fallback range 8080-8081",
+        ingressHttps: "selected from fallback range 8443-8444",
+        postgres: "selected from fallback range 15432-15433",
+      },
     });
+  });
+
+  it("shows the chosen Postgres fallback and matches dry-run ingress URLs", async () => {
+    const plan = await createHostPortPlan({
+      env: {},
+      isAvailable: async (port) => port === 8080 || port === 8443 || port === 15432,
+    });
+    expect(plan.requested.postgres).toBe(5432);
+    expect(plan.postgres).toBe(15432);
+    expect(formatHostPortPlan(plan)).toContain("Postgres 15432");
+    const originalBaseUrl = process.env.TDK_SERVICE_BASE_URL;
+    process.env.TDK_SERVICE_BASE_URL = "http://port-plan.localhost";
+    try {
+      expect(resolveSubdomainBases(plan.ingressHttp)).toEqual({
+        appBase: "http://app.port-plan.localhost:8080",
+        apiBase: "http://api.port-plan.localhost:8080",
+      });
+    } finally {
+      if (originalBaseUrl === undefined) delete process.env.TDK_SERVICE_BASE_URL;
+      else process.env.TDK_SERVICE_BASE_URL = originalBaseUrl;
+    }
   });
 
   it("honors explicit overrides and rejects collisions", async () => {

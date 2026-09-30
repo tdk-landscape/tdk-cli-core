@@ -14,6 +14,8 @@ import {
   getStatusIcon,
   printBoxedHeader,
 } from "../utils/formatting.js";
+import { readSavedHostPortPlan } from "../utils/host-port-config.js";
+import { createHostPortPlan } from "../utils/host-port-plan.js";
 import { createMachineEnvelope, writeMachineError } from "../utils/machine-output.js";
 import { findProjectRoot } from "../utils/paths.js";
 import { checkPortStatus } from "../utils/port-assignment.js";
@@ -222,6 +224,9 @@ export const networksCommand = new Command("networks")
       if (!projectRoot) {
         throw new Error("Could not find project root (no .tdk/project.json found)");
       }
+      const savedPlan = readSavedHostPortPlan(projectRoot);
+      const hostPortPlan = savedPlan ?? (await createHostPortPlan());
+      const httpPort = hostPortPlan.ingressHttp;
       const discovery = createDiscoveryContext();
 
       const baseDomain = determineDefaultDomain();
@@ -239,7 +244,7 @@ export const networksCommand = new Command("networks")
             const basePath = s.config.basePath.replace(/^\//, "");
             const isBackend = (s.config as { appType?: string })?.appType === "backend";
             const host = isBackend ? apiDomain : appDomain;
-            const url = `http://${host}/${basePath}`;
+            const url = `http://${host}:${httpPort}/${basePath}`;
             const port = s.config.port;
             const status = await checkServiceStatus(s.name, port, url);
 
@@ -249,7 +254,7 @@ export const networksCommand = new Command("networks")
               basePath: s.config.basePath,
               url,
               ...(process.platform === "win32"
-                ? { loopbackUrl: `http://127.0.0.1:80/${basePath}`.replace(/\/$/, "") }
+                ? { loopbackUrl: `http://127.0.0.1:${httpPort}/${basePath}`.replace(/\/$/, "") }
                 : {}),
               port,
               status,
@@ -289,7 +294,11 @@ export const networksCommand = new Command("networks")
         }
         process.exit(0);
       }
-      printBoxedHeader("🌐  TRAEFIK NETWORKS", `Domain: http://${baseDomain}`, DEFAULT_BOX_WIDTH);
+      printBoxedHeader(
+        "🌐  TRAEFIK NETWORKS",
+        `Domain: http://${baseDomain}:${httpPort}`,
+        DEFAULT_BOX_WIDTH,
+      );
 
       // Group services by stack using discovery context's stack names for consistent ordering
       const stacks = new Map<string, ServiceUrl[]>();

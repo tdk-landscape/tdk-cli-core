@@ -2,8 +2,8 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { checkDockerCompose, checkDockerRuntime, checkDockerVersions, checkTilt, } from "../commands/doctor.js";
-import { checkHostPorts, checkIngressPorts } from "./doctor-runtime.js";
 import { checkNatsBroker } from "./doctor-wiring.js";
+import { getHostPortPlan } from "./host-port-config.js";
 import { findProjectRoot } from "./paths.js";
 import { discoverResourcesFromRoot } from "./services.js";
 import { findOnPath } from "./which.js";
@@ -99,26 +99,20 @@ export async function runColdPreflight(opts = {}) {
         message: bun ? "Bun 1.2+ is available on PATH" : "Bun 1.2+ not found on PATH",
         fix: bun ? undefined : "curl -fsSL https://bun.sh/install | bash",
     });
-    const [hostPorts, ingressPorts] = await Promise.all([
-        safeCheck("ports", checkHostPorts, "Could not check required host ports"),
-        safeCheck("ports", checkIngressPorts, "Could not check ingress ports"),
-    ]);
-    if (!hostPorts.ok || !ingressPorts.ok) {
-        const port5432 = !hostPorts.ok && /(?:^|\n)\s*5432\s*\(/.test(hostPorts.message);
-        const messages = [
-            !hostPorts.ok
-                ? port5432
-                    ? "Port 5432 is taken (usually local Postgres). Stop it or TDK cannot bind the bundled Postgres."
-                    : hostPorts.message
-                : undefined,
-            !ingressPorts.ok ? ingressPorts.message : undefined,
-        ].filter((message) => Boolean(message));
-        const fixes = [hostPorts.fix, ingressPorts.fix].filter((fix) => Boolean(fix));
+    try {
+        const plan = await getHostPortPlan(projectRoot ?? cwd);
+        items.push({
+            id: "ports",
+            ok: true,
+            message: `HTTP ${plan.ingressHttp}, HTTPS ${plan.ingressHttps}, Postgres ${plan.postgres}`,
+        });
+    }
+    catch (error) {
         items.push({
             id: "ports",
             ok: false,
-            message: messages.join("\n"),
-            fix: fixes.join(" "),
+            message: error instanceof Error ? error.message : String(error),
+            fix: "Set TDK_HTTP_PORT, TDK_HTTPS_PORT, or TDK_POSTGRES_PORT to available host ports.",
         });
     }
     if (projectRoot) {

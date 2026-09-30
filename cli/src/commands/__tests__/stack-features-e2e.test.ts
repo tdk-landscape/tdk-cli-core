@@ -59,6 +59,7 @@ describe("stack feature E2E", () => {
     expect(compose).toContain("container_name: tdk_stack_feature_");
     expect(compose).toContain("_postgres");
     expect(compose).toContain("_database");
+    expect(compose).toContain("$" + "{TDK_POSTGRES_PORT:-15432}:5432");
 
     const spec = readFileSync(join(projectRoot, ".tdk", ".tdk-out", "spec.master"), "utf-8");
     expect(spec).toMatch(/"database-management":\s*True/);

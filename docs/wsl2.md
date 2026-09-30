@@ -61,5 +61,5 @@ With TDK and Docker Desktop WSL integration already available, run `bash scripts
 ## Troubleshooting
 
 - If `docker version` cannot reach the server, enable the Ubuntu distribution under Docker Desktop's **Resources → WSL Integration** and restart Ubuntu.
-- If `tdk up` reports that port 80 is occupied, identify and stop the process binding it inside WSL (`sudo ss -ltnp 'sport = :80'`). Traefik uses this host port for the local routes.
+- TDK selects a free fallback ingress and Postgres host port and prints the selected values. Set `TDK_HTTP_PORT`, `TDK_HTTPS_PORT`, or `TDK_POSTGRES_PORT` to override a selection; a conflicting override is reported without stopping the process using it.
 - Use the API and app URLs printed by TDK if your project name differs from `tdk-example`.
