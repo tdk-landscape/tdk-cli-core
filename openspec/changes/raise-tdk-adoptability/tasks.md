@@ -7,10 +7,10 @@
 
 ## 2. `tdk up` lifecycle guarantees
 
-- [ ] 2.1 Refuse native-Windows `tdk up` without `TDK_ALLOW_NATIVE_WINDOWS=1`, before Docker or Tilt starts, and include the doctor hint.
-- [ ] 2.2 Implement `--force` cleanup for the Tilt process bound to `TILT_PORT` or default 10350, including `--quiet`.
-- [ ] 2.3 Implement `--dry-run` without starting Docker/Tilt or writing generated files.
-- [ ] 2.4 Add tests for force cleanup, quiet-mode parity, dry-run side effects, and the native-Windows refusal path.
+- [x] 2.1 Refuse native-Windows `tdk up` without `TDK_ALLOW_NATIVE_WINDOWS=1`, before Docker or Tilt starts, and include the doctor hint.
+- [x] 2.2 Implement `--force` cleanup for the Tilt process bound to `TILT_PORT` or default 10350, including `--quiet`.
+- [x] 2.3 Implement `--dry-run` without starting Docker/Tilt or writing generated files.
+- [x] 2.4 Add tests for force cleanup, quiet-mode parity, dry-run side effects, and the native-Windows refusal path.
 
 ## 3. Generated configuration and schema safety
 
