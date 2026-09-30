@@ -190,14 +190,24 @@ else
     --draft \
     "${ASSETS[@]}"
 fi
-# Verify that the remote release has every asset before making it latest.
+# Verify remote names and bytes before exposing the release as latest.
 remote_assets="$(gh release view "${RELEASE_TAG}" --repo "${RELEASE_REPOSITORY}" --json assets --jq '.assets[].name')"
+verify_dir="$(mktemp -d)"
+trap 'rm -rf "${verify_dir}"' EXIT
 for asset in \
   tdk-linux-amd64 tdk-linux-arm64 tdk-darwin-amd64 tdk-darwin-arm64 \
   tdk-windows-amd64.exe tdk-cli-engine.tar.gz checksums.txt \
   "tdk-cli-${RELEASE_TAG}-binaries.zip"; do
   if ! grep -Fxq "${asset}" <<<"${remote_assets}"; then
     echo "Published release is missing required asset: ${asset}" >&2
+    exit 1
+  fi
+  gh release download "${RELEASE_TAG}" \
+    --repo "${RELEASE_REPOSITORY}" \
+    --dir "${verify_dir}" \
+    --pattern "${asset}"
+  if ! cmp -s "${RELEASE_DIR}/${asset}" "${verify_dir}/${asset}"; then
+    echo "Uploaded release asset does not match local build: ${asset}" >&2
     exit 1
   fi
 done
