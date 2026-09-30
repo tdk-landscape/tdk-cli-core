@@ -1,20 +1,14 @@
 # TDK — Tilt Development Kit
 
-`tdk up` is not a cluster. It starts Docker containers on your laptop through Tilt.
-
-`service.json` is not `values.yaml`. `service.json` describes local services (ports, stack, health URL). `values.yaml` configures Kubernetes objects (Deployment, Service, Ingress).
-
-TDK does not replace Helm. Helm remains the templating engine for the cluster. TDK only templates the laptop environment. Keep app-template or the chart you already use for production; TDK does not install or take over those charts.
-
-```text
-Local:   tdk up shop      → containers on the laptop, *.localhost
-Cluster: helm upgrade …   → Deployment/Service in Kubernetes
-```
-
-TDK is not a Node.js framework. The default starter uses Bun/TypeScript; TDK's core job is generating and running the local Docker + Tilt setup.
+TDK runs many services on your laptop with Docker + Tilt. Helm still deploys the cluster.
 
 [![npm version](https://img.shields.io/npm/v/@tdk-landscape/tdk-cli-core.svg?style=flat&color=blue)](https://www.npmjs.com/package/@tdk-landscape/tdk-cli-core)
 [![CI](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/ci.yml/badge.svg)](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/ci.yml)
+[![Quickstart E2E](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/quickstart-e2e.yml/badge.svg)](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/quickstart-e2e.yml)
+[![ERP fixture scale E2E](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/erp-scale-e2e.yml/badge.svg)](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/erp-scale-e2e.yml)
+[![Example apps E2E](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/examples-e2e.yml/badge.svg?branch=main)](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/examples-e2e.yml)
+[![Known Vulnerabilities](https://snyk.io/test/github/tdk-landscape/tdk-cli-core/badge.svg)](https://snyk.io/test/github/tdk-landscape/tdk-cli-core)
+[![Socket Badge](https://badge.socket.dev/npm/package/@tdk-landscape/tdk-cli-core/latest)](https://socket.dev/npm/package/@tdk-landscape/tdk-cli-core/overview)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ## Installation
@@ -37,23 +31,17 @@ tdk up shop
 tdk networks
 ```
 
-`tdk up shop --dry-run` previews the selected local services and URLs without starting them. For a one-service walkthrough, use the [one-backend example](examples/one-backend/README.md).
+`tdk up shop --dry-run` previews selected local services and URLs before starting containers. The default starter is Bun/TypeScript; TDK's core role is running local containers through Docker + Tilt, not providing a Node.js application framework. See the [one-backend example](examples/one-backend/README.md).
 
-## Why TDK?
+## When not to use TDK
 
-| | Docker Compose | Local Kubernetes (kind/minikube) | Plain Tilt | **TDK** |
-|---|---|---|---|---|
-| Create a service from a manifest | Manual setup | Manual setup | Manual setup | `tdk resource` |
-| Hot reload | Configure it | Extra tooling | Yes | Yes |
-| Local cluster required | No | Yes | No | **No** |
-| Selectively start local services | Profiles | Extra setup | Configure it | `tdk up <stack>` |
-
-TDK generates local Docker and Tilt configuration. If your Compose or Tilt workflow already works, TDK may not add value.
+- Your existing Compose or Tilt workflow already gives you a working local environment.
+- You do not want `service.json` manifests and generated local configuration.
 
 ## Docs
 
 - [Documentation index](docs/README.md)
-- [TDK + Helm: the local-to-cluster boundary](docs/with-helm.md)
+- [Working alongside Helm](docs/with-helm.md)
 - [Configuration and editor schemas](docs/configuration.md)
 - [Runnable one-backend example](examples/one-backend/README.md)
 - [Handwritten app-template values](examples/one-backend-helm/README.md)
@@ -62,14 +50,6 @@ TDK generates local Docker and Tilt configuration. If your Compose or Tilt workf
 - [Honest comparison and known limits](docs/compare-honest.md)
 - [Architecture and repository map](docs/project-overview.md)
 - [Scale fixture measurements and caveats](docs/scale-bench.md)
-
-The 100-service fixture reached healthy status in 112 seconds using 1.6 GiB for service containers on a 16 GB machine. It uses generated health-check services, not a representative business workload; see the [measurement details](docs/scale-bench.md).
-
-## When not to use TDK
-
-- Your existing Helm, Compose, or Tilt workflow already gives you a working local environment.
-- You need to deploy or operate a shared or production Kubernetes cluster. Keep your Helm or other deployment workflow.
-- You do not want `service.json` manifests and generated local configuration.
 
 ## Requirements and support
 

@@ -25,10 +25,10 @@ Use exactly “TDK runs many services on your laptop with Docker + Tilt. Helm st
 
 Alternative: independently phrased descriptions are shorter but recreate the current ambiguity. Do not advertise generated file counts as user value.
 
-### 2. A sectioned README with an unmistakable first screen
-The first screen states that `tdk up` runs Docker containers on the laptop, that `service.json` and Helm `values.yaml` have different jobs, and that Helm remains the production cluster templating workflow. It explicitly says TDK is not a Node.js framework and distinguishes the default Bun/TypeScript starter from TDK's Docker + Tilt role. Show the local/cluster contrast before badges or feature details.
+### 2. A sectioned README with an unmistakable first sentence
+Keep the canonical one-sentence positioning at the top: “TDK runs many services on your laptop with Docker + Tilt. Helm still deploys the cluster.” Do not repeat the detailed Helm boundary or add a second architecture diagram in the README; `docs/with-helm.md` owns the service-manifest/values distinction and production workflow. Keep product-framework details brief: identify Bun/TypeScript as the default starter without making TDK sound like a Node framework.
 
-After that boundary, keep the README useful as the GitHub landing page: badges; Installation with npm and the prebuilt binary; exactly five runnable Quick start commands; a compact “Why TDK?” comparison; Docs links; when-not-to-use guidance; requirements/support; contributing and license. Include a short, carefully qualified pointer to the scale fixture, while keeping methodology, repository map, feature details, and telemetry in dedicated `docs/` pages. Add a docs index so readers can find those pages without restoring the old long-form README.
+Use the README as a useful GitHub landing page in this order: title and one-liner, the existing npm/CI/E2E/security/license badge row, Installation with npm and the prebuilt binary, exactly five runnable Quick start commands, when-not-to-use guidance, Docs links, requirements/support, then contributing and license. Keep architecture, feature detail, benchmark methodology, and extended comparisons in focused Markdown docs, linked from a new docs index.
 
 Alternative: a short stub hides how to install and evaluate the CLI; restoring every architecture and benchmark detail to the root README recreates the old wall of text.
 
