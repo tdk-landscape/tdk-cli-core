@@ -101,6 +101,11 @@ PY
     echo "::error::tdk up exited before the deferred image was built"
     exit 1
   fi
+  if grep -Fq "requests sablier.deferStart but the licensed Sablier overlay is disabled; starting normally" up.log; then
+    cat up.log
+    echo "::error::cold-start E2E cannot continue: TDK_LICENSE_KEY did not activate the licensed Sablier overlay"
+    exit 1
+  fi
   if [ $((n % 15)) -eq 0 ]; then
     elapsed=$(( $(date +%s) - started_at ))
     echo "::group::cold-start setup progress (${elapsed}s)"
@@ -139,6 +144,36 @@ if [ -z "$compose_file" ] || [ -z "$image" ] || ! docker image inspect "$image" 
   exit 1
 fi
 echo "Deferred image built: $image"
+if grep -Fq "requests sablier.deferStart but the licensed Sablier overlay is disabled; starting normally" up.log; then
+  cat up.log
+  echo "::error::cold-start E2E cannot continue: TDK_LICENSE_KEY did not activate the licensed Sablier overlay"
+  exit 1
+fi
+
+# Confirm Tilt registered the deferred service as intentionally disabled before
+# any request can reach the wake gateway. A normal auto_init registration must
+# never satisfy this scenario, even if its container has not started yet.
+tilt get uiresources -o json | python3 -c '
+import json, sys
+items = json.load(sys.stdin)["items"]
+cold = [x for x in items if x["metadata"]["name"] == "cold-api"]
+if len(cold) != 1:
+    raise SystemExit(f"expected one cold-api Tilt resource, found {len(cold)}")
+status = cold[0].get("status", {})
+runtime = status.get("runtimeStatus")
+update = status.get("updateStatus")
+if runtime not in (None, "none") or update not in (None, "none"):
+    raise SystemExit(f"cold-api started before its first request: runtimeStatus={runtime!r}, updateStatus={update!r}")
+print(f"Verified cold-api is deferred in Tilt: runtimeStatus={runtime!r}, updateStatus={update!r}")
+'
+
+# The generated static route must route through the wake gateway; otherwise an
+# absent container could pass the pre-request assertion without a working wake path.
+route_file="$(find . -path '*/.tdk-out/traefik-dynamic/cold-api.yml' -print -quit)"
+if [ -z "$route_file" ] || ! grep -q 'wake-gateway' "$route_file"; then
+  echo "::error::cold-api static Traefik wake route was not generated"
+  exit 1
+fi
 
 # The container must not exist before its first request, including stopped
 # containers. Names include the service name in the generated Compose project.
