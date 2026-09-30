@@ -376,10 +376,22 @@ function probeAddress(port, host) {
  * it before trying 127.0.0.1 avoids that self-collision on every platform.
  */
 export async function probeHostPort(port) {
-    const wildcard = await probeAddress(port, "0.0.0.0");
-    if (wildcard !== "free")
-        return wildcard;
-    return probeAddress(port, "127.0.0.1");
+    // Several `tdk project` E2E tests can run at once. Their preflight probes
+    // briefly bind the same port, so an EADDRINUSE can be another probe rather
+    // than a service. Retry once after those short-lived binds have closed.
+    for (let attempt = 0; attempt < 2; attempt++) {
+        const wildcard = await probeAddress(port, "0.0.0.0");
+        if (wildcard === "unknown")
+            return wildcard;
+        if (wildcard === "free") {
+            const loopback = await probeAddress(port, "127.0.0.1");
+            if (loopback === "free" || loopback === "unknown")
+                return loopback;
+        }
+        if (attempt === 0)
+            await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    return "in-use";
 }
 /** What an HTTP status from a service's health URL means, in the words a user needs. */
 function describeProbeFailure(probe) {
