@@ -592,7 +592,8 @@ export async function checkHostPorts(
   projectName: string = getProjectName(),
   probe: (port: number) => Promise<PortState> = probeHostPort,
 ): Promise<CheckResult> {
-  const ports = Object.keys(HOST_PORTS).map(Number);
+  // Postgres is the most common environment blocker and must be surfaced first.
+  const ports = [5432, 80, 443];
   const inUse: number[] = [];
   for (const port of ports) {
     if ((await probe(port)) === "in-use") inUse.push(port);

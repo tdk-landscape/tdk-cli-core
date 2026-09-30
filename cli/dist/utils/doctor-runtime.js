@@ -443,7 +443,8 @@ export function summarizeServiceProbes(probes) {
  * containers here.
  */
 export async function checkHostPorts(exec = execSync, projectName = getProjectName(), probe = probeHostPort) {
-    const ports = Object.keys(HOST_PORTS).map(Number);
+    // Postgres is the most common environment blocker and must be surfaced first.
+    const ports = [5432, 80, 443];
     const inUse = [];
     for (const port of ports) {
         if ((await probe(port)) === "in-use")

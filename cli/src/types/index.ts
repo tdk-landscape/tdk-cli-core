@@ -249,6 +249,8 @@ export interface CheckResult {
   fix?: string;
   /** Check could not run meaningfully (e.g. nothing started yet); not a failure. */
   isSkipped?: boolean;
+  /** Informational warning that does not fail the check unless strict mode is enabled. */
+  isWarning?: boolean;
 }
 
 export interface ServiceUrl {

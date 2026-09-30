@@ -1,0 +1,153 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { describe, expect, it, vi } from "vitest";
+import type { CheckResult } from "../../types/index.js";
+import { checkHostPorts } from "../../utils/doctor-runtime.js";
+import {
+  checkBun,
+  checkDockerOperatingSystem,
+  checkTilt,
+  checkWslProjectLocation,
+  doctorCommand,
+  MIN_BUN_VERSION,
+  MIN_TILT_VERSION,
+  NATIVE_WINDOWS_DOCTOR_MESSAGE,
+  orderDoctorResults,
+  versionMeetsMinimum,
+} from "../doctor.js";
+
+describe("doctor environment contract", () => {
+  it("requires Tilt 0.25.0 or newer", async () => {
+    expect(MIN_TILT_VERSION).toEqual([0, 25, 0]);
+    expect(versionMeetsMinimum("v0.24.9", MIN_TILT_VERSION)).toBe(false);
+    expect(versionMeetsMinimum("Tilt v0.25.0", MIN_TILT_VERSION)).toBe(true);
+    expect(versionMeetsMinimum("v0.37.7", MIN_TILT_VERSION)).toBe(true);
+
+    const old = await checkTilt(async () => "v0.24.9");
+    const current = await checkTilt(async () => "v0.25.0");
+    expect(old.didPass).toBe(false);
+    expect(old.fix).toContain("Tilt v0.25.0 or newer");
+    expect(current.didPass).toBe(true);
+  });
+
+  it("requires Bun 1.2+ when a project has generated JavaScript services", async () => {
+    expect(MIN_BUN_VERSION).toEqual([1, 2, 0]);
+    const root = mkdtempSync(join(tmpdir(), "tdk-doctor-bun-floor-"));
+    const originalCwd = process.cwd();
+    try {
+      mkdirSync(join(root, ".tdk"), { recursive: true });
+      mkdirSync(join(root, "services", "api"), { recursive: true });
+      writeFileSync(
+        join(root, ".tdk", "project.json"),
+        JSON.stringify({ project: { name: "test" } }),
+      );
+      writeFileSync(
+        join(root, "services", "api", "service.json"),
+        JSON.stringify({ appName: "api", appType: "backend", stack: "app", port: 4000 }),
+      );
+      process.chdir(root);
+
+      const old = await checkBun(async () => "1.1.9");
+      const current = await checkBun(async () => "1.2.0");
+      expect(old.didPass).toBe(false);
+      expect(old.message).toContain("below the required 1.2.0 floor");
+      expect(current.didPass).toBe(true);
+    } finally {
+      process.chdir(originalCwd);
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("skips the Bun requirement when the project has no generated JavaScript services", async () => {
+    const root = mkdtempSync(join(tmpdir(), "tdk-doctor-no-bun-"));
+    const originalCwd = process.cwd();
+    try {
+      mkdirSync(join(root, ".tdk"), { recursive: true });
+      writeFileSync(
+        join(root, ".tdk", "project.json"),
+        JSON.stringify({ project: { name: "test" } }),
+      );
+      process.chdir(root);
+      const result = await checkBun(async () => {
+        throw new Error("Bun should not be checked");
+      });
+      expect(result.didPass).toBe(true);
+      expect(result.isSkipped).toBe(true);
+    } finally {
+      process.chdir(originalCwd);
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed when Docker uses a non-Linux engine", async () => {
+    const result = await checkDockerOperatingSystem(async () => "windows");
+    expect(result.didPass).toBe(false);
+    expect(result.message).toContain("requires Linux containers");
+  });
+
+  it("warns about /mnt/c and fails there only in strict WSL mode", () => {
+    const warning = checkWslProjectLocation("/mnt/c/Users/dev/tdk", false, true);
+    const strict = checkWslProjectLocation("/mnt/c/Users/dev/tdk", true, true);
+    const healthy = checkWslProjectLocation("/home/dev/tdk", true, true);
+
+    expect(warning.didPass).toBe(true);
+    expect(warning.isWarning).toBe(true);
+    expect(warning.message).toContain("hot reload may be broken");
+    expect(strict.didPass).toBe(false);
+    expect(strict.fix).toContain("~/projects");
+    expect(healthy.didPass).toBe(true);
+  });
+
+  it("prints the host 5432 failure before other failures and before passing statuses", () => {
+    const checks: CheckResult[] = [
+      { name: "Tilt CLI", didPass: false, message: "Tilt is too old", fix: "Update Tilt" },
+      { name: "Container Runtime", didPass: true, message: "Docker is running" },
+      {
+        name: "Host Ports",
+        didPass: false,
+        message: "Ports TDK needs are taken:\n    5432 (Postgres) is used by a program",
+        fix: "Stop local Postgres",
+      },
+    ];
+
+    expect(orderDoctorResults(checks).map((check) => check.name)).toEqual([
+      "Host Ports",
+      "Tilt CLI",
+      "Container Runtime",
+    ]);
+  });
+
+  it("puts Postgres port 5432 first in the host-port failure details", async () => {
+    const result = await checkHostPorts((() => "") as never, "tdk-project", async (port) =>
+      port === 80 || port === 5432 ? "in-use" : "free",
+    );
+
+    expect(result.didPass).toBe(false);
+    expect(result.message.indexOf("5432 (Postgres)")).toBeLessThan(
+      result.message.indexOf("80 (HTTP)"),
+    );
+  });
+
+  it("refuses native Windows doctor with WSL2 guidance and exit code 1", async () => {
+    const platformDescriptor = Object.getOwnPropertyDescriptor(process, "platform");
+    const exit = vi.spyOn(process, "exit").mockImplementation((() => {
+      throw new Error("process.exit");
+    }) as never);
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      Object.defineProperty(process, "platform", { configurable: true, value: "win32" });
+      await expect(doctorCommand.parseAsync(["node", "doctor"], { from: "node" })).rejects.toThrow(
+        "process.exit",
+      );
+      expect(exit).toHaveBeenCalledWith(1);
+      expect(error).toHaveBeenCalledWith(NATIVE_WINDOWS_DOCTOR_MESSAGE);
+      expect(NATIVE_WINDOWS_DOCTOR_MESSAGE).toContain("WSL2 Ubuntu");
+      expect(NATIVE_WINDOWS_DOCTOR_MESSAGE).toContain("docs/wsl2.md");
+    } finally {
+      if (platformDescriptor) Object.defineProperty(process, "platform", platformDescriptor);
+      exit.mockRestore();
+      error.mockRestore();
+    }
+  });
+});
