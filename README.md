@@ -44,7 +44,6 @@ tdk networks
 - [Working alongside Helm](docs/with-helm.md)
 - [Configuration and editor schemas](docs/configuration.md)
 - [Runnable one-backend example](examples/one-backend/README.md)
-- [Handwritten app-template values](examples/one-backend-helm/README.md)
 - [Full multi-service example](examples/tdk-example/README.md)
 - [Features and license limits](docs/FEATURES.md)
 - [Honest comparison and known limits](docs/compare-honest.md)
