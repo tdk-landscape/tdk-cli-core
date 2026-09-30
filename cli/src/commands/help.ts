@@ -88,7 +88,11 @@ function formatCommand(
 export function showHelp(): void {
   console.log(TDK_BANNER);
 
-  console.log(chalk.gray("\n  Local development inner loop; TDK does not replace Helm for cluster deployments.\n"));
+  console.log(
+    chalk.gray(
+      "\n  Local development inner loop; TDK does not replace Helm for cluster deployments.\n",
+    ),
+  );
   console.log(chalk.bold.white("  Project → Phase → Stack → Resource\n"));
 
   console.log(chalk.gray("  Usage: tdk [command] [options]\n"));

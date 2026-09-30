@@ -972,6 +972,7 @@ export const doctorCommand = new Command("doctor")
     .option("--strict", "Fail warnings such as a WSL project under /mnt/c")
     .option("--ping-timeout <ms>", "Per-service ping timeout in milliseconds", String(DEFAULT_PING_TIMEOUT_MS))
     .action(async (options) => {
+    console.log("TDK doctor checks your local Docker + Tilt development environment; it does not check cluster deployments.");
     if (process.platform === "win32") {
         console.error(NATIVE_WINDOWS_DOCTOR_MESSAGE);
         process.exit(1);
