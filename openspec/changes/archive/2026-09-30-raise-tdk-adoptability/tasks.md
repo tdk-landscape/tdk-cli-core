@@ -31,12 +31,12 @@
 
 ## 5. WSL2 documentation and smoke path
 
-- [ ] 5.1 Write concise `docs/wsl2.md` setup commands for clean Ubuntu WSL, Docker Desktop integration, doctor, and example boot.
-- [ ] 5.2 Add `scripts/wsl2-smoke.sh` to run doctor, start the example, exercise its write path, and tear down the stack.
-- [ ] 5.3 With no WSL runner available, keep WSL validation to the smoke script and docs; retain Ubuntu `example-e2e` as the required CI gate.
+- [x] 5.1 Write concise `docs/wsl2.md` setup commands for clean Ubuntu WSL, Docker Desktop integration, doctor, and example boot.
+- [x] 5.2 Add `scripts/wsl2-smoke.sh` to run doctor, start the example, exercise its write path, and tear down the stack.
+- [x] 5.3 With no WSL runner available, keep WSL validation to the smoke script and docs; retain Ubuntu `example-e2e` as the required CI gate.
 
 ## 6. Release evidence and tracker hygiene
 
-- [ ] 6.1 Keep the existing README 1.x caveat until requirements 2–5 are green on main; then update support and generated-file-contract copy to the approved wording.
+- [x] 6.1 Keep the existing README 1.x caveat until requirements 2–5 are green on main; then update support and generated-file-contract copy to the approved wording.
 - [ ] 6.2 Create one tracking issue with child issues for doctor, regeneration, example E2E, and native-Windows refusal; close or milestone stale duplicate help-wanted issues.
-- [ ] 6.3 Confirm the main-branch evidence for the Ubuntu example E2E, regeneration/verification, native-Windows refusal, and fixture wording before removing the README caveat.
+- [x] 6.3 Confirm the main-branch evidence for the Ubuntu example E2E, regeneration/verification, native-Windows refusal, and fixture wording before removing the README caveat.
