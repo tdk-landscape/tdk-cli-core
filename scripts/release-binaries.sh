@@ -114,18 +114,35 @@ validate_release_assets() {
     return 1
   fi
 
-  if ! awk '$2 == "tdk-windows-amd64.exe" { found = 1 } END { exit !found }' "${RELEASE_DIR}/checksums.txt"; then
-    echo "checksums.txt is missing tdk-windows-amd64.exe" >&2
-    return 1
-  fi
+  local checksum_asset
+  for checksum_asset in \
+    tdk-linux-amd64 tdk-linux-arm64 tdk-darwin-amd64 tdk-darwin-arm64 \
+    tdk-windows-amd64.exe tdk-cli-engine.tar.gz; do
+    local checksum_entries
+    checksum_entries="$(awk -v name="${checksum_asset}" '$2 == name { count++ } END { print count + 0 }' "${RELEASE_DIR}/checksums.txt")"
+    if [[ "${checksum_entries}" != "1" ]]; then
+      echo "checksums.txt must contain exactly one entry for ${checksum_asset}" >&2
+      return 1
+    fi
+  done
 
   (
     cd "${RELEASE_DIR}"
     shasum -a 256 -c checksums.txt
   )
 
-  if ! unzip -Z1 "${RELEASE_DIR}/tdk-cli-${RELEASE_TAG}-binaries.zip" | grep -Fxq tdk-windows-amd64.exe; then
-    echo "Binary ZIP is missing tdk-windows-amd64.exe" >&2
+  local zip_contents
+  zip_contents="$(unzip -Z1 "${RELEASE_DIR}/tdk-cli-${RELEASE_TAG}-binaries.zip")"
+  for asset in \
+    tdk-linux-amd64 tdk-linux-arm64 tdk-darwin-amd64 tdk-darwin-arm64 \
+    tdk-windows-amd64.exe checksums.txt; do
+    if ! grep -Fxq "${asset}" <<<"${zip_contents}"; then
+      echo "Binary ZIP is missing ${asset}" >&2
+      return 1
+    fi
+  done
+  if ! grep -Eq '^tdk-cli/' <<<"${zip_contents}"; then
+    echo "Binary ZIP is missing the tdk-cli/ engine directory" >&2
     return 1
   fi
 }
@@ -160,7 +177,11 @@ readonly ASSETS=(
 # Never mark a release latest until every asset is uploaded. `gh release create
 # --latest FILE...` publishes the tag first, then uploads binaries, so
 # /releases/latest/download/tdk-* 404s for a few minutes (install.sh hits this).
-if gh release view "${RELEASE_TAG}" --repo "${RELEASE_REPOSITORY}" >/dev/null 2>&1; then
+if existing_release_draft="$(gh release view "${RELEASE_TAG}" --repo "${RELEASE_REPOSITORY}" --json isDraft --jq '.isDraft' 2>/dev/null)"; then
+  if [[ "${existing_release_draft}" != "true" ]]; then
+    echo "Refusing to overwrite published release ${RELEASE_TAG}; published assets may already be in use" >&2
+    exit 1
+  fi
   gh release upload "${RELEASE_TAG}" --repo "${RELEASE_REPOSITORY}" --clobber "${ASSETS[@]}"
 else
   gh release create "${RELEASE_TAG}" \
