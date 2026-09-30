@@ -43,7 +43,7 @@ cd "$project_dir"
 tdk project --yes
 # The default example uses PostgreSQL and NATS; keep optional Infisical resources off.
 sed -i 's/^INFISICAL_ENABLED=.*/INFISICAL_ENABLED=false/' .env
-tdk doctor
+tdk doctor --strict
 tdk config verify
 
 tdk up shop >up.log 2>&1 &
