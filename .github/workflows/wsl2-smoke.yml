@@ -1,0 +1,102 @@
+name: WSL2 Ubuntu smoke (Docker Engine)
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/wsl2-smoke.yml'
+      - 'scripts/wsl2-smoke.sh'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wsl2-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  wsl2-smoke:
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - run: git config --global core.autocrlf false
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: Vampire/setup-wsl@d1da7f2c0322a5ee4f24975344f67fc0f5baf364 # v7.0.0
+        id: wsl
+        with:
+          distribution: Ubuntu-24.04
+          wsl-version: 2
+          use-cache: false
+          additional-packages: ca-certificates curl git xz-utils unzip jq
+
+      - name: Record and require a real WSL2 kernel
+        shell: wsl-bash {0}
+        run: |
+          mkdir -p wsl2-evidence
+          ln -s "$PWD/wsl2-evidence" /root/tdk-evidence
+          uname -a | tee /root/tdk-evidence/environment.log
+          grep -qi 'microsoft-standard-WSL2' /proc/sys/kernel/osrelease
+          cat /etc/os-release | tee -a /root/tdk-evidence/environment.log
+          echo 'Docker backend: Docker Engine inside WSL2; Docker Desktop integration is not tested.' | tee -a /root/tdk-evidence/environment.log
+          cp -a "$PWD" /root/tdk-ci
+          cd /root/tdk-ci
+          git rev-parse HEAD | tee -a /root/tdk-evidence/environment.log
+
+      - name: Install Docker Engine and Linux development tools
+        shell: wsl-bash {0}
+        run: |
+          install -m 0755 -d /etc/apt/keyrings
+          curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+          echo 'deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu noble stable' > /etc/apt/sources.list.d/docker.list
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+          if ! docker info >/dev/null 2>&1; then
+            nohup dockerd >/root/tdk-evidence/dockerd.log 2>&1 </dev/null &
+          fi
+          for _ in $(seq 1 30); do
+            if docker info >/dev/null 2>&1; then break; fi
+            sleep 2
+          done
+          docker info
+          curl -fsSL https://nodejs.org/dist/v22.23.3/node-v22.23.3-linux-x64.tar.xz -o /tmp/node.tar.xz
+          tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1
+          curl -fsSL https://bun.sh/install | bash
+          ln -s /root/.bun/bin/bun /usr/local/bin/bun
+          curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash
+          { node --version; bun --version; tilt version; docker version; docker compose version; } | tee -a /root/tdk-evidence/environment.log
+
+      - name: Build and install the candidate CLI
+        shell: wsl-bash {0}
+        run: | # zizmor: ignore[adhoc-packages] installs the candidate package built from this checkout
+          cd /root/tdk-ci
+          bun install --frozen-lockfile
+          npm run build
+          tarball="$(npm pack --ignore-scripts --silent | tail -1)"
+          npm install --global "./$tarball"
+          tdk --version | tee -a /root/tdk-evidence/environment.log
+
+      - name: Run the existing WSL2 routed write smoke
+        shell: wsl-bash {0}
+        run: |
+          cd /root/tdk-ci
+          bash scripts/wsl2-smoke.sh /root/tdk-smoke-work 2>&1 | tee /root/tdk-evidence/smoke.log
+
+      - name: Collect diagnostics
+        if: always() && steps.wsl.outcome == 'success'
+        shell: wsl-bash {0}
+        run: |
+          mkdir -p wsl2-evidence
+          if [ -f /root/tdk-smoke-work/tdk-example/up.log ]; then
+            cp /root/tdk-smoke-work/tdk-example/up.log wsl2-evidence/up.log
+          fi
+          docker ps -a >wsl2-evidence/containers.log 2>&1 || true
+          uname -a >wsl2-evidence/kernel.log
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: wsl2-smoke-evidence
+          path: wsl2-evidence/
+          if-no-files-found: warn
