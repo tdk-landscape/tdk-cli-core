@@ -1,11 +1,8 @@
-# Choosing TDK alongside your existing tools
+# TDK and your existing tools
 
 ## TDK and Helm
 
-- Helm packages and releases applications into a Kubernetes cluster.
-- TDK generates services and runs them on your laptop.
-- Typical split: TDK locally, Helm in CI or production.
-- Do not migrate charts into TDK.
+TDK generates and runs the local Docker + Tilt development loop. Helm (including bjw-s app-template), Kustomize, Flux, and Argo keep rendering and deploying your cluster configuration. The same application source or image can flow through both paths; local routes and startup order do not configure production ingress or workload policy. See [TDK + Helm](with-helm.md).
 
 ## Keep your existing local setup when
 

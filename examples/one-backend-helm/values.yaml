@@ -1,0 +1,19 @@
+# Starting point for bjw-s-labs/app-template 5.2.1.
+# Schema: https://raw.githubusercontent.com/bjw-s-labs/helm-charts/app-template-5.2.1/charts/other/app-template/values.schema.json
+# Set repository and tag to the published image built from ../one-backend/services/one-backend/api.
+controllers:
+  main:
+    containers:
+      main:
+        image:
+          repository: ghcr.io/your-org/tdk-one-backend
+          tag: "1.0.0"
+        env:
+          PORT: "4000"
+
+service:
+  main:
+    controller: main
+    ports:
+      http:
+        port: 4000

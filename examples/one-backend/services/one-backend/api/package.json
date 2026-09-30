@@ -1,0 +1,13 @@
+{
+  "name": "api-backend",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bun build src/index.ts --outdir dist --target bun --packages external",
+    "start": "bun run dist/index.js",
+    "dev": "bun --watch src/index.ts"
+  },
+  "dependencies": {
+    "hono": "^4.9.0"
+  }
+}

@@ -2,6 +2,16 @@ name: Bug report
 description: Something in tdk does not work as expected
 labels: [bug]
 body:
+  - type: dropdown
+    id: request-scope
+    attributes:
+      label: Is this a local-development or cluster-deployment issue?
+      options:
+        - Local development with Docker + Tilt
+        - Cluster deployment (Helm, Kustomize, Flux, or Argo)
+        - Both / not sure
+    validations:
+      required: true
   - type: textarea
     id: what-happened
     attributes:
@@ -38,3 +48,9 @@ body:
       options: [macOS (Apple Silicon), macOS (Intel), Linux, Windows (WSL), Other]
     validations:
       required: true
+
+  - type: markdown
+    attributes:
+      value: >-
+        TDK runs local development on Docker + Tilt. For cluster deployments, keep
+        your Helm or other Kubernetes workflow. See [TDK + Helm](https://github.com/tdk-landscape/tdk-cli-core/blob/main/docs/with-helm.md).

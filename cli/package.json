@@ -2,7 +2,7 @@
   "name": "tdk-cli-internal",
   "private": true,
   "version": "1.3.78",
-  "description": "TDK CLI - Tilt Development Kit command line interface",
+  "description": "TDK runs many services on your laptop with Docker + Tilt. Helm still deploys the cluster.",
   "keywords": [
     "tdk",
     "tilt",

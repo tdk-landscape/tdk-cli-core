@@ -1,0 +1,57 @@
+# TDK + Helm (they are not alternatives)
+
+TDK runs many services on your laptop with Docker + Tilt. Helm still deploys the cluster.
+
+```text
+Laptop:  service.json  ->  tdk up  ->  Docker + Tilt + Traefik *.localhost
+Cluster: same image    ->  Helm / Flux / Argo  ->  Deployment + Service + Ingress
+```
+
+TDK is the local development inner loop. It scaffolds services, generates local Dockerfile layers and Tilt configuration, starts local proxy/Postgres services, and lets you run a subset of stacks. Helm and your cluster tooling own replicas, readiness/liveness probes, ingress class and hosts, PVCs, node selectors, IRSA, HPA, and other production policy.
+
+Keep your existing bjw-s app-template, official charts, homegrown charts, Kustomize, Flux, or Argo workflow. TDK does not require a cluster for `tdk up` and does not replace the production release path. Skip TDK when `helm install`, Compose, or your existing Tilt setup already gives you a working local environment.
+
+## A conceptual mapping
+
+These fields are related ideas, not a one-to-one configuration translation. Local startup order, routes, and resource types do not define a cluster release.
+
+| TDK `service.json` or local behavior | Typical Helm / app-template concept | Boundary |
+|---|---|---|
+| `appName` | Release name or controller id | Identity only; chart naming is configurable. |
+| `appType` | Controller type (Deployment, Job, CronJob) | TDK type does not select or configure the cluster controller. |
+| `port` | `service.main.ports.http.port` | Confirm the container and Service ports for your image. |
+| `healthCheckPath` | Readiness or liveness probe path | Add and tune probes for cluster operation explicitly. |
+| `dependsOn` | Deployment ordering, hooks, or init behavior | Local dependency ordering is not a cluster startup contract. |
+| Traefik `*.localhost` route | Ingress or Gateway API host | Configure class, DNS, TLS, and routing in your cluster workflow. |
+| Local Postgres feature | External database or a chart dependency | Choose lifecycle, persistence, credentials, and backups for production. |
+
+## One backend through both paths
+
+Scaffold a local backend in a project:
+
+```bash
+tdk project --yes
+tdk resource api --type backend --stack shop --yes
+tdk up shop
+```
+
+TDK runs the service through Docker and Tilt with hot reload and a local `*.localhost` route. See the [runnable one-backend example](../examples/one-backend/README.md) for the manifest, code, exact URL, health request, and cleanup.
+
+The matching [handwritten app-template values](../examples/one-backend-helm/values.yaml) use the same service source and show an explicit image repository, tag, and HTTP port. Before Helm can use it, build and publish that image through your existing CI/build workflow to a registry your cluster can access. TDK's local Docker image is not published automatically.
+
+The example pins the official `oci://ghcr.io/bjw-s-labs/helm/app-template` chart to `5.2.1`. The [official chart documentation](https://bjw-s-labs.github.io/helm-charts/docs/app-template/), [5.2.1 release notes](https://github.com/bjw-s-labs/helm-charts/releases/tag/app-template-5.2.1), and [matching values schema](https://raw.githubusercontent.com/bjw-s-labs/helm-charts/app-template-5.2.1/charts/other/app-template/values.schema.json) describe the chart contract. Fetch the pinned chart, then lint and render the sample without installing it:
+
+```bash
+helm pull oci://ghcr.io/bjw-s-labs/helm/app-template \
+  --version 5.2.1 --untar --untardir /tmp/tdk-helm-example
+helm lint /tmp/tdk-helm-example/app-template \
+  --values examples/one-backend-helm/values.yaml
+helm template api /tmp/tdk-helm-example/app-template \
+  --values examples/one-backend-helm/values.yaml
+```
+
+The example intentionally leaves replicas, probes, ingress, PVCs, resources, security context, identity, and autoscaling to the deployment owner. A local frontend served through nginx/Traefik still needs a separately configured cluster ingress or Gateway. A worker requires an explicit `Job` or `CronJob` choice and (for a CronJob) a schedule; TDK cannot infer either.
+
+## Keep writing Helm values by hand
+
+There is no Helm export command in this workflow. Write chart values using the schema and documentation for your pinned chart release. The example is a starting point for understanding the handoff, not a supported production chart. `tdk config verify` checks generated project files against `.tdk/project.json`; it does not lint `service.json` or Helm values. `tdk doctor` checks local environment readiness and service issues, not production chart configuration.
