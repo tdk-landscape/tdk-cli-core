@@ -159,3 +159,24 @@ When using the supplied current evidence, Luna SHALL use this summary: “Job-fi
 - **WHEN** Luna publishes the current worked evaluation
 - **THEN** it uses the specified summary and distinguishes current evidence from future conditions
 - **AND** does not claim that this documentation-only rating change improved TDK CLI
+
+### Current evidence-based rescore (2026-10-01)
+
+This dated rescore supersedes the earlier current-fill values for the current repository evidence; the earlier supplied worked example remains a historical example. The fixed axes, weights, and formula are unchanged.
+
+| Axis | Score |
+|---|---:|
+| Claim vs code | 4 |
+| Boot path | 4 |
+| Generation | 5 |
+| Scale evidence | 3 |
+| Platforms | 4 |
+| Stability | 2 |
+| Exit | 4 |
+| Adoption risk | 2 |
+
+- Job-fit: `((4 + 4 + 5 + 3) / 4) × 2 = 8.0`
+- Adoptability: `((4 + 2 + 4 + 2) / 4) × 2 = 6.0`
+- Headline: `0.45×8.0 + 0.55×6.0 = 6.9`
+
+Platforms is 4, not 5: the required main-branch job tests Docker Engine inside Ubuntu 24.04 WSL2 on `windows-2022`, while [`docs/wsl2.md`](https://github.com/tdk-landscape/tdk-cli-core/blob/d8bc46b/docs/wsl2.md) still prescribes Docker Desktop. The [successful WSL2 run](https://github.com/tdk-landscape/tdk-cli-core/actions/runs/36903887190) is reconfirmed by the successful [main run on `d8bc46b`](https://github.com/tdk-landscape/tdk-cli-core/actions/runs/36905524644). Only successful conclusions count; skipped, cancelled, and neutral results do not. The Stability score and its 1.x caveat remain unchanged. A Platforms 5 requires either tested Docker Desktop WSL integration or updating both the guide and `tdk doctor` guidance to make the tested Engine-in-WSL2 path the supported route.
