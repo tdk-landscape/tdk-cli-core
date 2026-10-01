@@ -191,8 +191,9 @@ describe("resource command", () => {
       expect(getFrontendFramework("vue").id).toBe("vue");
       expect(getFrontendFramework("svelte").id).toBe("svelte");
       expect(getFrontendFramework("preact").id).toBe("preact");
+      expect(getFrontendFramework("lit").id).toBe("lit");
       expect(() => getFrontendFramework("angular")).toThrow(
-        /Supported frameworks: react, vue, svelte, preact/,
+        /Supported frameworks: react, vue, svelte, preact, lit/,
       );
       expect(() => getFrontendFramework("__proto__")).toThrow(/Unknown frontend framework/);
       expect(getFrontendFramework("React").id).toBe("react");
@@ -279,6 +280,26 @@ describe("resource command", () => {
       ]);
       expect(files[0]?.content).toContain("/src/main.tsx");
       expect(files[1]?.content).toContain("from 'preact'");
+      expect(files[2]?.content).toContain("Frontend resource created with TDK");
+      expect(files.some(({ filename }) => filename === "vite.config.ts")).toBe(false);
+    });
+  });
+
+  describe("lit provider", () => {
+    it("keeps Lit source and dependencies in its provider", () => {
+      const provider = getFrontendFramework("lit");
+      const files = provider.createFiles("sample-web");
+
+      expect(provider.dependencies).toHaveProperty("lit");
+      expect(provider.dependencies).not.toHaveProperty("react");
+      expect(provider.devDependencies).toEqual({});
+      expect(files.map(({ filename }) => filename)).toEqual([
+        "index.html",
+        "src/main.ts",
+        "src/app-root.ts",
+      ]);
+      expect(files[0]?.content).toContain("<app-root></app-root>");
+      expect(files[2]?.content).toContain("from 'lit'");
       expect(files[2]?.content).toContain("Frontend resource created with TDK");
       expect(files.some(({ filename }) => filename === "vite.config.ts")).toBe(false);
     });

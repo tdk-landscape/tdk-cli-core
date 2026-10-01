@@ -555,7 +555,7 @@ def generate_resource_health_check(resource_name, resource_path, manifest, check
     health_checks = []
     
     # Check 1: Required files exist
-    frontend_entry = "src/main.ts" if manifest.get("framework", "react") in ["vue", "svelte"] else "src/main.tsx"
+    frontend_entry = "src/main.ts" if manifest.get("framework", "react") in ["vue", "svelte", "lit"] else "src/main.tsx"
     backend_files = {
         "python": ["pyproject.toml", "src/main.py"],
     }.get(manifest.get("language", "bun"), ["package.json", "prisma/schema.prisma"])

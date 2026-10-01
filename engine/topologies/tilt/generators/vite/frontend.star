@@ -19,6 +19,7 @@ load('./frameworks/react.star', 'REACT_VITE_FRONTEND', 'REACT_VITE_FRONTEND_BUIL
 load('./frameworks/vue.star', 'VUE_VITE_FRONTEND', 'VUE_VITE_FRONTEND_BUILD')
 load('./frameworks/svelte.star', 'SVELTE_VITE_FRONTEND', 'SVELTE_VITE_FRONTEND_BUILD')
 load('./frameworks/preact.star', 'PREACT_VITE_FRONTEND', 'PREACT_VITE_FRONTEND_BUILD')
+load('./frameworks/lit.star', 'LIT_VITE_FRONTEND', 'LIT_VITE_FRONTEND_BUILD')
 load('../../../platform/docker/networking/api_path_constants.star', 'get_frontend_base_path')
 load('./helpers.star', 
     'build_header', 
@@ -47,6 +48,10 @@ _FRAMEWORK_TEMPLATES = {
     'preact': {
         'dev': PREACT_VITE_FRONTEND,
         'build': PREACT_VITE_FRONTEND_BUILD,
+    },
+    'lit': {
+        'dev': LIT_VITE_FRONTEND,
+        'build': LIT_VITE_FRONTEND_BUILD,
     },
 }
 

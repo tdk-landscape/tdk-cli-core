@@ -345,7 +345,7 @@ export const resourceCommand = new Command("resource")
     "Resource type: backend, frontend, worker, bring-your-own, sdk",
     "backend",
   )
-  .option("--framework <id>", "Frontend framework: react (default), vue, svelte, preact")
+  .option("--framework <id>", "Frontend framework: react (default), vue, svelte, preact, lit")
   .option("--language <id>", "Backend language: bun (default), python")
   .option("-s, --stack <stack>", "Stack to assign resource to", "default")
   .option("-p, --path <path>", "Custom path for resource directory")

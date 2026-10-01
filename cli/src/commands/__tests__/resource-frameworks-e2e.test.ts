@@ -303,6 +303,47 @@ describe("frontend resource framework selection", () => {
     ).toBe(true);
   }, 15000);
 
+  it("scaffolds Lit without a second Vite config owner or runtime fork", () => {
+    const litPath = join(projectRoot, "apps", "lit-web");
+    runTdk(
+      [
+        "resource",
+        "lit-web",
+        "--type",
+        "frontend",
+        "--framework",
+        "lit",
+        "--stack",
+        "shop",
+        "--path",
+        "apps/lit-web",
+      ],
+      projectRoot,
+      "y\n",
+    );
+
+    const service = JSON.parse(readFileSync(join(litPath, "service.json"), "utf-8"));
+    const pkg = JSON.parse(readFileSync(join(litPath, "package.json"), "utf-8"));
+    const cliPackage = JSON.parse(readFileSync(join(repoRoot, "cli", "package.json"), "utf-8"));
+
+    expect(service.framework).toBe("lit");
+    expect(service.appType).toBe("frontend");
+    expect(pkg.dependencies).toHaveProperty("lit");
+    expect(pkg.dependencies).not.toHaveProperty("react");
+    expect(pkg.devDependencies).not.toHaveProperty("@vitejs/plugin-react");
+    expect(cliPackage.dependencies).not.toHaveProperty("lit");
+    expect(readdirSync(join(litPath, "src")).sort()).toEqual(["app-root.ts", "main.ts"]);
+    expect(existsSync(join(litPath, "vite.config.ts"))).toBe(false);
+    expect(
+      existsSync(
+        join(
+          projectRoot,
+          ".tdk/.tdk-out/tdk-cli-ext/engine/topologies/tilt/generators/vite/frameworks/lit.star",
+        ),
+      ),
+    ).toBe(true);
+  }, 15000);
+
   it("places a frontend where discovery finds it and says so", () => {
     const output = runTdk(
       ["resource", "landing", "--type", "frontend", "--stack", "shop"],
@@ -359,7 +400,9 @@ describe("frontend resource framework selection", () => {
         ],
         projectRoot,
       ),
-    ).toThrow(/Unknown frontend framework "angular"[\s\S]*Use one of: react, vue, svelte, preact/);
+    ).toThrow(
+      /Unknown frontend framework "angular"[\s\S]*Use one of: react, vue, svelte, preact, lit/,
+    );
     expect(existsSync(resourcePath)).toBe(false);
   }, 15000);
 

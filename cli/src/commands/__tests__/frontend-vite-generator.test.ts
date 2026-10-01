@@ -87,6 +87,21 @@ it("registers Preact Vite templates at the shared Starlark generator paths", () 
   expect(preactTemplates).not.toContain("@vitejs/plugin-react");
 });
 
+it("registers Lit Vite templates at the shared Starlark generator paths", () => {
+  const generator = readFileSync(frontendGenerator, "utf-8");
+  const litTemplates = readFileSync(
+    join(dirname(frontendGenerator), "frameworks", "lit.star"),
+    "utf-8",
+  );
+
+  expect(generator).toContain("load('./frameworks/lit.star'");
+  expect(generator).toContain("'lit': {");
+  expect(litTemplates).toContain("LIT_VITE_FRONTEND =");
+  expect(litTemplates).toContain("LIT_VITE_FRONTEND_BUILD =");
+  expect(litTemplates).toContain("plugins: [],");
+  expect(litTemplates).not.toContain("@vitejs/plugin-react");
+});
+
 it("passes the persisted framework to the shared frontend TypeScript generator", () => {
   const orchestrator = readFileSync(
     join(
@@ -107,7 +122,7 @@ it("passes the persisted framework to the shared frontend TypeScript generator",
 
 it("selects the framework entry in generated frontend health checks", () => {
   const validators = readFileSync(frontendValidators, "utf-8");
-  expect(validators).toContain('manifest.get("framework", "react") in ["vue", "svelte"]');
+  expect(validators).toContain('manifest.get("framework", "react") in ["vue", "svelte", "lit"]');
   expect(validators).toContain('"frontend": ["package.json", "index.html", frontend_entry]');
 });
 
@@ -244,6 +259,24 @@ if 'proxy:' not in files[dev_path]: fail('missing shared proxy')
 });
 
 describe.skipIf(!hasTilt)("Starlark frontend TypeScript generator", { timeout: 30_000 }, () => {
+  it("generates plugin-free Lit configs in both modes and retains shared runtime settings", () => {
+    const result = evaluateTiltfile(`load(${JSON.stringify(frontendGenerator)}, 'generate_frontend')
+manifest = {'appType': 'frontend', 'framework': 'lit', 'appName': 'storefront', 'stack': 'shop', 'port': 3100, '_resource_path': 'apps/storefront'}
+files = {}
+def write_config(path, content):
+    files[path] = content
+generate_frontend(manifest, write_fn=write_config)
+if len(files) != 2: fail('expected exactly two generated Lit Vite configs')
+for content in files.values():
+    if "plugins: []" not in content: fail('Lit must not load a framework plugin')
+    if "@vitejs/plugin-react" in content: fail('React plugin leaked into Lit config')
+    if "base: '/storefront/'" not in content: fail('missing shared base path')
+    if "'@': resolve(__dirname, '../src')" not in content: fail('missing source alias')
+`);
+
+    expect(result.status, result.stderr).toBe(0);
+  });
+
   it("preserves legacy React JSX and omits it for Vue Docker builds", () => {
     const result =
       evaluateTiltfile(`load(${JSON.stringify(frontendTsconfigGenerator)}, 'generate_frontend_tsconfig')
@@ -300,6 +333,8 @@ svelte = generate_resource_health_check('web', 'apps/web', {'appType': 'frontend
 if 'src/main.tsx' in svelte or 'src/main.ts' not in svelte: fail('Svelte entry check is wrong')
 preact = generate_resource_health_check('web', 'apps/web', {'appType': 'frontend', 'framework': 'preact'}, {})
 if 'src/main.tsx' not in preact: fail('Preact entry check is wrong')
+lit = generate_resource_health_check('web', 'apps/web', {'appType': 'frontend', 'framework': 'lit'}, {})
+if 'src/main.tsx' in lit or 'src/main.ts' not in lit: fail('Lit entry check is wrong')
 react = generate_resource_health_check('web', 'apps/web', {'appType': 'frontend'}, {})
 if 'src/main.tsx' not in react: fail('legacy React entry check is wrong')
 `);
