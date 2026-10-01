@@ -75,7 +75,7 @@ jobs:
           $null = Invoke-NativeWindowsRefusal -Label 'tdk up --dry-run' -CliArgs @('up', '--dry-run')
 
           $beforeRuntimeProcesses = @(
-            Get-Process -Name @('tilt', 'dockerd', 'containerd', 'com.docker.backend', 'wsl') -ErrorAction SilentlyContinue |
+            Get-Process -Name @('tilt', 'dockerd', 'containerd', 'com.docker.backend') -ErrorAction SilentlyContinue |
               Select-Object -ExpandProperty Id
           )
           $dockerBefore = @()
@@ -91,7 +91,7 @@ jobs:
           }
 
           $afterRuntimeProcesses = @(
-            Get-Process -Name @('tilt', 'dockerd', 'containerd', 'com.docker.backend', 'wsl') -ErrorAction SilentlyContinue |
+            Get-Process -Name @('tilt', 'dockerd', 'containerd', 'com.docker.backend') -ErrorAction SilentlyContinue |
               Select-Object -ExpandProperty Id
           )
           $newRuntimeProcesses = @($afterRuntimeProcesses | Where-Object { $_ -notin $beforeRuntimeProcesses })

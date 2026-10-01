@@ -43,7 +43,7 @@ cd "$project_dir"
 tdk project --yes
 # The default example uses PostgreSQL and NATS; keep optional Infisical resources off.
 sed -i 's/^INFISICAL_ENABLED=.*/INFISICAL_ENABLED=false/' .env
-doctor_output="$(tdk doctor --strict)"
+doctor_output="$(tdk doctor --strict 2>&1)"
 printf '%s\n' "$doctor_output"
 ingress_port="$(printf '%s\n' "$doctor_output" | sed -nE 's/.*HTTP ([0-9]+),.*/\1/p' | head -1)"
 if [ -z "$ingress_port" ]; then

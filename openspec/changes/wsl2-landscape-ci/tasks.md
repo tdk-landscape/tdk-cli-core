@@ -12,6 +12,6 @@
 
 ## 3. Publish and verify platform evidence
 
-- [x] 3.1 Run both jobs on a pull request and resolve runner or smoke failures without weakening the specified checks.
+- [ ] 3.1 Run both jobs on a pull request and resolve runner or smoke failures without weakening the specified checks.
 - [ ] 3.2 Link the stable WSL2 workflow history from `docs/wsl2.md` after a successful default-branch run, and label that it tests Docker Engine inside WSL2 rather than Docker Desktop integration.
 - [ ] 3.3 Confirm skipped, cancelled, and neutral results do not count as success; keep the rating formula, Job-fit axes, other score axes, and 1.x stability caveat unchanged. With the current Docker Desktop guide, rescore Platforms to 4 only after both required jobs succeed and the Engine-in-WSL2 link is documented; reserve 5 for a tested Desktop path or a guide updated to make the tested Engine path the supported route.
