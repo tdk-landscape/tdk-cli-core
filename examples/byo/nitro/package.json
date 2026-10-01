@@ -1,0 +1,1 @@
+{ "name": "edge-api", "private": true, "type": "module", "scripts": { "build": "nitropack build" }, "devDependencies": { "nitropack": "^2.10.0" } }

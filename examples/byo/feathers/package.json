@@ -1,0 +1,2 @@
+{ "name": "orders-api", "private": true, "type": "module",
+  "dependencies": { "@feathersjs/feathers": "^5.0.30", "@feathersjs/koa": "^5.0.30" } }
