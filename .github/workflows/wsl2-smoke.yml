@@ -36,7 +36,8 @@ jobs:
         with:
           distribution: Ubuntu-24.04
           wsl-version: 2
-          use-cache: false
+          # Caches the downloaded Ubuntu installer (not the installed tools) across runs.
+          use-cache: true
           additional-packages: ca-certificates curl git xz-utils unzip jq
 
       - name: Record and require a real WSL2 kernel
