@@ -33,10 +33,10 @@ Leave `tdk up shop` running. From another Ubuntu terminal, check the routed API 
 
 ```sh
 set -euo pipefail
-api=http://api.tdk-example.localhost/api/orders
+api=http://api.tdk-example.localhost:8080/api/orders
 curl -fsS "$api/health"
 curl -fsS "$api/worker-ready"
-curl -fsS http://app.tdk-example.localhost/orders-app/ >/dev/null
+curl -fsS http://app.tdk-example.localhost:8080/orders-app/ >/dev/null
 order_id="$(curl -fsS -X POST "$api" -H 'content-type: application/json' \
   -d '{"item":"WSL2 smoke test"}' | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>process.stdout.write(String(JSON.parse(s).order.id)))')"
 echo "Created order $order_id"
@@ -58,8 +58,10 @@ Stop the stack from the first terminal with `Ctrl+C`, then run `tdk down` from t
 
 With TDK and Docker Desktop WSL integration already available, run `bash scripts/wsl2-smoke.sh` from the TDK repository checkout inside Ubuntu. It copies the bundled example into a temporary directory, checks doctor and generated configuration, boots the stack, exercises the same routed write and worker observation, and tears the stack down. Pass a directory path to keep the copied example for inspection.
 
+The required [WSL2 smoke workflow history](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/wsl2-smoke.yml) runs on `windows-2022`, provisions Ubuntu 24.04 under WSL2, and installs Docker Engine inside that distro. [The successful run on merge commit `ad7c5c0`](https://github.com/tdk-landscape/tdk-cli-core/actions/runs/36903887190) records HTTP 200 responses for the routed API, worker-readiness, and app checks, followed by a successful NATS worker observation. This CI path tests Docker Engine inside WSL2; it does not test Docker Desktop WSL integration.
+
 ## Troubleshooting
 
 - If `docker version` cannot reach the server, enable the Ubuntu distribution under Docker Desktop's **Resources → WSL Integration** and restart Ubuntu.
-- TDK selects a free fallback ingress and Postgres host port and prints the selected values. Set `TDK_HTTP_PORT`, `TDK_HTTPS_PORT`, or `TDK_POSTGRES_PORT` to override a selection; a conflicting override is reported without stopping the process using it.
+- TDK defaults to HTTP ingress port 8080 and selects a free fallback ingress and Postgres host port when needed. It prints the selected values; use the reported HTTP port in routed URLs if it differs from 8080. Set `TDK_HTTP_PORT`, `TDK_HTTPS_PORT`, or `TDK_POSTGRES_PORT` to override a selection; a conflicting override is reported without stopping the process using it.
 - Use the API and app URLs printed by TDK if your project name differs from `tdk-example`.
