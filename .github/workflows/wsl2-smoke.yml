@@ -79,6 +79,7 @@ jobs:
       - name: Run the existing WSL2 routed write smoke
         shell: wsl-bash {0}
         run: |
+          set -euo pipefail
           cd /root/tdk-ci
           bash scripts/wsl2-smoke.sh /root/tdk-smoke-work 2>&1 | tee /root/tdk-evidence/smoke.log
 

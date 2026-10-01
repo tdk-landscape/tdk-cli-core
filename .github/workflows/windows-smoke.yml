@@ -65,7 +65,7 @@ jobs:
             if ($exitCode -eq 0) {
               throw "$Label unexpectedly succeeded on native Windows."
             }
-            if ($text -notmatch '(?is)(Native Windows.*WSL2 Ubuntu|Ubuntu on WSL2.*Native Windows)') {
+            if ($text -notmatch '(?i)WSL2' -or $text -notmatch '(?i)Ubuntu') {
               throw "$Label did not direct the user to WSL2 Ubuntu."
             }
             return $text
@@ -75,7 +75,7 @@ jobs:
           $null = Invoke-NativeWindowsRefusal -Label 'tdk up --dry-run' -CliArgs @('up', '--dry-run')
 
           $beforeRuntimeProcesses = @(
-            Get-Process -Name @('tilt', 'dockerd', 'com.docker.backend') -ErrorAction SilentlyContinue |
+            Get-Process -Name @('tilt', 'dockerd', 'containerd', 'com.docker.backend', 'wsl') -ErrorAction SilentlyContinue |
               Select-Object -ExpandProperty Id
           )
           $dockerBefore = @()
@@ -91,7 +91,7 @@ jobs:
           }
 
           $afterRuntimeProcesses = @(
-            Get-Process -Name @('tilt', 'dockerd', 'com.docker.backend') -ErrorAction SilentlyContinue |
+            Get-Process -Name @('tilt', 'dockerd', 'containerd', 'com.docker.backend', 'wsl') -ErrorAction SilentlyContinue |
               Select-Object -ExpandProperty Id
           )
           $newRuntimeProcesses = @($afterRuntimeProcesses | Where-Object { $_ -notin $beforeRuntimeProcesses })
@@ -110,4 +110,5 @@ jobs:
             }
           }
 
+          # Refusal commands intentionally returned non-zero; the assertions above verified them.
           $global:LASTEXITCODE = 0

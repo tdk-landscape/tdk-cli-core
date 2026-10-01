@@ -43,7 +43,13 @@ cd "$project_dir"
 tdk project --yes
 # The default example uses PostgreSQL and NATS; keep optional Infisical resources off.
 sed -i 's/^INFISICAL_ENABLED=.*/INFISICAL_ENABLED=false/' .env
-tdk doctor --strict
+doctor_output="$(tdk doctor --strict)"
+printf '%s\n' "$doctor_output"
+ingress_port="$(printf '%s\n' "$doctor_output" | sed -nE 's/.*HTTP ([0-9]+),.*/\1/p' | head -1)"
+if [ -z "$ingress_port" ]; then
+  echo "Could not determine the HTTP ingress port from tdk doctor output" >&2
+  exit 1
+fi
 tdk config verify
 
 tdk up shop >up.log 2>&1 &
@@ -63,16 +69,41 @@ if ! grep -q 'Running tilt up' up.log; then
   exit 1
 fi
 
-# TDK's non-root ingress port is 8080 (the same port reported by doctor).
-api=http://api.tdk-example.localhost:8080/api/orders
-app=http://app.tdk-example.localhost:8080/orders-app/
+api="http://api.tdk-example.localhost:$ingress_port/api/orders"
+app="http://app.tdk-example.localhost:$ingress_port/orders-app/"
+routes_ready=false
 for _ in $(seq 1 90); do
-  if curl -fsS "$api/health" >/dev/null && curl -fsS "$api/worker-ready" >/dev/null && curl -fsS "$app" >/dev/null; then break; fi
+  if curl -fsS "$api/health" >/dev/null 2>&1 && curl -fsS "$api/worker-ready" >/dev/null 2>&1 && curl -fsS "$app" >/dev/null 2>&1; then
+    routes_ready=true
+    break
+  fi
   sleep 2
 done
-curl -fsS "$api/health" >/dev/null
-curl -fsS "$api/worker-ready" >/dev/null
-curl -fsS "$app" >/dev/null
+if [ "$routes_ready" != true ]; then
+  echo "Routed endpoints did not become healthy at ingress port $ingress_port" >&2
+  for url in "$api/health" "$api/worker-ready" "$app"; do
+    curl -sS -o /dev/null -w "$url: HTTP %{http_code}\n" "$url" || true
+  done
+  exit 1
+fi
+
+check_routed_response() {
+  label="$1"
+  url="$2"
+  expected="$3"
+  response="$(curl -sS -w $'\n%{http_code}' "$url")"
+  status="${response##*$'\n'}"
+  body="${response%$'\n'*}"
+  if [ "$status" != 200 ] || [[ "$body" != *"$expected"* ]]; then
+    printf '%s failed: HTTP %s; body: %s\n' "$label" "$status" "$body" >&2
+    return 1
+  fi
+  printf '%s: HTTP %s; body: %s\n' "$label" "$status" "$body"
+}
+
+check_routed_response 'API health via Traefik' "$api/health" '"ok":true'
+check_routed_response 'Worker readiness via Traefik' "$api/worker-ready" '"ready":true'
+check_routed_response 'Orders app via Traefik' "$app" '<title>TDK Orders</title>'
 
 order_id="$(curl -fsS -X POST "$api" -H 'content-type: application/json' \
   -d '{"item":"WSL2 smoke test"}' | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>process.stdout.write(String(JSON.parse(s).order.id)))')"
