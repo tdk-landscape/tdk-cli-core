@@ -26,7 +26,7 @@ Cut from this change at review: a Node provider that has never been built in Doc
 - [x] 4.2 Write the README with prerequisites (Docker, Tilt, TDK CLI; no host Python), `tdk project --yes`, `tdk up one-backend-python`, the `curl --fail .../health` check, the Tilt dashboard URL, and `tdk down`.
 - [x] 4.3 Add a drift test that compares the example source with `tdk resource --type backend --language python` output, ignoring service name and stack.
 - [x] 4.4 Add a path-filtered CI job that boots the example, curls routed `/health`, runs pytest inside the built image, uploads Tilt and container logs on failure, and runs `tdk down`.
-- [ ] 4.5 (blocked on the Tilt live-update `basePath` bug, not on the Dockerfile; separate PR) Verify by hand that editing `src/main.py` live-reloads and editing `pyproject.toml` rebuilds the image.
+- [ ] 4.5 (blocked on the Tilt live-update `basePath` bug, not on the Dockerfile; fixed separately in [tdk-cli-core#228](https://github.com/tdk-landscape/tdk-cli-core/pull/228). Re-verify on the Python example after #228 merges) Verify by hand that editing `src/main.py` live-reloads and editing `pyproject.toml` rebuilds the image.
   - Hand check (2026-10-01): editing `pyproject.toml` rebuilt the image as expected, but editing `src/main.py` did not live-update. Tilt logged `LiveUpdate ... UpdateStopped: Found file(s) not matching any sync` and fell back to a full rebuild. The LiveUpdate `basePath` is `.tdk/.tdk-out` while sync `localPath` is `services/...`, so the syncs never match. Seen on the Bun auth-queue example too, so it is likely pre-existing and not Python-specific. Needs its own fix.
 - [x] 4.6 Link the example from `README.md`, `docs/README.md`, `cli/README.md`, and `docs/backend-language-providers.md`.
 
