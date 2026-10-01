@@ -1,5 +1,6 @@
 import { TdkError } from "../utils/errors.js";
 import { reactFrontendProvider } from "./react.js";
+import { svelteFrontendProvider } from "./svelte.js";
 import type { FrontendFrameworkProvider } from "./types.js";
 import { vueFrontendProvider } from "./vue.js";
 
@@ -8,6 +9,7 @@ export const DEFAULT_FRONTEND_FRAMEWORK = "react";
 export const FRONTEND_FRAMEWORKS: Record<string, FrontendFrameworkProvider> = {
   react: reactFrontendProvider,
   vue: vueFrontendProvider,
+  svelte: svelteFrontendProvider,
 };
 
 export function getFrontendFramework(frameworkId?: string): FrontendFrameworkProvider {

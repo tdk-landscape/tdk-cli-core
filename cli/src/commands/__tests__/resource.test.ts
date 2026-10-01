@@ -189,11 +189,14 @@ describe("resource command", () => {
     it("uses React when the framework is omitted, normalizes case, and rejects unknown ids", () => {
       expect(getFrontendFramework().id).toBe("react");
       expect(getFrontendFramework("vue").id).toBe("vue");
-      expect(() => getFrontendFramework("svelte")).toThrow(/Supported frameworks: react, vue/);
+      expect(getFrontendFramework("svelte").id).toBe("svelte");
+      expect(() => getFrontendFramework("angular")).toThrow(
+        /Supported frameworks: react, vue, svelte/,
+      );
       expect(() => getFrontendFramework("__proto__")).toThrow(/Unknown frontend framework/);
       expect(getFrontendFramework("React").id).toBe("react");
       expect(getFrontendFramework(" VUE ").id).toBe("vue");
-      expect(() => getFrontendFramework("svelte")).toThrow(TdkError);
+      expect(() => getFrontendFramework("angular")).toThrow(TdkError);
       expect(() => getFrontendFramework("")).toThrow(/Unknown frontend framework/);
     });
 
@@ -237,6 +240,25 @@ describe("resource command", () => {
       expect(files[0]?.content).toContain("/src/main.ts");
       expect(files[1]?.content).toContain("createApp(App).mount('#app')");
       expect(files[2]?.content).toContain('<script setup lang="ts">');
+      expect(files.some(({ filename }) => filename === "vite.config.ts")).toBe(false);
+    });
+
+    it("keeps Svelte source and dependencies in its provider", () => {
+      const provider = getFrontendFramework("svelte");
+      const files = provider.createFiles("sample-web");
+
+      expect(provider.dependencies).toHaveProperty("svelte");
+      expect(provider.devDependencies).toHaveProperty("@sveltejs/vite-plugin-svelte");
+      expect(provider.devDependencies).not.toHaveProperty("@vitejs/plugin-react");
+      expect(files.map(({ filename }) => filename)).toEqual([
+        "index.html",
+        "src/main.ts",
+        "src/App.svelte",
+        "src/vite-env.d.ts",
+      ]);
+      expect(files[0]?.content).toContain("/src/main.ts");
+      expect(files[1]?.content).toContain("mount(App");
+      expect(files[2]?.content).toContain('<script lang="ts">');
       expect(files.some(({ filename }) => filename === "vite.config.ts")).toBe(false);
     });
   });

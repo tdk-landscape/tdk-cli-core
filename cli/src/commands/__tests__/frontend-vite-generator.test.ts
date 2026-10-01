@@ -56,6 +56,22 @@ it("registers Vue Vite templates at the shared Starlark generator paths", () => 
   expect(vueTemplates).not.toContain("@vitejs/plugin-react");
 });
 
+it("registers Svelte Vite templates at the shared Starlark generator paths", () => {
+  const generator = readFileSync(frontendGenerator, "utf-8");
+  const svelteTemplates = readFileSync(
+    join(dirname(frontendGenerator), "frameworks", "svelte.star"),
+    "utf-8",
+  );
+
+  expect(generator).toContain("load('./frameworks/svelte.star'");
+  expect(generator).toContain("'svelte': {");
+  expect(svelteTemplates).toContain("SVELTE_VITE_FRONTEND =");
+  expect(svelteTemplates).toContain("SVELTE_VITE_FRONTEND_BUILD =");
+  expect(svelteTemplates.match(/@sveltejs\/vite-plugin-svelte/g)).toHaveLength(2);
+  expect(svelteTemplates).not.toContain("@vitejs/plugin-react");
+  expect(svelteTemplates).not.toContain("@vitejs/plugin-vue");
+});
+
 it("passes the persisted framework to the shared frontend TypeScript generator", () => {
   const orchestrator = readFileSync(
     join(
@@ -76,7 +92,7 @@ it("passes the persisted framework to the shared frontend TypeScript generator",
 
 it("selects the framework entry in generated frontend health checks", () => {
   const validators = readFileSync(frontendValidators, "utf-8");
-  expect(validators).toContain('manifest.get("framework", "react") == "vue"');
+  expect(validators).toContain('manifest.get("framework", "react") in ["vue", "svelte"]');
   expect(validators).toContain('"frontend": ["package.json", "index.html", frontend_entry]');
 });
 
@@ -130,11 +146,11 @@ if "@vitejs/plugin-react" not in legacy_files['apps/storefront' + VITE_FRONTEND_
     const result = evaluateTiltfile(`load(${JSON.stringify(frontendGenerator)}, 'generate_frontend')
 def reject_writes(path, content):
     fail('unexpected write before framework validation')
-generate_frontend({'appType': 'frontend', 'appName': 'storefront', 'framework': 'svelte'}, write_fn=reject_writes)
+generate_frontend({'appType': 'frontend', 'appName': 'storefront', 'framework': 'angular'}, write_fn=reject_writes)
 `);
 
     expect(result.status).toBe(5);
-    expect(result.stderr).toContain("Unknown frontend framework for Vite generation: svelte");
+    expect(result.stderr).toContain("Unknown frontend framework for Vite generation: angular");
     expect(result.stderr).not.toContain("unexpected write before framework validation");
   });
 
@@ -161,6 +177,31 @@ if 'proxy:' not in files[dev_path]: fail('missing shared proxy')
 
     expect(result.status, result.stderr).toBe(0);
   });
+
+  it("selects Svelte plugin in both generated configs and retains shared runtime settings", () => {
+    const result =
+      evaluateTiltfile(`load(${JSON.stringify(frontendGenerator)}, 'generate_frontend', 'VITE_FRONTEND_CONFIG_PATH', 'VITE_FRONTEND_BUILD_CONFIG_PATH')
+manifest = {'appType': 'frontend', 'framework': 'svelte', 'appName': 'storefront', 'stack': 'shop', 'port': 3100, '_resource_path': 'apps/storefront'}
+files = {}
+def write_config(path, content):
+    files[path] = content
+generate_frontend(manifest, write_fn=write_config)
+if len(files) != 2: fail('expected exactly two generated Svelte Vite configs')
+dev_path = 'apps/storefront' + VITE_FRONTEND_CONFIG_PATH
+build_path = 'apps/storefront' + VITE_FRONTEND_BUILD_CONFIG_PATH
+if dev_path not in files or build_path not in files: fail('Svelte config paths differ from React')
+for content in files.values():
+    if "@sveltejs/vite-plugin-svelte" not in content: fail('missing Svelte plugin')
+    if "@vitejs/plugin-react" in content: fail('React plugin leaked into Svelte config')
+    if "@vitejs/plugin-vue" in content: fail('Vue plugin leaked into Svelte config')
+    if "base: '/storefront/'" not in content: fail('missing shared base path')
+    if "'@': resolve(__dirname, '../src')" not in content: fail('missing source alias')
+if "port: 3100" not in files[dev_path]: fail('missing shared dev port')
+if 'proxy:' not in files[dev_path]: fail('missing shared proxy')
+`);
+
+    expect(result.status, result.stderr).toBe(0);
+  });
 });
 
 describe.skipIf(!hasTilt)("Starlark frontend TypeScript generator", { timeout: 30_000 }, () => {
@@ -179,7 +220,14 @@ vue = {}
 def write_vue(path, content):
     vue[path] = content
 generate_frontend_tsconfig('apps/storefront', write_vue, is_docker=True, framework='vue')
+svelte = {}
+def write_svelte(path, content):
+    svelte[path] = content
+generate_frontend_tsconfig('apps/storefront', write_svelte, is_docker=True, framework='svelte')
 if legacy != react: fail('legacy React TypeScript config changed')
+svelte_config = decode_json(svelte[list(svelte.keys())[0]])
+if 'jsx' in svelte_config['compilerOptions']: fail('React JSX leaked into Svelte config')
+if svelte_config['compilerOptions']['types'] != ['node']: fail('shared Node types changed for Svelte')
 if len(vue) != 1: fail('expected one Docker TypeScript config')
 path = list(vue.keys())[0]
 if path not in react: fail('Vue Docker TypeScript config path differs from React')
@@ -196,11 +244,13 @@ if vue_config['compilerOptions']['moduleResolution'] != 'bundler': fail('fronten
 });
 
 describe.skipIf(!hasTilt)("Starlark frontend health check", { timeout: 30_000 }, () => {
-  it("requires main.ts for Vue and main.tsx for legacy React", () => {
+  it("requires main.ts for Vue and Svelte and main.tsx for legacy React", () => {
     const result =
       evaluateTiltfile(`load(${JSON.stringify(frontendValidators)}, 'generate_resource_health_check')
 vue = generate_resource_health_check('web', 'apps/web', {'appType': 'frontend', 'framework': 'vue'}, {})
 if 'src/main.tsx' in vue or 'src/main.ts' not in vue: fail('Vue entry check is wrong')
+svelte = generate_resource_health_check('web', 'apps/web', {'appType': 'frontend', 'framework': 'svelte'}, {})
+if 'src/main.tsx' in svelte or 'src/main.ts' not in svelte: fail('Svelte entry check is wrong')
 react = generate_resource_health_check('web', 'apps/web', {'appType': 'frontend'}, {})
 if 'src/main.tsx' not in react: fail('legacy React entry check is wrong')
 `);

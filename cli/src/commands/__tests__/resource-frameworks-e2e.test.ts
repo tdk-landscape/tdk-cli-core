@@ -203,6 +203,61 @@ describe("frontend resource framework selection", () => {
     ).toBe(true);
   }, 15000);
 
+  it("scaffolds Svelte without a second Vite config owner or runtime fork", () => {
+    const sveltePath = join(projectRoot, "apps", "svelte-web");
+    runTdk(
+      [
+        "resource",
+        "svelte-web",
+        "--type",
+        "frontend",
+        "--framework",
+        "svelte",
+        "--stack",
+        "shop",
+        "--path",
+        "apps/svelte-web",
+      ],
+      projectRoot,
+      "y\n",
+    );
+
+    const service = JSON.parse(readFileSync(join(sveltePath, "service.json"), "utf-8"));
+    const pkg = JSON.parse(readFileSync(join(sveltePath, "package.json"), "utf-8"));
+    const tsconfig = JSON.parse(readFileSync(join(sveltePath, "tsconfig.json"), "utf-8"));
+    const cliPackage = JSON.parse(readFileSync(join(repoRoot, "cli", "package.json"), "utf-8"));
+
+    expect(service.framework).toBe("svelte");
+    expect(service.appType).toBe("frontend");
+    expect(service.port).toBeGreaterThanOrEqual(3000);
+    expect(service.port).toBeLessThan(4000);
+    expect(pkg.dependencies).toHaveProperty("svelte");
+    expect(pkg.dependencies).not.toHaveProperty("react");
+    expect(pkg.devDependencies).toHaveProperty("@sveltejs/vite-plugin-svelte");
+    expect(pkg.devDependencies).not.toHaveProperty("@vitejs/plugin-react");
+    expect(cliPackage.dependencies).not.toHaveProperty("svelte");
+    expect(cliPackage.dependencies).not.toHaveProperty("@sveltejs/vite-plugin-svelte");
+    expect(tsconfig.compilerOptions).not.toHaveProperty("jsx");
+    expect(readdirSync(join(sveltePath, "src")).sort()).toEqual([
+      "App.svelte",
+      "main.ts",
+      "vite-env.d.ts",
+    ]);
+    expect(existsSync(join(sveltePath, "vite.config.ts"))).toBe(false);
+    expect(readFileSync(join(sveltePath, "index.html"), "utf-8")).toContain("/src/main.ts");
+    expect(readFileSync(join(sveltePath, "src", "App.svelte"), "utf-8")).toContain(
+      '<script lang="ts">',
+    );
+    expect(
+      existsSync(
+        join(
+          projectRoot,
+          ".tdk/.tdk-out/tdk-cli-ext/engine/topologies/tilt/generators/vite/frameworks/svelte.star",
+        ),
+      ),
+    ).toBe(true);
+  }, 15000);
+
   it("places a frontend where discovery finds it and says so", () => {
     const output = runTdk(
       ["resource", "landing", "--type", "frontend", "--stack", "shop"],
@@ -251,7 +306,7 @@ describe("frontend resource framework selection", () => {
           "--type",
           "frontend",
           "--framework",
-          "svelte",
+          "angular",
           "--stack",
           "shop",
           "--path",
@@ -259,7 +314,7 @@ describe("frontend resource framework selection", () => {
         ],
         projectRoot,
       ),
-    ).toThrow(/Unknown frontend framework "svelte"[\s\S]*Use one of: react, vue/);
+    ).toThrow(/Unknown frontend framework "angular"[\s\S]*Use one of: react, vue, svelte/);
     expect(existsSync(resourcePath)).toBe(false);
   }, 15000);
 

@@ -1,6 +1,6 @@
 # Contributing a frontend framework provider
 
-TDK supports Vite-based single-page applications. React is the default; Vue is also registered. Add one framework per pull request, using a lowercase kebab-case id. Start by copying the React provider and its tests.
+TDK supports Vite-based single-page applications. React is the default; Vue and Svelte are also registered. Add one framework per pull request, using a lowercase kebab-case id. Start by copying the React provider and its tests.
 
 New to the repository? Start with the [step-by-step contributor guide](contributing/README.md), then follow this focused provider recipe.
 

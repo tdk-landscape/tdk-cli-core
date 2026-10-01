@@ -17,6 +17,7 @@ load('../../../../topologies/tilt/manifest/constants.star', 'GENERATED_CONFIG_FI
 
 load('./frameworks/react.star', 'REACT_VITE_FRONTEND', 'REACT_VITE_FRONTEND_BUILD')
 load('./frameworks/vue.star', 'VUE_VITE_FRONTEND', 'VUE_VITE_FRONTEND_BUILD')
+load('./frameworks/svelte.star', 'SVELTE_VITE_FRONTEND', 'SVELTE_VITE_FRONTEND_BUILD')
 load('../../../platform/docker/networking/api_path_constants.star', 'get_frontend_base_path')
 load('./helpers.star', 
     'build_header', 
@@ -37,6 +38,10 @@ _FRAMEWORK_TEMPLATES = {
     'vue': {
         'dev': VUE_VITE_FRONTEND,
         'build': VUE_VITE_FRONTEND_BUILD,
+    },
+    'svelte': {
+        'dev': SVELTE_VITE_FRONTEND,
+        'build': SVELTE_VITE_FRONTEND_BUILD,
     },
 }
 
