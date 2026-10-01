@@ -2,6 +2,7 @@ import { TdkError } from "../utils/errors.js";
 import { litFrontendProvider } from "./lit.js";
 import { preactFrontendProvider } from "./preact.js";
 import { reactFrontendProvider } from "./react.js";
+import { solidFrontendProvider } from "./solid.js";
 import { svelteFrontendProvider } from "./svelte.js";
 import { vueFrontendProvider } from "./vue.js";
 export const DEFAULT_FRONTEND_FRAMEWORK = "react";
@@ -11,6 +12,7 @@ export const FRONTEND_FRAMEWORKS = {
     svelte: svelteFrontendProvider,
     preact: preactFrontendProvider,
     lit: litFrontendProvider,
+    solid: solidFrontendProvider,
 };
 export function getFrontendFramework(frameworkId) {
     const id = (frameworkId ?? DEFAULT_FRONTEND_FRAMEWORK).trim().toLowerCase();
