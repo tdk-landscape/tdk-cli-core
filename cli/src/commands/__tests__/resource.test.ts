@@ -190,8 +190,9 @@ describe("resource command", () => {
       expect(getFrontendFramework().id).toBe("react");
       expect(getFrontendFramework("vue").id).toBe("vue");
       expect(getFrontendFramework("svelte").id).toBe("svelte");
+      expect(getFrontendFramework("preact").id).toBe("preact");
       expect(() => getFrontendFramework("angular")).toThrow(
-        /Supported frameworks: react, vue, svelte/,
+        /Supported frameworks: react, vue, svelte, preact/,
       );
       expect(() => getFrontendFramework("__proto__")).toThrow(/Unknown frontend framework/);
       expect(getFrontendFramework("React").id).toBe("react");
@@ -259,6 +260,26 @@ describe("resource command", () => {
       expect(files[0]?.content).toContain("/src/main.ts");
       expect(files[1]?.content).toContain("mount(App");
       expect(files[2]?.content).toContain('<script lang="ts">');
+      expect(files.some(({ filename }) => filename === "vite.config.ts")).toBe(false);
+    });
+
+    it("keeps Preact source and dependencies in its provider", () => {
+      const provider = getFrontendFramework("preact");
+      const files = provider.createFiles("sample-web");
+
+      expect(provider.dependencies).toHaveProperty("preact");
+      expect(provider.dependencies).not.toHaveProperty("react");
+      expect(provider.devDependencies).toHaveProperty("@preact/preset-vite");
+      expect(provider.devDependencies).not.toHaveProperty("@vitejs/plugin-react");
+      expect(provider.compilerOptions).toEqual({ jsx: "react-jsx", jsxImportSource: "preact" });
+      expect(files.map(({ filename }) => filename)).toEqual([
+        "index.html",
+        "src/main.tsx",
+        "src/App.tsx",
+      ]);
+      expect(files[0]?.content).toContain("/src/main.tsx");
+      expect(files[1]?.content).toContain("from 'preact'");
+      expect(files[2]?.content).toContain("Frontend resource created with TDK");
       expect(files.some(({ filename }) => filename === "vite.config.ts")).toBe(false);
     });
   });

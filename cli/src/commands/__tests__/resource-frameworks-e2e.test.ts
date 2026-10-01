@@ -258,6 +258,51 @@ describe("frontend resource framework selection", () => {
     ).toBe(true);
   }, 15000);
 
+  it("scaffolds Preact without a second Vite config owner or runtime fork", () => {
+    const preactPath = join(projectRoot, "apps", "preact-web");
+    runTdk(
+      [
+        "resource",
+        "preact-web",
+        "--type",
+        "frontend",
+        "--framework",
+        "preact",
+        "--stack",
+        "shop",
+        "--path",
+        "apps/preact-web",
+      ],
+      projectRoot,
+      "y\n",
+    );
+
+    const service = JSON.parse(readFileSync(join(preactPath, "service.json"), "utf-8"));
+    const pkg = JSON.parse(readFileSync(join(preactPath, "package.json"), "utf-8"));
+    const tsconfig = JSON.parse(readFileSync(join(preactPath, "tsconfig.json"), "utf-8"));
+    const cliPackage = JSON.parse(readFileSync(join(repoRoot, "cli", "package.json"), "utf-8"));
+
+    expect(service.framework).toBe("preact");
+    expect(service.appType).toBe("frontend");
+    expect(pkg.dependencies).toHaveProperty("preact");
+    expect(pkg.dependencies).not.toHaveProperty("react");
+    expect(pkg.devDependencies).toHaveProperty("@preact/preset-vite");
+    expect(pkg.devDependencies).not.toHaveProperty("@vitejs/plugin-react");
+    expect(cliPackage.dependencies).not.toHaveProperty("preact");
+    expect(tsconfig.compilerOptions.jsxImportSource).toBe("preact");
+    expect(readdirSync(join(preactPath, "src")).sort()).toEqual(["App.tsx", "main.tsx"]);
+    expect(existsSync(join(preactPath, "vite.config.ts"))).toBe(false);
+    expect(readFileSync(join(preactPath, "src", "main.tsx"), "utf-8")).toContain("from 'preact'");
+    expect(
+      existsSync(
+        join(
+          projectRoot,
+          ".tdk/.tdk-out/tdk-cli-ext/engine/topologies/tilt/generators/vite/frameworks/preact.star",
+        ),
+      ),
+    ).toBe(true);
+  }, 15000);
+
   it("places a frontend where discovery finds it and says so", () => {
     const output = runTdk(
       ["resource", "landing", "--type", "frontend", "--stack", "shop"],
@@ -314,7 +359,7 @@ describe("frontend resource framework selection", () => {
         ],
         projectRoot,
       ),
-    ).toThrow(/Unknown frontend framework "angular"[\s\S]*Use one of: react, vue, svelte/);
+    ).toThrow(/Unknown frontend framework "angular"[\s\S]*Use one of: react, vue, svelte, preact/);
     expect(existsSync(resourcePath)).toBe(false);
   }, 15000);
 

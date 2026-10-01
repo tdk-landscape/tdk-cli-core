@@ -72,6 +72,21 @@ it("registers Svelte Vite templates at the shared Starlark generator paths", () 
   expect(svelteTemplates).not.toContain("@vitejs/plugin-vue");
 });
 
+it("registers Preact Vite templates at the shared Starlark generator paths", () => {
+  const generator = readFileSync(frontendGenerator, "utf-8");
+  const preactTemplates = readFileSync(
+    join(dirname(frontendGenerator), "frameworks", "preact.star"),
+    "utf-8",
+  );
+
+  expect(generator).toContain("load('./frameworks/preact.star'");
+  expect(generator).toContain("'preact': {");
+  expect(preactTemplates).toContain("PREACT_VITE_FRONTEND =");
+  expect(preactTemplates).toContain("PREACT_VITE_FRONTEND_BUILD =");
+  expect(preactTemplates.match(/@preact\/preset-vite/g)).toHaveLength(2);
+  expect(preactTemplates).not.toContain("@vitejs/plugin-react");
+});
+
 it("passes the persisted framework to the shared frontend TypeScript generator", () => {
   const orchestrator = readFileSync(
     join(
@@ -202,6 +217,30 @@ if 'proxy:' not in files[dev_path]: fail('missing shared proxy')
 
     expect(result.status, result.stderr).toBe(0);
   });
+
+  it("selects Preact preset in both generated configs and retains shared runtime settings", () => {
+    const result =
+      evaluateTiltfile(`load(${JSON.stringify(frontendGenerator)}, 'generate_frontend', 'VITE_FRONTEND_CONFIG_PATH', 'VITE_FRONTEND_BUILD_CONFIG_PATH')
+manifest = {'appType': 'frontend', 'framework': 'preact', 'appName': 'storefront', 'stack': 'shop', 'port': 3100, '_resource_path': 'apps/storefront'}
+files = {}
+def write_config(path, content):
+    files[path] = content
+generate_frontend(manifest, write_fn=write_config)
+if len(files) != 2: fail('expected exactly two generated Preact Vite configs')
+dev_path = 'apps/storefront' + VITE_FRONTEND_CONFIG_PATH
+build_path = 'apps/storefront' + VITE_FRONTEND_BUILD_CONFIG_PATH
+if dev_path not in files or build_path not in files: fail('Preact config paths differ from React')
+for content in files.values():
+    if "@preact/preset-vite" not in content: fail('missing Preact preset')
+    if "@vitejs/plugin-react" in content: fail('React plugin leaked into Preact config')
+    if "base: '/storefront/'" not in content: fail('missing shared base path')
+    if "'@': resolve(__dirname, '../src')" not in content: fail('missing source alias')
+if "port: 3100" not in files[dev_path]: fail('missing shared dev port')
+if 'proxy:' not in files[dev_path]: fail('missing shared proxy')
+`);
+
+    expect(result.status, result.stderr).toBe(0);
+  });
 });
 
 describe.skipIf(!hasTilt)("Starlark frontend TypeScript generator", { timeout: 30_000 }, () => {
@@ -224,6 +263,14 @@ svelte = {}
 def write_svelte(path, content):
     svelte[path] = content
 generate_frontend_tsconfig('apps/storefront', write_svelte, is_docker=True, framework='svelte')
+preact = {}
+def write_preact(path, content):
+    preact[path] = content
+generate_frontend_tsconfig('apps/storefront', write_preact, is_docker=True, framework='preact')
+preact_config = decode_json(preact[list(preact.keys())[0]])
+if preact_config['compilerOptions'].get('jsx') != 'react-jsx': fail('missing Preact JSX setting')
+if preact_config['compilerOptions'].get('jsxImportSource') != 'preact': fail('Preact must import its JSX runtime from preact')
+if 'jsxImportSource' in react[list(react.keys())[0]]: fail('Preact JSX source leaked into React config')
 if legacy != react: fail('legacy React TypeScript config changed')
 svelte_config = decode_json(svelte[list(svelte.keys())[0]])
 if 'jsx' in svelte_config['compilerOptions']: fail('React JSX leaked into Svelte config')
@@ -251,6 +298,8 @@ vue = generate_resource_health_check('web', 'apps/web', {'appType': 'frontend', 
 if 'src/main.tsx' in vue or 'src/main.ts' not in vue: fail('Vue entry check is wrong')
 svelte = generate_resource_health_check('web', 'apps/web', {'appType': 'frontend', 'framework': 'svelte'}, {})
 if 'src/main.tsx' in svelte or 'src/main.ts' not in svelte: fail('Svelte entry check is wrong')
+preact = generate_resource_health_check('web', 'apps/web', {'appType': 'frontend', 'framework': 'preact'}, {})
+if 'src/main.tsx' not in preact: fail('Preact entry check is wrong')
 react = generate_resource_health_check('web', 'apps/web', {'appType': 'frontend'}, {})
 if 'src/main.tsx' not in react: fail('legacy React entry check is wrong')
 `);
