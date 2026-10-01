@@ -16,6 +16,10 @@ tdk up shop
 curl http://api.shop.localhost/api/orders-api/health
 ```
 
+![TDK scaffolding a backend and a frontend, then listing the stack](docs/demo.svg)
+
+*Scaffolding a backend and frontend, then listing the stack.*
+
 If Helm, Compose, or your existing Tilt setup already gives you a working local environment, keep using it. TDK CLI is for engineers managing several services who want a clear local service contract and one command to start the stack.
 
 See [how TDK CLI works alongside Helm](https://tdk-landscape.github.io/tdk-website/docs/with-helm/), the [service schema](engine/schemas/service-schema.json), and the [project configuration schema](engine/schemas/project-schema.json).
