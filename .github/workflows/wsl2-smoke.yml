@@ -94,7 +94,7 @@ jobs:
           docker ps -a >wsl2-evidence/containers.log 2>&1 || true
           uname -a >wsl2-evidence/kernel.log
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: wsl2-smoke-evidence
