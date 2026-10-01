@@ -7,7 +7,6 @@
       "src/**/*"
     ]
   },
-  "healthCheck": "/health",
   "healthCheckPath": "/health",
   "$schema": "https://tdk-landscape.github.io/schema.service.json",
   "schemaVersion": 1,

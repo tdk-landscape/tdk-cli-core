@@ -47,6 +47,13 @@ describe("checkResourcePackageJson", () => {
     expect(checkResourcePackageJson(root).didPass).toBe(true);
   });
 
+  it("skips resources whose language provider owns the runtime files", () => {
+    resource("app", "py", { appType: "backend", port: 4000, language: "python" }, {});
+    expect(checkResourcePackageJson(root).didPass).toBe(true);
+    resource("app", "bun-api", { appType: "backend", port: 4001, language: "bun" }, {});
+    expect(checkResourcePackageJson(root).message).toContain("bun-api");
+  });
+
   it("names the resource whose image build would fail", () => {
     resource("app", "api", { appType: "backend", port: 4000 });
     resource("app", "web", { appType: "frontend", port: 3000 }, { "src/main.ts": "" });

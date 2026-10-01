@@ -1,6 +1,7 @@
 import { execFileSync, execSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
+import { BACKEND_LANGUAGES } from "../backend-languages/registry.js";
 import { execAsync } from "./exec-async.js";
 import { formatCount } from "./formatting.js";
 import { findProjectRoot } from "./paths.js";
@@ -44,9 +45,16 @@ function backendPorts(resources) {
     }
     return ports;
 }
+/** A backend whose language provider scaffolds its own runtime files (Python) has no package.json. */
+function ownsRuntimeFiles(resource) {
+    const language = resource.config?.language;
+    return (typeof language === "string" &&
+        Object.hasOwn(BACKEND_LANGUAGES, language) &&
+        BACKEND_LANGUAGES[language].createFiles !== undefined);
+}
 export function checkResourcePackageJson(projectRoot = findProjectRoot() ?? process.cwd()) {
     const missing = discoverResourcesFromRoot(projectRoot)
-        .filter((resource) => !existsSync(join(resource.path, "package.json")))
+        .filter((resource) => !ownsRuntimeFiles(resource) && !existsSync(join(resource.path, "package.json")))
         .map((resource) => resource.name);
     if (missing.length === 0) {
         return {
