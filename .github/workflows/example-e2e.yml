@@ -70,6 +70,8 @@ jobs:
             status=$?
             if [ "$status" -ne 0 ]; then
               echo "Example E2E failed; collecting container and NATS logs before teardown"
+              tail -160 up.log 2>/dev/null || true
+              jq '{errors, ports: .data.ports}' doctor.json 2>/dev/null || true
               docker ps -a --format 'table {{.Names}}\t{{.Status}}' || true
               docker logs tdk_example_nats 2>&1 | tail -200 || true
               tilt get uiresources -o json 2>&1 | jq -r '.items[] | "\(.metadata.name): update=\(.status.updateStatus // "-") runtime=\(.status.runtimeStatus // "-") error=\((.status.buildHistory // [] | map(.error // empty) | first) // "-")"' || true
@@ -87,10 +89,19 @@ jobs:
           done
           if ! grep -q 'Running tilt up' up.log; then tail -120 up.log; exit 1; fi
 
-          api=http://api.tdk-example.localhost/api/orders
-          app=http://app.tdk-example.localhost/orders-app/
+          # TDK chooses ingress ports from the available host ports and saves
+          # the selected plan. Read the public machine-readable doctor report
+          # instead of assuming Traefik is bound to port 80.
+          doctor_status=0
+          tdk doctor --json > doctor.json || doctor_status=$?
+          if [ "$doctor_status" -ne 0 ]; then
+            echo "tdk doctor reported readiness findings while the example was starting; reading its saved port plan anyway."
+          fi
+          http_port="$(jq -er '.data.ports.http.chosen | select(type == "number")' doctor.json)"
+          api="http://api.tdk-example.localhost:${http_port}/api/orders"
+          app="http://app.tdk-example.localhost:${http_port}/orders-app/"
           for _ in $(seq 1 90); do
-            if curl -fsS "$api/health" >/dev/null && curl -fsS "$api/worker-ready" >/dev/null && curl -fsS "$app" >/dev/null; then break; fi
+            if curl -fsS "$api/health" >/dev/null 2>&1 && curl -fsS "$api/worker-ready" >/dev/null 2>&1 && curl -fsS "$app" >/dev/null 2>&1; then break; fi
             sleep 2
           done
           curl -fsS "$api/health" >/dev/null

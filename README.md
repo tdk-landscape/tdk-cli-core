@@ -23,17 +23,31 @@ npm install -g @tdk-landscape/tdk-cli-core
 curl -fsSL https://tdk-landscape.github.io/install.sh | sh
 ```
 
+On Windows AMD64, install the inspection CLI from PowerShell:
+
+```powershell
+irm https://tdk-landscape.github.io/install.ps1 | iex
+tdk --version
+tdk runtime --check-assets
+tdk doctor
+```
+
+The native Windows CLI can report its version and validate its packaged assets. `tdk doctor` explains that running a landscape is supported through WSL2 Ubuntu, not native PowerShell. See [WSL2 setup](docs/wsl2.md) for the full local runtime.
+
 ## Quick start
 
+Run this path on macOS, Linux, or Ubuntu in WSL2 with Docker and Tilt installed:
+
 ```bash
-mkdir shop && cd shop
+tdk doctor
+tdk project example
+cd tdk-example
 tdk project --yes
-tdk resource orders-api --type backend --stack shop --yes
 tdk up shop
 tdk networks
 ```
 
-`tdk up shop --dry-run` previews selected local services and URLs before starting containers. The default starter is Bun/TypeScript; TDK's core role is running local containers through Docker + Tilt, not providing a Node.js application framework. See the [one-backend example](examples/one-backend/README.md).
+`tdk doctor` checks the machine before setup. `tdk project example` fetches the working example; `tdk project --yes` writes its local configuration. Keep `tdk up shop` running and use the URLs printed by `tdk networks`. TDK runs local containers through Docker + Tilt; it does not provide a Node.js application framework.
 
 ![TDK scaffolding a backend and a frontend, then listing the stack](docs/demo.svg)
 
@@ -69,7 +83,7 @@ tdk networks
 
 ## Requirements and support
 
-For the local runtime, install Docker (Desktop, OrbStack, or Colima; Engine 25+, Compose 2.20+) and [Tilt](https://docs.tilt.dev/install.html). Bun 1.2+ is used by the default generated services. TDK selects host ports from bounded fallback ranges for HTTP, HTTPS, and Postgres; set `TDK_HTTP_PORT`, `TDK_HTTPS_PORT`, or `TDK_POSTGRES_PORT` to override them. TDK supports macOS, Linux, and Windows through WSL2 Ubuntu; native Windows supports CLI inspection only. Run `tdk doctor` to check local readiness. See [WSL2 setup](docs/wsl2.md).
+For the local runtime, install Docker (Desktop, OrbStack, or Colima; Engine 25+, Compose 2.20+) and [Tilt](https://docs.tilt.dev/install.html). Bun 1.2+ is used by the default generated services. TDK selects host ports from bounded fallback ranges for HTTP, HTTPS, and Postgres; set `TDK_HTTP_PORT`, `TDK_HTTPS_PORT`, or `TDK_POSTGRES_PORT` to override them. TDK supports macOS and Linux, including Ubuntu in WSL2. Native Windows supports CLI inspection only; use WSL2 Ubuntu for `tdk project` and `tdk up`. Run `tdk doctor` to check local readiness. See [WSL2 setup](docs/wsl2.md).
 
 **Ecosystem map:** examples, articles, related tools, and notes live in [awesome-tdk-framework](https://github.com/tdk-landscape/awesome-tdk-framework). Star this repo (`tdk-cli-core`) if the CLI is what you run; use the awesome list to browse the rest.
 
