@@ -50,6 +50,7 @@ export const TYPE_SPECIFIC = {
         healthCheck: "/health",
     },
 };
+const BYO_RESTART_POLICIES = ["no", "on-failure", "unless-stopped", "always"];
 export function resolveByoPort(value, assignedPort, resources) {
     if (!value)
         return assignedPort;
@@ -299,6 +300,7 @@ export const resourceCommand = new Command("resource")
     .option("--dockerfile <path>", "Path to Dockerfile relative to resource dir (for bring-your-own)")
     .option("--health-path <path>", "HTTP health check path (for bring-your-own)", "/health")
     .option("--no-proxy", "Disable the Traefik route (bring-your-own only)")
+    .option("--restart <policy>", "Compose restart policy: no, on-failure, unless-stopped, always (bring-your-own only; use no for one-shot jobs)")
     .option("--image <name>", "Docker image name instead of building from Dockerfile (for bring-your-own)")
     .option("--port <port>", "Port number (default: next free in 4000-5999)")
     .action(async (name, options) => {
@@ -446,6 +448,18 @@ export const resourceCommand = new Command("resource")
         const nextPort = resourceType === "sdk"
             ? 0
             : assignPort(resourceType, allResources);
+        if (options.restart !== undefined) {
+            if (resourceType !== "bring-your-own") {
+                throw new TdkError("--restart can only be used with --type bring-your-own.", [
+                    "Add --type bring-your-own, or drop --restart",
+                ]);
+            }
+            if (!BYO_RESTART_POLICIES.includes(options.restart)) {
+                throw new TdkError(`Unknown --restart policy "${options.restart}".`, [
+                    `Use one of: ${BYO_RESTART_POLICIES.join(", ")}`,
+                ]);
+            }
+        }
         const assignedPort = resourceType === "bring-your-own"
             ? resolveByoPort(options.port, nextPort, allResources)
             : nextPort;
@@ -515,6 +529,7 @@ export const resourceCommand = new Command("resource")
                 healthCheckPath: options.healthPath || "/health",
                 ...(options.image ? { image: options.image } : { dockerfile }),
                 ...(options.proxy === false ? { exposeViaProxy: false } : {}),
+                ...(options.restart ? { restart: options.restart } : {}),
             };
             const { writeFileSync } = await import("node:fs");
             writeFileSync(resolve(fullPath, "service.json"), JSON.stringify(byoServiceJson, null, 2));
