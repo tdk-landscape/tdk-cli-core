@@ -1,66 +1,41 @@
 ## ADDED Requirements
 
-### Requirement: Public product name
-Public titles and first-screen copy SHALL identify the product as “TDK CLI” and SHALL NOT call it “Tilt Development Kit” or bare “TDK”. Existing repository and npm package names SHALL remain unchanged.
+### Requirement: Local-start positioning
+Every public first impression SHALL say that TDK CLI starts services on a developer's laptop. It SHALL identify one `service.json` per service and `tdk up` as the local start flow. It SHALL NOT present the product as a production deploy, a hand-maintained Compose file, or laptop Kubernetes.
 
-#### Scenario: Organization profile
-- **WHEN** a reader opens the GitHub organization profile
-- **THEN** the display name is “TDK CLI”
-- **AND** the subtitle is not “Tilt Development Kit”
+#### Scenario: Homepage first screen
+- **WHEN** an engineer opens the homepage
+- **THEN** the H1 is `Start your services on your laptop.`
+- **AND** the subhead is `Not a deploy. Not a Compose file. One service.json, then tdk up. No Kubernetes on the machine.`
+- **AND** proof says `14 services healthy in 4.6s on a 16 GB M1 once images exist.`
 
-#### Scenario: npm package page
+### Requirement: One buyer
+Public pages SHALL address an engineer or tech lead who already runs several services and is tired of local Compose, Dockerfiles, and a week of setup. They SHALL NOT lead with a CTO calculator or target people who do not operate services.
+
+### Requirement: Product naming
+Public titles, About fields, npm metadata, and social copy SHALL use `TDK CLI`; titles SHALL NOT use bare `TDK` or `Tilt Development Kit`. Organization identity SHALL retain `tdk-landscape` next to the product name. Repository names and `@tdk-landscape/tdk-cli-core` SHALL remain unchanged.
+
+#### Scenario: npm package title
 - **WHEN** a reader opens `@tdk-landscape/tdk-cli-core`
-- **THEN** its title identifies TDK CLI as the tool for starting services on a laptop
-- **AND** its package name remains unchanged
+- **THEN** the title/description reads `TDK CLI — start services on your laptop.`
+- **AND** the package name remains unchanged
 
-### Requirement: First sentence states the job
-The first sentence of the homepage, organization About, and npm README SHALL say that TDK CLI starts services on the laptop.
+### Requirement: First-screen exclusions
+The H1, title, About, and first paragraph SHALL omit Tilt, Starlark, PSR, golden L1–L4, Infisical, Traefik, orchestration, deployment language, `docker-compose`, and “built on Tilt.” The required subhead's words `Not a deploy` are permitted. Tilt MAY appear once in How it works or Requirements using: `Docker runs the containers. Tilt runs the dev loop. TDK CLI writes that config.`
 
-#### Scenario: Homepage hero
-- **WHEN** a reader loads the homepage
-- **THEN** its H1 is “Start your services on your laptop.”
-- **AND** the H1 contains neither “Tilt” nor “Docker”
+### Requirement: Evidence and fixture caveats
+The 14-service proof SHALL state that images already exist. Any 100-service public claim SHALL say in the same sentence that these are generated `/health` services in a fixture, not an ERP product.
 
-### Requirement: Reject deploy and Compose misreads
-The homepage and npm README opening SHALL say TDK CLI is not a deploy and not a Compose file, then identify `tdk up` as the local start command.
+### Requirement: Free-first offer
+The free MIT CLI SHALL be presented as the product. Premium SHALL be described only as $19 per developer per month for extras and SHALL NOT appear in the hero. Pricing SHALL say most teams should stay on free.
 
-#### Scenario: Reader identifies the scope
-- **WHEN** a reader sees the homepage subhead
-- **THEN** it contains “Not a deploy. Not a Compose file.”
-- **AND** it names `tdk up`
+### Requirement: Calculator placement
+The homepage SHALL NOT contain the ROI calculator. The calculator SHALL remain available on `/waiting`.
 
-### Requirement: Explain the engine below the hero
-The first screen SHALL omit Tilt, Starlark, PSR, Infisical, and Traefik. How it works SHALL explain the engine in one sentence: “Docker runs the containers. Tilt runs the dev loop. TDK CLI writes that config.”
+### Requirement: Approved scope replies
+For a deploy misread, reply: `This is not a production deploy. tdk up starts services, a database, and a proxy on your machine. No cluster. Helm still deploys production.`
 
-#### Scenario: First-screen scan
-- **WHEN** a reader scans the initial viewport
-- **THEN** the listed engine terms do not appear there
+For a Compose misread, reply: `Not a Compose file you maintain. One service.json per service, then tdk up. If Compose already works for you, skip TDK CLI.` Do not explain Tilt in either reply.
 
-### Requirement: Qualify fixture evidence
-Every public mention of 100 services SHALL call them a generated `/health` fixture in the same sentence.
-
-#### Scenario: ERP example About
-- **WHEN** a reader sees the `tdk-erp-system` About text
-- **THEN** it says “Scale fixture for TDK CLI: 100 generated health services. Not an ERP product.”
-
-### Requirement: Keep one buyer in the homepage opening
-The homepage SHALL NOT lead with the payroll calculator or Premium. ROI sliders SHALL remain available on `/waiting`.
-
-#### Scenario: Calculator placement
-- **WHEN** a reader loads the homepage
-- **THEN** ROI sliders are absent from its content
-- **AND** the calculator remains available at `/waiting`
-
-### Requirement: Do not invent social proof
-Public copy SHALL NOT add a customer name, logo, or quote unless that customer has already published it.
-
-#### Scenario: No published testimonial exists
-- **WHEN** no customer quote is on file
-- **THEN** no customer quote is added
-
-### Requirement: Use a concise scope reply
-The approved reply to a deploy-tool misread SHALL explain local startup and the Helm production boundary without explaining Tilt.
-
-#### Scenario: Deploy-tool misread
-- **WHEN** a comment calls TDK CLI a deploy tool
-- **THEN** the reply is “This is not a production deploy. tdk up starts services, a database, and a proxy on your machine. No cluster. Helm still deploys production.”
+### Requirement: Preserve shipped work
+The homepage H1/subhead and `/waiting` calculator placement, core public-copy changes in #203, and README SVG restoration in #205 SHALL remain intact. `codex/tdk-cli-public-copy` SHALL NOT be reused because it has no common ancestor with `main`.

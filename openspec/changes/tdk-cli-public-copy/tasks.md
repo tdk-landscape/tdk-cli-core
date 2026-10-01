@@ -1,11 +1,12 @@
 # Tasks
 
-- [x] Replace homepage title, H1, and subhead with the approved copy; keep only an existing demo recording CTA.
-- [x] Set website SEO title and description to TDK CLI local-start copy.
-- [x] Replace npm-facing README title and opening paragraph while keeping the package name unchanged.
-- [x] Update GitHub About copy for `tdk-cli-core`, `tdk-website`, `tdk-example`, and `tdk-erp-system`; update the organization profile README locally.
-- [x] Move ROI sliders off the homepage and retain them on `/waiting`.
-- [x] Add the generated `/health` fixture caveat to the homepage's 100-service claim.
-- [ ] Record and link a 15-second boot recording only if one is available.
-- [ ] Do not rename repositories or create a new landing page.
-- [ ] Validate local copy and website build, then publish only through the repositories' normal deployment workflows.
+- [x] Replace earlier positioning notes with the supplied TDK CLI organization spec.
+- [x] Update the GitHub organization profile copy and repository directory.
+- [x] Align homepage SEO title, first-screen proof, fixture distinction, and free-first offer.
+- [x] Remove extra homepage mentions of Tilt outside the single How it works sentence.
+- [x] Set npm package description to `TDK CLI — start services on your laptop.` without changing package identity or version.
+- [x] Update active repository About fields to the supplied exact copy where GitHub permits edits.
+- [ ] Open and merge PRs for the core, website, and organization profile changes after review checks pass.
+- [ ] Confirm Pages deployment and npm metadata after the normal repository workflows complete.
+
+Archived repositories are read-only on GitHub; their About fields were left unchanged.
