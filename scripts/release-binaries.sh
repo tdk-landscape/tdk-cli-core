@@ -190,36 +190,47 @@ if existing_release_draft="$(gh release view "${RELEASE_TAG}" --repo "${RELEASE_
   gh release upload "${RELEASE_TAG}" --repo "${RELEASE_REPOSITORY}" --clobber "${ASSETS[@]}"
 else
   release_notes_file="$(mktemp)"
-  trap 'rm -f "${release_notes_file}"' EXIT
+  generated_notes_file="$(mktemp)"
+  trap 'rm -f "${release_notes_file}" "${generated_notes_file}"' EXIT
   cat > "${release_notes_file}" <<EOF
-TDK CLI ${RELEASE_TAG#v} adds improvements to the CLI and its release assets.
+## TDK CLI ${RELEASE_TAG#v}
 
-This release includes the verified Linux, macOS, and Windows AMD64 binaries, plus the bundled runtime engine. See the linked pull requests below for details.
+TDK CLI ${RELEASE_TAG#v} includes the changes listed below. The release assets contain verified Linux, macOS, and Windows AMD64 binaries plus the bundled runtime engine.
 EOF
 
-  # The binary release is hosted in a separate repository from the source. Ask
-  # GitHub to generate notes from tdk-cli-core so merged source PRs appear in
-  # the release preview, then add the source comparison link explicitly.
-  generated_notes_file="$(mktemp)"
-  if gh api \
-    --method POST \
-    "repos/tdk-landscape/tdk-cli-core/releases/generate-notes" \
-    -f tag_name="${RELEASE_TAG}" \
-    -f target_commitish="${GITHUB_SHA:-main}" \
-    --jq '.body' > "${generated_notes_file}"; then
-    if [[ -s "${generated_notes_file}" ]]; then
-      printf '\n## Changes in tdk-cli-core\n\n' >> "${release_notes_file}"
-      cat "${generated_notes_file}" >> "${release_notes_file}"
-    fi
-  else
-    echo "::warning::Could not generate source PR notes; publishing the standard release summary."
+  # Releases are hosted separately from source, so their tags cannot drive
+  # GitHub's built-in notes or contributor attribution. Build the preview from
+  # the source changelog and merged PRs since the previous binary release.
+  changelog_body="$(awk '
+    /^## Unreleased[[:space:]]*$/ { in_unreleased = 1; next }
+    /^## / && in_unreleased { exit }
+    in_unreleased { print }
+  ' "${ROOT_DIR}/CHANGELOG.md")"
+  if [[ -n "$(tr -d '[:space:]' <<<"${changelog_body}")" ]]; then
+    printf '\n## What\x27s Changed\n\n%s\n' "${changelog_body}" >> "${release_notes_file}"
   fi
-  rm -f "${generated_notes_file}"
 
-  previous_tag="$(gh release list --repo "${RELEASE_REPOSITORY}" --limit 1 --json tagName --jq '.[0].tagName // empty')"
-  if [[ -n "${previous_tag}" ]]; then
-    printf '\n## Source changes\n\n[Compare %s...%s](https://github.com/tdk-landscape/tdk-cli-core/compare/%s...%s)\n' \
-      "${previous_tag}" "${RELEASE_TAG}" "${previous_tag}" "${RELEASE_TAG}" >> "${release_notes_file}"
+  previous_release="$(gh release list --repo "${RELEASE_REPOSITORY}" --limit 1 --json tagName,publishedAt --jq '.[0] | [.tagName, .publishedAt] | @tsv')"
+  if [[ -n "${previous_release}" ]]; then
+    IFS=$'\t' read -r previous_tag previous_published_at <<<"${previous_release}"
+    if [[ -n "${previous_published_at}" ]]; then
+      since="${previous_published_at}"
+      gh api --paginate "repos/tdk-landscape/tdk-cli-core/pulls?state=closed&base=main&per_page=100" \
+        --jq ".[] | select(.merged_at != null and .merged_at >= \"${since}\") | [.number, .title, .user.login, .html_url, .merged_at] | @tsv" \
+        > "${generated_notes_file}"
+      if [[ -s "${generated_notes_file}" ]]; then
+        printf '\n## Pull requests\n\n' >> "${release_notes_file}"
+        while IFS=$'\t' read -r number title author url merged_at; do
+          printf -- '- %s: [#%s](%s) (@%s)\n' "${title}" "${number}" "${url}" "${author}" >> "${release_notes_file}"
+        done < "${generated_notes_file}"
+
+        contributors="$(cut -f3 "${generated_notes_file}" | sort -u | sed 's/^/@/' | paste -sd ', ' -)"
+        if [[ -n "${contributors}" ]]; then
+          printf '\n## Contributors\n\n%s\n' "${contributors}" >> "${release_notes_file}"
+        fi
+      fi
+      printf '\n[Full Changelog](https://github.com/tdk-landscape/tdk-cli-core/commits/main)\n' >> "${release_notes_file}"
+    fi
   fi
 
   gh release create "${RELEASE_TAG}" \
