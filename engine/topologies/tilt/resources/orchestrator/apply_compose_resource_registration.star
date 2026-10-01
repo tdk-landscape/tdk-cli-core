@@ -201,11 +201,25 @@ def _register_replicas(config, auto_init_apps):
         )
 
 
-def _build_live_update_rules(res_path, full_res_path, syncs):
+def _live_update_sync_source(project_root, full_res_path, sync_path):
+    """Local path Tilt watches for a live-update sync.
+
+    Tilt resolves sync() local paths against the Tiltfile directory (.tdk/.tdk-out), not
+    the docker_build context, so a project-relative path never matches the changed files
+    and every edit falls back to a full image rebuild ("Found file(s) not matching any
+    sync"). Anchor it at the project root, like the Dockerfile and build context.
+    """
+    relative_path = full_res_path + '/' + sync_path
+    if project_root:
+        return project_root.rstrip('/') + '/' + relative_path
+    return relative_path
+
+
+def _build_live_update_rules(res_path, full_res_path, syncs, project_root=''):
     """Build live update sync and run rules for a resource."""
     live_update_rules = []
     for sync_path in syncs:
-        full_sync_path = full_res_path + '/' + sync_path
+        full_sync_path = _live_update_sync_source(project_root, full_res_path, sync_path)
         dest = '/app/' + full_res_path + '/' + sync_path
         live_update_rules.append(sync(full_sync_path, dest))
     
@@ -373,7 +387,8 @@ def _register_single_resource(config, resource_path, compose_project_name, auto_
         live_update_rules = _build_live_update_rules(
             config['res_path'],
             config['res_path'],
-            config['syncs']
+            config['syncs'],
+            config.get('project_root', ''),
         )
         _register_docker_build(config, live_update_rules)
         if defers_start:
