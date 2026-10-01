@@ -3,6 +3,8 @@
 ## Start here
 
 - [Run one backend locally](../examples/one-backend/README.md)
+- [Run one Python backend locally](../examples/one-backend-python/README.md)
+- [Add a backend language provider](backend-language-providers.md)
 - [Install and use TDK alongside Helm](with-helm.md)
 - [Configuration and editor schemas](configuration.md)
 - [Full multi-service example](../examples/tdk-example/README.md)

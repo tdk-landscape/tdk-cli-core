@@ -1,0 +1,109 @@
+# Boots examples/one-backend-python (the Python backend provider's runnable
+# example) and requires routed /health through Traefik. The pytest smoke test
+# runs inside the image's `test` stage, so the runner needs no Python toolchain.
+#
+# Path-filtered: only runs when the Python provider, its Docker/Tilt generators,
+# or the example change. Not a required check on main.
+name: 🐍 Python example E2E
+
+on:
+  pull_request:
+    paths:
+      - "cli/src/backend-languages/**"
+      - "cli/src/commands/resource.ts"
+      - "engine/topologies/platform/docker/dockerfile/**"
+      - "engine/topologies/tilt/resources/orchestrator/**"
+      - "examples/one-backend-python/**"
+      - ".github/workflows/python-example-e2e.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: python-example-e2e-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python-example-e2e:
+    name: python-example-e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install Tilt
+        run: curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash
+
+      - name: Free required host ports
+        run: |
+          sudo systemctl stop postgresql.socket 'postgresql@*.socket' 2>/dev/null || true
+          sudo systemctl stop postgresql.service 'postgresql@*.service' 2>/dev/null || true
+          sudo DEBIAN_FRONTEND=noninteractive apt-get remove --purge -y 'postgresql*' >/dev/null 2>&1 || true
+          sudo fuser -k 80/tcp 443/tcp 5432/tcp 2>/dev/null || true
+
+      - name: Pack and install the candidate TDK package
+        run: | # zizmor: ignore[adhoc-packages] installs our own freshly packed tarball
+          bun install --frozen-lockfile
+          npm run build
+          tarball="$(npm pack --ignore-scripts --silent | tail -1)"
+          npm install --global "./$tarball"
+
+      - name: Run the pytest smoke test in the image
+        run: |
+          docker build --target test \
+            -f examples/one-backend-python/services/one-backend-python/api/Dockerfile \
+            examples/one-backend-python/services/one-backend-python/api
+
+      - name: Configure the example
+        working-directory: examples/one-backend-python
+        run: |
+          tdk project --yes
+          sed -i 's/^INFISICAL_ENABLED=.*/INFISICAL_ENABLED=false/' .env
+          tdk doctor --no-ping
+
+      - name: Boot and require routed /health
+        working-directory: examples/one-backend-python
+        shell: bash
+        run: |
+          set -euo pipefail
+          tdk up one-backend-python > up.log 2>&1 &
+          tdk_pid=$!
+          cleanup() {
+            status=$?
+            if [ "$status" -ne 0 ]; then
+              echo "Python example E2E failed; collecting logs before teardown"
+              tail -200 up.log 2>/dev/null || true
+              docker ps -a --format 'table {{.Names}}\t{{.Status}}' || true
+              docker logs "$(docker ps -aqf name=api-backend | head -1)" 2>&1 | tail -100 || true
+              tilt get uiresources -o json 2>&1 | jq -r '.items[] | "\(.metadata.name): update=\(.status.updateStatus // "-") runtime=\(.status.runtimeStatus // "-")"' || true
+            fi
+            kill "$tdk_pid" 2>/dev/null || true
+            tdk down >/dev/null 2>&1 || true
+            return "$status"
+          }
+          trap cleanup EXIT
+
+          for _ in $(seq 1 75); do
+            if grep -q 'Running tilt up' up.log; then break; fi
+            if ! kill -0 "$tdk_pid" 2>/dev/null; then tail -120 up.log; exit 1; fi
+            sleep 2
+          done
+          grep -q 'Running tilt up' up.log
+
+          tdk doctor --json > doctor.json || true
+          http_port="$(jq -er '.data.ports.http.chosen | select(type == "number")' doctor.json)"
+          url="http://api.one-backend-python.localhost:${http_port}/api/api-backend/health"
+          for _ in $(seq 1 120); do
+            if curl -fsS "$url" >/dev/null 2>&1; then break; fi
+            sleep 2
+          done
+          body="$(curl -fsS "$url")"
+          echo "$body"
+          test "$(printf '%s' "$body" | jq -r .status)" = ok

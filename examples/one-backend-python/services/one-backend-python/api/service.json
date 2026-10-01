@@ -1,0 +1,25 @@
+{
+  "port": 4000,
+  "dependencies": [],
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "."
+  },
+  "dev": {
+    "command": "uvicorn main:app --app-dir src --host 0.0.0.0 --port ${PORT:-3000} --reload --reload-dir src",
+    "watch": [
+      "src/**/*"
+    ]
+  },
+  "healthCheck": "/health",
+  "healthCheckPath": "/health",
+  "$schema": "https://tdk-landscape.github.io/schema.service.json",
+  "schemaVersion": 1,
+  "appName": "api-backend",
+  "appType": "backend",
+  "featuresEnabled": [],
+  "name": "api-backend",
+  "type": "backend",
+  "stack": "one-backend-python",
+  "language": "python"
+}

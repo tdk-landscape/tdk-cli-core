@@ -20,6 +20,7 @@ const KNOWN_SERVICE_FIELDS = new Set([
     "framework",
     "healthCheckPath",
     "image",
+    "language",
     "name",
     "nats",
     "params",

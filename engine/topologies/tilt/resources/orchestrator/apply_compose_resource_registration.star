@@ -201,13 +201,21 @@ def _register_replicas(config, auto_init_apps):
         )
 
 
-def _build_live_update_rules(res_path, full_res_path, syncs):
-    """Build live update sync and run rules for a resource."""
+def _build_live_update_rules(res_path, full_res_path, syncs, language='bun'):
+    """Build live update sync and run rules for a resource.
+
+    Python and Node.js backends reload their own process after a sync (uvicorn --reload,
+    node --watch), so they have no Bun install step. A changed pyproject.toml/package.json
+    is not synced, so Tilt rebuilds the image instead.
+    """
     live_update_rules = []
     for sync_path in syncs:
         full_sync_path = full_res_path + '/' + sync_path
         dest = '/app/' + full_res_path + '/' + sync_path
         live_update_rules.append(sync(full_sync_path, dest))
+    
+    if language in ['python', 'node']:
+        return live_update_rules
     
     package_json_path = '/app/' + full_res_path + '/package.json'
     bun_lock_path = '/app/' + full_res_path + '/bun.lock'
@@ -373,7 +381,8 @@ def _register_single_resource(config, resource_path, compose_project_name, auto_
         live_update_rules = _build_live_update_rules(
             config['res_path'],
             config['res_path'],
-            config['syncs']
+            config['syncs'],
+            config.get('manifest', {}).get('language', 'bun'),
         )
         _register_docker_build(config, live_update_rules)
         if defers_start:

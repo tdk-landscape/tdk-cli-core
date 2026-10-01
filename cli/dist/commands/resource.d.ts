@@ -1,4 +1,5 @@
 import { Command } from "commander";
+import { getBackendIndexTemplate } from "../backend-languages/bun.js";
 import type { CreatableResourceType } from "../types/index.js";
 export declare const BASE_TEMPLATE: {
     readonly port: 0;
@@ -25,7 +26,7 @@ export declare function resolveByoPort(value: string | undefined, assignedPort: 
         port?: number;
     };
 }>): number;
-export declare function createServiceJson(name: string, type: CreatableResourceType, stack: string, port: number, extraFeatures?: string[], frameworkId?: string): any;
+export declare function createServiceJson(name: string, type: CreatableResourceType, stack: string, port: number, extraFeatures?: string[], frameworkId?: string, languageId?: string): any;
 export declare function createPackageJson(name: string, type: string, frameworkId?: string): {
     name: string;
     version: string;
@@ -87,8 +88,7 @@ export declare const TSCONFIG_TEMPLATE: {
     exclude: string[];
 };
 export declare const DOCKERFILE_TEMPLATE = "FROM oven/bun:1.2\n\nWORKDIR /app\n\n# Copy package files\nCOPY package.json bun.lock ./\n\n# Install dependencies\nRUN bun install --frozen-lockfile\n\n# Copy source\nCOPY . .\n\n# Build if needed\nRUN bun run build\n\n# Health check\nHEALTHCHECK --interval=10s --timeout=5s --retries=3 \\\n  CMD curl -f http://localhost:3000/health || exit 1\n\nEXPOSE 3000\n\nCMD [\"bun\", \"run\", \"start\"]\n";
-export declare function getBackendIndexTemplate(name: string): string;
+export { getBackendIndexTemplate };
 export declare function getWorkerIndexTemplate(name: string): string;
 export declare const resourceCommand: Command;
-export {};
 //# sourceMappingURL=resource.d.ts.map

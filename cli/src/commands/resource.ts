@@ -2,6 +2,8 @@ import { existsSync, mkdirSync } from "node:fs";
 import { isAbsolute, relative, resolve } from "node:path";
 import chalk from "chalk";
 import { Command } from "commander";
+import { getBackendIndexTemplate } from "../backend-languages/bun.js";
+import { resolveBackendLanguage } from "../backend-languages/registry.js";
 import { resolveFrontendFramework } from "../frontend-frameworks/registry.js";
 import { hasDddLicense } from "../generator/extension-fetch.js";
 import type {
@@ -99,8 +101,11 @@ export function createServiceJson(
   port: number,
   extraFeatures: string[] = [],
   frameworkId?: string,
+  languageId?: string,
 ) {
   const framework = resolveFrontendFramework(type, frameworkId);
+  // Only an explicit selection is persisted: a missing `language` has always meant Bun.
+  const language = languageId === undefined ? undefined : resolveBackendLanguage(type, languageId);
   const typeSpecific = TYPE_SPECIFIC[type];
 
   const base = JSON.parse(JSON.stringify(BASE_TEMPLATE));
@@ -112,18 +117,31 @@ export function createServiceJson(
     }
   }
 
+  if (language?.devCommand) {
+    base.dev = { command: language.devCommand, watch: language.watch ?? base.dev.watch };
+    // Provider-owned runtimes declare the probe path the engine reads; Bun keeps its historical key.
+    base.healthCheckPath = base.healthCheck;
+  }
+
   return {
     ...base,
     $schema: SERVICE_MANIFEST_SCHEMA_URL,
     schemaVersion: SERVICE_MANIFEST_SCHEMA_VERSION,
     appName: name,
     appType: type as ResourceType,
-    featuresEnabled: [...getDefaultFeaturesForResourceType(type as ResourceType), ...extraFeatures],
+    featuresEnabled: [
+      ...getDefaultFeaturesForResourceType(type as ResourceType).filter(
+        // Prisma wiring is Bun-only; Node.js and Python providers own their data layer.
+        (feature) => !(language?.createFiles && feature === "prisma"),
+      ),
+      ...extraFeatures,
+    ],
     name,
     type,
     stack,
     port,
     ...(framework ? { framework: framework.id } : {}),
+    ...(language ? { language: language.id } : {}),
   };
 }
 
@@ -222,49 +240,7 @@ EXPOSE 3000
 CMD ["bun", "run", "start"]
 `;
 
-export function getBackendIndexTemplate(name: string) {
-  return `import { Hono } from 'hono';
-
-const app = new Hono();
-
-// Health check endpoint (required by TILT_RESOURCE_DEFAULTS.star)
-app.get('/health', (c) => {
-  return c.json({ status: 'ok', service: '${name}' });
-});
-
-app.get('/health/live', (c) => {
-  return c.json({ status: 'alive', timestamp: Date.now() });
-});
-
-app.get('/health/ready', async (c) => {
-  const dependencies: Record<string, string> = {};
-  let allReady = true;
-
-  // Add dependency checks here (database, cache, etc.)
-  // Mark allReady = false if any dependency is unhealthy
-
-  const status = allReady ? 'ready' : 'not_ready';
-  return c.json({ status, dependencies }, allReady ? 200 : 503);
-});
-
-app.get('/', (c) => {
-  return c.json({
-    service: '${name}',
-    version: '1.0.0',
-    endpoints: ['/health', '/health/live', '/health/ready']
-  });
-});
-
-const port = process.env.PORT || 3000;
-console.log('\\n🚀 ${name} running on http://localhost:' + port);
-console.log('📊 Health check: http://localhost:' + port + '/health\\n');
-
-export default {
-  port,
-  fetch: app.fetch,
-};
-`;
-}
+export { getBackendIndexTemplate };
 
 function getShutdownHandlerTemplate(signal: string): string {
   return `process.on('${signal}', () => {
@@ -364,6 +340,7 @@ export const resourceCommand = new Command("resource")
     "backend",
   )
   .option("--framework <id>", "Frontend framework: react (default), vue")
+  .option("--language <id>", "Backend language: bun (default), node, python")
   .option("-s, --stack <stack>", "Stack to assign resource to", "default")
   .option("-p, --path <path>", "Custom path for resource directory")
   .option("--resource-path <path>", "Alias for --path (for backward compatibility)")
@@ -437,6 +414,7 @@ export const resourceCommand = new Command("resource")
       }
 
       const frontendFramework = resolveFrontendFramework(resourceType, options.framework);
+      const backendLanguage = resolveBackendLanguage(resourceType, options.language);
 
       let dddEnabled = false;
       if (options.ddd) {
@@ -716,6 +694,7 @@ This file contains the resource configuration for TDK.
         assignedPort,
         dddEnabled ? ["ddd"] : [],
         frontendFramework?.id,
+        options.language === undefined ? undefined : backendLanguage?.id,
       );
       const packageJson = createPackageJson(resourceName, resourceType, frontendFramework?.id);
 
@@ -798,6 +777,29 @@ This file contains the resource configuration for TDK.
         emoji: "🧪",
       });
 
+      // A language provider that owns its runtime files replaces the shared Bun/TypeScript
+      // scaffold (package.json, tsconfig, Dockerfile, source, test); service.json stays shared.
+      const languageFiles = backendLanguage?.createFiles?.(resourceName);
+      if (languageFiles) {
+        const owned = new Set(languageFiles.map((file) => file.filename));
+        const sharedTasks = tasks.filter(
+          (task) =>
+            task.filename === "service.json" ||
+            !(
+              owned.has(task.filename) ||
+              task.filename === "src/index.ts" ||
+              task.filename === "package.json" ||
+              task.filename === "tsconfig.json" ||
+              task.filename.endsWith(".test.ts")
+            ),
+        );
+        tasks.length = 0;
+        tasks.push(
+          ...sharedTasks,
+          ...languageFiles.map((file) => ({ ...file, type: "text" as const })),
+        );
+      }
+
       // Execute all file writes with progress
       console.log(chalk.blue("💻 Generating source files..."));
       writeFilesWithProgress(fullPath, tasks);
@@ -830,7 +832,7 @@ This file contains the resource configuration for TDK.
       }
       console.log(chalk.gray(`\nNext steps:`));
       console.log(chalk.gray(`  cd ${finalResourcePath}`));
-      console.log(chalk.gray(`  bun install`));
+      console.log(chalk.gray(`  ${backendLanguage?.installHint ?? "bun install"}`));
       console.log(chalk.gray(`  tdk up ${stackName}`));
     });
   });

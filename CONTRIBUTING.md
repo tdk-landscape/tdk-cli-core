@@ -8,7 +8,7 @@ Welcome! Small fixes and large features are both useful. Start with the short [c
 2. [Follow the recipe for your kind of change](docs/contributing/02-feature-recipes.md).
 3. [Check your work and open a pull request](docs/contributing/03-open-a-pr.md).
 
-The focused [frontend provider guide](docs/frontend-framework-providers.md) has the exact steps for adding another Vite framework like Vue.
+The focused [frontend provider guide](docs/frontend-framework-providers.md) has the exact steps for adding another Vite framework like Vue. The [backend provider guide](docs/backend-language-providers.md) covers adding a backend language like Node.js or Python.
 
 ## Find something to work on
 

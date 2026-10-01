@@ -310,6 +310,9 @@ def _generate_all_configs_for_resource(
     
     app_type = manifest.get('appType', 'backend')
     is_frontend = resource_config.get('frontend', False) or app_type == 'frontend'
+    # Node.js and Python backends own their runtime files (package/pyproject, Dockerfile,
+    # reload command). Bun-only configs below (Vite, tsconfig, Prisma, bunfig) are skipped.
+    provider_owned = Docker.is_provider_owned_language(manifest)
     
     # ==========================================================================
     # 1. VITE CONFIG
@@ -319,7 +322,7 @@ def _generate_all_configs_for_resource(
             Vite.for_manifest(manifest, backend_manifest, write_file)
         else:
             Vite.for_manifest(manifest, None, write_file)
-    elif app_type == 'backend':
+    elif app_type == 'backend' and not provider_owned:
         Vite.for_manifest(manifest, None, write_file)
     elif app_type == 'sdk':
         Vite.for_manifest(manifest, None, write_file)
@@ -364,6 +367,12 @@ def _generate_all_configs_for_resource(
             target_path=target_path,
             use_nginx=use_nginx,
             use_golden=should_enable('golden-image')
+        )
+    elif provider_owned:
+        dockerfile_content = Docker.backend_language(
+            res_path=resource_path,
+            language=manifest.get('language'),
+            port=manifest.get('port', 4000),
         )
     else:
         dockerfile_content = Docker.backend(
@@ -419,7 +428,7 @@ def _generate_all_configs_for_resource(
             resource_path, write_file, internal_deps=internal_deps_map, is_docker=False,
             framework=manifest.get('framework', 'react'),
         )
-    else:
+    elif not provider_owned:
         prisma_path = resource_config.get('prisma_client_path', './node_modules/.prisma/client')
         resource_features = manifest.get('featuresEnabled', [])
         TSConfig.backend(resource_path, prisma_path, write_file, internal_deps=internal_deps_map, is_docker=True, features=resource_features)
@@ -434,10 +443,11 @@ def _generate_all_configs_for_resource(
     # 8. PACKAGE CONFIGS (npmrc, bunfig)
     # ==========================================================================
     verdaccio_enabled = global_config.get('verdaccio_enabled', True)
-    PackageConfig.npmrc(resource_path=resource_path, registry_url=global_config['verdaccio_url_docker'], is_docker=True, write_fn=write_file, verdaccio_enabled=verdaccio_enabled)
-    PackageConfig.bunfig(resource_path=resource_path, registry_url=global_config['verdaccio_url_docker'], is_docker=True, write_fn=write_file, verdaccio_enabled=verdaccio_enabled)
-    PackageConfig.npmrc(resource_path=resource_path, registry_url=global_config['verdaccio_url_local'], is_docker=False, write_fn=write_file, verdaccio_enabled=verdaccio_enabled)
-    PackageConfig.bunfig(resource_path=resource_path, registry_url=global_config['verdaccio_url_local'], is_docker=False, write_fn=write_file, verdaccio_enabled=verdaccio_enabled)
+    if not provider_owned:
+        PackageConfig.npmrc(resource_path=resource_path, registry_url=global_config['verdaccio_url_docker'], is_docker=True, write_fn=write_file, verdaccio_enabled=verdaccio_enabled)
+        PackageConfig.bunfig(resource_path=resource_path, registry_url=global_config['verdaccio_url_docker'], is_docker=True, write_fn=write_file, verdaccio_enabled=verdaccio_enabled)
+        PackageConfig.npmrc(resource_path=resource_path, registry_url=global_config['verdaccio_url_local'], is_docker=False, write_fn=write_file, verdaccio_enabled=verdaccio_enabled)
+        PackageConfig.bunfig(resource_path=resource_path, registry_url=global_config['verdaccio_url_local'], is_docker=False, write_fn=write_file, verdaccio_enabled=verdaccio_enabled)
     
     # ==========================================================================
     # 9. YAML MANIFEST (for verification)

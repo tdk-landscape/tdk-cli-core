@@ -59,6 +59,7 @@ curl -fsSL https://tdk-landscape.github.io/install.sh | sh
 - [Working alongside Helm](docs/with-helm.md)
 - [Configuration and editor schemas](docs/configuration.md)
 - [Runnable one-backend example](examples/one-backend/README.md)
+- [Runnable Python backend example](examples/one-backend-python/README.md)
 - [Full multi-service example](examples/tdk-example/README.md)
 - [Features and license limits](docs/FEATURES.md)
 - [Honest comparison and known limits](docs/compare-honest.md)
