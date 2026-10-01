@@ -29,6 +29,7 @@
 - [x] 4.3 Add a drift test that compares the example source with `tdk resource --type backend --language python` output, ignoring service name and stack.
 - [x] 4.4 Add a path-filtered CI job that boots the example, curls routed `/health`, runs pytest inside the built image, uploads Tilt and container logs on failure, and runs `tdk down`.
 - [ ] 4.5 Verify by hand that editing `src/main.py` live-reloads and editing `pyproject.toml` rebuilds the image.
+  - Hand check (2026-10-01): editing `pyproject.toml` rebuilt the image as expected, but editing `src/main.py` did not live-update. Tilt logged `LiveUpdate ... UpdateStopped: Found file(s) not matching any sync` and fell back to a full rebuild. The LiveUpdate `basePath` is `.tdk/.tdk-out` while sync `localPath` is `services/...`, so the syncs never match. Seen on the Bun auth-queue example too, so it is likely pre-existing and not Python-specific. Needs its own fix.
 - [x] 4.6 Link the example from `README.md`, `docs/README.md`, `cli/README.md`, and `docs/backend-language-providers.md`.
 
 ## 5. Make database readiness truthful and verify the default example
