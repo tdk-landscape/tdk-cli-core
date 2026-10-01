@@ -47,13 +47,13 @@ describe("backend language registry", () => {
     expect(Object.keys(BACKEND_LANGUAGES).sort()).toEqual(["bun", "python"]);
   });
 
-  it("matches the service schema enum", () => {
+  it("keeps the service schema open to every registered language", () => {
     const schema = JSON.parse(
       readFileSync(join(repoRoot, "engine", "schemas", "service-schema.json"), "utf-8"),
     );
-    expect([...schema.properties.language.enum].sort()).toEqual(
-      Object.keys(BACKEND_LANGUAGES).sort(),
-    );
+    expect(schema.properties.language.enum).toBeUndefined();
+    const idPattern = new RegExp(schema.properties.language.pattern);
+    for (const id of Object.keys(BACKEND_LANGUAGES)) expect(id).toMatch(idPattern);
   });
 
   it("does not add generated-service dependencies to the CLI package", () => {

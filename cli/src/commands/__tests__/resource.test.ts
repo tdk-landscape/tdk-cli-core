@@ -383,7 +383,7 @@ describe("resource command", () => {
 });
 
 describe("service.json schema", () => {
-  it("accepts exactly the registered frontend frameworks", () => {
+  it("keeps framework open to every registered frontend provider", () => {
     const schemaPath = join(
       dirname(fileURLToPath(import.meta.url)),
       "../../../../engine/schemas/service-schema.json",
@@ -399,9 +399,11 @@ describe("service.json schema", () => {
     expect(schema.properties.stack.enum).toBeUndefined();
     expect(schema.properties.image.type).toBe("string");
     expect(schema.properties.exposeViaProxy.type).toBe("boolean");
-    expect([...schema.properties.framework.enum].sort()).toEqual(
-      Object.keys(FRONTEND_FRAMEWORKS).sort(),
-    );
+    // The provider registry is the contract, so the schema stays open and every registered id fits.
+    expect(schema.properties.framework.enum).toBeUndefined();
+    const idPattern = new RegExp(schema.properties.framework.pattern);
+    for (const id of Object.keys(FRONTEND_FRAMEWORKS)) expect(id).toMatch(idPattern);
+    expect("Not_A_Provider").not.toMatch(idPattern);
     expect(schema.properties.sablier.properties.deferStart).toMatchObject({
       default: false,
       type: "boolean",

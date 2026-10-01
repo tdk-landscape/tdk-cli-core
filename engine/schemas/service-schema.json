@@ -225,21 +225,23 @@
       "uniqueItems": true
     },
     "framework": {
-      "description": "Frontend SPA provider used to generate Vite and TypeScript config. Only meaningful for frontend resources; omitted means react (legacy manifests).",
-      "enum": [
+      "description": "Frontend SPA provider id used to generate Vite and TypeScript config. Only meaningful for frontend resources; omitted means react (legacy manifests). Valid ids come from the CLI provider registry, which rejects unknown ids before writing a resource.",
+      "examples": [
         "react",
         "vue",
         "svelte",
         "preact"
       ],
+      "pattern": "^[a-z][a-z0-9-]*$",
       "type": "string"
     },
     "language": {
-      "description": "Backend language provider used to scaffold and run the service. Only meaningful for backend resources; omitted means bun (legacy manifests).",
-      "enum": [
+      "description": "Backend language provider id used to scaffold and run the service. Only meaningful for backend resources; omitted means bun (legacy manifests). Valid ids come from the CLI provider registry.",
+      "examples": [
         "bun",
         "python"
       ],
+      "pattern": "^[a-z][a-z0-9-]*$",
       "type": "string"
     },
     "healthCheckPath": {

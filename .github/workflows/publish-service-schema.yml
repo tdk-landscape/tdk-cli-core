@@ -1,0 +1,42 @@
+name: Publish service schema
+
+# engine/schemas/service-schema.json is the source of truth. The copy at
+# https://tdk-landscape.github.io/schema.service.json is a deploy artifact for editors,
+# refreshed here after a change lands on main.
+on:
+  push:
+    branches: [main]
+    paths: [engine/schemas/service-schema.json]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      # Fine-grained token with contents:write on tdk-landscape/tdk-landscape.github.io.
+      PAGES_SYNC_TOKEN: ${{ secrets.PAGES_SYNC_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Copy the schema into the Pages repo
+        run: |
+          if [ -z "$PAGES_SYNC_TOKEN" ]; then
+            echo "::warning::PAGES_SYNC_TOKEN is not set; the published schema was not updated."
+            exit 0
+          fi
+          git clone --depth 1 "https://x-access-token:${PAGES_SYNC_TOKEN}@github.com/tdk-landscape/tdk-landscape.github.io.git" pages
+          cp engine/schemas/service-schema.json pages/schema.service.json
+          cd pages
+          if git diff --quiet; then
+            echo "Published schema is already up to date"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Sync schema.service.json with tdk-cli-core (${GITHUB_SHA::7})"
+          git push origin HEAD:main
