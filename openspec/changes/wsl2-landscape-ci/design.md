@@ -17,8 +17,8 @@ The repository already has `scripts/wsl2-smoke.sh`, `docs/wsl2.md`, a native Win
 
 ## Decisions
 
-- **Use the existing hosted `windows-2022` runner path.** Provision Ubuntu 24.04 WSL2, install Docker Engine inside the distro, and invoke the repository's existing `scripts/wsl2-smoke.sh` there. This matches the runner path already exercised by `.github/workflows/wsl2-smoke.yml`. It does not represent the Docker Desktop integration path described in `docs/wsl2.md`; that claim remains untested. A green required check is evidence only for the runtime it actually exercises and only after it passes on the default branch.
-- **Keep native Windows validation as a separate job.** Run the released/built CLI's version, doctor, and dry-run commands on Windows AMD64, then run `tdk up shop` and assert non-zero exit, a WSL2 Ubuntu instruction, and no container startup. Separation distinguishes platform refusal from a successful WSL2 boot.
+- **Tighten the existing WSL2 workflow instead of adding another smoke.** Keep `.github/workflows/wsl2-smoke.yml` on the hosted `windows-2022` runner, provision Ubuntu 24.04 WSL2, install Docker Engine inside the distro, and invoke the existing `scripts/wsl2-smoke.sh`. Add a push trigger for the default branch while retaining pull request coverage. The job must be configured as a required check. It does not represent the Docker Desktop integration path described in `docs/wsl2.md`; that claim remains untested. Only a successful conclusion on the default branch is evidence for the runtime it actually exercises.
+- **Extend the existing native Windows smoke workflow.** Add the version, doctor, dry-run, and startup refusal assertions to `.github/workflows/windows-smoke.yml`. `tdk up shop` must exit non-zero, direct the user to WSL2 Ubuntu, and start no containers. Keep this validation separate from the WSL2 boot result.
 - **Link and qualify the workflow from `docs/wsl2.md`.** Use a stable workflow or badge link to the Actions history, not a transient run URL. Label the CI backend as Docker Engine inside WSL2 and state that Docker Desktop integration is not tested, so readers do not confuse the two environments.
 - **Preserve the scorecard boundary.** This proposal specifies evidence collection only. It does not edit the rating formula or treat a script, proposal, or unmerged workflow as a score change.
 
@@ -30,7 +30,7 @@ The repository already has `scripts/wsl2-smoke.sh`, `docs/wsl2.md`, a native Win
 
 ## Migration Plan
 
-Update the existing WSL2 workflow to run the smoke with Docker Engine inside Ubuntu 24.04 on the hosted `windows-2022` runner, and add the native Windows refusal job. Exercise both on a pull request, then make both checks required on the default branch. After a green default-branch WSL2 run exists, add the stable, clearly qualified Actions link to `docs/wsl2.md`. Rollback consists of removing the new required checks and evidence link if the runner cannot reliably provide the specified environment; the WSL2 documentation and smoke script remain useful independently.
+Update the existing WSL2 workflow trigger and required-check configuration, extend the existing native Windows workflow, and exercise both on a pull request. After a successful default-branch WSL2 run exists, add the stable, clearly qualified Actions link to `docs/wsl2.md`. Rollback consists of removing the new required-check policy and evidence link if the runner cannot reliably provide the specified environment; the WSL2 documentation and smoke script remain useful independently.
 
 ## Open Questions
 

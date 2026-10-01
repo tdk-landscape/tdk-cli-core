@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: WSL2 landscape boot is a required CI result
-A required GitHub Actions job SHALL run `scripts/wsl2-smoke.sh` on the GitHub-hosted `windows-2022` runner using Ubuntu 24.04 WSL2 and Docker Engine installed inside the distro. The smoke SHALL boot the bundled example and verify its routed health URL. Only a job conclusion of `success` on the default branch counts as evidence for the tested WSL2 plus Docker Engine path. This job SHALL NOT be represented as testing Docker Desktop WSL integration, which remains unverified.
+The existing `.github/workflows/wsl2-smoke.yml` SHALL run `scripts/wsl2-smoke.sh` on the GitHub-hosted `windows-2022` runner using Ubuntu 24.04 WSL2 and Docker Engine installed inside the distro. It SHALL run on pull requests and pushes to the default branch. The smoke SHALL boot the bundled example and verify its routed health URL. The job SHALL be configured as a required check. Only a job conclusion of `success` on the default branch counts as evidence for the tested WSL2 plus Docker Engine path. This job SHALL NOT be represented as testing Docker Desktop WSL integration, which remains unverified.
 
 #### Scenario: WSL2 landscape job passes
 - **WHEN** the required WSL2 job completes on the default branch
@@ -17,8 +17,12 @@ A required GitHub Actions job SHALL run `scripts/wsl2-smoke.sh` on the GitHub-ho
 - **WHEN** the WSL2 workflow is skipped, cancelled, neutral, or has any conclusion other than `success`
 - **THEN** it does not count as green evidence and Platforms remains at 3
 
+#### Scenario: WSL2 workflow runs on the default branch
+- **WHEN** a commit is pushed to the default branch
+- **THEN** the existing WSL2 workflow runs and produces a check result for that commit
+
 ### Requirement: Native Windows CI verifies inspection and refusal behavior
-A native Windows AMD64 job SHALL run `tdk --version`, `tdk doctor`, and `tdk up --dry-run`. It SHALL then run `tdk up shop` and verify that the command exits non-zero, prints guidance to use WSL2 Ubuntu, and does not start containers.
+A native Windows AMD64 job in the existing `.github/workflows/windows-smoke.yml` SHALL run `tdk --version`, `tdk doctor`, and `tdk up --dry-run`. It SHALL then run `tdk up shop` and verify that the command exits non-zero, prints guidance to use WSL2 Ubuntu, and does not start containers.
 
 #### Scenario: Native Windows landscape startup is refused
 - **WHEN** the native Windows CI job runs `tdk up shop`

@@ -4,8 +4,8 @@ The WSL2 guide and smoke script do not prove that Windows can boot the landscape
 
 ## What Changes
 
-- Run `scripts/wsl2-smoke.sh` on the GitHub-hosted `windows-2022` runner with Ubuntu 24.04 WSL2 and Docker Engine installed inside the distro, and require the job as a merge gate. This validates that CI runtime path only; Docker Desktop WSL integration remains untested and receives no platform evidence from this job.
-- Run native Windows AMD64 checks for `tdk --version`, `tdk doctor`, `tdk up --dry-run`, and verify that `tdk up shop` exits non-zero without starting containers and points users to WSL2 Ubuntu.
+- Tighten the existing `.github/workflows/wsl2-smoke.yml`: run it on pushes to the default branch as well as pull requests, keep its `windows-2022` + Ubuntu 24.04 WSL2 + Docker Engine-inside-WSL2 backend, and require a successful result as a merge gate. This validates that CI runtime path only; Docker Desktop WSL integration remains untested and receives no platform evidence from this job.
+- Extend the existing `.github/workflows/windows-smoke.yml` with native Windows AMD64 checks for `tdk --version`, `tdk doctor`, `tdk up --dry-run`, and verify that `tdk up shop` exits non-zero without starting containers and points users to WSL2 Ubuntu.
 - Link the successful WSL2 workflow history from `docs/wsl2.md` with a clear note that CI uses Docker Engine inside WSL2 and does not test the guide's Docker Desktop integration path.
 - Preserve the current rating formula, Job-fit axes, other score axes, and the 1.x stability caveat.
 
@@ -19,6 +19,6 @@ The WSL2 guide and smoke script do not prove that Windows can boot the landscape
 
 ## Impact
 
-- GitHub Actions workflow configuration for the hosted `windows-2022` runner, Ubuntu 24.04 WSL2, and Docker Engine inside the distro.
-- `scripts/wsl2-smoke.sh`, native Windows CLI checks, and `docs/wsl2.md` evidence link.
+- Existing GitHub Actions workflows: WSL2 default-branch triggers and required status check, plus native Windows refusal checks in `windows-smoke.yml`.
+- `scripts/wsl2-smoke.sh` and a qualified `docs/wsl2.md` evidence link.
 - Platforms evidence only; the rating formula and all other axes remain unchanged.
