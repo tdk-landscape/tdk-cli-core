@@ -7,6 +7,11 @@ name: 🧭 Quickstart E2E
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: "CLI version to test (latest or exact version; local checkout is used for pull requests)"
+        type: string
+        default: ""
   pull_request:
     branches: [main]
     paths:
@@ -57,15 +62,19 @@ jobs:
 
       # After a release, test exactly the version that was just published
       # (main's package.json holds it: the release commits its own bump). A
-      # pull request tests its own checkout ("local"). Any other trigger tests
-      # whatever npm serves as latest.
+      # pull request tests its own checkout ("local"). A manual run may pin an
+      # exact version; otherwise non-release triggers test npm's latest.
       - name: Choose the version to test
         id: version
+        env:
+          VERSION_INPUT: ${{ github.event.inputs.version }}
         run: |
           if [ "$GITHUB_EVENT_NAME" = "workflow_run" ]; then
             version="$(node -p "require('./package.json').version")"
           elif [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
             version="local"
+          elif [ -n "$VERSION_INPUT" ]; then
+            version="$VERSION_INPUT"
           else
             version="latest"
           fi
@@ -112,11 +121,7 @@ jobs:
             exit 0
           fi
           if [ "$TDK_VERSION" != "latest" ]; then
-            # npm's registry can lag a minute or two behind the publish.
-            for _ in $(seq 1 30); do
-              npm view "@tdk-landscape/tdk-cli-core@${TDK_VERSION}" version --prefer-online >/dev/null 2>&1 && break
-              sleep 10
-            done
+            scripts/wait-for-npm-version.sh "@tdk-landscape/tdk-cli-core" "$TDK_VERSION"
           fi
           npm install -g "@tdk-landscape/tdk-cli-core@${TDK_VERSION}"
           tdk --version
