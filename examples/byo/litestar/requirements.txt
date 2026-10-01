@@ -1,0 +1,2 @@
+litestar>=2.12
+uvicorn>=0.30
