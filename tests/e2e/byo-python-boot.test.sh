@@ -8,6 +8,7 @@ readonly PROJECT_DIR="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/tdk-byo-python-boot"
 readonly RESOURCE_DIR="${PROJECT_DIR}/services/shop/legacy"
 readonly CLI="${TDK_BIN:-tdk}"
 readonly PROBE_SECONDS=180
+readonly HTTP_PORT="${TDK_HTTP_PORT:-8080}"
 
 cleanup() {
   local status=$?
@@ -79,6 +80,11 @@ probe_url() {
     rm -f "$body"
     return 0
   fi
+  if [[ -n "$code" && "$code" != 000 ]]; then
+    printf 'Probe miss: %s returned HTTP %s with body: ' "$url" "$code"
+    head -c 200 "$body"
+    printf '\n'
+  fi
   rm -f "$body"
   return 1
 }
@@ -114,9 +120,9 @@ while :; do
   # BYO services use the backend project route (`/api/<resource-name>`),
   # which strips that prefix before forwarding to the container.
   candidates+=(
-    "http://api.tdk-byo-python-boot.localhost/api/legacy/health"
-    "http://app.tdk-byo-python-boot.localhost/legacy/health"
-    "http://127.0.0.1:4500/health"
+    "http://api.tdk-byo-python-boot.localhost:${HTTP_PORT}/api/legacy/health"
+    "http://app.tdk-byo-python-boot.localhost:${HTTP_PORT}/legacy/health"
+    "http://127.0.0.1:${HTTP_PORT}/api/legacy/health"
   )
   for url in "${candidates[@]}"; do
     (( $(date +%s) <= deadline )) || break

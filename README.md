@@ -1,8 +1,24 @@
-# TDK — Tilt Development Kit
+# TDK CLI — start services on your laptop
 
-TDK runs many services on your laptop with Docker + Tilt. Helm still deploys the cluster.
+TDK CLI starts your services on your laptop. It is not a deploy and not a Compose file: define each service in `service.json`, then run `tdk up`. No Kubernetes is needed on the machine.
+
+Docker runs the containers. Tilt runs the development loop. TDK CLI writes that configuration. Production deployment stays with Helm, Argo CD, or Kustomize.
 
 [Website](https://tdk-landscape.github.io/tdk-website/) · [Quickstart](https://tdk-landscape.github.io/tdk-website/docs/quickstart/) · [Examples](https://tdk-landscape.github.io/tdk-website/docs/examples/) · [Awesome TDK](https://github.com/tdk-landscape/awesome-tdk-framework) · [Demo](https://tdk-landscape.github.io/tdk-demo-animation/) · [Report a bug](https://github.com/tdk-landscape/tdk-cli-core/issues)
+
+## Quick start
+
+```bash
+mkdir shop && cd shop
+tdk project --yes
+tdk resource orders-api --type backend --stack shop --yes
+tdk up shop
+curl http://api.shop.localhost/api/orders-api/health
+```
+
+If Helm, Compose, or your existing Tilt setup already gives you a working local environment, keep using it. TDK CLI is for engineers managing several services who want a clear local service contract and one command to start the stack.
+
+See [how TDK CLI works alongside Helm](https://tdk-landscape.github.io/tdk-website/docs/with-helm/), the [service schema](engine/schemas/service-schema.json), and the [project configuration schema](engine/schemas/project-schema.json).
 
 [![npm version](https://img.shields.io/npm/v/@tdk-landscape/tdk-cli-core.svg?style=flat&color=blue)](https://www.npmjs.com/package/@tdk-landscape/tdk-cli-core)
 [![CI](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/ci.yml/badge.svg)](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/ci.yml)
@@ -23,50 +39,12 @@ npm install -g @tdk-landscape/tdk-cli-core
 curl -fsSL https://tdk-landscape.github.io/install.sh | sh
 ```
 
-On Windows AMD64, install the inspection CLI from PowerShell:
-
-```powershell
-irm https://tdk-landscape.github.io/install.ps1 | iex
-tdk --version
-tdk runtime --check-assets
-tdk doctor
-```
-
-The native Windows CLI can report its version and validate its packaged assets. `tdk doctor` explains that running a landscape is supported through WSL2 Ubuntu, not native PowerShell. See [WSL2 setup](docs/wsl2.md) for the full local runtime.
-
-## Quick start
-
-Run this path on macOS, Linux, or Ubuntu in WSL2 with Docker and Tilt installed:
-
-```bash
-tdk doctor
-tdk project example
-cd tdk-example
-tdk project --yes
-tdk up shop
-tdk networks
-```
-
-`tdk doctor` checks the machine before setup. `tdk project example` fetches the working example; `tdk project --yes` writes its local configuration. Keep `tdk up shop` running and use the URLs printed by `tdk networks`. TDK runs local containers through Docker + Tilt; it does not provide a Node.js application framework.
-
-![TDK scaffolding a backend and a frontend, then listing the stack](docs/demo.svg)
-
-*Scaffolding a backend and frontend, then listing the stack.*
-
-## Why TDK?
-
-| | Compose | Local Kubernetes (kind, minikube) | Plain Tilt | **TDK** |
-|---|---|---|---|---|
-| Scaffold a service in one command | ❌ | ❌ | ❌ | ✅ `tdk resource` |
-| Hot reload on file change | ⚠️ `compose watch` config | ⚠️ extra tooling | ✅ | ✅ |
-| Health-checked startup order | ✅ | ✅ | ⚠️ configure it yourself | ✅ |
-| Needs a cluster | No | Yes | Optional | **No** |
-
-100 generated health-check services reached healthy in 112 s, using about 1.6 GiB in service-container memory on a 16 GB machine. [Details and caveats](docs/scale-bench.md).
+`tdk up shop --dry-run` previews selected local services and URLs before starting containers. The default starter is Bun/TypeScript; TDK's core role is running local containers through Docker + Tilt, not providing a Node.js application framework. See the [one-backend example](examples/one-backend/README.md).
 
 ## When not to use TDK
 
 - Your existing Compose or Tilt workflow already gives you a working local environment.
+- Helm is your whole development workflow and you do not want local services on Docker.
 - You do not want `service.json` manifests and generated local configuration.
 
 ## Docs
@@ -83,7 +61,7 @@ tdk networks
 
 ## Requirements and support
 
-For the local runtime, install Docker (Desktop, OrbStack, or Colima; Engine 25+, Compose 2.20+) and [Tilt](https://docs.tilt.dev/install.html). Bun 1.2+ is used by the default generated services. TDK selects host ports from bounded fallback ranges for HTTP, HTTPS, and Postgres; set `TDK_HTTP_PORT`, `TDK_HTTPS_PORT`, or `TDK_POSTGRES_PORT` to override them. TDK supports macOS and Linux, including Ubuntu in WSL2. Native Windows supports CLI inspection only; use WSL2 Ubuntu for `tdk project` and `tdk up`. Run `tdk doctor` to check local readiness. See [WSL2 setup](docs/wsl2.md).
+For the local runtime, install Docker (Desktop, OrbStack, or Colima; Engine 25+, Compose 2.20+) and [Tilt](https://docs.tilt.dev/install.html). Bun 1.2+ is used by the default generated services. TDK selects host ports from bounded fallback ranges for HTTP, HTTPS, and Postgres; set `TDK_HTTP_PORT`, `TDK_HTTPS_PORT`, or `TDK_POSTGRES_PORT` to override them. TDK supports macOS, Linux, and Windows through WSL2 Ubuntu; native Windows supports CLI inspection only. Run `tdk doctor` to check local readiness. See [WSL2 setup](docs/wsl2.md).
 
 **Ecosystem map:** examples, articles, related tools, and notes live in [awesome-tdk-framework](https://github.com/tdk-landscape/awesome-tdk-framework). Star this repo (`tdk-cli-core`) if the CLI is what you run; use the awesome list to browse the rest.
 

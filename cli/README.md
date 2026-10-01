@@ -1,6 +1,8 @@
-# 🚀 TDK CLI reference
+# 🚀 TDK CLI — start services on your laptop
 
-> Command reference for the `tdk` CLI. For what TDK is, installation, badges, and the benchmark, see the **[main README](../README.md)**.
+TDK CLI starts local services; it is not a deploy and not a Compose file. Define services in `service.json`, then run `tdk up`. No Kubernetes is needed on the machine. If your existing Helm, Compose, or Tilt workflow already works locally, keep using it.
+
+> Command reference for the `tdk` CLI. See the **[main README](../README.md)** for onboarding and the **[Helm handoff guide](../docs/with-helm.md)** for the local-development/production boundary.
 
 New to contributing? Start with the [step-by-step contributor guide](../docs/contributing/README.md). To add a Vite frontend framework, see the [frontend provider guide](../docs/frontend-framework-providers.md).
 
