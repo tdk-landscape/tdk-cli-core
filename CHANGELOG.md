@@ -4,6 +4,12 @@ Notable changes to the `tdk` CLI. Versions match [npm](https://www.npmjs.com/pac
 
 ## Unreleased
 
+- Add an opt-in Python backend: `tdk resource <name> --type backend --language python` scaffolds a FastAPI service (`pyproject.toml`, `src/main.py`, a pytest smoke test) and TDK generates its Docker image (`python:3.12-slim`, with `test` and `production` stages). The choice is saved as `language` in `service.json` only when you pass the flag; omitting it keeps the existing Bun + Hono output byte for byte. Unknown ids and `--language` on non-backend types fail before any file is written. A runnable example is in `examples/one-backend-python`, and the provider contract is in `docs/backend-language-providers.md`. Node.js is not included.
+- `tdk doctor` no longer reports "resource without a package.json" for a Python backend, and a Python service missing `pyproject.toml` or `src/main.py` now fails early with the missing file named.
+- Live reload now works: Tilt `live_update` sync paths were relative to the project root while Tilt resolves them against `.tdk/.tdk-out`, so they never matched and every source edit rebuilt the image ("Found file(s) not matching any sync"). An edit under `src/` is now copied into the running container without a rebuild, for Bun and Python services. Dependency file changes (`package.json`, `pyproject.toml`) still rebuild the image.
+- The service schema (`https://tdk-landscape.github.io/schema.service.json`) gains the `language` field (`bun`, `python`).
+- Fix the routed health URL in the `one-backend` example README.
+
 ## 1.3.80 (2026-09-30)
 
 - Add `tdk doctor --json` with schema-versioned readiness, checks, and structured errors; diagnostics remain on stderr.
