@@ -235,8 +235,8 @@ EOF
           printf '\n## Contributors\n\n%s\n' "${contributors}" >> "${release_notes_file}"
         fi
       fi
-      printf '\n[Full Changelog](https://github.com/tdk-landscape/tdk-cli-core/compare/%s...%s)\n' \
-        "${previous_tag}" "${source_commit}" >> "${release_notes_file}"
+      printf '\n[Full Changelog](https://github.com/tdk-landscape/tdk-cli-core/commits/%s?since=%s&until=%s)\n' \
+        "${source_commit}" "${since}" "${source_commit_date}" >> "${release_notes_file}"
     fi
   fi
 
