@@ -15,10 +15,10 @@ bun install --cwd services/one-backend/api
 tdk up one-backend
 ```
 
-The service URL is `http://api-backend.backend.one-backend.localhost`. Check it with:
+The service is routed at `http://api.one-backend.localhost/api/api-backend`. Check it with:
 
 ```bash
-curl --fail http://api-backend.backend.one-backend.localhost/health
+curl --fail http://api.one-backend.localhost/api/api-backend/health
 # {"status":"ok"}
 ```
 
