@@ -267,6 +267,13 @@ def _generate_single_backend_entry(resource_path, resource_name, res, manifest, 
         is_byo and not manifest.get('exposeViaProxy', True)
     ) if manifest else False
 
+    # One-shot jobs (migrations, seeders) must not be restarted after they exit 0, so a
+    # bring-your-own resource can choose its Compose restart policy. Default is unchanged.
+    restart_policy = 'unless-stopped'
+    if is_byo and manifest.get('restart') in ['no', 'on-failure', 'unless-stopped', 'always']:
+        restart_policy = manifest.get('restart')
+    restart_policy = '"no"' if restart_policy == 'no' else restart_policy
+
     if is_worker or is_proxy_disabled_byo:
         traefik_labels = '      - "traefik.enable=false"'
         healthcheck_section = "" if is_worker or is_byo else """    healthcheck:
@@ -299,7 +306,7 @@ def _generate_single_backend_entry(resource_path, resource_name, res, manifest, 
   {resource_entry_name}:
     image: {image_name}
     init: true
-    restart: unless-stopped
+    restart: {restart_policy}
 {build_config}
 {ports_section}
     env_file:
@@ -350,6 +357,7 @@ def _generate_single_backend_entry(resource_path, resource_name, res, manifest, 
         stack=stack,
         internal_port=internal_port,
         port_anchor=internal_port,
+        restart_policy=restart_policy,
         dev_port=dev_port,
         db_name=db_name,
         db_url_for_tilt=db_url_for_tilt,

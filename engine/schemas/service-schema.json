@@ -153,6 +153,16 @@
       "description": "Whether this bring-your-own resource receives a Traefik route. Defaults to true.",
       "type": "boolean"
     },
+    "restart": {
+      "description": "Docker Compose restart policy for this bring-your-own resource. Use \"no\" or \"on-failure\" for one-shot jobs such as database migrations, so a finished job is not restarted. Defaults to unless-stopped.",
+      "enum": [
+        "no",
+        "on-failure",
+        "unless-stopped",
+        "always"
+      ],
+      "type": "string"
+    },
     "image": {
       "description": "Docker image name instead of building from Dockerfile. Optional for bring-your-own type.",
       "type": "string"

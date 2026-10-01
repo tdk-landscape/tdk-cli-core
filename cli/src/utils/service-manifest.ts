@@ -29,6 +29,7 @@ const KNOWN_SERVICE_FIELDS = new Set([
   "playwright",
   "port",
   "replicas",
+  "restart",
   "runtime",
   "sablier",
   "schemaVersion",

@@ -74,6 +74,8 @@ export const TYPE_SPECIFIC: Record<CreatableResourceType, TypeSpecificConfig> = 
   },
 };
 
+const BYO_RESTART_POLICIES = ["no", "on-failure", "unless-stopped", "always"];
+
 export function resolveByoPort(
   value: string | undefined,
   assignedPort: number,
@@ -358,6 +360,10 @@ export const resourceCommand = new Command("resource")
   .option("--health-path <path>", "HTTP health check path (for bring-your-own)", "/health")
   .option("--no-proxy", "Disable the Traefik route (bring-your-own only)")
   .option(
+    "--restart <policy>",
+    "Compose restart policy: no, on-failure, unless-stopped, always (bring-your-own only; use no for one-shot jobs)",
+  )
+  .option(
     "--image <name>",
     "Docker image name instead of building from Dockerfile (for bring-your-own)",
   )
@@ -539,6 +545,18 @@ export const resourceCommand = new Command("resource")
               resourceType as CreatableResourceType as PortAssignableResourceType,
               allResources,
             );
+      if (options.restart !== undefined) {
+        if (resourceType !== "bring-your-own") {
+          throw new TdkError("--restart can only be used with --type bring-your-own.", [
+            "Add --type bring-your-own, or drop --restart",
+          ]);
+        }
+        if (!BYO_RESTART_POLICIES.includes(options.restart)) {
+          throw new TdkError(`Unknown --restart policy "${options.restart}".`, [
+            `Use one of: ${BYO_RESTART_POLICIES.join(", ")}`,
+          ]);
+        }
+      }
       const assignedPort =
         resourceType === "bring-your-own"
           ? resolveByoPort(options.port, nextPort, allResources)
@@ -627,6 +645,7 @@ export const resourceCommand = new Command("resource")
           healthCheckPath: options.healthPath || "/health",
           ...(options.image ? { image: options.image } : { dockerfile }),
           ...(options.proxy === false ? { exposeViaProxy: false } : {}),
+          ...(options.restart ? { restart: options.restart } : {}),
         };
 
         const { writeFileSync } = await import("node:fs");

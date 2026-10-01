@@ -9,7 +9,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { networksCommand } from "../../commands/networks.js";
 import { resolveByoPort, resourceCommand } from "../../commands/resource.js";
 import { resourcesCommand } from "../../commands/resources.js";
@@ -90,6 +90,7 @@ describe("bring-your-own resource type", () => {
       dockerfile: "./Dockerfile",
     });
     expect(service).not.toHaveProperty("exposeViaProxy");
+    expect(service).not.toHaveProperty("restart");
     expect(existsSync(join(resourcePath, "src"))).toBe(false);
     expect(existsSync(join(resourcePath, "package.json"))).toBe(false);
     expect(existsSync(join(resourcePath, "tsconfig.json"))).toBe(false);
@@ -216,6 +217,26 @@ describe("bring-your-own resource type", () => {
       "COPY container/health.conf",
     );
     expect(existsSync(join(resourcePath, "container", "health.conf"))).toBe(true);
+  });
+
+  it("stores --restart for one-shot jobs and leaves it out by default", async () => {
+    const job = await createByo(["--restart", "no"]);
+    expect(JSON.parse(readFileSync(join(job, "service.json"), "utf-8")).restart).toBe("no");
+  });
+
+  it("rejects an unknown --restart policy before creating the resource", async () => {
+    const exit = vi.spyOn(process, "exit").mockImplementation((() => {
+      throw new Error("exit");
+    }) as never);
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      await expect(createByo(["--restart", "sometimes"])).rejects.toThrow("exit");
+      expect(errors.mock.calls.flat().join("\n")).toContain('Unknown --restart policy "sometimes"');
+    } finally {
+      exit.mockRestore();
+      errors.mockRestore();
+    }
+    expect(existsSync(join(tempDir, "services", "shop", "widget"))).toBe(false);
   });
 
   it("prints and stores the requested custom port", async () => {
