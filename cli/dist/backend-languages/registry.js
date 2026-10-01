@@ -1,11 +1,9 @@
 import { TdkError } from "../utils/errors.js";
 import { bunBackendProvider } from "./bun.js";
-import { nodeBackendProvider } from "./node.js";
 import { pythonBackendProvider } from "./python.js";
 export const DEFAULT_BACKEND_LANGUAGE = "bun";
 export const BACKEND_LANGUAGES = {
     bun: bunBackendProvider,
-    node: nodeBackendProvider,
     python: pythonBackendProvider,
 };
 export function getBackendLanguage(languageId) {

@@ -558,7 +558,6 @@ def generate_resource_health_check(resource_name, resource_path, manifest, check
     frontend_entry = "src/main.ts" if manifest.get("framework", "react") == "vue" else "src/main.tsx"
     backend_files = {
         "python": ["pyproject.toml", "src/main.py"],
-        "node": ["package.json", "src/index.ts"],
     }.get(manifest.get("language", "bun"), ["package.json", "prisma/schema.prisma"])
     required_files = {
         "backend": backend_files,

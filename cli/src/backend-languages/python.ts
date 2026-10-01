@@ -1,7 +1,7 @@
 import type { BackendLanguageProvider } from "./types.js";
 
 export const PYTHON_DEV_COMMAND =
-  "uvicorn main:app --app-dir src --host 0.0.0.0 --port ${PORT:-3000} --reload --reload-dir src";
+  "uvicorn main:app --app-dir src --host 0.0.0.0 --port ${PORT:-4000} --reload --reload-dir src";
 
 export const pythonBackendProvider: BackendLanguageProvider = {
   id: "python",
@@ -86,37 +86,6 @@ def test_health() -> None:
 `,
         description: "Generating test file",
         emoji: "🧪",
-      },
-      {
-        filename: "Dockerfile",
-        content: `FROM python:3.12-slim AS base
-
-WORKDIR /app
-
-RUN apt-get update && apt-get install -y --no-install-recommends curl \\
-  && rm -rf /var/lib/apt/lists/*
-
-COPY pyproject.toml ./
-RUN pip install --no-cache-dir .
-
-COPY src ./src
-
-FROM base AS test
-RUN pip install --no-cache-dir ".[dev]"
-COPY tests ./tests
-RUN pytest
-
-FROM base AS production
-
-HEALTHCHECK --interval=10s --timeout=5s --retries=3 \\
-  CMD curl -f http://localhost:\${PORT:-3000}/health || exit 1
-
-EXPOSE 3000
-
-CMD ["sh", "-c", "${PYTHON_DEV_COMMAND.replaceAll('"', '\\"')}"]
-`,
-        description: "Generating Dockerfile",
-        emoji: "🐳",
       },
     ];
   },

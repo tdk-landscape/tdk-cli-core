@@ -7,17 +7,15 @@
 - [x] 1.5 Keep interactive creation on Bun without prompting for a language.
 - [x] 1.6 Reject unknown `--language` values and use on non-backend types before writing files. Match registered ids case-insensitively.
 
-## 2. Add the Node.js chosen template
+## 2. Node.js template (deferred)
 
-- [x] 2.1 Register `node`. Generate a TypeScript `/health` entry, a Node `package.json` start script, and a Node Dockerfile. Do not use a Bun base image.
-- [x] 2.2 Persist `"language": "node"` when `--language node` is selected.
-- [x] 2.3 Add Starlark Node image and Tilt reload behavior at the existing generated paths; leave Bun templates unchanged.
-- [x] 2.4 Test the Node file set, case-insensitive `Node`, absence of a Bun image, and that the CLI package does not gain service-template dependencies.
+Cut from this change at review: a Node provider that has never been built in Docker is a second feature. It returns as its own change with an example, a `test` stage, and an image-build E2E.
+
 
 ## 3. Add the Python chosen template
 
 - [x] 3.1 Register `python`. Generate a FastAPI app, `/health`, `pyproject.toml`, and a pytest smoke test.
-- [x] 3.2 Add `language` to `engine/schemas/service-schema.json` with `bun`, `node`, and `python`. Add a drift test so schema ids and registry ids stay identical.
+- [x] 3.2 Add `language` to `engine/schemas/service-schema.json` with `bun` and `python`. Add a drift test so schema ids and registry ids stay identical.
 - [x] 3.3 Add Starlark Python image and Tilt live-update behavior at the existing generated paths; leave Bun templates unchanged.
 - [x] 3.4 Test Python output, persisted metadata, case-insensitive selection, unknown id rejection, non-backend rejection, and legacy manifest compatibility.
 - [x] 3.5 Verify FastAPI, uvicorn, and Python service dependencies are not added to the TDK CLI package.
@@ -28,7 +26,7 @@
 - [x] 4.2 Write the README with prerequisites (Docker, Tilt, TDK CLI; no host Python), `tdk project --yes`, `tdk up one-backend-python`, the `curl --fail .../health` check, the Tilt dashboard URL, and `tdk down`.
 - [x] 4.3 Add a drift test that compares the example source with `tdk resource --type backend --language python` output, ignoring service name and stack.
 - [x] 4.4 Add a path-filtered CI job that boots the example, curls routed `/health`, runs pytest inside the built image, uploads Tilt and container logs on failure, and runs `tdk down`.
-- [ ] 4.5 Verify by hand that editing `src/main.py` live-reloads and editing `pyproject.toml` rebuilds the image.
+- [ ] 4.5 (blocked on the Tilt live-update `basePath` bug, not on the Dockerfile; separate PR) Verify by hand that editing `src/main.py` live-reloads and editing `pyproject.toml` rebuilds the image.
   - Hand check (2026-10-01): editing `pyproject.toml` rebuilt the image as expected, but editing `src/main.py` did not live-update. Tilt logged `LiveUpdate ... UpdateStopped: Found file(s) not matching any sync` and fell back to a full rebuild. The LiveUpdate `basePath` is `.tdk/.tdk-out` while sync `localPath` is `services/...`, so the syncs never match. Seen on the Bun auth-queue example too, so it is likely pre-existing and not Python-specific. Needs its own fix.
 - [x] 4.6 Link the example from `README.md`, `docs/README.md`, `cli/README.md`, and `docs/backend-language-providers.md`.
 
@@ -44,5 +42,5 @@
 
 - [x] 6.1 Add `docs/backend-language-providers.md` modeled on `docs/frontend-framework-providers.md`, covering the file map, provider registration, shared-versus-owned responsibilities, the Docker/reload exception, and a one-provider-per-implementation-PR checklist.
 - [x] 6.2 Link the backend guide from `CONTRIBUTING.md`.
-- [x] 6.3 Document `tdk resource api --type backend --language node --stack shop` and the Python equivalent in `cli/README.md`; state that omitting `--language` keeps the existing Bun default.
+- [x] 6.3 Document `tdk resource api --type backend --language python --stack shop` in `cli/README.md`; state that omitting `--language` keeps the existing Bun default.
 - [x] 6.4 State that `bring-your-own` remains the path for languages without a provider.

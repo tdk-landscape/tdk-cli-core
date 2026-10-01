@@ -226,7 +226,6 @@
       "description": "Backend language provider used to scaffold and run the service. Only meaningful for backend resources; omitted means bun (legacy manifests).",
       "enum": [
         "bun",
-        "node",
         "python"
       ],
       "type": "string"

@@ -1,3 +1,5 @@
+> **Scope update:** Node.js was cut from this change at review and will return as its own change. Remaining Node mentions below describe that deferred work.
+
 ## Context
 
 Backend scaffolding lives in `cli/src/commands/resource.ts` and has always emitted a Bun + Hono service, a TypeScript entry, and a Bun Dockerfile. Frontend frameworks already use a provider registry (`cli/src/frontend-frameworks`) plus Starlark templates. `docs/frontend-framework-providers.md` is the pattern to follow: a registry defines valid ids, a default constant stays fixed, the schema enum matches the registry, ids fail closed before writes, and interactive creation does not gain a picker.
@@ -11,10 +13,10 @@ Backend providers cannot share the image the way frontend providers share Docker
 **Goals:**
 
 - Preserve today's omitted-language output exactly: Bun + Hono, with the existing port range and health path.
-- Keep `DEFAULT_BACKEND_LANGUAGE` set to `bun`; add `node` and `python` as explicit providers.
+- Keep `DEFAULT_BACKEND_LANGUAGE` set to `bun`; add `python` as an explicit provider.
 - Resolve provider ids case-insensitively and persist the normalized id when a provider is explicitly selected.
 - Reject an unknown `--language` before creating a directory, and reject `--language` on any type other than backend.
-- Generate Node.js and Python services that answer `/health` and are reachable through the existing Traefik hostname.
+- Generate a Python service that answer `/health` and are reachable through the existing Traefik hostname.
 - Implement language-specific images and Tilt reload behavior without changing Bun live-update.
 - Ensure a database-backed backend cannot start before the database named by its generated `DATABASE_URL` exists, and make provisioning failures visible instead of reporting success.
 - Ship `examples/one-backend-python/` so a user can run a Python backend with documented commands, and boot it in CI.

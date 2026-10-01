@@ -310,9 +310,18 @@ def _generate_all_configs_for_resource(
     
     app_type = manifest.get('appType', 'backend')
     is_frontend = resource_config.get('frontend', False) or app_type == 'frontend'
-    # Node.js and Python backends own their runtime files (package/pyproject, Dockerfile,
+    # Python backends own their runtime files (package/pyproject, Dockerfile,
     # reload command). Bun-only configs below (Vite, tsconfig, Prisma, bunfig) are skipped.
     provider_owned = Docker.is_provider_owned_language(manifest)
+    if provider_owned:
+        # Fail before generating anything, with the missing file named, instead of a Docker
+        # COPY error halfway through the image build.
+        root = ctx.get('project_root', '')
+        prefix = (root.rstrip('/') + '/' if root else '') + resource_path + '/'
+        for required in ['pyproject.toml', 'src/main.py']:
+            if not os.path.exists(prefix + required):
+                fail("{}: language '{}' requires {} but {}{} does not exist".format(
+                    resource_name, manifest.get('language'), required, resource_path + '/', required))
     
     # ==========================================================================
     # 1. VITE CONFIG

@@ -21,7 +21,6 @@ describe("examples/one-backend-python", () => {
 
   it("generates files to compare against", () => {
     expect(generated.map((file) => file.filename).sort()).toEqual([
-      "Dockerfile",
       "pyproject.toml",
       "src/main.py",
       "tests/test_health.py",

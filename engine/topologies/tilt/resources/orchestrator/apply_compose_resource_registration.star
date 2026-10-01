@@ -204,9 +204,8 @@ def _register_replicas(config, auto_init_apps):
 def _build_live_update_rules(res_path, full_res_path, syncs, language='bun'):
     """Build live update sync and run rules for a resource.
 
-    Python and Node.js backends reload their own process after a sync (uvicorn --reload,
-    node --watch), so they have no Bun install step. A changed pyproject.toml/package.json
-    is not synced, so Tilt rebuilds the image instead.
+    Python backends reload their own process after a sync (uvicorn --reload), so they have
+    no Bun install step. A changed pyproject.toml is not synced, so Tilt rebuilds the image instead.
     """
     live_update_rules = []
     for sync_path in syncs:
@@ -214,7 +213,7 @@ def _build_live_update_rules(res_path, full_res_path, syncs, language='bun'):
         dest = '/app/' + full_res_path + '/' + sync_path
         live_update_rules.append(sync(full_sync_path, dest))
     
-    if language in ['python', 'node']:
+    if language == 'python':
         return live_update_rules
     
     package_json_path = '/app/' + full_res_path + '/package.json'

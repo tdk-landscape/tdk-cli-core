@@ -65,7 +65,6 @@ tdk resources --ports              # 🔌 Show port assignments
 tdk resource my-api --type backend --stack api
 tdk resource my-app --type frontend --stack api
 tdk resource my-vue-app --type frontend --framework vue --stack api
-tdk resource my-node-api --type backend --language node --stack api
 tdk resource my-py-api --type backend --language python --stack api
 tdk resource my-worker --type worker --stack background
 ```
@@ -78,7 +77,7 @@ tdk resource my-worker --type worker --stack background
 - 💻 `src/` — Starter code (Hono for backend, React or Vue for frontend)
 - 🧪 `tests/` — Vitest test file
 
-Backend creation defaults to Bun + Hono, exactly as it always has: omit `--language` and nothing changes. Use `--language node` for a TypeScript service on Node.js or `--language python` for FastAPI on Python 3.12. The selected id is saved as `language` in `service.json`; a legacy manifest without it still means Bun and is never rewritten. The flag applies only to `--type backend`, and unknown ids fail before a resource is written. Languages without a provider can use `--type bring-your-own`. See the [backend provider guide](../docs/backend-language-providers.md) and the runnable [Python example](../examples/one-backend-python/README.md).
+Backend creation defaults to Bun + Hono, exactly as it always has: omit `--language` and nothing changes. Use `--language python` for FastAPI on Python 3.12. The selected id is saved as `language` in `service.json`; a legacy manifest without it still means Bun and is never rewritten. The flag applies only to `--type backend`, and unknown ids fail before a resource is written. Languages without a provider can use `--type bring-your-own`. See the [backend provider guide](../docs/backend-language-providers.md) and the runnable [Python example](../examples/one-backend-python/README.md).
 
 Frontend creation defaults to React. Use `--framework vue` for Vue 3; `--framework react` is also accepted. The selected id is saved in `service.json`. The flag applies only to frontend resources, and unknown ids fail before a resource is written. Existing frontend manifests without the field continue to use React.
 

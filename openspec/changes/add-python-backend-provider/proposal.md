@@ -1,3 +1,5 @@
+> **Scope update:** Node.js was cut from this change at review and will return as its own change. Remaining Node mentions below describe that deferred work.
+
 ## Why
 
 `tdk resource --type backend` has always scaffolded a Bun + Hono service. That default is existing behavior, not something this change introduces. A team that wants a Node.js or Python API today has to use `bring-your-own` and write the Dockerfile, health check, and Tilt sync by hand. Frontend frameworks already have an opt-in provider seam (React default, Vue registered). Backends need the same seam, with Bun left as the default and Node.js and Python offered as explicit template choices.
@@ -5,7 +7,7 @@
 ## What Changes
 
 - Preserve the existing Bun + Hono output when `--language` is omitted. Do not redefine or newly establish Bun as the default.
-- Add opt-in Node.js and Python backend templates selected with `tdk resource <name> --type backend --language <node|python> --stack <stack>`.
+- Add an opt-in Python backend template selected with `tdk resource <name> --type backend --language <node|python> --stack <stack>`.
 - Persist the selected `language` on resources created with an explicit provider. A missing `language` on a legacy manifest continues to mean Bun and does not trigger a rewrite.
 - Generate a Node.js TypeScript service with `/health`, a Node start script, a Node Docker image, and Tilt reload behavior; generate a FastAPI service with `/health`, `pyproject.toml`, a Python Docker image, and Tilt live-update behavior.
 - Ship `examples/one-backend-python/`, a runnable Python counterpart of `examples/one-backend/`, kept identical to the generated Python template by a drift test and booted by a path-filtered CI job.
