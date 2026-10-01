@@ -214,9 +214,15 @@ EOF
   if [[ -n "${previous_release}" ]]; then
     IFS=$'\t' read -r previous_tag previous_published_at <<<"${previous_release}"
     if [[ -n "${previous_published_at}" ]]; then
+      source_commit="${SOURCE_COMMIT:-${GITHUB_SHA:-}}"
+      if [[ -z "${source_commit}" ]]; then
+        echo "SOURCE_COMMIT or GITHUB_SHA is required to generate release notes" >&2
+        exit 1
+      fi
+      source_commit_date="$(gh api "repos/tdk-landscape/tdk-cli-core/commits/${source_commit}" --jq '.commit.committer.date')"
       since="${previous_published_at}"
-      gh api --paginate "repos/tdk-landscape/tdk-cli-core/pulls?state=closed&base=main&per_page=100" \
-        --jq ".[] | select(.merged_at != null and .merged_at >= \"${since}\") | [.number, .title, .user.login, .html_url, .merged_at] | @tsv" \
+      gh api --paginate "repos/tdk-landscape/tdk-cli-core/pulls?state=closed&base=main&sort=updated&direction=desc&per_page=100" \
+        --jq ".[] | select(.merged_at != null and .merged_at >= \"${since}\" and .merged_at <= \"${source_commit_date}\") | [.number, .title, .user.login, .html_url, .merged_at] | @tsv" \
         > "${generated_notes_file}"
       if [[ -s "${generated_notes_file}" ]]; then
         printf '\n## Pull requests\n\n' >> "${release_notes_file}"
@@ -229,7 +235,8 @@ EOF
           printf '\n## Contributors\n\n%s\n' "${contributors}" >> "${release_notes_file}"
         fi
       fi
-      printf '\n[Full Changelog](https://github.com/tdk-landscape/tdk-cli-core/commits/main)\n' >> "${release_notes_file}"
+      printf '\n[Full Changelog](https://github.com/tdk-landscape/tdk-cli-core/compare/%s...%s)\n' \
+        "${previous_tag}" "${source_commit}" >> "${release_notes_file}"
     fi
   fi
 

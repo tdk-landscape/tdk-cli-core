@@ -16,6 +16,10 @@ _tdk_completions() {
     
     # Options for specific commands
     case "\${prev}" in
+        runtime)
+            COMPREPLY=( $(compgen -W "--check-assets --json" -- \${cur}) )
+            return 0
+            ;;
         tdk)
             COMPREPLY=( $(compgen -W "\${commands}" -- \${cur}) )
             return 0
@@ -109,6 +113,11 @@ _tdk() {
         doctor)
             _arguments 
                 '--fix[Attempt to fix issues]'
+            ;;
+        runtime)
+            _arguments
+                '--check-assets[Check bundled engine and template assets]'
+                '--json[Print the check result as JSON]'
             ;;
         upgrade)
             _arguments

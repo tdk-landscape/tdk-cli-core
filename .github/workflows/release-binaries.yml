@@ -232,10 +232,15 @@ jobs:
           name: release-dist-${{ needs.build.outputs.version }}
           path: release-dist-${{ needs.build.outputs.version }}
 
+      - name: Capture source commit for release notes
+        id: source
+        run: echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
       - name: Publish verified binary release
         run: scripts/release-binaries.sh --publish-only
         env:
           GH_TOKEN: ${{ secrets.BINARY_RELEASE_TOKEN }}
+          SOURCE_COMMIT: ${{ steps.source.outputs.commit }}
 
       # The root package owns the public tdk bin entry and compiled CLI.
       - name: Publish to npm
