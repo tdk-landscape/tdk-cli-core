@@ -1,3 +1,3 @@
 schema: spec-driven
 created: 2026-10-01
-goal: Prove the WSL2 landscape boot in CI with Docker Engine inside Ubuntu WSL2. Do not edit the rating formula or claim Docker Desktop integration is tested.
+goal: Prove the WSL2 landscape boot in CI with Docker Engine inside Ubuntu WSL2. With the current Docker Desktop guide, cap Platforms at 4; reserve 5 for a tested and documented matching path. Do not edit the rating formula.

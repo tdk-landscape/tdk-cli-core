@@ -21,6 +21,7 @@ The repository already has `scripts/wsl2-smoke.sh`, `docs/wsl2.md`, a native Win
 - **Extend the existing native Windows smoke workflow.** Add the version, doctor, dry-run, and startup refusal assertions to `.github/workflows/windows-smoke.yml`. `tdk up shop` must exit non-zero, direct the user to WSL2 Ubuntu, and start no containers. Keep this validation separate from the WSL2 boot result.
 - **Link and qualify the workflow from `docs/wsl2.md`.** Use a stable workflow or badge link to the Actions history, not a transient run URL. Label the CI backend as Docker Engine inside WSL2 and state that Docker Desktop integration is not tested, so readers do not confuse the two environments.
 - **Preserve the scorecard boundary.** This proposal specifies evidence collection only. It does not edit the rating formula or treat a script, proposal, or unmerged workflow as a score change.
+- **Do not award the Platforms 5 anchor for a backend mismatch.** With `docs/wsl2.md` still prescribing Docker Desktop, a successful Engine-in-WSL2 job plus native refusal evidence supports Platforms 4. Platforms 5 requires either a successful Docker Desktop integration test or an explicit documentation change making the Engine-in-WSL2 path the supported Windows route, followed by successful required jobs and a linked run.
 
 ## Risks / Trade-offs
 
