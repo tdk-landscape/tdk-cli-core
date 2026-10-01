@@ -63,8 +63,9 @@ if ! grep -q 'Running tilt up' up.log; then
   exit 1
 fi
 
-api=http://api.tdk-example.localhost/api/orders
-app=http://app.tdk-example.localhost/orders-app/
+# TDK's non-root ingress port is 8080 (the same port reported by doctor).
+api=http://api.tdk-example.localhost:8080/api/orders
+app=http://app.tdk-example.localhost:8080/orders-app/
 for _ in $(seq 1 90); do
   if curl -fsS "$api/health" >/dev/null && curl -fsS "$api/worker-ready" >/dev/null && curl -fsS "$app" >/dev/null; then break; fi
   sleep 2
