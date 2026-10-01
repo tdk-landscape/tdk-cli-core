@@ -573,8 +573,9 @@ if [ ! -f "{}" ]; then
 fi
 '''.format(req_file, req_file))
     
-    # Check 2: Package.json is valid JSON
-    health_checks.append('''
+    # Check 2: Package.json is valid JSON (Python backends have no package.json)
+    if manifest.get("language", "bun") != "python":
+        health_checks.append('''
 if ! cat package.json | head -1 > /dev/null 2>&1; then
     echo "❌ package.json is not valid"
     exit 1

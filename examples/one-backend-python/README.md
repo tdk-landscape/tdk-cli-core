@@ -31,7 +31,7 @@ Open the Tilt dashboard at `http://localhost:10350`. Stop the local stack with `
 
 ## Live reload
 
-Edit `services/one-backend-python/api/src/main.py`. Tilt syncs the file into the container and uvicorn reloads without rebuilding the image. Changing `pyproject.toml` is not synced, so Tilt rebuilds the image to install the new dependencies.
+Edit `services/one-backend-python/api/src/main.py` and Tilt picks the change up. Today every edit, including to `main.py`, triggers a full image rebuild instead of a file sync (Tilt reports `Found file(s) not matching any sync`), so expect a few seconds of rebuild per change. This is a known engine issue, tracked in `openspec/changes/add-python-backend-provider/tasks.md` task 4.5, and is not specific to Python. Changing `pyproject.toml` rebuilds the image to install the new dependencies, which is the intended behavior.
 
 ## Run the tests
 
