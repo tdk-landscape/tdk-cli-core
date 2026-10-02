@@ -34,9 +34,10 @@ tdk() { TDK_EXTENSION_SOURCE="$root" node "$root/cli/bin/tdk.js" "$@"; }
 
 cleanup() {
   pkill -f "tilt up.*$proj" >/dev/null 2>&1 || true
-  docker rm -f $(docker ps -aq --filter "name=$proj") >/dev/null 2>&1 || true
+  # Containers and images are named after the RESOURCES (dep_name, app_name), not the project, so match all three unique names.
+  docker rm -f $(docker ps -aq --filter "name=$proj" --filter "name=$dep_name" --filter "name=$app_name") >/dev/null 2>&1 || true
   docker network ls --format '{{.Name}}' | grep "^${proj}" | xargs -r docker network rm >/dev/null 2>&1 || true
-  docker images --format '{{.Repository}}:{{.Tag}}' | grep -E "^app_${proj}|^${proj}-l[0-9]+" | xargs -r docker rmi -f >/dev/null 2>&1 || true
+  docker images --format '{{.Repository}}:{{.Tag}}' | grep -E "^app_(${proj}|${dep_name}|${app_name}):|^(${proj}|${dep_name}|${app_name})-l[0-9]+" | xargs -r docker rmi -f >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
