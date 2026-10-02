@@ -27,6 +27,7 @@ cleanup() {
   pkill -f "tilt up.*$proj" >/dev/null 2>&1 || true
   docker rm -f $(docker ps -aq --filter "name=$proj") >/dev/null 2>&1 || true
   docker network ls --format '{{.Name}}' | grep "^${proj}" | xargs -r docker network rm >/dev/null 2>&1 || true
+  docker rmi -f "app_${proj}:dev" >/dev/null 2>&1 || true   # the image `tdk up` built for this run only
 }
 trap cleanup EXIT
 
