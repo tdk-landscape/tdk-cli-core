@@ -131,7 +131,9 @@ jobs:
     needs: docs
     # Skip on docs-only PRs; a skipped job still satisfies required checks.
     if: ${{ !cancelled() && needs.docs.outputs.docs_only != 'true' }}
-    timeout-minutes: 1 # every job finishes in under 20s; fail fast if one hangs
+    # A hang guard, not a speed target: the suite (with every Starlark test that spawns tilt) takes 23 to 89 seconds, and a one-minute
+    # limit cancelled it in 3 of 19 recent runs with no failing step.
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: cli
