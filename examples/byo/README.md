@@ -26,7 +26,7 @@ scripts/verify-byo-example.sh create-vue /     # Vite apps answer on /
 | `fiber` | Go 1.23, Fiber 2 | multi-stage, static binary |
 | `create-vue` | a real `create-vue` app | scaffolder runs at build time; Vite `--host 0.0.0.0` |
 | `rsbuild` | a real `create-rsbuild` app | scaffolder runs at build time; `rsbuild dev --host 0.0.0.0` |
-| `create-mastra` | a real `create-mastra` project (empty template) | scaffolder runs at build time; `mastra dev` reads `PORT` and is reachable beyond loopback; health path `/health` |
+| `create-mastra` | a real `create-mastra` project (empty template) | scaffolder runs at build time; `mastra dev` reads `PORT` and is reachable beyond loopback; health path `/health`; slow start, run the verify script with `VERIFY_WAIT_SECONDS=120` |
 
 These check the container only. Through `tdk up`, a bring-your-own service is routed at
 `http://api.<project>.localhost/api/<name without -api>/...` with the prefix stripped, so a
