@@ -11,6 +11,7 @@ import { createHostPortPlan } from "../utils/host-port-plan.js";
 import { createMachineEnvelope, writeMachineError } from "../utils/machine-output.js";
 import { findProjectRoot } from "../utils/paths.js";
 import { checkPortStatus } from "../utils/port-assignment.js";
+import { isApiServiceType } from "../utils/resource-kind.js";
 import { isValidPort, sanitizeForShell } from "../utils/validation.js";
 import { findOnPath } from "../utils/which.js";
 function execSafe(command, args, options = {}) {
@@ -181,7 +182,7 @@ export const networksCommand = new Command("networks")
             .filter((s) => typeof s.config?.basePath === "string")
             .map(async (s) => {
             const basePath = s.config.basePath.replace(/^\//, "");
-            const isBackend = s.config?.appType === "backend";
+            const isBackend = isApiServiceType(s.config?.appType);
             const host = isBackend ? apiDomain : appDomain;
             const url = `http://${host}:${httpPort}/${basePath}`;
             const port = s.config.port;

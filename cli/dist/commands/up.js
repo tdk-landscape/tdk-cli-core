@@ -10,6 +10,7 @@ import { exportHostPortPlan, getHostPortPlan, writeSavedHostPortPlan, } from "..
 import { formatHostPortPlan } from "../utils/host-port-plan.js";
 import { findProjectRoot } from "../utils/paths.js";
 import { findAvailablePort } from "../utils/port-assignment.js";
+import { isApiServiceType } from "../utils/resource-kind.js";
 import { appendHealthPath, resolveSubdomainBases } from "../utils/service-urls.js";
 import { discoverResources, discoverStacks, getResourcesForStack, stackExists, } from "../utils/services.js";
 import { buildTiltUpArgs, runTilt } from "../utils/tilt.js";
@@ -121,7 +122,7 @@ export const upCommand = new Command("up")
             });
             const { appBase, apiBase } = resolveSubdomainBases(hostPortPlan.ingressHttp);
             const frontends = servicesToStart.filter((s) => s.config?.appType === "frontend");
-            const backends = servicesToStart.filter((s) => s.config?.appType === "backend");
+            const backends = servicesToStart.filter((s) => isApiServiceType(s.config?.appType));
             if (frontends.length > 0) {
                 console.log(chalk.blue("\n🌍 Frontend URLs:"));
                 frontends.forEach((svc) => {

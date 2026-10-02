@@ -5,6 +5,7 @@ import { BACKEND_LANGUAGES } from "../backend-languages/registry.js";
 import { execAsync } from "./exec-async.js";
 import { formatCount } from "./formatting.js";
 import { findProjectRoot } from "./paths.js";
+import { isApiServiceType } from "./resource-kind.js";
 import { discoverResourcesFromRoot } from "./services.js";
 /**
  * Checks for wiring mistakes that only show up minutes into `tdk up`: an image
@@ -39,7 +40,7 @@ function backendPorts(resources) {
     const ports = new Map();
     for (const resource of resources) {
         const port = resource.config?.port;
-        if (resource.config?.appType === "backend" && typeof port === "number") {
+        if (isApiServiceType(resource.config?.appType) && typeof port === "number") {
             ports.set(resource.name, port);
         }
     }

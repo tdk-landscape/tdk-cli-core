@@ -6,6 +6,7 @@ import type { CheckResult, DiscoveredResource } from "../types/index.js";
 import { type ExecAsync, execAsync } from "./exec-async.js";
 import { formatCount } from "./formatting.js";
 import { findProjectRoot } from "./paths.js";
+import { isApiServiceType } from "./resource-kind.js";
 import { discoverResourcesFromRoot } from "./services.js";
 
 /**
@@ -43,7 +44,7 @@ function backendPorts(resources: DiscoveredResource[]): Map<string, number> {
   const ports = new Map<string, number>();
   for (const resource of resources) {
     const port = resource.config?.port;
-    if (resource.config?.appType === "backend" && typeof port === "number") {
+    if (isApiServiceType(resource.config?.appType) && typeof port === "number") {
       ports.set(resource.name, port);
     }
   }

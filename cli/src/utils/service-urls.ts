@@ -2,10 +2,11 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { DiscoveredResource } from "../types/index.js";
 import { findProjectRoot } from "./paths.js";
+import { isApiServiceType } from "./resource-kind.js";
 
 export interface HealthTarget {
   name: string;
-  appType: "frontend" | "backend";
+  appType: "frontend" | "backend" | "mcp";
   url: string;
 }
 
@@ -65,7 +66,7 @@ export function appendHealthPath(path: string): string {
 
 /** The route `tdk up` advertises for a service, without the /health suffix. */
 export function resolveServicePath(resource: DiscoveredResource): string {
-  if (resource.config?.appType === "backend") {
+  if (isApiServiceType(resource.config?.appType)) {
     const servicePathName = resource.name.replace(/-api$/, "");
     return resource.config?.apiPath ?? `/api/${servicePathName}`;
   }
@@ -87,11 +88,11 @@ export function buildHealthTargets(
     .filter(
       (
         resource,
-      ): resource is DiscoveredResource & { config: { appType: "frontend" | "backend" } } =>
-        resource.config?.appType === "frontend" || resource.config?.appType === "backend",
+      ): resource is DiscoveredResource & { config: { appType: "frontend" | "backend" | "mcp" } } =>
+        resource.config?.appType === "frontend" || isApiServiceType(resource.config?.appType),
     )
     .map((resource) => {
-      const base = resource.config.appType === "backend" ? apiBase : appBase;
+      const base = isApiServiceType(resource.config.appType) ? apiBase : appBase;
       return {
         name: resource.name,
         appType: resource.config.appType,

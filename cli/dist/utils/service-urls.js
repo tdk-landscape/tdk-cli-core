@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { findProjectRoot } from "./paths.js";
+import { isApiServiceType } from "./resource-kind.js";
 export function getProjectName() {
     const root = findProjectRoot();
     if (root) {
@@ -47,7 +48,7 @@ export function appendHealthPath(path) {
 }
 /** The route `tdk up` advertises for a service, without the /health suffix. */
 export function resolveServicePath(resource) {
-    if (resource.config?.appType === "backend") {
+    if (isApiServiceType(resource.config?.appType)) {
         const servicePathName = resource.name.replace(/-api$/, "");
         return resource.config?.apiPath ?? `/api/${servicePathName}`;
     }
@@ -61,9 +62,9 @@ export function resolveServicePath(resource) {
 export function buildHealthTargets(resources, ingressPort) {
     const { appBase, apiBase } = resolveSubdomainBases(ingressPort);
     return resources
-        .filter((resource) => resource.config?.appType === "frontend" || resource.config?.appType === "backend")
+        .filter((resource) => resource.config?.appType === "frontend" || isApiServiceType(resource.config?.appType))
         .map((resource) => {
-        const base = resource.config.appType === "backend" ? apiBase : appBase;
+        const base = isApiServiceType(resource.config.appType) ? apiBase : appBase;
         return {
             name: resource.name,
             appType: resource.config.appType,

@@ -5,6 +5,7 @@ import { join } from "node:path";
 import type { CheckResult, DiscoveredResource } from "../types/index.js";
 import { formatCount } from "./formatting.js";
 import { findProjectRoot } from "./paths.js";
+import { isApiServiceType } from "./resource-kind.js";
 import { getProjectName, type HealthProbe } from "./service-urls.js";
 import { discoverResources, discoverResourcesFromRoot } from "./services.js";
 import { findOnPath } from "./which.js";
@@ -945,7 +946,7 @@ export interface MissingHealthRoute {
 export function findMissingHealthRoutes(resources: DiscoveredResource[]): MissingHealthRoute[] {
   const missing: MissingHealthRoute[] = [];
   for (const resource of resources) {
-    if (resource.config?.appType !== "backend") continue;
+    if (!isApiServiceType(resource.config?.appType)) continue;
     const srcDir = join(resource.path, "src");
     if (!existsSync(srcDir)) continue;
     const files = listSourceFiles(srcDir);
@@ -989,7 +990,7 @@ export function checkHealthRoutes(
       message: "Could not read services - skipped health route check",
     };
   }
-  const backends = resources.filter((r) => r.config?.appType === "backend");
+  const backends = resources.filter((r) => isApiServiceType(r.config?.appType));
   if (backends.length === 0) {
     return {
       name: "Health Routes",

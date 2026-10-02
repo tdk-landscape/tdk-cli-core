@@ -4,6 +4,7 @@ import { createServer } from "node:net";
 import { join } from "node:path";
 import { formatCount } from "./formatting.js";
 import { findProjectRoot } from "./paths.js";
+import { isApiServiceType } from "./resource-kind.js";
 import { getProjectName } from "./service-urls.js";
 import { discoverResources, discoverResourcesFromRoot } from "./services.js";
 import { findOnPath } from "./which.js";
@@ -725,7 +726,7 @@ export function resolveHealthPaths(config) {
 export function findMissingHealthRoutes(resources) {
     const missing = [];
     for (const resource of resources) {
-        if (resource.config?.appType !== "backend")
+        if (!isApiServiceType(resource.config?.appType))
             continue;
         const srcDir = join(resource.path, "src");
         if (!existsSync(srcDir))
@@ -768,7 +769,7 @@ export function checkHealthRoutes(projectRoot = findProjectRoot() ?? process.cwd
             message: "Could not read services - skipped health route check",
         };
     }
-    const backends = resources.filter((r) => r.config?.appType === "backend");
+    const backends = resources.filter((r) => isApiServiceType(r.config?.appType));
     if (backends.length === 0) {
         return {
             name: "Health Routes",
