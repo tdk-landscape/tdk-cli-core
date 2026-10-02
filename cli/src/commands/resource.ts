@@ -353,7 +353,7 @@ export const resourceCommand = new Command("resource")
   )
   .option(
     "--framework <id>",
-    "Framework: frontend react (default), vue, svelte, preact, lit, solid, qwik; backend hono (default), express, elysia, fastify",
+    "Framework: frontend react (default), vue, svelte, preact, lit, solid, qwik, vanilla; backend hono (default), express, elysia, fastify",
   )
   .option("--language <id>", "Backend language: bun (default), python")
   .option("-s, --stack <stack>", "Stack to assign resource to", "default")

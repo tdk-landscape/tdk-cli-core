@@ -192,10 +192,11 @@ describe("resource command", () => {
       expect(getFrontendFramework("svelte").id).toBe("svelte");
       expect(getFrontendFramework("preact").id).toBe("preact");
       expect(getFrontendFramework("lit").id).toBe("lit");
+      expect(getFrontendFramework("vanilla").id).toBe("vanilla");
       expect(getFrontendFramework("solid").id).toBe("solid");
       expect(getFrontendFramework("qwik").id).toBe("qwik");
       expect(() => getFrontendFramework("angular")).toThrow(
-        /Supported frameworks: react, vue, svelte, preact, lit, solid, qwik/,
+        /Supported frameworks: react, vue, svelte, preact, lit, solid, qwik, vanilla/,
       );
       expect(() => getFrontendFramework("__proto__")).toThrow(/Unknown frontend framework/);
       expect(getFrontendFramework("React").id).toBe("react");
@@ -306,6 +307,24 @@ describe("resource command", () => {
       ]);
       expect(files[0]?.content).toContain("<app-root></app-root>");
       expect(files[2]?.content).toContain("from 'lit'");
+      expect(files[2]?.content).toContain("Frontend resource created with TDK");
+      expect(files.some(({ filename }) => filename === "vite.config.ts")).toBe(false);
+    });
+
+    it("keeps Vanilla TypeScript source in its provider, with no framework dependency", () => {
+      const provider = getFrontendFramework("vanilla");
+      const files = provider.createFiles("sample-web");
+
+      expect(provider.dependencies).toEqual({});
+      expect(provider.devDependencies).toEqual({});
+      expect(provider.compilerOptions).toEqual({});
+      expect(files.map(({ filename }) => filename)).toEqual([
+        "index.html",
+        "src/main.ts",
+        "src/app.ts",
+      ]);
+      expect(files[0]?.content).toContain('<div id="app"></div>');
+      expect(files[1]?.content).toContain("from './app'");
       expect(files[2]?.content).toContain("Frontend resource created with TDK");
       expect(files.some(({ filename }) => filename === "vite.config.ts")).toBe(false);
     });
