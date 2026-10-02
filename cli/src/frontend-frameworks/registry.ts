@@ -40,9 +40,10 @@ export function resolveFrontendFramework(
   frameworkId?: string,
 ): FrontendFrameworkProvider | undefined {
   if (resourceType !== "frontend") {
-    if (frameworkId !== undefined) {
-      throw new TdkError("--framework can only be used with --type frontend.", [
-        "Add --type frontend, or drop --framework for this resource type",
+    // Backends take their own framework ids (see backend-frameworks/registry.ts).
+    if (frameworkId !== undefined && resourceType !== "backend") {
+      throw new TdkError("--framework can only be used with --type frontend or --type backend.", [
+        "Add --type frontend or --type backend, or drop --framework for this resource type",
       ]);
     }
     return undefined;

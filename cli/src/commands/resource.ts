@@ -2,6 +2,7 @@ import { existsSync, mkdirSync } from "node:fs";
 import { isAbsolute, relative, resolve } from "node:path";
 import chalk from "chalk";
 import { Command } from "commander";
+import { resolveBackendFramework } from "../backend-frameworks/registry.js";
 import { getBackendIndexTemplate } from "../backend-languages/bun.js";
 import { resolveBackendLanguage } from "../backend-languages/registry.js";
 import { resolveFrontendFramework } from "../frontend-frameworks/registry.js";
@@ -108,6 +109,8 @@ export function createServiceJson(
   const framework = resolveFrontendFramework(type, frameworkId);
   // Only an explicit selection is persisted: a missing `language` has always meant Bun.
   const language = languageId === undefined ? undefined : resolveBackendLanguage(type, languageId);
+  // Likewise a missing backend `framework` has always meant Hono.
+  const backendFramework = resolveBackendFramework(type, frameworkId, language);
   const typeSpecific = TYPE_SPECIFIC[type];
 
   const base = JSON.parse(JSON.stringify(BASE_TEMPLATE));
@@ -147,6 +150,7 @@ export function createServiceJson(
     stack,
     port,
     ...(framework ? { framework: framework.id } : {}),
+    ...(backendFramework ? { framework: backendFramework.id } : {}),
     ...(language ? { language: language.id } : {}),
   };
 }
@@ -154,6 +158,7 @@ export function createServiceJson(
 export function createPackageJson(name: string, type: string, frameworkId?: string) {
   const isFrontend = type === "frontend";
   const framework = resolveFrontendFramework(type, frameworkId);
+  const backendFramework = resolveBackendFramework(type, frameworkId);
 
   return {
     name: `@project/${name}`,
@@ -173,7 +178,7 @@ export function createPackageJson(name: string, type: string, frameworkId?: stri
       "lint:fix": "biome check . --write",
     },
     dependencies: {
-      ...(isFrontend ? {} : { hono: "^4.0.0" }),
+      ...(isFrontend ? {} : (backendFramework?.dependencies ?? { hono: "^4.0.0" })),
       ...(framework?.dependencies ?? {}),
     },
     devDependencies: {
@@ -187,6 +192,7 @@ export function createPackageJson(name: string, type: string, frameworkId?: stri
 
       ...(isFrontend ? { vite: "^5.0.0" } : {}),
       ...(framework?.devDependencies ?? {}),
+      ...(backendFramework?.devDependencies ?? {}),
     },
   };
 }
@@ -347,7 +353,7 @@ export const resourceCommand = new Command("resource")
   )
   .option(
     "--framework <id>",
-    "Frontend framework: react (default), vue, svelte, preact, lit, solid, qwik",
+    "Framework: frontend react (default), vue, svelte, preact, lit, solid, qwik; backend hono (default), express",
   )
   .option("--language <id>", "Backend language: bun (default), python")
   .option("-s, --stack <stack>", "Stack to assign resource to", "default")
@@ -428,6 +434,11 @@ export const resourceCommand = new Command("resource")
 
       const frontendFramework = resolveFrontendFramework(resourceType, options.framework);
       const backendLanguage = resolveBackendLanguage(resourceType, options.language);
+      const backendFramework = resolveBackendFramework(
+        resourceType,
+        options.framework,
+        backendLanguage,
+      );
 
       let dddEnabled = false;
       if (options.ddd) {
@@ -719,10 +730,14 @@ This file contains the resource configuration for TDK.
         stackName,
         assignedPort,
         dddEnabled ? ["ddd"] : [],
-        frontendFramework?.id,
+        frontendFramework?.id ?? backendFramework?.id,
         options.language === undefined ? undefined : backendLanguage?.id,
       );
-      const packageJson = createPackageJson(resourceName, resourceType, frontendFramework?.id);
+      const packageJson = createPackageJson(
+        resourceName,
+        resourceType,
+        frontendFramework?.id ?? backendFramework?.id,
+      );
 
       const tasks: FileGenerationTask[] = [
         {
@@ -763,7 +778,7 @@ This file contains the resource configuration for TDK.
         tasks.push({
           type: "text",
           filename: "src/index.ts",
-          content: getBackendIndexTemplate(resourceName),
+          content: (backendFramework?.createIndex ?? getBackendIndexTemplate)(resourceName),
           description: "Generating backend source",
           emoji: "💻",
         });

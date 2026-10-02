@@ -495,7 +495,7 @@ describe("frontend resource framework selection", () => {
     expect(existsSync(resourcePath)).toBe(false);
   }, 15000);
 
-  it("rejects framework selection for backend resources before creating their directory", () => {
+  it("rejects a frontend framework id on a backend before creating its directory", () => {
     const resourcePath = join(projectRoot, "services", "shop", "orders-api");
 
     expect(() =>
@@ -514,7 +514,7 @@ describe("frontend resource framework selection", () => {
         ],
         projectRoot,
       ),
-    ).toThrow(/only be used with --type frontend/);
+    ).toThrow(/Unknown backend framework "react"/);
     expect(existsSync(resourcePath)).toBe(false);
   }, 15000);
 });
