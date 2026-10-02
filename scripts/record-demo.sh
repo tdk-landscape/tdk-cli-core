@@ -1,5 +1,5 @@
 #!/bin/bash
-# Re-record docs/demo.svg, the animated terminal demo shown in README.md.
+# Re-record docs/assets/demo.svg, the animated terminal demo shown in README.md.
 #
 # Needs `tdk` on PATH and termtosvg (pip install termtosvg). Run from the
 # repo root:  scripts/record-demo.sh
@@ -11,7 +11,7 @@ if [[ "${1:-}" != "--play" ]]; then
   cast="$(mktemp -d)/demo.cast"
   # `script` gives termtosvg a real terminal even when run from CI or an IDE.
   script -qec "termtosvg record '$cast' -c '$0 --play' -g 92x30" /dev/null >/dev/null
-  termtosvg render "$cast" docs/demo.svg -t window_frame -M 3000
+  termtosvg render "$cast" docs/assets/demo.svg -t window_frame -M 3000
   exit 0
 fi
 

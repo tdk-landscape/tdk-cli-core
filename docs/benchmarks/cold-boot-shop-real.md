@@ -1,7 +1,7 @@
 # Measuring a shop-real cold boot
 
 This procedure measures a real twelve-service implementation that follows the
-[shop-real reference](examples/shop-real.md). It does not treat the 100 generated health-only
+[shop-real reference](../examples/shop-real.md). It does not treat the 100 generated health-only
 services in the scale benchmark as business services.
 
 ## Before the run

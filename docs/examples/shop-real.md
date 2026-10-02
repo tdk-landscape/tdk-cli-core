@@ -43,7 +43,7 @@ A useful cold-boot report records the machine/runner, OS and CPU architecture, D
 Compose versions, TDK version, commit, whether image and package caches were empty, and the time
 until all twelve resources pass their real readiness checks. It should also record image-build and
 service-readiness failures, not only the first process start. Use
-[`../cold-boot-shop-real.md`](../cold-boot-shop-real.md) and
+[`../benchmarks/cold-boot-shop-real.md`](../benchmarks/cold-boot-shop-real.md) and
 [`../../scripts/cold-boot-notes.sh`](../../scripts/cold-boot-notes.sh) to capture a run.
 
 Do not extrapolate this design into a performance claim. Build downloads, database initialization,
