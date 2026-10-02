@@ -227,34 +227,13 @@
     },
     "framework": {
       "description": "Framework provider id. For frontend resources it selects the Vite and TypeScript config (omitted means react, legacy manifests). For backend resources it selects the HTTP framework on the Bun runtime (omitted means hono; not used with a language that owns its runtime, such as python). Valid ids come from the CLI provider registries, which reject unknown ids before writing a resource.",
-      "examples": [
-        "react",
-        "vue",
-        "svelte",
-        "preact",
-        "lit",
-        "solid",
-        "qwik",
-        "vanilla",
-        "hono",
-        "express",
-        "elysia",
-        "fastify",
-        "nestjs",
-        "koa",
-        "h3"
-      ],
+      "examples": ["react", "vue", "solid"],
       "pattern": "^[a-z][a-z0-9-]*$",
       "type": "string"
     },
     "language": {
       "description": "Backend language provider id used to scaffold and run the service. Only meaningful for backend resources; omitted means bun (legacy manifests). Valid ids come from the CLI provider registry.",
-      "examples": [
-        "bun",
-        "python",
-        "go",
-        "rust"
-      ],
+      "examples": ["bun", "python", "go"],
       "pattern": "^[a-z][a-z0-9-]*$",
       "type": "string"
     },

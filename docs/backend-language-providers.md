@@ -68,7 +68,7 @@ The container must answer `GET /health`, read `PORT` from the environment, and s
 
 1. Copy `cli/src/backend-languages/python.ts` to `<id>.ts` and replace the files and dev command.
 2. Register it in `registry.ts`. Keep the default `bun`; interactive creation never prompts for a language.
-3. Add the id to the schema enum.
+3. Do **not** edit `engine/schemas/service-schema.json`. `language` there is an open string with an id pattern, and the CLI registry (step 2) is what rejects an unknown id. See [the service schema](configuration.md#the-service-schema-and-how-it-is-published).
 4. Add a Dockerfile template to `language_dockerfile.star`. It needs a `production` stage (Tilt builds `--target production`); a `test` stage lets CI run the language's tests in the image.
 5. Add tests in `cli/src/commands/__tests__/resource-backend-languages.test.ts`: file set, persisted `language`, case-insensitive ids, unknown-id and non-backend rejection, and unchanged Bun output.
 6. Add a runnable example under `examples/` and keep it in sync with the generated output with a drift test.
@@ -81,7 +81,7 @@ For a language without a provider (Java, Ruby, a legacy service), use `--type br
 ## Backend provider pull request checklist
 
 - [ ] One language per pull request; Bun stays the default.
-- [ ] Registry, schema enum, Dockerfile template, and Tilt live-update behavior updated together.
+- [ ] Registry, Dockerfile template, and Tilt live-update behavior updated together. No schema change is needed or expected.
 - [ ] Generated-output tests plus an unchanged-Bun-output test.
 - [ ] A runnable example and a drift test.
 - [ ] The language's dependencies are not added to the CLI package.

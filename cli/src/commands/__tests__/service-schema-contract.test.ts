@@ -44,8 +44,8 @@ describe("service-schema.json stays independent of the provider registries", () 
   });
 
   it("describes the ids as coming from the CLI registry", () => {
-    expect(schema.properties.framework.description).toMatch(/registry/i);
-    expect(schema.properties.language.description).toMatch(/registry/i);
+    expect(schema.properties.framework.description).toMatch(/registr(y|ies)/i);
+    expect(schema.properties.language.description).toMatch(/registr(y|ies)/i);
   });
 });
 

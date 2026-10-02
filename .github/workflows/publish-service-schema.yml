@@ -40,3 +40,46 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -am "Sync schema.service.json with tdk-cli-core (${GITHUB_SHA::7})"
           git push origin HEAD:main
+      - name: Report whether the published schema matches main
+        # Publishing is best-effort, so this never fails the job. It exists so that a missing PAGES_SYNC_TOKEN (the copy step above
+        # skips with only a warning) shows up in the run summary instead of looking like a successful publish.
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json, os, time, urllib.request
+
+          url = "https://tdk-landscape.github.io/schema.service.json"
+          main = json.load(open("engine/schemas/service-schema.json"))
+          has_token = bool(os.environ.get("PAGES_SYNC_TOKEN"))
+          # Pages needs a minute or two to redeploy after a push; without a token nothing was pushed, so do not wait.
+          deadline = time.time() + (240 if has_token else 0)
+          live, error = None, ""
+          while True:
+              try:
+                  with urllib.request.urlopen(url, timeout=20) as response:
+                      live = json.load(response)
+              except Exception as exc:  # network or JSON problem: report it, do not fail
+                  live, error = None, str(exc)
+              if live == main or time.time() >= deadline:
+                  break
+              time.sleep(20)
+
+          if live == main:
+              message = "The published schema at " + url + " matches main."
+              level = "notice"
+          elif live is None:
+              message = "Could not read " + url + " (" + error + ")."
+              level = "warning"
+          elif not has_token:
+              message = ("The published schema at " + url + " is BEHIND main and was not updated: the repository secret "
+                         "PAGES_SYNC_TOKEN is not set. Add a fine-grained token with contents:write on "
+                         "tdk-landscape/tdk-landscape.github.io as that secret, then re-run this workflow.")
+              level = "warning"
+          else:
+              message = "The published schema at " + url + " still differs from main after the copy step (Pages may still be redeploying)."
+              level = "warning"
+
+          print("::" + level + "::" + message)
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
+              summary.write("### Published service schema\n\n" + message + "\n")
+          PY

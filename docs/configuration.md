@@ -41,3 +41,18 @@ For VS Code, associate both filenames with their schema in workspace settings. T
 ```
 
 The service schema is also in [`engine/schemas/service-schema.json`](../engine/schemas/service-schema.json), and the current project configuration schema is [`engine/schemas/project-schema.json`](../engine/schemas/project-schema.json). Run `tdk config verify` to check that generated project files match `.tdk/project.json`; it does not validate the service manifest or Helm values. `tdk doctor` checks local readiness and service concerns.
+
+### The service schema and how it is published
+
+`engine/schemas/service-schema.json` is the source of truth; the copy at `https://tdk-landscape.github.io/schema.service.json` is a
+deploy artifact for editors. It is only an editor hint. The CLI provider registries are the contract: the CLI rejects an unknown
+`framework` or `language` id before it writes a resource. So `framework` and `language` are open strings with an id pattern, their
+`examples` are a short hint rather than a list of every provider, and adding a provider never changes the schema.
+
+- **On a pull request**, CI validates the schema offline (`scripts/check-published-service-schema.mjs`). It never fetches the live
+  copy, because a PR that changes the schema could never match it before merge.
+- **After a change to the schema lands on `main`**, the *Publish service schema* workflow copies it to the Pages repository and then
+  reports in its run summary whether the live copy matches. It needs a repository secret named `PAGES_SYNC_TOKEN` (a fine-grained
+  token with `contents: write` on `tdk-landscape/tdk-landscape.github.io`). Without it the copy is skipped with a warning and the live
+  copy falls behind `main`; the summary says so.
+
