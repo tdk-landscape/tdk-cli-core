@@ -24,14 +24,24 @@ function tdk(args: string[], cwd: string, input = "y\n") {
 }
 
 describe("backend framework registry", () => {
-  it("keeps Hono the default and registers exactly hono, express", () => {
+  it("keeps Hono the default and registers exactly hono, express, elysia, fastify, nestjs, koa, h3", () => {
     expect(DEFAULT_BACKEND_FRAMEWORK).toBe("hono");
-    expect(Object.keys(BACKEND_FRAMEWORKS).sort()).toEqual(["express", "hono"]);
+    expect(Object.keys(BACKEND_FRAMEWORKS).sort()).toEqual([
+      "elysia",
+      "express",
+      "fastify",
+      "h3",
+      "hono",
+      "koa",
+      "nestjs",
+    ]);
   });
 
   it("normalizes case and rejects unknown ids, including prototype keys", () => {
     expect(getBackendFramework(" Express ").id).toBe("express");
-    expect(() => getBackendFramework("koa")).toThrow(/Supported frameworks: hono, express/);
+    expect(() => getBackendFramework("sinatra")).toThrow(
+      /Supported frameworks: hono, express, elysia, fastify, h3, koa, nestjs/,
+    );
     expect(() => getBackendFramework("__proto__")).toThrow(/Unknown backend framework/);
   });
 
@@ -59,11 +69,88 @@ describe("backend framework registry", () => {
     expect(index).not.toContain("hono");
   });
 
+  it("keeps Elysia source and dependencies in its provider", () => {
+    const provider = getBackendFramework("elysia");
+    const index = provider.createIndex("orders-api");
+
+    expect(provider.dependencies).toHaveProperty("elysia");
+    expect(provider.dependencies).not.toHaveProperty("hono");
+    expect(provider.dependencies).not.toHaveProperty("express");
+    expect(index).toContain("from 'elysia'");
+    expect(index).toContain(".get('/health'");
+    expect(index).toContain("process.env.PORT");
+    expect(index).toContain("hostname: '0.0.0.0'");
+    expect(index).not.toContain("hono");
+  });
+
+  it("keeps Fastify source and dependencies in its provider", () => {
+    const provider = getBackendFramework("fastify");
+    const index = provider.createIndex("orders-api");
+
+    expect(provider.dependencies).toHaveProperty("fastify");
+    expect(provider.dependencies).not.toHaveProperty("hono");
+    expect(provider.dependencies).not.toHaveProperty("express");
+    expect(index).toContain("from 'fastify'");
+    expect(index).toContain("app.get('/health'");
+    expect(index).toContain("process.env.PORT");
+    expect(index).toContain("host: '0.0.0.0'");
+    expect(index).not.toContain("hono");
+  });
+
+  it("keeps NestJS source, dependencies and decorator options in its provider", () => {
+    const provider = getBackendFramework("nestjs");
+    const index = provider.createIndex("orders-api");
+
+    expect(provider.dependencies).toHaveProperty("@nestjs/core");
+    expect(provider.dependencies).toHaveProperty("@nestjs/platform-express");
+    expect(provider.dependencies).toHaveProperty("reflect-metadata");
+    expect(provider.dependencies).not.toHaveProperty("hono");
+    expect(provider.compilerOptions).toEqual({
+      experimentalDecorators: true,
+      emitDecoratorMetadata: true,
+    });
+    expect(index).toContain("import 'reflect-metadata';");
+    expect(index).toContain("@Get('health')");
+    expect(index).toContain("process.env.PORT");
+    expect(index).toContain("'0.0.0.0'");
+    expect(index).not.toContain("hono");
+  });
+
+  it("keeps Koa source and dependencies in its provider", () => {
+    const provider = getBackendFramework("koa");
+    const index = provider.createIndex("orders-api");
+
+    expect(provider.dependencies).toHaveProperty("koa");
+    expect(provider.dependencies).not.toHaveProperty("hono");
+    expect(provider.devDependencies).toHaveProperty("@types/koa");
+    expect(index).toContain("from 'koa'");
+    expect(index).toContain("ctx.path === '/health'");
+    expect(index).toContain("process.env.PORT");
+    expect(index).toContain("'0.0.0.0'");
+    expect(index).not.toContain("hono");
+  });
+
+  it("keeps h3 source and a pinned 1.x dependency in its provider", () => {
+    const provider = getBackendFramework("h3");
+    const index = provider.createIndex("orders-api");
+
+    expect(provider.dependencies).toEqual({ h3: "^1.15.0" });
+    expect(index).toContain("toNodeListener(app)");
+    expect(index).toContain("router.get('/health'");
+    expect(index).toContain("process.env.PORT");
+    expect(index).toContain("'0.0.0.0'");
+    expect(index).not.toContain("hono");
+  });
+
   it("does not add generated-service dependencies to the CLI package", () => {
     const pkg = JSON.parse(readFileSync(join(repoRoot, "cli", "package.json"), "utf-8"));
     const all = Object.keys({ ...pkg.dependencies, ...pkg.devDependencies });
     expect(all).not.toContain("express");
     expect(all).not.toContain("@types/express");
+    expect(all).not.toContain("elysia");
+    expect(all).not.toContain("fastify");
+    expect(all).not.toContain("@nestjs/core");
+    expect(all).not.toContain("koa");
   });
 
   it("keeps the service schema open to every registered framework id", () => {
@@ -122,6 +209,97 @@ describe("tdk resource --framework on a backend", () => {
     expect(index).not.toContain("Hono");
   }, 15000);
 
+  it("scaffolds Elysia on the shared Bun image with its own source and dependencies", () => {
+    const result = tdk(
+      ["resource", "elysia-api", "--type", "backend", "--framework", "elysia", "--stack", "shop"],
+      projectRoot,
+    );
+    expect(result.status, result.stderr).toBe(0);
+
+    expect(json("elysia-api", "service.json")).toMatchObject({
+      appType: "backend",
+      framework: "elysia",
+    });
+    expect(existsSync(join(dir("elysia-api"), "Dockerfile"))).toBe(true);
+    const pkg = json("elysia-api", "package.json");
+    expect(pkg.dependencies).toHaveProperty("elysia");
+    expect(pkg.dependencies).not.toHaveProperty("hono");
+    expect(readFileSync(join(dir("elysia-api"), "src", "index.ts"), "utf-8")).toContain(
+      "from 'elysia'",
+    );
+  }, 15000);
+
+  it("scaffolds Fastify on the shared Bun image with its own source and dependencies", () => {
+    const result = tdk(
+      ["resource", "fastify-api", "--type", "backend", "--framework", "fastify", "--stack", "shop"],
+      projectRoot,
+    );
+    expect(result.status, result.stderr).toBe(0);
+
+    expect(json("fastify-api", "service.json")).toMatchObject({
+      appType: "backend",
+      framework: "fastify",
+    });
+    expect(existsSync(join(dir("fastify-api"), "Dockerfile"))).toBe(true);
+    const pkg = json("fastify-api", "package.json");
+    expect(pkg.dependencies).toHaveProperty("fastify");
+    expect(pkg.dependencies).not.toHaveProperty("hono");
+    expect(readFileSync(join(dir("fastify-api"), "src", "index.ts"), "utf-8")).toContain(
+      "from 'fastify'",
+    );
+  }, 15000);
+
+  it("scaffolds NestJS with decorator options in its tsconfig, on the shared Bun image", () => {
+    const result = tdk(
+      ["resource", "nest-api", "--type", "backend", "--framework", "nestjs", "--stack", "shop"],
+      projectRoot,
+    );
+    expect(result.status, result.stderr).toBe(0);
+
+    expect(json("nest-api", "service.json")).toMatchObject({
+      appType: "backend",
+      framework: "nestjs",
+    });
+    expect(existsSync(join(dir("nest-api"), "Dockerfile"))).toBe(true);
+    const pkg = json("nest-api", "package.json");
+    expect(pkg.dependencies).toHaveProperty("@nestjs/core");
+    expect(pkg.dependencies).not.toHaveProperty("hono");
+    const tsconfig = json("nest-api", "tsconfig.json");
+    expect(tsconfig.compilerOptions.experimentalDecorators).toBe(true);
+    expect(tsconfig.compilerOptions.emitDecoratorMetadata).toBe(true);
+  }, 15000);
+
+  it("scaffolds Koa on the shared Bun image with its own source and dependencies", () => {
+    const result = tdk(
+      ["resource", "koa-api", "--type", "backend", "--framework", "koa", "--stack", "shop"],
+      projectRoot,
+    );
+    expect(result.status, result.stderr).toBe(0);
+
+    expect(json("koa-api", "service.json")).toMatchObject({ appType: "backend", framework: "koa" });
+    expect(existsSync(join(dir("koa-api"), "Dockerfile"))).toBe(true);
+    const pkg = json("koa-api", "package.json");
+    expect(pkg.dependencies).toHaveProperty("koa");
+    expect(pkg.dependencies).not.toHaveProperty("hono");
+    expect(pkg.devDependencies).toHaveProperty("@types/koa");
+    expect(readFileSync(join(dir("koa-api"), "src", "index.ts"), "utf-8")).toContain("from 'koa'");
+  }, 15000);
+
+  it("scaffolds h3 on the shared Bun image with its own source and dependency", () => {
+    const result = tdk(
+      ["resource", "h3-api", "--type", "backend", "--framework", "h3", "--stack", "shop"],
+      projectRoot,
+    );
+    expect(result.status, result.stderr).toBe(0);
+
+    expect(json("h3-api", "service.json")).toMatchObject({ appType: "backend", framework: "h3" });
+    expect(existsSync(join(dir("h3-api"), "Dockerfile"))).toBe(true);
+    const pkg = json("h3-api", "package.json");
+    expect(pkg.dependencies).toHaveProperty("h3");
+    expect(pkg.dependencies).not.toHaveProperty("hono");
+    expect(readFileSync(join(dir("h3-api"), "src", "index.ts"), "utf-8")).toContain("from 'h3'");
+  }, 30000);
+
   it("persists an explicit hono selection and keeps the Hono source", () => {
     const result = tdk(
       ["resource", "hono-api", "--type", "backend", "--framework", "hono", "--stack", "shop"],
@@ -140,16 +318,20 @@ describe("tdk resource --framework on a backend", () => {
     );
     expect(result.status).toBe(0);
     expect(json("plain-api", "service.json")).not.toHaveProperty("framework");
+    // Hono keeps the shared tsconfig without NestJS's decorator flags.
+    expect(
+      json("plain-api", "tsconfig.json").compilerOptions.experimentalDecorators,
+    ).toBeUndefined();
     expect(json("plain-api", "package.json").dependencies).toHaveProperty("hono");
   }, 15000);
 
   it("rejects an unknown framework, Python, and other resource types before writing", () => {
     const unknown = tdk(
-      ["resource", "bad-api", "--type", "backend", "--framework", "koa", "--stack", "shop"],
+      ["resource", "bad-api", "--type", "backend", "--framework", "sinatra", "--stack", "shop"],
       projectRoot,
     );
     expect(unknown.status).not.toBe(0);
-    expect(`${unknown.stdout}${unknown.stderr}`).toMatch(/Unknown backend framework "koa"/);
+    expect(`${unknown.stdout}${unknown.stderr}`).toMatch(/Unknown backend framework "sinatra"/);
     expect(existsSync(dir("bad-api"))).toBe(false);
 
     const python = tdk(

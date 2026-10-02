@@ -113,13 +113,14 @@ and a check command:
 ```bash
 scripts/verify-byo-example.sh fastify          # health path /health
 scripts/verify-byo-example.sh create-vue /     # Vite apps answer on /
+scripts/verify-byo-tdk.sh full-stack-fastapi-template /api/v1/utils/health-check/   # needs a database: real tdk up
 VERIFY_WAIT_SECONDS=120 scripts/verify-byo-example.sh create-mastra /health   # slow starters
 ```
 
 The check builds the image, runs it with `PORT=4000` and expects HTTP 200. Folders named `create-*`, `ember`, `rsbuild`
 and similar run the real scaffolder at build time, so they stay in step with it.
 
-Recipes for using TDK next to other tools live in [`recipes/`](recipes/): [moon](recipes/moon.md).
+Recipes for using TDK next to other tools live in [`recipes/`](recipes/): [moon](recipes/moon.md), [Rsbuild](recipes/rsbuild.md).
 
 ### Running more than one project
 

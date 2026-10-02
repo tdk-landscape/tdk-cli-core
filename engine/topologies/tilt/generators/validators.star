@@ -555,9 +555,11 @@ def generate_resource_health_check(resource_name, resource_path, manifest, check
     health_checks = []
     
     # Check 1: Required files exist
-    frontend_entry = "src/main.ts" if manifest.get("framework", "react") in ["vue", "svelte", "lit"] else "src/main.tsx"
+    frontend_entry = "src/main.ts" if manifest.get("framework", "react") in ["vue", "svelte", "lit", "vanilla"] else "src/main.tsx"
     backend_files = {
         "python": ["pyproject.toml", "src/main.py"],
+        "go": ["go.mod", "main.go"],
+        "rust": ["Cargo.toml", "src/main.rs"],
     }.get(manifest.get("language", "bun"), ["package.json", "prisma/schema.prisma"])
     required_files = {
         "backend": backend_files,
@@ -573,8 +575,8 @@ if [ ! -f "{}" ]; then
 fi
 '''.format(req_file, req_file))
     
-    # Check 2: Package.json is valid JSON (Python backends have no package.json)
-    if manifest.get("language", "bun") != "python":
+    # Check 2: Package.json is valid JSON (Python and Go backends have no package.json)
+    if manifest.get("language", "bun") not in ["python", "go", "rust"]:
         health_checks.append('''
 if ! cat package.json | head -1 > /dev/null 2>&1; then
     echo "❌ package.json is not valid"

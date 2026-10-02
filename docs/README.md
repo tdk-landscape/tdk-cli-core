@@ -20,13 +20,14 @@
 ## Guides
 
 - [Bring-your-own resources](byo.md): wrap an existing service or image, one-shot jobs, `--restart`
-- [Frontend framework providers](frontend-framework-providers.md): add a Vite framework (React, Vue, Svelte, Preact, Lit, Solid)
-- [Backend language providers](backend-language-providers.md)
+- [Frontend framework providers](frontend-framework-providers.md): add a Vite framework (React, Vue, Svelte, Preact, Lit, Solid, Qwik, plain TypeScript)
+- [Backend language and framework providers](backend-language-providers.md): Bun with Hono, Express, Elysia, Fastify, NestJS, Koa or h3, and Python, Go or Rust
 
 ## Recipes and examples
 
-- [Recipes](recipes/): using TDK next to other tools. [moon](recipes/moon.md)
+- [Recipes](recipes/): using TDK next to other tools. [moon](recipes/moon.md), [Rsbuild](recipes/rsbuild.md)
 - [Bring-your-own examples](../examples/byo/README.md): one folder per framework, each with its own README and a check command
+- [One-shot job examples](../examples/byo-jobs/README.md): database migrations (dbmate, Atlas, Prisma, TypeORM, MikroORM, Drizzle) that run once and exit
 - [Worked example: a real shop](examples/shop-real.md)
 
 ## Reference

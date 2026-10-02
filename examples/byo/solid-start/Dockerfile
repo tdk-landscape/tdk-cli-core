@@ -1,0 +1,8 @@
+# A real SolidStart v2 app (basic template, TypeScript): the scaffolder runs at build time.
+FROM node:22-alpine
+WORKDIR /work
+RUN npx --yes create-solid@latest -p app -s --v2 -t basic --ts </dev/null
+WORKDIR /work/app
+RUN npm install
+# SolidStart v2's dev server is Vite: listen beyond loopback (--host) and on the port TDK assigns.
+CMD ["sh", "-c", "npx vite dev --host 0.0.0.0 --port ${PORT:-3000}"]

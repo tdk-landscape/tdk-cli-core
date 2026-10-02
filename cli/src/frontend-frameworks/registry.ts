@@ -6,6 +6,7 @@ import { reactFrontendProvider } from "./react.js";
 import { solidFrontendProvider } from "./solid.js";
 import { svelteFrontendProvider } from "./svelte.js";
 import type { FrontendFrameworkProvider } from "./types.js";
+import { vanillaFrontendProvider } from "./vanilla.js";
 import { vueFrontendProvider } from "./vue.js";
 
 export const DEFAULT_FRONTEND_FRAMEWORK = "react";
@@ -18,6 +19,7 @@ export const FRONTEND_FRAMEWORKS: Record<string, FrontendFrameworkProvider> = {
   lit: litFrontendProvider,
   solid: solidFrontendProvider,
   qwik: qwikFrontendProvider,
+  vanilla: vanillaFrontendProvider,
 };
 
 export function getFrontendFramework(frameworkId?: string): FrontendFrameworkProvider {

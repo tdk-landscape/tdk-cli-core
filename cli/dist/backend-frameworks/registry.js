@@ -1,6 +1,11 @@
 import { getBackendIndexTemplate } from "../backend-languages/bun.js";
 import { TdkError } from "../utils/errors.js";
+import { elysiaBackendProvider } from "./elysia.js";
 import { expressBackendProvider } from "./express.js";
+import { fastifyBackendProvider } from "./fastify.js";
+import { h3BackendProvider } from "./h3.js";
+import { koaBackendProvider } from "./koa.js";
+import { nestBackendProvider } from "./nestjs.js";
 /** Hono is the historical default; omitting --framework keeps the exact historical output. */
 export const DEFAULT_BACKEND_FRAMEWORK = "hono";
 export const honoBackendProvider = {
@@ -13,6 +18,11 @@ export const honoBackendProvider = {
 export const BACKEND_FRAMEWORKS = {
     hono: honoBackendProvider,
     express: expressBackendProvider,
+    elysia: elysiaBackendProvider,
+    fastify: fastifyBackendProvider,
+    h3: h3BackendProvider,
+    koa: koaBackendProvider,
+    nestjs: nestBackendProvider,
 };
 export function getBackendFramework(frameworkId) {
     const id = (frameworkId ?? DEFAULT_BACKEND_FRAMEWORK).trim().toLowerCase();

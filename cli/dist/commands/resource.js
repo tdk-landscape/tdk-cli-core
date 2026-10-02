@@ -154,11 +154,13 @@ export function createPackageJson(name, type, frameworkId) {
 }
 export function createResourceTsconfig(resourceType, frameworkId) {
     const framework = resolveFrontendFramework(resourceType, frameworkId);
+    const backendFramework = resolveBackendFramework(resourceType, frameworkId);
     return {
         ...TSCONFIG_TEMPLATE,
         compilerOptions: {
             ...TSCONFIG_TEMPLATE.compilerOptions,
             ...(framework?.compilerOptions ?? {}),
+            ...(backendFramework?.compilerOptions ?? {}),
         },
     };
 }
@@ -295,8 +297,8 @@ export const resourceCommand = new Command("resource")
     .description("Create a new resource (service) from scratch, or register an existing one")
     .argument("[name]", "Resource name (kebab-case)")
     .option("-t, --type <type>", "Resource type: backend, frontend, worker, bring-your-own, sdk", "backend")
-    .option("--framework <id>", "Framework: frontend react (default), vue, svelte, preact, lit, solid, qwik; backend hono (default), express")
-    .option("--language <id>", "Backend language: bun (default), python")
+    .option("--framework <id>", "Framework: frontend react (default), vue, svelte, preact, lit, solid, qwik, vanilla; backend hono (default), express, elysia, fastify, nestjs, koa, h3")
+    .option("--language <id>", "Backend language: bun (default), python, go, rust")
     .option("-s, --stack <stack>", "Stack to assign resource to", "default")
     .option("-p, --path <path>", "Custom path for resource directory")
     .option("--resource-path <path>", "Alias for --path (for backward compatibility)")
@@ -584,8 +586,13 @@ This file contains the resource configuration for TDK.
         // Create directory structure for new resources
         console.log(chalk.blue("\n📁 Creating directory structure..."));
         mkdirSync(fullPath, { recursive: true });
-        mkdirSync(resolve(fullPath, "src"), { recursive: true });
-        mkdirSync(resolve(fullPath, "tests"), { recursive: true });
+        // A provider that owns its runtime files only gets the folders it writes into (Go keeps its files at the root).
+        const ownedTopLevel = new Set((backendLanguage?.createFiles?.(resourceName) ?? []).map((file) => file.filename.split("/")[0]));
+        for (const folder of ["src", "tests"]) {
+            if (!backendLanguage?.createFiles || ownedTopLevel.has(folder)) {
+                mkdirSync(resolve(fullPath, folder), { recursive: true });
+            }
+        }
         if (resourceType === "frontend") {
             mkdirSync(resolve(fullPath, "public"), { recursive: true });
         }
@@ -615,7 +622,7 @@ This file contains the resource configuration for TDK.
             {
                 type: "json",
                 filename: "tsconfig.json",
-                content: createResourceTsconfig(resourceType, frontendFramework?.id),
+                content: createResourceTsconfig(resourceType, frontendFramework?.id ?? backendFramework?.id),
                 description: "Generating tsconfig.json",
                 emoji: "⚙️",
             },
