@@ -70,6 +70,15 @@ curl -fsSL https://tdk-landscape.github.io/install.sh | sh
 - [Architecture and repository map](docs/project-overview.md)
 - [Scale fixture measurements and caveats](docs/benchmarks/scale-bench.md)
 
+## History
+
+TDK is older than this repository and its npm package suggest. Development started on 21 April 2026 in
+[tdk-landscape/tdk](https://github.com/tdk-landscape/tdk), now archived and kept as read-only history; its first commit is
+[`1714637`](https://github.com/tdk-landscape/tdk/commit/1714637637196ed54cbfa18534230a782c05ab36) ("Initial commit: TDK specs,
+generators, CLI, and standards"). This repository, `tdk-cli-core`, was created on 19 September 2026 and is where development
+continues; the `@tdk-landscape/tdk-cli-core` package on npm was first published on 21 September 2026. So the code lineage is about
+five months older than the repository and package dates that you will see on GitHub and npm.
+
 ## Requirements and support
 
 For the local runtime, install Docker (Desktop, OrbStack, or Colima; Engine 25+, Compose 2.20+) and [Tilt](https://docs.tilt.dev/install.html). Bun 1.2+ is used by the default generated services. TDK selects host ports from bounded fallback ranges for HTTP, HTTPS, and Postgres; set `TDK_HTTP_PORT`, `TDK_HTTPS_PORT`, or `TDK_POSTGRES_PORT` to override them. TDK supports macOS, Linux, and Windows through WSL2 Ubuntu; native Windows supports CLI inspection only. Run `tdk doctor` to check local readiness. See [WSL2 setup](docs/wsl2.md).
