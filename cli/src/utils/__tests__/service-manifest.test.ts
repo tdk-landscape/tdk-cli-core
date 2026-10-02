@@ -45,6 +45,43 @@ describe("service manifest compatibility", () => {
     expect(result.warnings[0]).not.toContain("committed-by-mistake");
   });
 
+  it("flags the deprecated dependencies and envVars fields, and says what replaces them", () => {
+    const result = validateServiceManifest(
+      {
+        appName: "api",
+        appType: "backend",
+        stack: "shop",
+        schemaVersion: SERVICE_MANIFEST_SCHEMA_VERSION,
+        dependencies: ["orders"],
+        envVars: { LOG_LEVEL: "debug" },
+      },
+      "service.json",
+    );
+    expect(result.errors).toEqual([]);
+    expect(result.warnings).toEqual([
+      "service.json.dependencies: deprecated, use dependsOn (still read for now)",
+      "service.json.envVars: deprecated, use params (still read when params is absent)",
+    ]);
+    // Deprecated is not removed: the values are kept so the engine can still fall back to them.
+    expect(result.manifest?.dependencies).toEqual(["orders"]);
+    expect(result.manifest?.envVars).toEqual({ LOG_LEVEL: "debug" });
+  });
+
+  it("does not flag the current fields", () => {
+    const result = validateServiceManifest(
+      {
+        appName: "api",
+        appType: "backend",
+        stack: "shop",
+        schemaVersion: SERVICE_MANIFEST_SCHEMA_VERSION,
+        dependsOn: ["orders"],
+        params: { LOG_LEVEL: "debug" },
+      },
+      "service.json",
+    );
+    expect(result.warnings).toEqual([]);
+  });
+
   it("rejects unsupported schema versions", () => {
     const result = validateServiceManifest(
       { appName: "api", appType: "backend", stack: "shop", schemaVersion: 2 },
