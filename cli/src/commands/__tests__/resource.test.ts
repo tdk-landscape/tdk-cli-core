@@ -192,8 +192,9 @@ describe("resource command", () => {
       expect(getFrontendFramework("svelte").id).toBe("svelte");
       expect(getFrontendFramework("preact").id).toBe("preact");
       expect(getFrontendFramework("lit").id).toBe("lit");
+      expect(getFrontendFramework("solid").id).toBe("solid");
       expect(() => getFrontendFramework("angular")).toThrow(
-        /Supported frameworks: react, vue, svelte, preact, lit/,
+        /Supported frameworks: react, vue, svelte, preact, lit, solid/,
       );
       expect(() => getFrontendFramework("__proto__")).toThrow(/Unknown frontend framework/);
       expect(getFrontendFramework("React").id).toBe("react");
@@ -300,6 +301,25 @@ describe("resource command", () => {
       ]);
       expect(files[0]?.content).toContain("<app-root></app-root>");
       expect(files[2]?.content).toContain("from 'lit'");
+      expect(files[2]?.content).toContain("Frontend resource created with TDK");
+      expect(files.some(({ filename }) => filename === "vite.config.ts")).toBe(false);
+    });
+
+    it("keeps Solid source and dependencies in its provider", () => {
+      const provider = getFrontendFramework("solid");
+      const files = provider.createFiles("sample-web");
+
+      expect(provider.dependencies).toHaveProperty("solid-js");
+      expect(provider.dependencies).not.toHaveProperty("react");
+      expect(provider.devDependencies).toHaveProperty("vite-plugin-solid");
+      expect(provider.devDependencies).not.toHaveProperty("@vitejs/plugin-react");
+      expect(provider.compilerOptions).toEqual({ jsx: "preserve", jsxImportSource: "solid-js" });
+      expect(files.map(({ filename }) => filename)).toEqual([
+        "index.html",
+        "src/main.tsx",
+        "src/App.tsx",
+      ]);
+      expect(files[1]?.content).toContain("from 'solid-js/web'");
       expect(files[2]?.content).toContain("Frontend resource created with TDK");
       expect(files.some(({ filename }) => filename === "vite.config.ts")).toBe(false);
     });

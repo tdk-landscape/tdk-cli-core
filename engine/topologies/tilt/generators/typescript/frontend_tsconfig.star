@@ -77,7 +77,7 @@ def generate_frontend_tsconfig(resource_path, write_fn, internal_deps=None, is_d
                 resource_path
             ))
             print("   Docker build will resolve @{npm_scope}/* from node_modules")
-    if framework not in ['react', 'vue', 'svelte', 'preact', 'lit']:
+    if framework not in ['react', 'vue', 'svelte', 'preact', 'lit', 'solid']:
         fail("Unknown frontend framework for TypeScript generation: " + str(framework))
 
     compiler_options = {
@@ -102,6 +102,9 @@ def generate_frontend_tsconfig(resource_path, write_fn, internal_deps=None, is_d
     elif framework == 'preact':
         compiler_options['jsx'] = 'react-jsx'
         compiler_options['jsxImportSource'] = 'preact'
+    elif framework == 'solid':
+        compiler_options['jsx'] = 'preserve'
+        compiler_options['jsxImportSource'] = 'solid-js'
 
     content = {
         "compilerOptions": compiler_options,
