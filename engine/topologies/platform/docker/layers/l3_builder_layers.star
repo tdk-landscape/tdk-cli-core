@@ -28,6 +28,9 @@ load('./prisma/prisma_build.star',
     'prisma_normalize_output',
     'L3_generate_migration_engine',
 )
+# Infisical is opt-in: use_infisical defaults to False and nothing in the free engine passes True, so the generator behind this
+# (tilt/generators/infisical/secrets_generator.star) is not on the default path. It is an older contract with fixed secret names and
+# ports. Do not wire `secrets.required` through it; the default provider is platform/docker/secrets/env_secrets.star.
 load('./infisical/infisical_docker.star', 'InfisicalDocker')
 
 # Load project name for dynamic golden image naming

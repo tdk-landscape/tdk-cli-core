@@ -3,6 +3,7 @@ import chalk from "chalk";
 import { Command } from "commander";
 import { ensureProjectRuntimeAssets } from "../generator/template-engine.js";
 import { handleDryRun } from "../utils/command-helpers.js";
+import { completeEnvFile } from "../utils/env-validator.js";
 import { errorFactories, handleTiltFailure, requireProjectRoot, runCommand, showErrorAndExit, withTiltCheck, } from "../utils/errors.js";
 import { formatCount } from "../utils/formatting.js";
 import { exportHostPortPlan, getHostPortPlan, writeSavedHostPortPlan, } from "../utils/host-port-config.js";
@@ -77,6 +78,14 @@ export const upCommand = new Command("up")
             inspectDocker: !options.dryRun,
         });
         if (!options.dryRun) {
+            // An older project's .env predates keys such as JWT_SECRET, which Compose now requires. Add what is missing (never
+            // changing an existing value) before anything starts. Only inside a real project, so a stray run never writes a .env.
+            if (findProjectRoot()) {
+                const addedEnvKeys = completeEnvFile(projectRoot);
+                if (addedEnvKeys.length > 0 && !options.quiet) {
+                    console.log(chalk.gray(`Added ${addedEnvKeys.join(", ")} to .env (generated; existing values unchanged)`));
+                }
+            }
             const copiedAssets = ensureProjectRuntimeAssets(projectRoot);
             if (copiedAssets.length > 0 && options.verbose && !options.quiet) {
                 console.log(chalk.gray(`Refreshed runtime assets: ${copiedAssets.join(", ")}`));

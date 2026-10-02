@@ -7,7 +7,6 @@
 
 load('./utils_env.star',
     'load_dotenv',
-    'validate_infisical_environment',
     'should_enable',
 )
 load('./utils_debug.star',
@@ -371,7 +370,6 @@ Utils = struct(
 
     # Environment
     load_dotenv = load_dotenv,
-    validate_infisical_environment = validate_infisical_environment,
     should_enable = should_enable,
 
     # Debug utilities

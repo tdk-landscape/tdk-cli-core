@@ -21,23 +21,6 @@ def load_dotenv(project_root=''):
                 os.environ[key.strip()] = value.strip().strip('"').strip("'")
 
 
-def validate_infisical_environment():
-    """Validate required Infisical environment variables are set."""
-    required_vars = ["INFISICAL_CLIENT_ID", "INFISICAL_CLIENT_SECRET", "INFISICAL_PROJECT_ID"]
-    missing_vars = [var for var in required_vars if not os.environ.get(var)]
-    if missing_vars:
-        fail("""
-🛑 MISSING REQUIRED ENVIRONMENT VARIABLES FOR INFISICAL:
-{missing_vars}
-
-Please set these variables in your environment or .env file.
-Example:
-  export INFISICAL_CLIENT_ID=your_client_id
-  export INFISICAL_CLIENT_SECRET=your_client_secret
-  export INFISICAL_PROJECT_ID=your_project_id
-""".format(missing_vars=", ".join(missing_vars)))
-
-
 def should_enable(resource_name, cfg, defaults):
     """Check if a service should be enabled based on config and defaults."""
     return cfg.get(resource_name, defaults.get(resource_name, False))

@@ -180,10 +180,10 @@
       "type": "object"
     },
     "secrets": {
-      "description": "Secret references resolved via Infisical. NO secrets in params/envVars - security violation.",
+      "description": "Names of secrets the resource needs. By default each is read from the project .env (gitignored) and injected into the container; with TDK_SECRET_PROVIDER=infisical they are left to Infisical. NO secret values in params/envVars or anywhere in service.json.",
       "properties": {
         "required": {
-          "description": "Required secret names. Resource CRASHES if any are missing.",
+          "description": "Required secret names. The resource does not start if any is missing from the project .env.",
           "items": {
             "type": "string",
             "pattern": "^[A-Z_][A-Z0-9_]*$"
@@ -192,7 +192,7 @@
           "uniqueItems": true
         },
         "optional": {
-          "description": "Optional secret names. Resource starts but warns if missing.",
+          "description": "Optional secret names. The resource starts with the variable empty when it is missing from the project .env.",
           "items": {
             "type": "string",
             "pattern": "^[A-Z_][A-Z0-9_]*$"
