@@ -77,7 +77,8 @@ function parseResource(serviceJsonPath: string): DiscoveredResource {
 
   const parsedConfig = parsed as unknown as ResourceConfig;
   for (const warning of validateServiceManifest(parsed, serviceJsonPath).warnings) {
-    console.warn(`⚠️  Unknown service.json field: ${warning}`);
+    // The warning names the file and field and says what is wrong (unknown, deprecated, ignored), so do not prefix it.
+    console.warn(`⚠️  ${warning}`);
   }
   const config: ResourceConfig = {
     ...parsedConfig,

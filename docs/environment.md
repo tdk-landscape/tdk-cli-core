@@ -46,7 +46,9 @@ PRICE="$$5"
 `$` is written as `$$` because Docker Compose expands `$NAME` and `${NAME}` in env files: an unescaped dollar would silently pick up
 some other variable. In a real container, `"price $$FOO"` arrives as the literal `price $FOO`.
 
-`envVars` is still read when `params` is absent, for older manifests.
+`envVars` is the deprecated name for `params`. It is still read when `params` is absent, so older manifests keep working, and
+`tdk doctor` warns: `service.json.envVars: deprecated, use params (still read when params is absent)`. The same goes for
+`dependencies`, the deprecated name for `dependsOn`.
 
 ## Secrets
 
@@ -112,4 +114,4 @@ Not checked or not changed:
 - Dependency URLs: only frontends get `VITE_<NAME>_API_URL`; backends get none for `dependsOn`, and `API_URL` is built from the stack
   rather than the resource name, so two backends in one stack share it.
 - Python backends receive the same generated env file as Bun backends.
-- `dependencies` is still read as a fallback for `dependsOn`.
+- `dependencies` and `envVars` are warned about but still read. They are not removed yet; that is a later, announced change.
