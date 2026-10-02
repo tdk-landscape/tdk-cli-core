@@ -209,6 +209,65 @@ if hasattr(Utils, 'validate_infisical_environment'): fail('validate_infisical_en
   });
 });
 
+describe.skipIf(!hasTilt)("load_dotenv", { timeout: 40_000 }, () => {
+  // Parsed in Starlark from the file itself, not by running `cat` through a shell.
+  const dotenvDir = (content: string, parent = "tdk-dotenv-") => {
+    const dir = mkdtempSync(join(tmpdir(), parent));
+    temporaryDirs.push(dir);
+    writeFileSync(join(dir, ".env"), content);
+    return dir;
+  };
+  const load = (dir: string) => `load(${utilsStar}, 'Utils')
+Utils.load_dotenv(${JSON.stringify(dir)})
+def check(name, expected):
+    actual = os.environ.get(name, '<unset>')
+    if actual != expected: fail(name + ': expected [' + expected + '] but got [' + actual + ']')
+`;
+
+  it("reads plain, exported, quoted and empty assignments", () => {
+    const dir = dotenvDir(
+      [
+        "# a comment",
+        "",
+        "TDK_T_PLAIN=bar",
+        "export TDK_T_EXPORTED=baz",
+        'TDK_T_DOUBLE="hello world"',
+        "TDK_T_SINGLE='a literal $b'",
+        'TDK_T_INNER="say \\"hi\\""',
+        'TDK_T_EMPTY=""',
+        "TDK_T_EQUALS=a=b=c",
+        "NOT_AN_ASSIGNMENT",
+      ].join("\n"),
+    );
+    expectPasses(`${load(dir)}
+check('TDK_T_PLAIN', 'bar')
+check('TDK_T_EXPORTED', 'baz')
+if 'export TDK_T_EXPORTED' in os.environ: fail('an export prefix must not become part of the name')
+check('TDK_T_DOUBLE', 'hello world')
+check('TDK_T_SINGLE', 'a literal $b')
+check('TDK_T_INNER', 'say "hi"')
+check('TDK_T_EMPTY', '')
+check('TDK_T_EQUALS', 'a=b=c')
+check('NOT_AN_ASSIGNMENT', '<unset>')
+`);
+  });
+
+  it("works when the project path contains a single quote", () => {
+    const dir = dotenvDir("TDK_T_QUOTED_PATH=found\n", "tdk-dot'env-");
+    expectPasses(`${load(dir)}
+check('TDK_T_QUOTED_PATH', 'found')
+`);
+  });
+
+  it("does nothing, without failing, when there is no .env", () => {
+    const dir = mkdtempSync(join(tmpdir(), "tdk-dotenv-none-"));
+    temporaryDirs.push(dir);
+    expectPasses(`${load(dir)}
+check('TDK_T_NOTHING', '<unset>')
+`);
+  });
+});
+
 describe.skipIf(!hasTilt)(
   "identity service URL is one setting for both writers",
   { timeout: 40_000 },
