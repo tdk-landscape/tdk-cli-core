@@ -107,7 +107,7 @@
       "type": "string"
     },
     "appType": {
-      "description": "Resource type determining build strategy:\n• backend - Hono/Express API server\n• frontend - Vite single-page application (React, Vue, Svelte, Preact, Lit or Solid, see framework)\n• sdk - Shared library package\n• worker - Background job processor\n• migrator - Database migration runner\n• library - Shared code library\n• bring-your-own - Wrap an existing service. No app scaffold. Needs Dockerfile or --image.",
+      "description": "Resource type determining build strategy:\n• backend - Hono/Express API server\n• frontend - Vite single-page application (React, Vue, Svelte, Preact, Lit, Solid or Qwik, see framework)\n• sdk - Shared library package\n• worker - Background job processor\n• migrator - Database migration runner\n• library - Shared code library\n• bring-your-own - Wrap an existing service. No app scaffold. Needs Dockerfile or --image.",
       "enum": [
         "backend",
         "frontend",
@@ -232,7 +232,8 @@
         "svelte",
         "preact",
         "lit",
-        "solid"
+        "solid",
+        "qwik"
       ],
       "pattern": "^[a-z][a-z0-9-]*$",
       "type": "string"

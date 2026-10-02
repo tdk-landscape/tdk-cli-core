@@ -1,6 +1,7 @@
 import { TdkError } from "../utils/errors.js";
 import { litFrontendProvider } from "./lit.js";
 import { preactFrontendProvider } from "./preact.js";
+import { qwikFrontendProvider } from "./qwik.js";
 import { reactFrontendProvider } from "./react.js";
 import { solidFrontendProvider } from "./solid.js";
 import { svelteFrontendProvider } from "./svelte.js";
@@ -16,6 +17,7 @@ export const FRONTEND_FRAMEWORKS: Record<string, FrontendFrameworkProvider> = {
   preact: preactFrontendProvider,
   lit: litFrontendProvider,
   solid: solidFrontendProvider,
+  qwik: qwikFrontendProvider,
 };
 
 export function getFrontendFramework(frameworkId?: string): FrontendFrameworkProvider {
