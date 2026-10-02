@@ -69,6 +69,7 @@ tdk resource my-svelte-app --type frontend --framework svelte --stack api
 tdk resource my-preact-app --type frontend --framework preact --stack api
 tdk resource my-lit-app --type frontend --framework lit --stack api
 tdk resource my-py-api --type backend --language python --stack api
+tdk resource my-express-api --type backend --framework express --stack api
 tdk resource my-worker --type worker --stack background
 ```
 
@@ -77,10 +78,10 @@ tdk resource my-worker --type worker --stack background
 - 📦 `package.json` — Scripts, dependencies (Hono/Vite/Biome)
 - ⚙️ `tsconfig.json` — TypeScript configuration
 - 🐳 `Dockerfile` — Multi-stage build with health checks
-- 💻 `src/` — Starter code (Hono for backend, React, Vue, Svelte, Preact, Lit or Solid for frontend)
+- 💻 `src/` — Starter code (Hono or Express for backend, React, Vue, Svelte, Preact, Lit or Solid for frontend)
 - 🧪 `tests/` — Vitest test file
 
-Backend creation defaults to Bun + Hono, exactly as it always has: omit `--language` and nothing changes. Use `--language python` for FastAPI on Python 3.12. The selected id is saved as `language` in `service.json`; a legacy manifest without it still means Bun and is never rewritten. The flag applies only to `--type backend`, and unknown ids fail before a resource is written. Languages without a provider can use `--type bring-your-own`. See the [backend provider guide](../docs/backend-language-providers.md) and the runnable [Python example](../examples/one-backend-python/README.md).
+Backend creation defaults to Bun + Hono, exactly as it always has: omit `--language` and nothing changes. Use `--language python` for FastAPI on Python 3.12. The selected id is saved as `language` in `service.json`; a legacy manifest without it still means Bun and is never rewritten. The flag applies only to `--type backend`, and unknown ids fail before a resource is written. On the Bun runtime the HTTP framework is Hono by default; use `--framework express` for Express 5 instead (saved as `framework` in `service.json`; `--framework hono` is accepted and saved too, and omitting it changes nothing). `--framework` cannot be combined with `--language python`, and unknown ids fail before a resource is written. Languages without a provider can use `--type bring-your-own`. See the [backend provider guide](../docs/backend-language-providers.md) and the runnable [Python example](../examples/one-backend-python/README.md).
 
 Frontend creation defaults to React. Use `--framework vue` for Vue 3, `--framework svelte` for Svelte 5, `--framework preact` for Preact 10, `--framework lit` for Lit 3 or `--framework solid` for Solid 1; `--framework react` is also accepted. The selected id is saved in `service.json`. The flag applies only to frontend resources, and unknown ids fail before a resource is written. Existing frontend manifests without the field continue to use React.
 
@@ -162,7 +163,7 @@ tdk resources --stack api
 
 | Type | Port Range | Template | Use Case |
 |------|------------|----------|----------|
-| `backend` | 4000-4999 | 🏎️ Hono API | REST APIs, microservices |
+| `backend` | 4000-4999 | 🏎️ Hono API (or Express, or Python) | REST APIs, microservices |
 | `frontend` | 3000-3999 | React (default), Vue, Svelte, Preact, Lit or Solid + Vite | Web apps, dashboards |
 | `worker` | (optional) | 🔧 Background worker | Queue processors, jobs |
 | `bring-your-own` | 4000-5999 | none | Existing app with your own Dockerfile or image |

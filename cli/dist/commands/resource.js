@@ -2,6 +2,7 @@ import { existsSync, mkdirSync } from "node:fs";
 import { isAbsolute, relative, resolve } from "node:path";
 import chalk from "chalk";
 import { Command } from "commander";
+import { resolveBackendFramework } from "../backend-frameworks/registry.js";
 import { getBackendIndexTemplate } from "../backend-languages/bun.js";
 import { resolveBackendLanguage } from "../backend-languages/registry.js";
 import { resolveFrontendFramework } from "../frontend-frameworks/registry.js";
@@ -70,6 +71,8 @@ export function createServiceJson(name, type, stack, port, extraFeatures = [], f
     const framework = resolveFrontendFramework(type, frameworkId);
     // Only an explicit selection is persisted: a missing `language` has always meant Bun.
     const language = languageId === undefined ? undefined : resolveBackendLanguage(type, languageId);
+    // Likewise a missing backend `framework` has always meant Hono.
+    const backendFramework = resolveBackendFramework(type, frameworkId, language);
     const typeSpecific = TYPE_SPECIFIC[type];
     const base = JSON.parse(JSON.stringify(BASE_TEMPLATE));
     for (const [key, value] of Object.entries(typeSpecific)) {
@@ -106,12 +109,14 @@ export function createServiceJson(name, type, stack, port, extraFeatures = [], f
         stack,
         port,
         ...(framework ? { framework: framework.id } : {}),
+        ...(backendFramework ? { framework: backendFramework.id } : {}),
         ...(language ? { language: language.id } : {}),
     };
 }
 export function createPackageJson(name, type, frameworkId) {
     const isFrontend = type === "frontend";
     const framework = resolveFrontendFramework(type, frameworkId);
+    const backendFramework = resolveBackendFramework(type, frameworkId);
     return {
         name: `@project/${name}`,
         version: "0.0.1",
@@ -130,7 +135,7 @@ export function createPackageJson(name, type, frameworkId) {
             "lint:fix": "biome check . --write",
         },
         dependencies: {
-            ...(isFrontend ? {} : { hono: "^4.0.0" }),
+            ...(isFrontend ? {} : (backendFramework?.dependencies ?? { hono: "^4.0.0" })),
             ...(framework?.dependencies ?? {}),
         },
         devDependencies: {
@@ -143,6 +148,7 @@ export function createPackageJson(name, type, frameworkId) {
             "@biomejs/biome": "^2.5.13",
             ...(isFrontend ? { vite: "^5.0.0" } : {}),
             ...(framework?.devDependencies ?? {}),
+            ...(backendFramework?.devDependencies ?? {}),
         },
     };
 }
@@ -289,7 +295,7 @@ export const resourceCommand = new Command("resource")
     .description("Create a new resource (service) from scratch, or register an existing one")
     .argument("[name]", "Resource name (kebab-case)")
     .option("-t, --type <type>", "Resource type: backend, frontend, worker, bring-your-own, sdk", "backend")
-    .option("--framework <id>", "Frontend framework: react (default), vue, svelte, preact, lit, solid")
+    .option("--framework <id>", "Framework: frontend react (default), vue, svelte, preact, lit, solid; backend hono (default), express")
     .option("--language <id>", "Backend language: bun (default), python")
     .option("-s, --stack <stack>", "Stack to assign resource to", "default")
     .option("-p, --path <path>", "Custom path for resource directory")
@@ -352,6 +358,7 @@ export const resourceCommand = new Command("resource")
         }
         const frontendFramework = resolveFrontendFramework(resourceType, options.framework);
         const backendLanguage = resolveBackendLanguage(resourceType, options.language);
+        const backendFramework = resolveBackendFramework(resourceType, options.framework, backendLanguage);
         let dddEnabled = false;
         if (options.ddd) {
             if (resourceType !== "backend" && resourceType !== "worker") {
@@ -588,8 +595,8 @@ This file contains the resource configuration for TDK.
             }
         }
         // Prepare file generation tasks
-        const serviceJson = createServiceJson(resourceName, resourceType, stackName, assignedPort, dddEnabled ? ["ddd"] : [], frontendFramework?.id, options.language === undefined ? undefined : backendLanguage?.id);
-        const packageJson = createPackageJson(resourceName, resourceType, frontendFramework?.id);
+        const serviceJson = createServiceJson(resourceName, resourceType, stackName, assignedPort, dddEnabled ? ["ddd"] : [], frontendFramework?.id ?? backendFramework?.id, options.language === undefined ? undefined : backendLanguage?.id);
+        const packageJson = createPackageJson(resourceName, resourceType, frontendFramework?.id ?? backendFramework?.id);
         const tasks = [
             {
                 type: "json",
@@ -625,7 +632,7 @@ This file contains the resource configuration for TDK.
             tasks.push({
                 type: "text",
                 filename: "src/index.ts",
-                content: getBackendIndexTemplate(resourceName),
+                content: (backendFramework?.createIndex ?? getBackendIndexTemplate)(resourceName),
                 description: "Generating backend source",
                 emoji: "💻",
             });
