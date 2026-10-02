@@ -27,7 +27,8 @@ cleanup() {
   pkill -f "tilt up.*$proj" >/dev/null 2>&1 || true
   docker rm -f $(docker ps -aq --filter "name=$proj") >/dev/null 2>&1 || true
   docker network ls --format '{{.Name}}' | grep "^${proj}" | xargs -r docker network rm >/dev/null 2>&1 || true
-  docker rmi -f "app_${proj}:dev" >/dev/null 2>&1 || true   # the image `tdk up` built for this run only
+  # Tilt also tags the build as app_<project>:tilt-<hash>, so remove every tag of this run's own repository, not just :dev.
+  docker images --format '{{.Repository}}:{{.Tag}}' | grep -E "^app_${proj}:" | xargs -r docker rmi -f >/dev/null 2>&1 || true   # the image `tdk up` built for this run only
   # TDK also builds per-project "golden layer" base images named <project>-l1 ... -l4-*; they are unique to this run.
   docker images --format '{{.Repository}}:{{.Tag}}' | grep -E "^${proj}-l[0-9]+" | xargs -r docker rmi -f >/dev/null 2>&1 || true
 }
