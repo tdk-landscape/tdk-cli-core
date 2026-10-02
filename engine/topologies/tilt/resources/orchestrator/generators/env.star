@@ -80,11 +80,42 @@ def _build_dependency_env_lines(manifest):
     return lines
 
 
+# Characters that can appear in a dotenv value without quoting.
+_ENV_BARE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-./:@%+=,'
+
+
+def _format_env_value(value):
+    """Format a param value so the generated file stays valid dotenv.
+
+    A plain value stays bare. Anything else (a space, `#`, a quote, a backslash, a newline, or an empty string) is wrapped in double
+    quotes with backslash, quote and newline escaped, which is how dotenv parsers (including Docker Compose's) read it back.
+    """
+    text = str(value)
+    bare = text != ''
+    for i in range(len(text)):
+        if text[i] not in _ENV_BARE_CHARS:
+            bare = False
+            break
+    if bare:
+        return text
+
+    escaped = text.replace('\\', '\\\\').replace('"', '\\"').replace('\r', '\\r').replace('\n', '\\n')
+    return '"' + escaped + '"'
+
+
+def _uses_prisma(manifest):
+    """Prisma is opt-in: an explicit usePrisma, or `prisma` in featuresEnabled (the same rule the Dockerfile generator uses)."""
+    if manifest.get('usePrisma'):
+        return True
+    return 'prisma' in manifest.get('featuresEnabled', [])
+
+
 def _generate_params_env(manifest, backend_manifest=None, write_fn=None):
     """Generate params (non-secret) environment variables from manifest.
 
-    This generates config like BASE_URL, PORT, etc. - NEVER secrets.
-    Secrets are handled separately by _generate_secrets_env().
+    This generates config like BASE_URL, PORT, etc. - NEVER secrets. The file is generated and verified by `tdk config verify`, so
+    nothing secret may be written here: the JWT secret and `secrets.required` / `secrets.optional` reach the container from the
+    project `.env` through the Compose entry instead.
 
     Args:
         manifest: Service manifest dict with configuration
@@ -119,9 +150,10 @@ def _generate_params_env(manifest, backend_manifest=None, write_fn=None):
     else:
         auth_mode = None
     
+    # A missing value is None; AuthConfig treats None as "use the default". `jwtSecret` is deliberately not read: a secret in a
+    # committed service.json would be copied into a generated file, so the secret comes from the project .env instead.
     auth_config = {
         'authMode': auth_mode,
-        'jwtSecret': manifest.get('jwtSecret') if manifest else None,
         'identityServiceUrl': manifest.get('identityServiceUrl') if manifest else None,
     }
     
@@ -161,7 +193,7 @@ DATABASE_NAME={db_name}
 API_URL={api_url}
 """.format(port=port, db_name=db_name, api_url=api_url)
         
-        if manifest.get('usePrisma', True):
+        if _uses_prisma(manifest):
             content += """
 # Prisma
 DATABASE_URL=""" + PlatformDockerConstants.get_database_url_for_env(db_name) + """
@@ -171,14 +203,14 @@ DATABASE_URL=""" + PlatformDockerConstants.get_database_url_for_env(db_name) + "
         content += AuthConfig.generate_env_file_auth_section(auth_config)
     
     # Add params (non-secret config variables)
-    # NOTE: Secrets are NEVER added here - they come from Infisical only
+    # NOTE: Secrets are NEVER added here (see the docstring).
     params = manifest.get('params', manifest.get('envVars', {}))  # Fallback to envVars during migration
     if params:
         content += '\n# Params (non-secret config)\n'
         # Sort keys for deterministic output to avoid unnecessary file rewrites.
         for key in sorted(params.keys()):
             value = params.get(key)
-            content += key + '=' + str(value) + '\n'
+            content += key + '=' + _format_env_value(value) + '\n'
     
     if write_fn and resource_path:
         write_fn(resource_path + target_filename, content)
@@ -186,74 +218,8 @@ DATABASE_URL=""" + PlatformDockerConstants.get_database_url_for_env(db_name) + "
     return content
 
 
-def _generate_secrets_env(manifest, write_fn=None):
-    """Generate secrets environment variables from Infisical.
-
-    This function returns a dict of secrets that will be resolved
-    from Infisical at runtime. The actual values are NOT embedded here.
-
-    CRITICAL: This function NEVER reads secrets from files - only from Infisical.
-
-    Args:
-        manifest: Service manifest dict with secrets configuration
-        write_fn: Optional write function for file output (callable)
-
-    Returns:
-        dict: Map of secret names to Infisical placeholder values
-    """
-    resource_path = manifest.get('_resource_path', '')
-    secrets_config = manifest.get('secrets', {})
-    
-    if not secrets_config:
-        return {}
-    
-    required = secrets_config.get('required', [])
-    optional = secrets_config.get('optional', [])
-    
-    # Build a placeholder map - actual values come from Infisical at runtime
-    secrets_env = {}
-    
-    for secret_name in required:
-        # Placeholder - value resolved by Infisical
-        secrets_env[secret_name] = "${INFISICAL_SECRET:" + secret_name + "}"
-    
-    for secret_name in optional:
-        # Placeholder - value resolved by Infisical
-        secrets_env[secret_name] = "${INFISICAL_SECRET:" + secret_name + "}"
-    
-    return secrets_env
-
-
-def _get_all_env(manifest, backend_manifest=None, write_fn=None):
-    """Generate complete environment (params + secrets placeholder).
-
-    Returns a dict with both params and secrets keys.
-    Actual secret values resolved by Infisical at container runtime.
-
-    Args:
-        manifest: Service manifest dict with configuration
-        backend_manifest: Optional backend manifest for frontend services
-        write_fn: Optional write function for file output (callable)
-
-    Returns:
-        dict: Contains 'params' (str) and 'secrets' (dict) keys
-    """
-    # Phase 1: Generate params (non-secret config)
-    params_content = _generate_params_env(manifest, backend_manifest, write_fn)
-    
-    # Phase 2: Get secrets configuration (resolved by Infisical)
-    secrets_env = _generate_secrets_env(manifest, write_fn)
-    
-    return {
-        'params': params_content,
-        'secrets': secrets_env,
-    }
-
-
 EnvGenerators = struct(
     generate_params_env = _generate_params_env,
-    generate_secrets_env = _generate_secrets_env,
-    get_all_env = _get_all_env,
     # Legacy alias for backward compatibility during migration
     generate_env_file = _generate_params_env,
 )
