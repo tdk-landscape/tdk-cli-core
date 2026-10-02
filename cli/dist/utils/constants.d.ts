@@ -17,6 +17,12 @@ export declare const PORT_RANGES: {
         readonly max: 4999;
         readonly range: "4000-4999";
     };
+    readonly mcp: {
+        readonly base: 4000;
+        readonly min: 4000;
+        readonly max: 5999;
+        readonly range: "4000-5999";
+    };
     readonly "bring-your-own": {
         readonly base: 4000;
         readonly min: 4000;

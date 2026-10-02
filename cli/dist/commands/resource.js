@@ -47,6 +47,9 @@ export const TYPE_SPECIFIC = {
             watch: ["src/**/*"],
         },
     },
+    mcp: {
+        healthCheck: "/health",
+    },
     "bring-your-own": {
         healthCheck: "/health",
     },
@@ -109,7 +112,7 @@ export function createServiceJson(name, type, stack, port, extraFeatures = [], f
         stack,
         port,
         ...(framework ? { framework: framework.id } : {}),
-        ...(backendFramework ? { framework: backendFramework.id } : {}),
+        ...(backendFramework && type !== "mcp" ? { framework: backendFramework.id } : {}),
         ...(language ? { language: language.id } : {}),
     };
 }
@@ -296,7 +299,7 @@ describe('${name}', () => {
 export const resourceCommand = new Command("resource")
     .description("Create a new resource (service) from scratch, or register an existing one")
     .argument("[name]", "Resource name (kebab-case)")
-    .option("-t, --type <type>", "Resource type: backend, frontend, worker, bring-your-own, sdk", "backend")
+    .option("-t, --type <type>", "Resource type: backend, frontend, worker, mcp, bring-your-own, sdk", "backend")
     .option("--framework <id>", "Framework: frontend react (default), vue, svelte, preact, lit, solid, qwik, vanilla; backend hono (default), express, elysia, fastify, nestjs, koa, h3")
     .option("--language <id>", "Backend language: bun (default), python, go, rust")
     .option("-s, --stack <stack>", "Stack to assign resource to", "default")
@@ -346,6 +349,7 @@ export const resourceCommand = new Command("resource")
                     { title: "backend - API service with HTTP endpoints", value: "backend" },
                     { title: "frontend - Web application/UI", value: "frontend" },
                     { title: "worker - Background job processor", value: "worker" },
+                    { title: "mcp - Model Context Protocol server (HTTP)", value: "mcp" },
                     {
                         title: "bring-your-own - Wrap an existing service. No app scaffold. Needs Dockerfile or --image.",
                         value: "bring-your-own",
@@ -361,6 +365,9 @@ export const resourceCommand = new Command("resource")
         const frontendFramework = resolveFrontendFramework(resourceType, options.framework);
         const backendLanguage = resolveBackendLanguage(resourceType, options.language);
         const backendFramework = resolveBackendFramework(resourceType, options.framework, backendLanguage);
+        // The id passed on to the file generators. An mcp resource has one fixed scaffold and no `framework` setting, so it passes none
+        // (its provider is selected by the resource type itself).
+        const scaffoldFrameworkId = resourceType === "mcp" ? undefined : (frontendFramework?.id ?? backendFramework?.id);
         let dddEnabled = false;
         if (options.ddd) {
             if (resourceType !== "backend" && resourceType !== "worker") {
@@ -425,6 +432,7 @@ export const resourceCommand = new Command("resource")
                 backend: `services/${stackName}/${resourceName}`,
                 frontend: `apps/${resourceName}`,
                 worker: `workers/${resourceName}`,
+                mcp: `services/${stackName}/${resourceName}`,
                 "bring-your-own": `services/${stackName}/${resourceName}`,
                 sdk: `packages/${resourceName}`,
             };
@@ -602,8 +610,8 @@ This file contains the resource configuration for TDK.
             }
         }
         // Prepare file generation tasks
-        const serviceJson = createServiceJson(resourceName, resourceType, stackName, assignedPort, dddEnabled ? ["ddd"] : [], frontendFramework?.id ?? backendFramework?.id, options.language === undefined ? undefined : backendLanguage?.id);
-        const packageJson = createPackageJson(resourceName, resourceType, frontendFramework?.id ?? backendFramework?.id);
+        const serviceJson = createServiceJson(resourceName, resourceType, stackName, assignedPort, dddEnabled ? ["ddd"] : [], scaffoldFrameworkId, options.language === undefined ? undefined : backendLanguage?.id);
+        const packageJson = createPackageJson(resourceName, resourceType, scaffoldFrameworkId);
         const tasks = [
             {
                 type: "json",
@@ -622,7 +630,7 @@ This file contains the resource configuration for TDK.
             {
                 type: "json",
                 filename: "tsconfig.json",
-                content: createResourceTsconfig(resourceType, frontendFramework?.id ?? backendFramework?.id),
+                content: createResourceTsconfig(resourceType, scaffoldFrameworkId),
                 description: "Generating tsconfig.json",
                 emoji: "⚙️",
             },
@@ -635,12 +643,12 @@ This file contains the resource configuration for TDK.
             },
         ];
         // Add source files based on resource type
-        if (resourceType === "backend") {
+        if (resourceType === "backend" || resourceType === "mcp") {
             tasks.push({
                 type: "text",
                 filename: "src/index.ts",
                 content: (backendFramework?.createIndex ?? getBackendIndexTemplate)(resourceName),
-                description: "Generating backend source",
+                description: resourceType === "mcp" ? "Generating MCP server source" : "Generating backend source",
                 emoji: "💻",
             });
         }

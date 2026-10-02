@@ -5,6 +5,7 @@ import { expressBackendProvider } from "./express.js";
 import { fastifyBackendProvider } from "./fastify.js";
 import { h3BackendProvider } from "./h3.js";
 import { koaBackendProvider } from "./koa.js";
+import { mcpBackendProvider } from "./mcp.js";
 import { nestBackendProvider } from "./nestjs.js";
 /** Hono is the historical default; omitting --framework keeps the exact historical output. */
 export const DEFAULT_BACKEND_FRAMEWORK = "hono";
@@ -38,6 +39,21 @@ export function getBackendFramework(frameworkId) {
  * (the historical Hono scaffold). Python owns its runtime, so a framework cannot be combined with it.
  */
 export function resolveBackendFramework(resourceType, frameworkId, language) {
+    // `mcp` is a resource type with one fixed scaffold, so a framework choice does not apply to it.
+    if (resourceType === "mcp") {
+        if (frameworkId !== undefined) {
+            throw new TdkError("--framework cannot be combined with --type mcp.", [
+                "An mcp resource always scaffolds a Model Context Protocol server",
+                "Drop --framework, or use --type backend --framework <id>",
+            ]);
+        }
+        if (language?.createFiles) {
+            throw new TdkError(`--language ${language.id} cannot be combined with --type mcp.`, [
+                "An mcp resource is a Bun service; drop --language",
+            ]);
+        }
+        return mcpBackendProvider;
+    }
     if (resourceType !== "backend" || frameworkId === undefined)
         return undefined;
     if (language?.createFiles) {

@@ -70,6 +70,9 @@ export const TYPE_SPECIFIC: Record<CreatableResourceType, TypeSpecificConfig> = 
       watch: ["src/**/*"],
     },
   },
+  mcp: {
+    healthCheck: "/health",
+  },
   "bring-your-own": {
     healthCheck: "/health",
   },
@@ -150,7 +153,7 @@ export function createServiceJson(
     stack,
     port,
     ...(framework ? { framework: framework.id } : {}),
-    ...(backendFramework ? { framework: backendFramework.id } : {}),
+    ...(backendFramework && type !== "mcp" ? { framework: backendFramework.id } : {}),
     ...(language ? { language: language.id } : {}),
   };
 }
@@ -350,7 +353,7 @@ export const resourceCommand = new Command("resource")
   .argument("[name]", "Resource name (kebab-case)")
   .option(
     "-t, --type <type>",
-    "Resource type: backend, frontend, worker, bring-your-own, sdk",
+    "Resource type: backend, frontend, worker, mcp, bring-your-own, sdk",
     "backend",
   )
   .option(
@@ -421,6 +424,7 @@ export const resourceCommand = new Command("resource")
             { title: "backend - API service with HTTP endpoints", value: "backend" },
             { title: "frontend - Web application/UI", value: "frontend" },
             { title: "worker - Background job processor", value: "worker" },
+            { title: "mcp - Model Context Protocol server (HTTP)", value: "mcp" },
             {
               title:
                 "bring-your-own - Wrap an existing service. No app scaffold. Needs Dockerfile or --image.",
@@ -441,6 +445,10 @@ export const resourceCommand = new Command("resource")
         options.framework,
         backendLanguage,
       );
+      // The id passed on to the file generators. An mcp resource has one fixed scaffold and no `framework` setting, so it passes none
+      // (its provider is selected by the resource type itself).
+      const scaffoldFrameworkId =
+        resourceType === "mcp" ? undefined : (frontendFramework?.id ?? backendFramework?.id);
 
       let dddEnabled = false;
       if (options.ddd) {
@@ -512,6 +520,7 @@ export const resourceCommand = new Command("resource")
           backend: `services/${stackName}/${resourceName}`,
           frontend: `apps/${resourceName}`,
           worker: `workers/${resourceName}`,
+          mcp: `services/${stackName}/${resourceName}`,
           "bring-your-own": `services/${stackName}/${resourceName}`,
           sdk: `packages/${resourceName}`,
         };
@@ -741,14 +750,10 @@ This file contains the resource configuration for TDK.
         stackName,
         assignedPort,
         dddEnabled ? ["ddd"] : [],
-        frontendFramework?.id ?? backendFramework?.id,
+        scaffoldFrameworkId,
         options.language === undefined ? undefined : backendLanguage?.id,
       );
-      const packageJson = createPackageJson(
-        resourceName,
-        resourceType,
-        frontendFramework?.id ?? backendFramework?.id,
-      );
+      const packageJson = createPackageJson(resourceName, resourceType, scaffoldFrameworkId);
 
       const tasks: FileGenerationTask[] = [
         {
@@ -770,7 +775,7 @@ This file contains the resource configuration for TDK.
           filename: "tsconfig.json",
           content: createResourceTsconfig(
             resourceType as CreatableResourceType,
-            frontendFramework?.id ?? backendFramework?.id,
+            scaffoldFrameworkId,
           ),
           description: "Generating tsconfig.json",
           emoji: "⚙️",
@@ -785,12 +790,13 @@ This file contains the resource configuration for TDK.
       ];
 
       // Add source files based on resource type
-      if (resourceType === "backend") {
+      if (resourceType === "backend" || resourceType === "mcp") {
         tasks.push({
           type: "text",
           filename: "src/index.ts",
           content: (backendFramework?.createIndex ?? getBackendIndexTemplate)(resourceName),
-          description: "Generating backend source",
+          description:
+            resourceType === "mcp" ? "Generating MCP server source" : "Generating backend source",
           emoji: "💻",
         });
       } else if (resourceType === "frontend") {

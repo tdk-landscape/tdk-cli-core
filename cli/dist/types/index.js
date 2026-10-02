@@ -2,6 +2,7 @@ export const CREATABLE_RESOURCE_TYPES = [
     "backend",
     "frontend",
     "worker",
+    "mcp",
     "bring-your-own",
 ];
 export function isCreatableResourceType(value) {

@@ -42,7 +42,7 @@ _tdk_completions() {
             return 0
             ;;
         --type)
-            COMPREPLY=( $(compgen -W "backend frontend worker" -- \${cur}) )
+            COMPREPLY=( $(compgen -W "backend frontend worker mcp" -- \${cur}) )
             return 0
             ;;
         --stack)
@@ -94,7 +94,7 @@ _tdk() {
             ;;
         resource)
             _arguments 
-                '--type[Resource type]:type:(backend frontend worker)' 
+                '--type[Resource type]:type:(backend frontend worker mcp)' 
                 '--stack[Assign to stack]:stack:_tdk_stacks' 
                 '1:resource name:'
             ;;
@@ -196,7 +196,7 @@ complete -c tdk -l verbose -d 'Enable verbose output'
 
 # Command-specific completions
 # resource command options
-complete -c tdk -n '__fish_seen_subcommand_from resource' -l type -d 'Resource type' -a 'backend frontend worker'
+complete -c tdk -n '__fish_seen_subcommand_from resource' -l type -d 'Resource type' -a 'backend frontend worker mcp'
 complete -c tdk -n '__fish_seen_subcommand_from resource' -l stack -d 'Assign to stack' -a '(tdk stacks 2>/dev/null | string match -r "^  - " | string replace "  - " "")'
 
 # resources command options

@@ -22,6 +22,7 @@
 
 - [Bring-your-own resources](byo.md): wrap an existing service or image, one-shot jobs, `--restart`
 - [Frontend framework providers](frontend-framework-providers.md): add a Vite framework (React, Vue, Svelte, Preact, Lit, Solid, Qwik, plain TypeScript)
+- [MCP resources](mcp.md): `--type mcp` scaffolds a Model Context Protocol server
 - [Backend language and framework providers](backend-language-providers.md): Bun with Hono, Express, Elysia, Fastify, NestJS, Koa or h3, and Python, Go or Rust
 
 ## Recipes and examples

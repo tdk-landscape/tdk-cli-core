@@ -11,7 +11,15 @@ export interface DiscoveredResource {
 export interface ResourceConfig {
   [key: string]: unknown;
   appName: string;
-  appType: "backend" | "frontend" | "library" | "sdk" | "worker" | "migrator" | "bring-your-own";
+  appType:
+    | "backend"
+    | "frontend"
+    | "library"
+    | "sdk"
+    | "worker"
+    | "migrator"
+    | "mcp"
+    | "bring-your-own";
   stack?: string;
   schemaVersion?: number;
   port?: number;
@@ -81,12 +89,14 @@ export type ResourceType =
   | "sdk"
   | "worker"
   | "migrator"
+  | "mcp"
   | "bring-your-own";
 
 export const CREATABLE_RESOURCE_TYPES = [
   "backend",
   "frontend",
   "worker",
+  "mcp",
   "bring-your-own",
 ] as const;
 
@@ -352,7 +362,7 @@ export interface PackageInfo {
 
 export type PortAssignableResourceType = Extract<
   CreatableResourceType,
-  "backend" | "frontend" | "worker" | "migrator" | "bring-your-own"
+  "backend" | "frontend" | "worker" | "migrator" | "mcp" | "bring-your-own"
 >;
 
 // ============================================================================

@@ -149,6 +149,7 @@ describe("VALID_RESOURCE_TYPES", () => {
       "sdk",
       "worker",
       "migrator",
+      "mcp",
       "bring-your-own",
     ];
     expect(VALID_RESOURCE_TYPES.sort()).toEqual(expected.sort());

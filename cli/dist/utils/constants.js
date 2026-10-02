@@ -10,6 +10,7 @@ export const VALID_RESOURCE_TYPES = [
     "sdk",
     "worker",
     "migrator",
+    "mcp",
     "bring-your-own",
 ];
 // Frontend/library/sdk services are served statically or consumed as
@@ -20,6 +21,7 @@ export const REQUIRED_PACKAGE_SCRIPTS = {
     backend: ["dev", "build", "start"],
     worker: ["dev", "build", "start"],
     migrator: ["dev", "build", "start"],
+    mcp: ["dev", "build", "start"],
     frontend: ["dev", "build"],
     library: ["dev", "build"],
     sdk: ["dev", "build"],
@@ -38,6 +40,8 @@ export const OPTIONAL_INFRA_SERVICES = [
 export const PORT_RANGES = {
     frontend: { base: 3000, min: 3000, max: 3999, range: "3000-3999" },
     backend: { base: 4000, min: 4000, max: 4999, range: "4000-4999" },
+    // An MCP server is an HTTP service, so it shares the backend-compatible range with bring-your-own.
+    mcp: { base: 4000, min: 4000, max: 5999, range: "4000-5999" },
     "bring-your-own": { base: 4000, min: 4000, max: 5999, range: "4000-5999" },
     worker: { base: 6000, min: 6000, max: 6999, range: "6000-6999" },
     health: { base: 5000, min: 5000, max: 5999, range: "5000-5999" },
