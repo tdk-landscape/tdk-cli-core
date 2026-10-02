@@ -314,10 +314,10 @@ Made with 💚 for developers who ship
 
 ### Doctor machine output
 
-Use `tdk doctor --json` for CI readiness checks. Exit codes: 0 ready (warnings permitted), 1 blocking findings, 2 usage/internal errors. See [doctor contract](../docs/doctor-contract.md) for schema and migration details.
+Use `tdk doctor --json` for CI readiness checks. Exit codes: 0 ready (warnings permitted), 1 blocking findings, 2 usage/internal errors. See [doctor contract](../docs/reference/doctor-contract.md) for schema and migration details.
 
 ### Machine-readable status
 
 `tdk status --json`, `tdk resources --json`, and `tdk networks --json` emit one JSON object with `schemaVersion: 1`, `data`, and `errors`. Use `tdk status --json --tilt` to request live Tilt resources; without `--tilt`, the response reports Tilt availability and sets `resourcesQueried` to false. The old `tdk networks --json` array remains temporarily available as `tdk networks --json-legacy`; migrate consumers to `data.services` before that compatibility flag is removed. Diagnostics go to stderr.
 
-See [machine-readable CLI](../docs/machine-readable-cli.md) for JSON shapes, exit codes, schema evolution, and an agent polling example.
+See [machine-readable CLI](../docs/reference/machine-readable-cli.md) for JSON shapes, exit codes, schema evolution, and an agent polling example.

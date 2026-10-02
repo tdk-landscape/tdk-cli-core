@@ -2,7 +2,7 @@
 
 **Stack:** a real `create-rsbuild` app
 
-**Notes:** scaffolder runs at build time; `rsbuild dev --host 0.0.0.0`
+**Notes:** scaffolder runs at build time; `rsbuild dev --host 0.0.0.0`. Full guide: [docs/recipes/rsbuild.md](../../../docs/recipes/rsbuild.md)
 
 ## Check it
 
