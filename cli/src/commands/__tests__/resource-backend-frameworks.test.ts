@@ -24,21 +24,22 @@ function tdk(args: string[], cwd: string, input = "y\n") {
 }
 
 describe("backend framework registry", () => {
-  it("keeps Hono the default and registers exactly hono, express, elysia, fastify, nestjs", () => {
+  it("keeps Hono the default and registers exactly hono, express, elysia, fastify, nestjs, koa", () => {
     expect(DEFAULT_BACKEND_FRAMEWORK).toBe("hono");
     expect(Object.keys(BACKEND_FRAMEWORKS).sort()).toEqual([
       "elysia",
       "express",
       "fastify",
       "hono",
+      "koa",
       "nestjs",
     ]);
   });
 
   it("normalizes case and rejects unknown ids, including prototype keys", () => {
     expect(getBackendFramework(" Express ").id).toBe("express");
-    expect(() => getBackendFramework("koa")).toThrow(
-      /Supported frameworks: hono, express, elysia, fastify, nestjs/,
+    expect(() => getBackendFramework("sinatra")).toThrow(
+      /Supported frameworks: hono, express, elysia, fastify, koa, nestjs/,
     );
     expect(() => getBackendFramework("__proto__")).toThrow(/Unknown backend framework/);
   });
@@ -114,6 +115,20 @@ describe("backend framework registry", () => {
     expect(index).not.toContain("hono");
   });
 
+  it("keeps Koa source and dependencies in its provider", () => {
+    const provider = getBackendFramework("koa");
+    const index = provider.createIndex("orders-api");
+
+    expect(provider.dependencies).toHaveProperty("koa");
+    expect(provider.dependencies).not.toHaveProperty("hono");
+    expect(provider.devDependencies).toHaveProperty("@types/koa");
+    expect(index).toContain("from 'koa'");
+    expect(index).toContain("ctx.path === '/health'");
+    expect(index).toContain("process.env.PORT");
+    expect(index).toContain("'0.0.0.0'");
+    expect(index).not.toContain("hono");
+  });
+
   it("does not add generated-service dependencies to the CLI package", () => {
     const pkg = JSON.parse(readFileSync(join(repoRoot, "cli", "package.json"), "utf-8"));
     const all = Object.keys({ ...pkg.dependencies, ...pkg.devDependencies });
@@ -122,6 +137,7 @@ describe("backend framework registry", () => {
     expect(all).not.toContain("elysia");
     expect(all).not.toContain("fastify");
     expect(all).not.toContain("@nestjs/core");
+    expect(all).not.toContain("koa");
   });
 
   it("keeps the service schema open to every registered framework id", () => {
@@ -240,6 +256,22 @@ describe("tdk resource --framework on a backend", () => {
     expect(tsconfig.compilerOptions.emitDecoratorMetadata).toBe(true);
   }, 15000);
 
+  it("scaffolds Koa on the shared Bun image with its own source and dependencies", () => {
+    const result = tdk(
+      ["resource", "koa-api", "--type", "backend", "--framework", "koa", "--stack", "shop"],
+      projectRoot,
+    );
+    expect(result.status, result.stderr).toBe(0);
+
+    expect(json("koa-api", "service.json")).toMatchObject({ appType: "backend", framework: "koa" });
+    expect(existsSync(join(dir("koa-api"), "Dockerfile"))).toBe(true);
+    const pkg = json("koa-api", "package.json");
+    expect(pkg.dependencies).toHaveProperty("koa");
+    expect(pkg.dependencies).not.toHaveProperty("hono");
+    expect(pkg.devDependencies).toHaveProperty("@types/koa");
+    expect(readFileSync(join(dir("koa-api"), "src", "index.ts"), "utf-8")).toContain("from 'koa'");
+  }, 15000);
+
   it("persists an explicit hono selection and keeps the Hono source", () => {
     const result = tdk(
       ["resource", "hono-api", "--type", "backend", "--framework", "hono", "--stack", "shop"],
@@ -267,11 +299,11 @@ describe("tdk resource --framework on a backend", () => {
 
   it("rejects an unknown framework, Python, and other resource types before writing", () => {
     const unknown = tdk(
-      ["resource", "bad-api", "--type", "backend", "--framework", "koa", "--stack", "shop"],
+      ["resource", "bad-api", "--type", "backend", "--framework", "sinatra", "--stack", "shop"],
       projectRoot,
     );
     expect(unknown.status).not.toBe(0);
-    expect(`${unknown.stdout}${unknown.stderr}`).toMatch(/Unknown backend framework "koa"/);
+    expect(`${unknown.stdout}${unknown.stderr}`).toMatch(/Unknown backend framework "sinatra"/);
     expect(existsSync(dir("bad-api"))).toBe(false);
 
     const python = tdk(

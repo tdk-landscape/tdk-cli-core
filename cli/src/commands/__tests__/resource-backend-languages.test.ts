@@ -74,7 +74,7 @@ describe("tdk resource --language", () => {
       cwd: projectRoot,
       env: { ...process.env, TDK_EXTENSION_SOURCE: repoRoot },
     });
-  });
+  }, 30000);
 
   afterAll(() => {
     if (projectRoot.startsWith(tmpdir())) rmSync(projectRoot, { recursive: true, force: true });

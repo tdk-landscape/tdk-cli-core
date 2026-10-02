@@ -239,7 +239,8 @@
         "express",
         "elysia",
         "fastify",
-        "nestjs"
+        "nestjs",
+        "koa"
       ],
       "pattern": "^[a-z][a-z0-9-]*$",
       "type": "string"

@@ -3,6 +3,7 @@ import { TdkError } from "../utils/errors.js";
 import { elysiaBackendProvider } from "./elysia.js";
 import { expressBackendProvider } from "./express.js";
 import { fastifyBackendProvider } from "./fastify.js";
+import { koaBackendProvider } from "./koa.js";
 import { nestBackendProvider } from "./nestjs.js";
 import type { BackendFrameworkProvider } from "./types.js";
 
@@ -22,6 +23,7 @@ export const BACKEND_FRAMEWORKS: Record<string, BackendFrameworkProvider> = {
   express: expressBackendProvider,
   elysia: elysiaBackendProvider,
   fastify: fastifyBackendProvider,
+  koa: koaBackendProvider,
   nestjs: nestBackendProvider,
 };
 
