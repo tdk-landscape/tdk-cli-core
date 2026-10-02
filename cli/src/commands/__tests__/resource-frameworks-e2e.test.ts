@@ -344,6 +344,51 @@ describe("frontend resource framework selection", () => {
     ).toBe(true);
   }, 15000);
 
+  it("scaffolds Solid without a second Vite config owner or runtime fork", () => {
+    const solidPath = join(projectRoot, "apps", "solid-web");
+    runTdk(
+      [
+        "resource",
+        "solid-web",
+        "--type",
+        "frontend",
+        "--framework",
+        "solid",
+        "--stack",
+        "shop",
+        "--path",
+        "apps/solid-web",
+      ],
+      projectRoot,
+      "y\n",
+    );
+
+    const service = JSON.parse(readFileSync(join(solidPath, "service.json"), "utf-8"));
+    const pkg = JSON.parse(readFileSync(join(solidPath, "package.json"), "utf-8"));
+    const tsconfig = JSON.parse(readFileSync(join(solidPath, "tsconfig.json"), "utf-8"));
+    const cliPackage = JSON.parse(readFileSync(join(repoRoot, "cli", "package.json"), "utf-8"));
+
+    expect(service.framework).toBe("solid");
+    expect(service.appType).toBe("frontend");
+    expect(pkg.dependencies).toHaveProperty("solid-js");
+    expect(pkg.dependencies).not.toHaveProperty("react");
+    expect(pkg.devDependencies).toHaveProperty("vite-plugin-solid");
+    expect(pkg.devDependencies).not.toHaveProperty("@vitejs/plugin-react");
+    expect(cliPackage.dependencies).not.toHaveProperty("solid-js");
+    expect(tsconfig.compilerOptions.jsx).toBe("preserve");
+    expect(tsconfig.compilerOptions.jsxImportSource).toBe("solid-js");
+    expect(readdirSync(join(solidPath, "src")).sort()).toEqual(["App.tsx", "main.tsx"]);
+    expect(existsSync(join(solidPath, "vite.config.ts"))).toBe(false);
+    expect(
+      existsSync(
+        join(
+          projectRoot,
+          ".tdk/.tdk-out/tdk-cli-ext/engine/topologies/tilt/generators/vite/frameworks/solid.star",
+        ),
+      ),
+    ).toBe(true);
+  }, 15000);
+
   it("places a frontend where discovery finds it and says so", () => {
     const output = runTdk(
       ["resource", "landing", "--type", "frontend", "--stack", "shop"],
@@ -401,7 +446,7 @@ describe("frontend resource framework selection", () => {
         projectRoot,
       ),
     ).toThrow(
-      /Unknown frontend framework "angular"[\s\S]*Use one of: react, vue, svelte, preact, lit/,
+      /Unknown frontend framework "angular"[\s\S]*Use one of: react, vue, svelte, preact, lit, solid/,
     );
     expect(existsSync(resourcePath)).toBe(false);
   }, 15000);
