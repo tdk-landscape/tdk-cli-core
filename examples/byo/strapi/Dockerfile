@@ -1,0 +1,16 @@
+# A real Strapi app (`create-strapi-app`, TypeScript, SQLite): the scaffolder runs at build time.
+FROM node:22-slim
+RUN apt-get update -qq && apt-get install -y -qq python3 make g++ git >/dev/null && rm -rf /var/lib/apt/lists/*
+ENV STRAPI_TELEMETRY_DISABLED=true CI=true
+WORKDIR /work
+RUN npx --yes create-strapi-app@latest app --non-interactive --typescript --use-npm --no-run \
+    --skip-cloud --no-example --no-git-init --dbclient sqlite </dev/null
+WORKDIR /work/app
+# The generated .env has `DATABASE_FILENAME=` (empty), which makes config/database.ts resolve the SQLite path to the app folder
+# itself ("unable to open database file"). Point it at a real file; the variable set here wins over .env.
+ENV DATABASE_FILENAME=.tmp/data.db
+RUN mkdir -p .tmp
+# Build the admin panel once, at image build time.
+RUN npm run build
+# HOST and PORT are read by config/server.ts. Strapi's default HOST is 0.0.0.0; PORT comes from TDK.
+CMD ["sh", "-c", "HOST=0.0.0.0 PORT=${PORT:-1337} npm run start"]
