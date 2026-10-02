@@ -292,6 +292,7 @@ tdk eject --help
 - [Main README](../README.md)
 - [Feature flags](../docs/FEATURES.md)
 - [Bring-your-own resources](../docs/byo.md)
+- [Running a landscape from moon](../docs/recipes/moon.md)
 - [Architecture](../engine/docs/README.md)
 - [Tilt Extension](../ext/)
 
