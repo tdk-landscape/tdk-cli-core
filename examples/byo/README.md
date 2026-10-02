@@ -15,7 +15,14 @@ scripts/verify-byo-example.sh fastify          # health path /health
 scripts/verify-byo-example.sh create-vue /     # Vite apps answer on /
 ```
 
-An app that needs a database cannot run alone. Check it through a real `tdk up` and Traefik instead, which gives it TDK's
+An app that needs another resource (a database server, for example [turso-app](turso-app/README.md) with [turso](turso/README.md))
+cannot run alone. Check the pair in one project, through a real `tdk up`:
+
+```bash
+scripts/verify-byo-pair.sh turso 4500 /health turso-app LIBSQL_URL /health
+```
+
+An app that needs TDK's own Postgres cannot run alone either. Check it through a real `tdk up` and Traefik instead, which gives it TDK's
 Postgres and `DATABASE_URL`:
 
 ```bash
