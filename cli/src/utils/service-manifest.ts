@@ -3,6 +3,17 @@ import { existsSync, readFileSync } from "node:fs";
 export const SERVICE_MANIFEST_SCHEMA_VERSION = 1;
 export const SERVICE_MANIFEST_SCHEMA_URL = "https://tdk-landscape.github.io/schema.service.json";
 
+/**
+ * Fields that are still read, or still tolerated, but should not be used. The warning says what replaces each one. `jwtSecret` is
+ * ignored outright: a secret must not be committed (see docs/environment.md).
+ */
+const DEPRECATED_FIELDS: Record<string, string> = {
+  dependencies: "deprecated, use dependsOn (still read for now)",
+  envVars: "deprecated, use params (still read when params is absent)",
+  jwtSecret:
+    "ignored. A secret must not be committed: remove it and set JWT_SECRET in the project .env",
+};
+
 const KNOWN_SERVICE_FIELDS = new Set([
   "$schema",
   "apiBasePath",
@@ -70,13 +81,13 @@ export function validateServiceManifest(
     );
   }
 
-  const warnings = Object.keys(manifest)
-    .filter((field) => !KNOWN_SERVICE_FIELDS.has(field))
-    .map((field) =>
-      field === "jwtSecret"
-        ? `${displayPath}.jwtSecret: ignored. A secret must not be committed: remove it and set JWT_SECRET in the project .env`
-        : `${displayPath}.${field}: unknown field is preserved`,
-    );
+  const warnings = Object.keys(manifest).flatMap((field) => {
+    const deprecation = DEPRECATED_FIELDS[field];
+    if (deprecation) return [`${displayPath}.${field}: ${deprecation}`];
+    if (!KNOWN_SERVICE_FIELDS.has(field))
+      return [`${displayPath}.${field}: unknown field is preserved`];
+    return [];
+  });
   return { errors, warnings, manifest };
 }
 

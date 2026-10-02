@@ -126,6 +126,24 @@ describe("project and resource feature E2E", () => {
     );
   }, 60000);
 
+  it("calls a deprecated service.json field deprecated, not unknown, in `tdk doctor`", () => {
+    projectRoot = mkdtempSync(join(tmpdir(), "tdk-project-deprecated-"));
+    runTdk(["project", "--yes"], projectRoot);
+    runTdk(["resource", "dep-api", "--type", "backend", "--stack", "app", "--yes"], projectRoot);
+    const servicePath = join(projectRoot, "services", "app", "dep-api", "service.json");
+    const service = JSON.parse(readFileSync(servicePath, "utf-8"));
+    service.envVars = { LOG_LEVEL: "debug" };
+    service.dependencies = ["other"];
+    writeFileSync(servicePath, JSON.stringify(service, null, 2));
+
+    const output = runTdkAllowFailure(["doctor"], projectRoot);
+    expect(output).toContain("service.json.envVars: deprecated, use params");
+    expect(output).toContain("service.json.dependencies: deprecated, use dependsOn");
+    // A deprecation is not an unknown field, and the message must not claim it is.
+    expect(output).not.toMatch(/Unknown service\.json field: [^\n]*envVars/);
+    expect(output).not.toMatch(/Unknown service\.json field: [^\n]*dependencies/);
+  }, 90000);
+
   it("does not require Verdaccio for `tdk doctor`'s environment check", () => {
     projectRoot = mkdtempSync(join(tmpdir(), "tdk-project-env-noverdaccio-"));
     runTdk(["project", "--yes"], projectRoot);
