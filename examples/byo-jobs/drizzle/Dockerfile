@@ -1,0 +1,9 @@
+# One-shot migration job: `drizzle-kit migrate` applies ./drizzle to TDK's Postgres and exits 0.
+FROM node:22-alpine
+WORKDIR /job
+COPY package.json ./
+RUN npm install --no-audit --no-fund
+COPY schema.js drizzle.config.js ensure-db.js ./
+# Generate the SQL migration from the schema with the real tool at image build. A real project commits ./drizzle instead.
+RUN npx drizzle-kit generate --name init
+CMD ["sh", "-c", "node ensure-db.js && npx drizzle-kit migrate"]
