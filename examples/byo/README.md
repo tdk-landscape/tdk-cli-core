@@ -26,6 +26,7 @@ scripts/verify-byo-example.sh create-vue /     # Vite apps answer on /
 | `fiber` | Go 1.23, Fiber 2 | multi-stage, static binary |
 | `create-vue` | a real `create-vue` app | scaffolder runs at build time; Vite `--host 0.0.0.0` |
 | `rsbuild` | a real `create-rsbuild` app | scaffolder runs at build time; `rsbuild dev --host 0.0.0.0` |
+| `ember` | a real `ember new` app (`@ember/app-blueprint`, Vite) | scaffolder runs at build time with `--skip-npm`; Vite `--host 0.0.0.0` |
 
 These check the container only. Through `tdk up`, a bring-your-own service is routed at
 `http://api.<project>.localhost/api/<name without -api>/...` with the prefix stripped, so a
