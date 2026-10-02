@@ -36,3 +36,11 @@ Create a resource with `tdk resource web --type frontend --framework <id> --stac
 - [ ] Register the CLI provider and its Starlark Vite templates without changing shared Docker, nginx, Traefik, Tilt orchestration, or API-client behavior.
 - [ ] Show generated output tests for the new framework and unchanged React default; cover unknown ids and legacy metadata.
 - [ ] Update the resource documentation and this guide; confirm build, typecheck, lint, and CLI tests.
+
+## Verify every provider through `tdk up`
+
+`scripts/verify-frontend-frameworks.sh` scaffolds one frontend per framework in a throwaway project, runs a single `tdk up app`, and for each framework checks that the Traefik route `app.<project>.localhost/<project>-<framework>/` returns 200, serves the module script, and serves the built asset as JavaScript. It removes its own containers, networks and `app_<project>` images when it ends.
+
+Last run (2026-10-03): `PASS all 8 frontend frameworks: react vue svelte preact lit solid qwik vanilla`.
+
+Not covered: client-side behaviour in a browser (the script checks HTML and assets over HTTP, not that the app renders), production builds, and hot reload.
