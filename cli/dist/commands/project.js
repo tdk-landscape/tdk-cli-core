@@ -7,7 +7,7 @@ import chalk from "chalk";
 import { Command } from "commander";
 import { generateMasterConfigs, readProjectConfig } from "../generator/template-engine.js";
 import { MASTER_CONFIG_FILES } from "../utils/constants.js";
-import { ensureEnvFile, validateEnvFile } from "../utils/env-validator.js";
+import { completeEnvFile, ensureEnvFile, validateEnvFile } from "../utils/env-validator.js";
 import { errorFactories, runCommand, showErrorAndExit } from "../utils/errors.js";
 import { ensureDirectory, ensureGitignore, writeJsonFile } from "../utils/file-helpers.js";
 import { showCancelled, showCommandHeader, showDetail, showStep, showSuccess, } from "../utils/formatting.js";
@@ -244,6 +244,12 @@ export const projectCommand = new Command("project")
             if (ensureEnvFile(projectRoot)) {
                 showSuccess("Created: .env (the defaults work as-is)");
             }
+            else {
+                const added = completeEnvFile(projectRoot);
+                if (added.length > 0) {
+                    showSuccess(`Updated: .env (added ${added.join(", ")}; existing values unchanged)`);
+                }
+            }
             const ignored = ensureGitignore(projectRoot);
             if (ignored.length > 0) {
                 showSuccess(`Added to .gitignore: ${ignored.join(", ")}`);
@@ -387,7 +393,14 @@ export const projectCommand = new Command("project")
             showSuccess("Created: .env (the defaults work as-is)");
         }
         else {
-            showSuccess("Found: .env (environment already configured)");
+            // An .env from an older CLI lacks keys a newer one expects; add them without changing anything already there.
+            const added = completeEnvFile(projectRoot);
+            if (added.length > 0) {
+                showSuccess(`Updated: .env (added ${added.join(", ")}; existing values unchanged)`);
+            }
+            else {
+                showSuccess("Found: .env (environment already configured)");
+            }
         }
         const envValidation = validateEnvFile(projectRoot);
         if (envValidation.missing.length > 0) {

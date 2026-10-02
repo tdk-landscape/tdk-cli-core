@@ -467,10 +467,18 @@ function checkEnvironmentVariables(): CheckResult {
     };
   }
 
+  // `validateEnvFile` also reports non-fatal problems (for example a DATABASE_URL password that differs from DB_PASSWORD). The
+  // "no .env yet" notice is not one of them: that case is reported as missing keys above.
+  const warnings = validation.warnings.filter(
+    (warning) => !warning.startsWith(".env file not found"),
+  );
   return {
     name: "Environment Variables",
     didPass: true,
-    message: "All required environment variables are set",
+    message:
+      warnings.length > 0
+        ? `All required environment variables are set (warning: ${warnings.join("; ")})`
+        : "All required environment variables are set",
   };
 }
 
