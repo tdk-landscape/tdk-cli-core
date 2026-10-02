@@ -1,0 +1,9 @@
+{
+  "name": "typeorm-job",
+  "private": true,
+  "version": "0.0.0",
+  "dependencies": {
+    "pg": "^8.13.0",
+    "typeorm": "^0.3.20"
+  }
+}
