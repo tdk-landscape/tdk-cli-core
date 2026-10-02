@@ -140,7 +140,7 @@ Running an image with `docker run` is not enough; these were found by running th
   prefers it over its own config can fail: the [Rails example](../examples/byo/rails/README.md) answered 500 (`pg is not part of the
   bundle`) until the server started with `DATABASE_URL` unset.
 - **The `Host` header is `api.<project>.localhost`.** Rails' development host check blocked it (`Blocked hosts: ...`) until the example
-  allowed any host. Most other examples accepted it with no change (Angular, Flask, Gin, Symfony, Quarkus, Micronaut, Echo,
+  allowed any host. Most other examples accepted it with no change (Angular, Flask, Gin, Symfony, Quarkus, Micronaut, Echo, chi,
   Sinatra, Docusaurus, SolidStart, Phoenix). That list is the examples checked through `tdk up`; the others have not been.
 - **A cold Docker cache is slow.** `tdk up` builds TDK's shared base images the first time, so give a first check several minutes.
 
