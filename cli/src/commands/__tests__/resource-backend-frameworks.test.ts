@@ -24,14 +24,21 @@ function tdk(args: string[], cwd: string, input = "y\n") {
 }
 
 describe("backend framework registry", () => {
-  it("keeps Hono the default and registers exactly hono, express, elysia", () => {
+  it("keeps Hono the default and registers exactly hono, express, elysia, fastify", () => {
     expect(DEFAULT_BACKEND_FRAMEWORK).toBe("hono");
-    expect(Object.keys(BACKEND_FRAMEWORKS).sort()).toEqual(["elysia", "express", "hono"]);
+    expect(Object.keys(BACKEND_FRAMEWORKS).sort()).toEqual([
+      "elysia",
+      "express",
+      "fastify",
+      "hono",
+    ]);
   });
 
   it("normalizes case and rejects unknown ids, including prototype keys", () => {
     expect(getBackendFramework(" Express ").id).toBe("express");
-    expect(() => getBackendFramework("koa")).toThrow(/Supported frameworks: hono, express, elysia/);
+    expect(() => getBackendFramework("koa")).toThrow(
+      /Supported frameworks: hono, express, elysia, fastify/,
+    );
     expect(() => getBackendFramework("__proto__")).toThrow(/Unknown backend framework/);
   });
 
@@ -73,12 +80,27 @@ describe("backend framework registry", () => {
     expect(index).not.toContain("hono");
   });
 
+  it("keeps Fastify source and dependencies in its provider", () => {
+    const provider = getBackendFramework("fastify");
+    const index = provider.createIndex("orders-api");
+
+    expect(provider.dependencies).toHaveProperty("fastify");
+    expect(provider.dependencies).not.toHaveProperty("hono");
+    expect(provider.dependencies).not.toHaveProperty("express");
+    expect(index).toContain("from 'fastify'");
+    expect(index).toContain("app.get('/health'");
+    expect(index).toContain("process.env.PORT");
+    expect(index).toContain("host: '0.0.0.0'");
+    expect(index).not.toContain("hono");
+  });
+
   it("does not add generated-service dependencies to the CLI package", () => {
     const pkg = JSON.parse(readFileSync(join(repoRoot, "cli", "package.json"), "utf-8"));
     const all = Object.keys({ ...pkg.dependencies, ...pkg.devDependencies });
     expect(all).not.toContain("express");
     expect(all).not.toContain("@types/express");
     expect(all).not.toContain("elysia");
+    expect(all).not.toContain("fastify");
   });
 
   it("keeps the service schema open to every registered framework id", () => {
@@ -154,6 +176,26 @@ describe("tdk resource --framework on a backend", () => {
     expect(pkg.dependencies).not.toHaveProperty("hono");
     expect(readFileSync(join(dir("elysia-api"), "src", "index.ts"), "utf-8")).toContain(
       "from 'elysia'",
+    );
+  }, 15000);
+
+  it("scaffolds Fastify on the shared Bun image with its own source and dependencies", () => {
+    const result = tdk(
+      ["resource", "fastify-api", "--type", "backend", "--framework", "fastify", "--stack", "shop"],
+      projectRoot,
+    );
+    expect(result.status, result.stderr).toBe(0);
+
+    expect(json("fastify-api", "service.json")).toMatchObject({
+      appType: "backend",
+      framework: "fastify",
+    });
+    expect(existsSync(join(dir("fastify-api"), "Dockerfile"))).toBe(true);
+    const pkg = json("fastify-api", "package.json");
+    expect(pkg.dependencies).toHaveProperty("fastify");
+    expect(pkg.dependencies).not.toHaveProperty("hono");
+    expect(readFileSync(join(dir("fastify-api"), "src", "index.ts"), "utf-8")).toContain(
+      "from 'fastify'",
     );
   }, 15000);
 
