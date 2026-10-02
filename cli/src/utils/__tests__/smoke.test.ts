@@ -165,7 +165,7 @@ describe("runSmokePlan", () => {
   it("keeps trying a not-ready route until it comes up, within the timeout", async () => {
     const { fetch, calls } = fakeFetch({
       [`POST ${base}/records`]: [
-        new Error("connect ECONNREFUSED"),
+        Object.assign(new Error("fetch failed"), { cause: { code: "ECONNREFUSED" } }),
         { status: 404 },
         { status: 503 },
         { status: 201, body: '{"id":"9"}' },
@@ -185,6 +185,42 @@ describe("runSmokePlan", () => {
     expect(result.ok).toBe(false);
     expect(calls).toHaveLength(1);
     expect(result.failure).toContain("500");
+  });
+
+  it("does not repeat a POST after an error that may have reached the service (timeout, reset, unknown)", async () => {
+    for (const err of [
+      Object.assign(new Error("The operation was aborted"), { name: "TimeoutError" }),
+      Object.assign(new Error("fetch failed"), { cause: { code: "ECONNRESET" } }),
+      new Error("something odd"),
+    ]) {
+      const { fetch, calls } = fakeFetch({ [`POST ${base}/records`]: [err] });
+      const result = await runSmokePlan(PLAN, { fetch, ...clock() });
+      expect(result.ok).toBe(false);
+      expect(calls).toHaveLength(1);
+      expect(result.failure).toContain("never answered");
+    }
+  });
+
+  it("retries a GET after any error until the timeout", async () => {
+    const plan: SmokePlan = { ...PLAN, smoke: { via: "proxy", steps: [{ path: "/x" }] } };
+    const { fetch, calls } = fakeFetch({
+      [`GET ${base}/x`]: [
+        new Error("socket hang up"),
+        new Error("socket hang up"),
+        { status: 200 },
+      ],
+    });
+    expect((await runSmokePlan(plan, { fetch, ...clock() })).ok).toBe(true);
+    expect(calls).toHaveLength(3);
+  });
+
+  it("reports a malformed smoke block as a failed result instead of throwing", async () => {
+    const plan = { ...PLAN, smoke: { via: "proxy" } } as unknown as SmokePlan;
+    const { fetch, calls } = fakeFetch({});
+    const result = await runSmokePlan(plan, { fetch, ...clock() });
+    expect(result.ok).toBe(false);
+    expect(result.failure).toContain("smoke.steps");
+    expect(calls).toHaveLength(0);
   });
 
   it("fails when the read-back body does not contain the expected text", async () => {

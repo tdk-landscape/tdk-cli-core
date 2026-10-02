@@ -6,8 +6,27 @@ const REQUEST_TIMEOUT_MS = 10_000;
 const BODY_SNIPPET_CHARS = 200;
 /** Statuses a proxy answers while a route or its upstream is not up yet. Anything else is the service's real answer. */
 const NOT_READY_STATUSES = new Set([404, 502, 503, 504]);
+/** Error codes that prove the request never left this machine, so repeating even a write is safe. */
+const PRE_SEND_ERROR_CODES = new Set([
+    "ECONNREFUSED",
+    "ENOTFOUND",
+    "EAI_AGAIN",
+    "EHOSTUNREACH",
+    "ENETUNREACH",
+]);
+const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 function isRecord(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+/** A thrown request error is retried for safe methods, and for others only when its code shows the request was never sent. */
+function shouldRetryRequestError(err, method) {
+    if (SAFE_METHODS.has(method))
+        return true;
+    if (!isRecord(err))
+        return false;
+    const cause = isRecord(err.cause) ? err.cause : undefined;
+    const code = err.code ?? cause?.code;
+    return typeof code === "string" && PRE_SEND_ERROR_CODES.has(code);
 }
 export function validateSmoke(smoke) {
     if (!isRecord(smoke))
@@ -110,6 +129,15 @@ export async function runSmokePlan(plan, deps = {}) {
     const sleep = deps.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
     const deadline = now() + (plan.smoke.timeoutSeconds ?? DEFAULT_SMOKE_TIMEOUT_SECONDS) * 1000;
     const saved = {};
+    // A manifest with errors is still loaded, so a malformed block must fail the check, not throw out of `tdk up`.
+    const invalid = validateSmoke(plan.smoke);
+    if (invalid.length > 0) {
+        return {
+            name: plan.name,
+            ok: false,
+            failure: `${plan.name}: invalid smoke block: ${invalid.join("; ")}`,
+        };
+    }
     for (const [index, step] of plan.smoke.steps.entries()) {
         const label = step.name ?? `step ${index + 1}`;
         const method = (step.method ?? "GET").toUpperCase();
@@ -122,6 +150,7 @@ export async function runSmokePlan(plan, deps = {}) {
         for (;;) {
             error = undefined;
             status = undefined;
+            let retryableError = false;
             try {
                 const response = await doFetch(url, {
                     method,
@@ -133,9 +162,10 @@ export async function runSmokePlan(plan, deps = {}) {
                 text = await response.text();
             }
             catch (err) {
+                retryableError = shouldRetryRequestError(err, method);
                 error = err instanceof Error ? err.message : String(err);
             }
-            const notReady = error !== undefined ||
+            const notReady = (error !== undefined && retryableError) ||
                 (status !== undefined && status !== expected && NOT_READY_STATUSES.has(status));
             if (!notReady || now() >= deadline)
                 break;
