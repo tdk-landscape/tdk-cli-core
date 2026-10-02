@@ -34,6 +34,7 @@ import { formatCount } from "../utils/formatting.js";
 import { getHostPortPlan } from "../utils/host-port-config.js";
 import { createHostPortPlan, type HostPortPlan } from "../utils/host-port-plan.js";
 import { findProjectRoot } from "../utils/paths.js";
+import { isApiServiceType } from "../utils/resource-kind.js";
 import { buildHealthTargets, pingHealthTargets } from "../utils/service-urls.js";
 import { discoverResourcesFromRoot } from "../utils/services.js";
 import { findOnPath } from "../utils/which.js";
@@ -404,7 +405,7 @@ export async function checkBun(exec: ExecAsync = execAsync): Promise<CheckResult
   const resources = discoverResourcesFromRoot(projectRoot);
   const hasGeneratedJsServices = resources.some(
     (resource) =>
-      resource.config?.appType === "backend" ||
+      isApiServiceType(resource.config?.appType) ||
       resource.config?.appType === "frontend" ||
       resource.config?.appType === "worker",
   );

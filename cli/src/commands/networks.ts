@@ -19,6 +19,7 @@ import { createHostPortPlan } from "../utils/host-port-plan.js";
 import { createMachineEnvelope, writeMachineError } from "../utils/machine-output.js";
 import { findProjectRoot } from "../utils/paths.js";
 import { checkPortStatus } from "../utils/port-assignment.js";
+import { isApiServiceType } from "../utils/resource-kind.js";
 import { isValidPort, sanitizeForShell } from "../utils/validation.js";
 import { findOnPath } from "../utils/which.js";
 
@@ -242,7 +243,7 @@ export const networksCommand = new Command("networks")
           )
           .map(async (s) => {
             const basePath = s.config.basePath.replace(/^\//, "");
-            const isBackend = (s.config as { appType?: string })?.appType === "backend";
+            const isBackend = isApiServiceType((s.config as { appType?: string })?.appType);
             const host = isBackend ? apiDomain : appDomain;
             const url = `http://${host}:${httpPort}/${basePath}`;
             const port = s.config.port;
