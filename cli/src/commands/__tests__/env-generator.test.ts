@@ -118,6 +118,20 @@ if not has('QUOTE="say \\\\"hi\\\\""'): fail('inner quotes must be escaped: ' + 
 `);
   });
 
+  it("escapes $ in quoted params so Compose does not interpolate them", () => {
+    // Docker Compose expands $NAME and ${NAME} in env files, so a literal dollar must be written as $$. Checked against a real
+    // container: "price $$FOO" arrives as the literal price $FOO, and an unescaped $FOO is replaced by someone else's variable.
+    const params = { PRICE: "$5", REF: "see $" + "{FOO}", PLAIN: "ok" };
+    expectPasses(`${generate(withManifest({ params }))}
+lines = content.split('\\n')
+def has(line):
+    return line in lines
+if not has('PRICE="$$5"'): fail('a literal $ must be doubled: ' + content)
+if not has('REF="see $${FOO}"'): fail('a ${NAME} must be doubled so Compose leaves it alone: ' + content)
+if not has('PLAIN=ok'): fail('a plain value should stay bare: ' + content)
+`);
+  });
+
   it("adds a database URL only when Prisma is opted in", () => {
     expectPasses(`load(${envStar}, 'EnvGenerators')
 plain = EnvGenerators.generate_env_file(${withManifest()})
@@ -151,6 +165,13 @@ if 'None' in entry: fail('the compose entry contains the string None')
     expectPasses(`${load}${composeEntry(withManifest())}
 if 'local-development-secret-min-32-chars-long' in entry: fail('the shared default JWT secret is in the compose entry')
 if '- JWT_SECRET=\${JWT_SECRET:?' not in entry: fail('JWT_SECRET must be required from the project .env')
+`);
+  });
+
+  it("does not require JWT_SECRET in identity-service mode, which does not use it", () => {
+    expectPasses(`${load}${composeEntry(withManifest({ dependsOn: ["identity"] }))}
+if 'AUTH_MODE=identity-service' not in entry: fail('expected identity-service mode')
+if 'JWT_SECRET' in entry: fail('identity-service mode must not require or set JWT_SECRET')
 `);
   });
 

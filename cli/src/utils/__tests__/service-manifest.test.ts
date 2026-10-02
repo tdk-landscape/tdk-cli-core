@@ -25,6 +25,26 @@ describe("service manifest compatibility", () => {
     expect(result.manifest?.customerMetadata).toEqual({ owner: "team-a" });
   });
 
+  it("warns specifically that a jwtSecret in service.json is ignored and must not be committed", () => {
+    const result = validateServiceManifest(
+      {
+        appName: "api",
+        appType: "backend",
+        stack: "shop",
+        schemaVersion: SERVICE_MANIFEST_SCHEMA_VERSION,
+        jwtSecret: "committed-by-mistake",
+      },
+      "service.json",
+    );
+    expect(result.errors).toEqual([]);
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toContain("service.json.jwtSecret");
+    expect(result.warnings[0]).toMatch(/ignored/);
+    expect(result.warnings[0]).toContain("JWT_SECRET");
+    // The warning never repeats the secret itself.
+    expect(result.warnings[0]).not.toContain("committed-by-mistake");
+  });
+
   it("rejects unsupported schema versions", () => {
     const result = validateServiceManifest(
       { appName: "api", appType: "backend", stack: "shop", schemaVersion: 2 },
