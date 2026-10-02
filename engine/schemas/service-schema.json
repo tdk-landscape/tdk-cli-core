@@ -247,7 +247,8 @@
       "description": "Backend language provider id used to scaffold and run the service. Only meaningful for backend resources; omitted means bun (legacy manifests). Valid ids come from the CLI provider registry.",
       "examples": [
         "bun",
-        "python"
+        "python",
+        "go"
       ],
       "pattern": "^[a-z][a-z0-9-]*$",
       "type": "string"

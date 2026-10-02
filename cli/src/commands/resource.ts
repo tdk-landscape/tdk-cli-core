@@ -355,7 +355,7 @@ export const resourceCommand = new Command("resource")
     "--framework <id>",
     "Framework: frontend react (default), vue, svelte, preact, lit, solid, qwik, vanilla; backend hono (default), express, elysia, fastify",
   )
-  .option("--language <id>", "Backend language: bun (default), python")
+  .option("--language <id>", "Backend language: bun (default), python, go")
   .option("-s, --stack <stack>", "Stack to assign resource to", "default")
   .option("-p, --path <path>", "Custom path for resource directory")
   .option("--resource-path <path>", "Alias for --path (for backward compatibility)")
@@ -712,8 +712,17 @@ This file contains the resource configuration for TDK.
       // Create directory structure for new resources
       console.log(chalk.blue("\n📁 Creating directory structure..."));
       mkdirSync(fullPath, { recursive: true });
-      mkdirSync(resolve(fullPath, "src"), { recursive: true });
-      mkdirSync(resolve(fullPath, "tests"), { recursive: true });
+      // A provider that owns its runtime files only gets the folders it writes into (Go keeps its files at the root).
+      const ownedTopLevel = new Set(
+        (backendLanguage?.createFiles?.(resourceName) ?? []).map(
+          (file) => file.filename.split("/")[0],
+        ),
+      );
+      for (const folder of ["src", "tests"]) {
+        if (!backendLanguage?.createFiles || ownedTopLevel.has(folder)) {
+          mkdirSync(resolve(fullPath, folder), { recursive: true });
+        }
+      }
       if (resourceType === "frontend") {
         mkdirSync(resolve(fullPath, "public"), { recursive: true });
       }

@@ -220,7 +220,14 @@ def _build_live_update_rules(res_path, full_res_path, syncs, project_root='', la
 
     Python backends reload their own process after a sync (uvicorn --reload), so they have
     no Bun install step. A changed pyproject.toml is not synced, so Tilt rebuilds the image instead.
+    Go backends have no live update at all (see the early return).
     """
+    # Go is compiled into the image and has no reload process, so syncing sources would leave the old
+    # binary running. Return before any sync() step is built (Tilt rejects sync steps that are created
+    # but never used): no live-update rules means Tilt rebuilds the image when a watched file changes.
+    if language == 'go':
+        return []
+
     live_update_rules = []
     for sync_path in syncs:
         # Python images never read the npm/Bun registry config, and the engine does not
