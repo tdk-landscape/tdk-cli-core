@@ -204,12 +204,16 @@ describe("resource command", () => {
       expect(() => getFrontendFramework("")).toThrow(/Unknown frontend framework/);
     });
 
-    it("rejects framework selection for non-frontend resources", () => {
-      for (const resourceType of ["backend", "worker", "sdk"]) {
+    it("rejects framework selection for resources that take no framework", () => {
+      for (const resourceType of ["worker", "sdk"]) {
         expect(() => resolveFrontendFramework(resourceType, "react")).toThrow(
-          /only be used with --type frontend/,
+          /only be used with --type frontend or --type backend/,
         );
       }
+    });
+
+    it("leaves backend framework ids to the backend registry", () => {
+      expect(resolveFrontendFramework("backend", "express")).toBeUndefined();
     });
 
     it("keeps the existing React entry and component output under the provider", () => {

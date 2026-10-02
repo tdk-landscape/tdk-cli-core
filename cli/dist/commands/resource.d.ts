@@ -40,7 +40,7 @@ export declare function createPackageJson(name: string, type: string, frameworkI
         "lint:fix": string;
     };
     dependencies: {
-        hono?: string | undefined;
+        [x: string]: string;
     };
     devDependencies: {
         "@types/bun": string;
