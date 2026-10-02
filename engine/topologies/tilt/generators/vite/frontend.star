@@ -21,6 +21,7 @@ load('./frameworks/svelte.star', 'SVELTE_VITE_FRONTEND', 'SVELTE_VITE_FRONTEND_B
 load('./frameworks/preact.star', 'PREACT_VITE_FRONTEND', 'PREACT_VITE_FRONTEND_BUILD')
 load('./frameworks/lit.star', 'LIT_VITE_FRONTEND', 'LIT_VITE_FRONTEND_BUILD')
 load('./frameworks/solid.star', 'SOLID_VITE_FRONTEND', 'SOLID_VITE_FRONTEND_BUILD')
+load('./frameworks/qwik.star', 'QWIK_VITE_FRONTEND', 'QWIK_VITE_FRONTEND_BUILD')
 load('../../../platform/docker/networking/api_path_constants.star', 'get_frontend_base_path')
 load('./helpers.star', 
     'build_header', 
@@ -57,6 +58,10 @@ _FRAMEWORK_TEMPLATES = {
     'solid': {
         'dev': SOLID_VITE_FRONTEND,
         'build': SOLID_VITE_FRONTEND_BUILD,
+    },
+    'qwik': {
+        'dev': QWIK_VITE_FRONTEND,
+        'build': QWIK_VITE_FRONTEND_BUILD,
     },
 }
 

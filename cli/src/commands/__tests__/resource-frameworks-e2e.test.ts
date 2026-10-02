@@ -389,6 +389,50 @@ describe("frontend resource framework selection", () => {
     ).toBe(true);
   }, 15000);
 
+  it("scaffolds Qwik without a second Vite config owner or runtime fork", () => {
+    const qwikPath = join(projectRoot, "apps", "qwik-web");
+    runTdk(
+      [
+        "resource",
+        "qwik-web",
+        "--type",
+        "frontend",
+        "--framework",
+        "qwik",
+        "--stack",
+        "shop",
+        "--path",
+        "apps/qwik-web",
+      ],
+      projectRoot,
+      "y\n",
+    );
+
+    const service = JSON.parse(readFileSync(join(qwikPath, "service.json"), "utf-8"));
+    const pkg = JSON.parse(readFileSync(join(qwikPath, "package.json"), "utf-8"));
+    const tsconfig = JSON.parse(readFileSync(join(qwikPath, "tsconfig.json"), "utf-8"));
+    const cliPackage = JSON.parse(readFileSync(join(repoRoot, "cli", "package.json"), "utf-8"));
+
+    expect(service.framework).toBe("qwik");
+    expect(service.appType).toBe("frontend");
+    expect(pkg.dependencies).toHaveProperty("@builder.io/qwik");
+    expect(pkg.dependencies).not.toHaveProperty("react");
+    expect(pkg.devDependencies ?? {}).not.toHaveProperty("@vitejs/plugin-react");
+    expect(cliPackage.dependencies).not.toHaveProperty("@builder.io/qwik");
+    expect(tsconfig.compilerOptions.jsx).toBe("react-jsx");
+    expect(tsconfig.compilerOptions.jsxImportSource).toBe("@builder.io/qwik");
+    expect(readdirSync(join(qwikPath, "src")).sort()).toEqual(["App.tsx", "main.tsx"]);
+    expect(existsSync(join(qwikPath, "vite.config.ts"))).toBe(false);
+    expect(
+      existsSync(
+        join(
+          projectRoot,
+          ".tdk/.tdk-out/tdk-cli-ext/engine/topologies/tilt/generators/vite/frameworks/qwik.star",
+        ),
+      ),
+    ).toBe(true);
+  }, 15000);
+
   it("places a frontend where discovery finds it and says so", () => {
     const output = runTdk(
       ["resource", "landing", "--type", "frontend", "--stack", "shop"],
@@ -446,7 +490,7 @@ describe("frontend resource framework selection", () => {
         projectRoot,
       ),
     ).toThrow(
-      /Unknown frontend framework "angular"[\s\S]*Use one of: react, vue, svelte, preact, lit, solid/,
+      /Unknown frontend framework "angular"[\s\S]*Use one of: react, vue, svelte, preact, lit, solid, qwik/,
     );
     expect(existsSync(resourcePath)).toBe(false);
   }, 15000);

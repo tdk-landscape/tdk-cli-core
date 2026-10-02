@@ -117,6 +117,21 @@ it("registers Solid Vite templates at the shared Starlark generator paths", () =
   expect(solidTemplates).not.toContain("@vitejs/plugin-react");
 });
 
+it("registers Qwik Vite templates at the shared Starlark generator paths", () => {
+  const generator = readFileSync(frontendGenerator, "utf-8");
+  const qwikTemplates = readFileSync(
+    join(dirname(frontendGenerator), "frameworks", "qwik.star"),
+    "utf-8",
+  );
+
+  expect(generator).toContain("load('./frameworks/qwik.star'");
+  expect(generator).toContain("'qwik': {");
+  expect(qwikTemplates).toContain("QWIK_VITE_FRONTEND =");
+  expect(qwikTemplates).toContain("QWIK_VITE_FRONTEND_BUILD =");
+  expect(qwikTemplates.match(/qwikVite\(\{\{ csr: true \}\}\)/g)).toHaveLength(2);
+  expect(qwikTemplates).not.toContain("@vitejs/plugin-react");
+});
+
 it("passes the persisted framework to the shared frontend TypeScript generator", () => {
   const orchestrator = readFileSync(
     join(
@@ -272,6 +287,30 @@ if 'proxy:' not in files[dev_path]: fail('missing shared proxy')
     expect(result.status, result.stderr).toBe(0);
   });
 
+  it("selects the Qwik plugin in both generated configs and retains shared runtime settings", () => {
+    const result =
+      evaluateTiltfile(`load(${JSON.stringify(frontendGenerator)}, 'generate_frontend', 'VITE_FRONTEND_CONFIG_PATH', 'VITE_FRONTEND_BUILD_CONFIG_PATH')
+manifest = {'appType': 'frontend', 'framework': 'qwik', 'appName': 'storefront', 'stack': 'shop', 'port': 3100, '_resource_path': 'apps/storefront'}
+files = {}
+def write_config(path, content):
+    files[path] = content
+generate_frontend(manifest, write_fn=write_config)
+if len(files) != 2: fail('expected exactly two generated Qwik Vite configs')
+dev_path = 'apps/storefront' + VITE_FRONTEND_CONFIG_PATH
+build_path = 'apps/storefront' + VITE_FRONTEND_BUILD_CONFIG_PATH
+if dev_path not in files or build_path not in files: fail('Qwik config paths differ from React')
+for content in files.values():
+    if "qwikVite({ csr: true })" not in content: fail('missing Qwik plugin')
+    if "@vitejs/plugin-react" in content: fail('React plugin leaked into Qwik config')
+    if "base: '/storefront/'" not in content: fail('missing shared base path')
+    if "'@': resolve(__dirname, '../src')" not in content: fail('missing source alias')
+if "port: 3100" not in files[dev_path]: fail('missing shared dev port')
+if 'proxy:' not in files[dev_path]: fail('missing shared proxy')
+`);
+
+    expect(result.status, result.stderr).toBe(0);
+  });
+
   it("selects Preact preset in both generated configs and retains shared runtime settings", () => {
     const result =
       evaluateTiltfile(`load(${JSON.stringify(frontendGenerator)}, 'generate_frontend', 'VITE_FRONTEND_CONFIG_PATH', 'VITE_FRONTEND_BUILD_CONFIG_PATH')
@@ -350,6 +389,13 @@ generate_frontend_tsconfig('apps/storefront', write_solid, is_docker=True, frame
 solid_config = decode_json(solid[list(solid.keys())[0]])
 if solid_config['compilerOptions'].get('jsx') != 'preserve': fail('Solid JSX must be preserved for its compiler')
 if solid_config['compilerOptions'].get('jsxImportSource') != 'solid-js': fail('Solid must import its JSX runtime from solid-js')
+qwik = {}
+def write_qwik(path, content):
+    qwik[path] = content
+generate_frontend_tsconfig('apps/storefront', write_qwik, is_docker=True, framework='qwik')
+qwik_config = decode_json(qwik[list(qwik.keys())[0]])
+if qwik_config['compilerOptions'].get('jsx') != 'react-jsx': fail('Qwik JSX must be react-jsx')
+if qwik_config['compilerOptions'].get('jsxImportSource') != '@builder.io/qwik': fail('Qwik must import its JSX runtime from @builder.io/qwik')
 if legacy != react: fail('legacy React TypeScript config changed')
 svelte_config = decode_json(svelte[list(svelte.keys())[0]])
 if 'jsx' in svelte_config['compilerOptions']: fail('React JSX leaked into Svelte config')
@@ -383,6 +429,8 @@ lit = generate_resource_health_check('web', 'apps/web', {'appType': 'frontend', 
 if 'src/main.tsx' in lit or 'src/main.ts' not in lit: fail('Lit entry check is wrong')
 solid = generate_resource_health_check('web', 'apps/web', {'appType': 'frontend', 'framework': 'solid'}, {})
 if 'src/main.tsx' not in solid: fail('Solid entry check is wrong')
+qwik = generate_resource_health_check('web', 'apps/web', {'appType': 'frontend', 'framework': 'qwik'}, {})
+if 'src/main.tsx' not in qwik: fail('Qwik entry check is wrong')
 react = generate_resource_health_check('web', 'apps/web', {'appType': 'frontend'}, {})
 if 'src/main.tsx' not in react: fail('legacy React entry check is wrong')
 `);

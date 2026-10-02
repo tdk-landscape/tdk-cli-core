@@ -193,8 +193,9 @@ describe("resource command", () => {
       expect(getFrontendFramework("preact").id).toBe("preact");
       expect(getFrontendFramework("lit").id).toBe("lit");
       expect(getFrontendFramework("solid").id).toBe("solid");
+      expect(getFrontendFramework("qwik").id).toBe("qwik");
       expect(() => getFrontendFramework("angular")).toThrow(
-        /Supported frameworks: react, vue, svelte, preact, lit, solid/,
+        /Supported frameworks: react, vue, svelte, preact, lit, solid, qwik/,
       );
       expect(() => getFrontendFramework("__proto__")).toThrow(/Unknown frontend framework/);
       expect(getFrontendFramework("React").id).toBe("react");
@@ -324,6 +325,28 @@ describe("resource command", () => {
         "src/App.tsx",
       ]);
       expect(files[1]?.content).toContain("from 'solid-js/web'");
+      expect(files[2]?.content).toContain("Frontend resource created with TDK");
+      expect(files.some(({ filename }) => filename === "vite.config.ts")).toBe(false);
+    });
+
+    it("keeps Qwik source and dependencies in its provider", () => {
+      const provider = getFrontendFramework("qwik");
+      const files = provider.createFiles("sample-web");
+
+      expect(provider.dependencies).toHaveProperty("@builder.io/qwik");
+      expect(provider.dependencies).not.toHaveProperty("react");
+      expect(provider.devDependencies).not.toHaveProperty("@vitejs/plugin-react");
+      expect(provider.compilerOptions).toEqual({
+        jsx: "react-jsx",
+        jsxImportSource: "@builder.io/qwik",
+      });
+      expect(files.map(({ filename }) => filename)).toEqual([
+        "index.html",
+        "src/main.tsx",
+        "src/App.tsx",
+      ]);
+      expect(files[1]?.content).toContain("render(document.getElementById('app')");
+      expect(files[2]?.content).toContain("component$");
       expect(files[2]?.content).toContain("Frontend resource created with TDK");
       expect(files.some(({ filename }) => filename === "vite.config.ts")).toBe(false);
     });
