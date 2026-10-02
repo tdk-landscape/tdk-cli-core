@@ -48,6 +48,8 @@ Not covered: a browser test (HTTP only), proving which database answered (a read
 
 `scripts/verify-smoke.sh` checks both outcomes through a real `tdk up`.
 
+A short drawing of the pass and fail paths: [Smoke check](smoke.md).
+
 ## `.tdk/project.json`
 
 For VS Code, associate both filenames with their schema in workspace settings. The project schema provides editor assistance for the current project configuration shape; it does not add or change CLI validation.
