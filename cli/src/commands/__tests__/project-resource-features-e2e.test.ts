@@ -142,10 +142,19 @@ describe("project and resource feature E2E", () => {
       expect(service, `${name} must not carry the unread healthCheck key`).not.toHaveProperty(
         "healthCheck",
       );
+      // The same for the dependency list: `dependencies` is the deprecated name, so a fresh scaffold must not trip its own warning.
+      expect(service.dependsOn, `${name} dependsOn`).toEqual([]);
+      expect(service, `${name} must not carry the deprecated dependencies key`).not.toHaveProperty(
+        "dependencies",
+      );
     }
 
     const output = runTdkAllowFailure(["doctor"], projectRoot);
     expect(output).not.toMatch(/service\.json\.healthCheck: unknown field/);
+    // Nothing about the scaffold itself: no deprecation and no unknown field for either fresh resource.
+    expect(output).not.toMatch(
+      /fresh-(api|mcp)\/service\.json\.[A-Za-z]+: (deprecated|unknown field)/,
+    );
   }, 120000);
 
   it("calls a deprecated service.json field deprecated, not unknown, in `tdk doctor`", () => {
