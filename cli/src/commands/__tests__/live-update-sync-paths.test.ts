@@ -38,10 +38,10 @@ it("passes the project root and language to the live-update rules by keyword", (
   expect(registration).toContain("language=config.get('manifest', {}).get('language', 'bun'),");
 });
 
-it("gives Go backends no live-update rules, so Tilt rebuilds the image on change", () => {
-  expect(registration).toContain("if language == 'go':\n        return []");
+it("gives Go and Rust backends no live-update rules, so Tilt rebuilds the image on change", () => {
+  expect(registration).toContain("if language in ['go', 'rust']:\n        return []");
   // The early return must come before any sync() step is built: Tilt rejects sync steps that are created but unused.
-  expect(registration.indexOf("if language == 'go':")).toBeLessThan(
+  expect(registration.indexOf("if language in ['go', 'rust']:")).toBeLessThan(
     registration.indexOf("live_update_rules.append(sync(full_sync_path, dest))"),
   );
 });

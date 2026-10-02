@@ -248,7 +248,8 @@
       "examples": [
         "bun",
         "python",
-        "go"
+        "go",
+        "rust"
       ],
       "pattern": "^[a-z][a-z0-9-]*$",
       "type": "string"

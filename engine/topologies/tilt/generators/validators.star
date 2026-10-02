@@ -559,6 +559,7 @@ def generate_resource_health_check(resource_name, resource_path, manifest, check
     backend_files = {
         "python": ["pyproject.toml", "src/main.py"],
         "go": ["go.mod", "main.go"],
+        "rust": ["Cargo.toml", "src/main.rs"],
     }.get(manifest.get("language", "bun"), ["package.json", "prisma/schema.prisma"])
     required_files = {
         "backend": backend_files,
@@ -575,7 +576,7 @@ fi
 '''.format(req_file, req_file))
     
     # Check 2: Package.json is valid JSON (Python and Go backends have no package.json)
-    if manifest.get("language", "bun") not in ["python", "go"]:
+    if manifest.get("language", "bun") not in ["python", "go", "rust"]:
         health_checks.append('''
 if ! cat package.json | head -1 > /dev/null 2>&1; then
     echo "❌ package.json is not valid"
