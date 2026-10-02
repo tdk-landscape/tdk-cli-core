@@ -344,6 +344,45 @@ describe("frontend resource framework selection", () => {
     ).toBe(true);
   }, 15000);
 
+  it("scaffolds Vanilla without a second Vite config owner or runtime fork", () => {
+    const vanillaPath = join(projectRoot, "apps", "vanilla-web");
+    runTdk(
+      [
+        "resource",
+        "vanilla-web",
+        "--type",
+        "frontend",
+        "--framework",
+        "vanilla",
+        "--stack",
+        "shop",
+        "--path",
+        "apps/vanilla-web",
+      ],
+      projectRoot,
+      "y\n",
+    );
+
+    const service = JSON.parse(readFileSync(join(vanillaPath, "service.json"), "utf-8"));
+    const pkg = JSON.parse(readFileSync(join(vanillaPath, "package.json"), "utf-8"));
+
+    expect(service.framework).toBe("vanilla");
+    expect(service.appType).toBe("frontend");
+    expect(pkg.dependencies ?? {}).toEqual({});
+    expect(pkg.dependencies).not.toHaveProperty("react");
+    expect(pkg.devDependencies).not.toHaveProperty("@vitejs/plugin-react");
+    expect(readdirSync(join(vanillaPath, "src")).sort()).toEqual(["app.ts", "main.ts"]);
+    expect(existsSync(join(vanillaPath, "vite.config.ts"))).toBe(false);
+    expect(
+      existsSync(
+        join(
+          projectRoot,
+          ".tdk/.tdk-out/tdk-cli-ext/engine/topologies/tilt/generators/vite/frameworks/vanilla.star",
+        ),
+      ),
+    ).toBe(true);
+  }, 15000);
+
   it("scaffolds Solid without a second Vite config owner or runtime fork", () => {
     const solidPath = join(projectRoot, "apps", "solid-web");
     runTdk(
@@ -490,7 +529,7 @@ describe("frontend resource framework selection", () => {
         projectRoot,
       ),
     ).toThrow(
-      /Unknown frontend framework "angular"[\s\S]*Use one of: react, vue, svelte, preact, lit, solid, qwik/,
+      /Unknown frontend framework "angular"[\s\S]*Use one of: react, vue, svelte, preact, lit, solid, qwik, vanilla/,
     );
     expect(existsSync(resourcePath)).toBe(false);
   }, 15000);
