@@ -1,4 +1,4 @@
-# Refreshes docs/npm-downloads.svg from the public npm stats API every Monday.
+# Refreshes docs/assets/npm-downloads.svg from the public npm stats API every Monday.
 # Run manually from the Actions tab too. npm stats lag 1-2 days.
 name: 📈 npm downloads graph
 
@@ -27,7 +27,7 @@ jobs:
       - run: node scripts/npm-downloads-graph.mjs
       - name: Commit refreshed graph
         run: |
-          git add docs/npm-downloads.svg
+          git add docs/assets/npm-downloads.svg
           if git diff --cached --quiet; then
             echo "Graph unchanged."
           else

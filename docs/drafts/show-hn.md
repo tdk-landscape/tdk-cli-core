@@ -17,5 +17,5 @@ The warm demo brings 14 tiny services healthy in 4.6s on a 16 GB M1 after images
 
 - Repo: https://github.com/tdk-landscape/tdk-cli-core
 - [Quickstart](https://tdk-landscape.github.io/tdk-website/docs/quickstart/)
-- [Comparison and known limits](compare-honest.md)
-- [Claims registry](claims.md)
+- [Comparison and known limits](../compare-honest.md)
+- [Claims registry](../claims.md)

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Fetches last-month npm download counts and writes docs/npm-downloads.svg.
+// Fetches last-month npm download counts and writes docs/assets/npm-downloads.svg.
 // Note: npm counts include CI installs and mirrors; they are downloads, not users.
 import { writeFile } from "node:fs/promises";
 
@@ -40,6 +40,6 @@ ${downloads.map((d, i) => (i % labelEvery === 0 || i === n - 1)
 </svg>
 `;
 
-const out = new URL("../docs/npm-downloads.svg", import.meta.url);
+const out = new URL("../docs/assets/npm-downloads.svg", import.meta.url);
 await writeFile(out, svg);
 console.log(`wrote ${out.pathname} (${n} days, total ${total})`);
