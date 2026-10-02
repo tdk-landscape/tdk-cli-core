@@ -42,9 +42,9 @@ const BUN_BASELINE: Record<string, string> = {
 };
 
 describe("backend language registry", () => {
-  it("keeps Bun the default and registers exactly bun, go, python", () => {
+  it("keeps Bun the default and registers exactly bun, go, python, rust", () => {
     expect(DEFAULT_BACKEND_LANGUAGE).toBe("bun");
-    expect(Object.keys(BACKEND_LANGUAGES).sort()).toEqual(["bun", "go", "python"]);
+    expect(Object.keys(BACKEND_LANGUAGES).sort()).toEqual(["bun", "go", "python", "rust"]);
   });
 
   it("keeps the service schema open to every registered language", () => {
@@ -157,6 +157,37 @@ describe("tdk resource --language", () => {
     expect(service("go-api").featuresEnabled).not.toContain("prisma");
   }, 15000);
 
+  it("scaffolds Rust with axum, a cargo test smoke test, and no Dockerfile of its own", () => {
+    const result = tdk(
+      ["resource", "rust-api", "--type", "backend", "--language", "rust", "--stack", "shop"],
+      projectRoot,
+    );
+    expect(result.status, result.stderr).toBe(0);
+
+    const root = dir("rust-api");
+    expect(service("rust-api")).toMatchObject({
+      language: "rust",
+      appType: "backend",
+      healthCheckPath: "/health",
+    });
+    expect(listFiles(root)).toEqual(["Cargo.toml", "service.json", "src/main.rs"]);
+    const cargo = readFileSync(join(root, "Cargo.toml"), "utf-8");
+    expect(cargo).toContain('name = "rust-api"');
+    // The image copies the release binary by this fixed name, whatever the resource is called.
+    expect(cargo).toContain('[[bin]]\nname = "app"');
+    expect(cargo).toContain("axum");
+    const main = readFileSync(join(root, "src/main.rs"), "utf-8");
+    expect(main).toContain('std::env::var("PORT")');
+    expect(main).toContain('"/health"');
+    expect(main).toContain('format!("0.0.0.0:{port}")');
+    expect(main).toContain("#[tokio::test]");
+    expect(existsSync(join(root, "package.json"))).toBe(false);
+    expect(existsSync(join(root, "Dockerfile"))).toBe(false);
+    expect(existsSync(join(root, "tests"))).toBe(false);
+    expect(service("rust-api")).not.toHaveProperty("build");
+    expect(service("rust-api").featuresEnabled).not.toContain("prisma");
+  }, 15000);
+
   it("rejects a framework for Go like it does for Python", () => {
     const result = tdk(
       [
@@ -199,7 +230,7 @@ describe("tdk resource --language", () => {
     );
     expect(result.status).not.toBe(0);
     const output = `${result.stdout}${result.stderr}`;
-    for (const id of ["bun", "python", "go"]) expect(output).toContain(id);
+    for (const id of ["bun", "python", "go", "rust"]) expect(output).toContain(id);
     expect(existsSync(dir("ruby-api"))).toBe(false);
   });
 

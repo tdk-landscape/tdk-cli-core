@@ -1,6 +1,6 @@
 # Contributing a backend language provider
 
-`tdk resource --type backend` scaffolds Bun + Hono. That is the historical default and it does not change: omit `--language` and the output is byte-identical to before providers existed. Python and Go are explicit, opt-in providers. Add one language per pull request, using a lowercase id. Start by copying the Python provider and its tests.
+`tdk resource --type backend` scaffolds Bun + Hono. That is the historical default and it does not change: omit `--language` and the output is byte-identical to before providers existed. Python, Go and Rust are explicit, opt-in providers. Add one language per pull request, using a lowercase id. Start by copying the Python provider and its tests.
 
 Frontend frameworks follow a [similar recipe](frontend-framework-providers.md). The difference is deliberate: frontend providers all produce Vite apps that share one Docker and nginx path, while a Python process needs its own base image and reload command. Backend providers therefore own their Dockerfile and reload behavior; everything else stays shared.
 
@@ -13,7 +13,7 @@ Bun image instead: same Dockerfile, `tsconfig.json`, health routes, `PORT` read 
 `emitDecoratorMetadata` in the service's `tsconfig.json` (the engine's generated Docker tsconfig already sets them), through the
 provider's optional `compilerOptions`. The id is saved as `framework` in `service.json`; omitting the flag writes no
 `framework` field and the output is byte-identical to before. A framework cannot be combined with a language that owns its
-runtime (`--language python` or `--language go`).
+runtime (`--language python`, `--language go` or `--language rust`).
 
 | File | Responsibility |
 | --- | --- |
@@ -35,6 +35,15 @@ Go is compiled into the image and has no reload process, so there is **no live u
 file changes. (The engine returns no live-update rules for Go; building a `sync()` step and then discarding it makes Tilt fail with
 "live_update steps that were created but not used".) Checked with a real `tdk up`: the generated image builds, `go test ./...` passes
 in the `test` stage, and `GET /api/<name>/health` answers `200` through Traefik.
+
+## Rust
+
+`tdk resource api --type backend --language rust --stack shop` scaffolds `Cargo.toml` and `src/main.rs` (axum 0.8 + tokio,
+`GET /health`, reads `PORT`, binds `0.0.0.0`) with a unit test. `Cargo.toml` names the binary `app` so the image can copy it
+whatever the resource is called. The engine generates the image like Go's: a `rust:1-slim-bookworm` build stage, a `test` stage
+running `cargo test`, and a small `debian:bookworm-slim` `production` stage with a health check. The build uses BuildKit cache
+mounts for the cargo registry and the `target` directory, so a rebuild after a source change recompiles only the crate. Like Go
+it has no live update: Tilt rebuilds the image when a watched file changes.
 
 ## Where the code lives
 
@@ -67,7 +76,7 @@ The container must answer `GET /health`, read `PORT` from the environment, and s
 
 `tdk resource api --type backend --language python --stack shop` creates a resource. Ids match case-insensitively (`--language Python`). An unknown id fails before any file is written. A legacy `service.json` without `language` stays valid and is not rewritten. `tdk config regenerate` rebuilds project-level config; it does not recreate resource source.
 
-For a language without a provider (Java, Ruby, Rust, a legacy service), use `--type bring-your-own` with your own Dockerfile or image.
+For a language without a provider (Java, Ruby, a legacy service), use `--type bring-your-own` with your own Dockerfile or image.
 
 ## Backend provider pull request checklist
 
