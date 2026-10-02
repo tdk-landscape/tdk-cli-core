@@ -132,9 +132,27 @@ Recipes for using TDK next to other tools live in [`recipes/`](recipes/): [moon]
 - Through `tdk up`, a service is routed at `http://api.<project>.localhost/api/<name without -api>/...` with the prefix
   stripped, so a frontend served under that path needs its `base` set.
 
+### What only `tdk up` shows
+
+Running an image with `docker run` is not enough; these were found by running the example through a real `tdk up` and Traefik:
+
+- **TDK sets a Postgres `DATABASE_URL` in every bring-your-own container,** even when the app has no database. A framework that
+  prefers it over its own config can fail: the [Rails example](../examples/byo/rails/README.md) answered 500 (`pg is not part of the
+  bundle`) until the server started with `DATABASE_URL` unset.
+- **The `Host` header is `api.<project>.localhost`.** Rails' development host check blocked it (`Blocked hosts: ...`) until the example
+  allowed any host. Most other examples accepted it with no change (Angular, Flask, Gin, Symfony, Quarkus, Micronaut, Echo,
+  Sinatra, Docusaurus, SolidStart, Phoenix). That list is the examples checked through `tdk up`; the others have not been.
+- **A cold Docker cache is slow.** `tdk up` builds TDK's shared base images the first time, so give a first check several minutes.
+
+One more trap shows up with a plain `docker run` as well, if you read the log: **a generator can write a loopback-only bind inside
+`docker build`.** The [Phoenix example](../examples/byo/phoenix/README.md) failed its first check because the generator wrote
+`127.0.0.1` in the image build but `0.0.0.0` when run inside a started container, so its Dockerfile rewrites the line and fails the build
+if the result is not there.
+
 ### What has and has not been checked
 
-Checked: each folder under `examples/byo/` builds and answers `200` on its health path when run with `PORT=4000`. The
-Fastify example also ran through a full `tdk up` and Traefik, and a persistent moon task ran `tdk up` (see the moon recipe).
+Checked: each folder under `examples/byo/` builds and answers `200` on its health path when run with `PORT=4000`. Many also ran
+through a full `tdk up` and Traefik; each folder's own `README.md` says which check it passed and what it did not cover, so look there
+rather than at a list here. A persistent moon task ran `tdk up` (see the moon recipe).
 
-Not checked: the other examples through `tdk up` and Traefik, and any production image. Most examples run a dev server.
+Not checked: a production image for any example. Most examples run a dev server, and none of them was load-tested.
