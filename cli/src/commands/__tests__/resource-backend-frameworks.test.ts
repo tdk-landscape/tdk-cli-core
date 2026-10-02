@@ -24,20 +24,21 @@ function tdk(args: string[], cwd: string, input = "y\n") {
 }
 
 describe("backend framework registry", () => {
-  it("keeps Hono the default and registers exactly hono, express, elysia, fastify", () => {
+  it("keeps Hono the default and registers exactly hono, express, elysia, fastify, nestjs", () => {
     expect(DEFAULT_BACKEND_FRAMEWORK).toBe("hono");
     expect(Object.keys(BACKEND_FRAMEWORKS).sort()).toEqual([
       "elysia",
       "express",
       "fastify",
       "hono",
+      "nestjs",
     ]);
   });
 
   it("normalizes case and rejects unknown ids, including prototype keys", () => {
     expect(getBackendFramework(" Express ").id).toBe("express");
     expect(() => getBackendFramework("koa")).toThrow(
-      /Supported frameworks: hono, express, elysia, fastify/,
+      /Supported frameworks: hono, express, elysia, fastify, nestjs/,
     );
     expect(() => getBackendFramework("__proto__")).toThrow(/Unknown backend framework/);
   });
@@ -94,6 +95,25 @@ describe("backend framework registry", () => {
     expect(index).not.toContain("hono");
   });
 
+  it("keeps NestJS source, dependencies and decorator options in its provider", () => {
+    const provider = getBackendFramework("nestjs");
+    const index = provider.createIndex("orders-api");
+
+    expect(provider.dependencies).toHaveProperty("@nestjs/core");
+    expect(provider.dependencies).toHaveProperty("@nestjs/platform-express");
+    expect(provider.dependencies).toHaveProperty("reflect-metadata");
+    expect(provider.dependencies).not.toHaveProperty("hono");
+    expect(provider.compilerOptions).toEqual({
+      experimentalDecorators: true,
+      emitDecoratorMetadata: true,
+    });
+    expect(index).toContain("import 'reflect-metadata';");
+    expect(index).toContain("@Get('health')");
+    expect(index).toContain("process.env.PORT");
+    expect(index).toContain("'0.0.0.0'");
+    expect(index).not.toContain("hono");
+  });
+
   it("does not add generated-service dependencies to the CLI package", () => {
     const pkg = JSON.parse(readFileSync(join(repoRoot, "cli", "package.json"), "utf-8"));
     const all = Object.keys({ ...pkg.dependencies, ...pkg.devDependencies });
@@ -101,6 +121,7 @@ describe("backend framework registry", () => {
     expect(all).not.toContain("@types/express");
     expect(all).not.toContain("elysia");
     expect(all).not.toContain("fastify");
+    expect(all).not.toContain("@nestjs/core");
   });
 
   it("keeps the service schema open to every registered framework id", () => {
@@ -199,6 +220,26 @@ describe("tdk resource --framework on a backend", () => {
     );
   }, 15000);
 
+  it("scaffolds NestJS with decorator options in its tsconfig, on the shared Bun image", () => {
+    const result = tdk(
+      ["resource", "nest-api", "--type", "backend", "--framework", "nestjs", "--stack", "shop"],
+      projectRoot,
+    );
+    expect(result.status, result.stderr).toBe(0);
+
+    expect(json("nest-api", "service.json")).toMatchObject({
+      appType: "backend",
+      framework: "nestjs",
+    });
+    expect(existsSync(join(dir("nest-api"), "Dockerfile"))).toBe(true);
+    const pkg = json("nest-api", "package.json");
+    expect(pkg.dependencies).toHaveProperty("@nestjs/core");
+    expect(pkg.dependencies).not.toHaveProperty("hono");
+    const tsconfig = json("nest-api", "tsconfig.json");
+    expect(tsconfig.compilerOptions.experimentalDecorators).toBe(true);
+    expect(tsconfig.compilerOptions.emitDecoratorMetadata).toBe(true);
+  }, 15000);
+
   it("persists an explicit hono selection and keeps the Hono source", () => {
     const result = tdk(
       ["resource", "hono-api", "--type", "backend", "--framework", "hono", "--stack", "shop"],
@@ -217,6 +258,10 @@ describe("tdk resource --framework on a backend", () => {
     );
     expect(result.status).toBe(0);
     expect(json("plain-api", "service.json")).not.toHaveProperty("framework");
+    // Hono keeps the shared tsconfig without NestJS's decorator flags.
+    expect(
+      json("plain-api", "tsconfig.json").compilerOptions.experimentalDecorators,
+    ).toBeUndefined();
     expect(json("plain-api", "package.json").dependencies).toHaveProperty("hono");
   }, 15000);
 

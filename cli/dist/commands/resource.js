@@ -154,11 +154,13 @@ export function createPackageJson(name, type, frameworkId) {
 }
 export function createResourceTsconfig(resourceType, frameworkId) {
     const framework = resolveFrontendFramework(resourceType, frameworkId);
+    const backendFramework = resolveBackendFramework(resourceType, frameworkId);
     return {
         ...TSCONFIG_TEMPLATE,
         compilerOptions: {
             ...TSCONFIG_TEMPLATE.compilerOptions,
             ...(framework?.compilerOptions ?? {}),
+            ...(backendFramework?.compilerOptions ?? {}),
         },
     };
 }
@@ -295,7 +297,7 @@ export const resourceCommand = new Command("resource")
     .description("Create a new resource (service) from scratch, or register an existing one")
     .argument("[name]", "Resource name (kebab-case)")
     .option("-t, --type <type>", "Resource type: backend, frontend, worker, bring-your-own, sdk", "backend")
-    .option("--framework <id>", "Framework: frontend react (default), vue, svelte, preact, lit, solid, qwik, vanilla; backend hono (default), express, elysia, fastify")
+    .option("--framework <id>", "Framework: frontend react (default), vue, svelte, preact, lit, solid, qwik, vanilla; backend hono (default), express, elysia, fastify, nestjs")
     .option("--language <id>", "Backend language: bun (default), python, go, rust")
     .option("-s, --stack <stack>", "Stack to assign resource to", "default")
     .option("-p, --path <path>", "Custom path for resource directory")
@@ -620,7 +622,7 @@ This file contains the resource configuration for TDK.
             {
                 type: "json",
                 filename: "tsconfig.json",
-                content: createResourceTsconfig(resourceType, frontendFramework?.id),
+                content: createResourceTsconfig(resourceType, frontendFramework?.id ?? backendFramework?.id),
                 description: "Generating tsconfig.json",
                 emoji: "⚙️",
             },

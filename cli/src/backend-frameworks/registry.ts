@@ -3,6 +3,7 @@ import { TdkError } from "../utils/errors.js";
 import { elysiaBackendProvider } from "./elysia.js";
 import { expressBackendProvider } from "./express.js";
 import { fastifyBackendProvider } from "./fastify.js";
+import { nestBackendProvider } from "./nestjs.js";
 import type { BackendFrameworkProvider } from "./types.js";
 
 /** Hono is the historical default; omitting --framework keeps the exact historical output. */
@@ -21,6 +22,7 @@ export const BACKEND_FRAMEWORKS: Record<string, BackendFrameworkProvider> = {
   express: expressBackendProvider,
   elysia: elysiaBackendProvider,
   fastify: fastifyBackendProvider,
+  nestjs: nestBackendProvider,
 };
 
 export function getBackendFramework(frameworkId?: string): BackendFrameworkProvider {

@@ -21,7 +21,7 @@
 
 - [Bring-your-own resources](byo.md): wrap an existing service or image, one-shot jobs, `--restart`
 - [Frontend framework providers](frontend-framework-providers.md): add a Vite framework (React, Vue, Svelte, Preact, Lit, Solid, Qwik, plain TypeScript)
-- [Backend language and framework providers](backend-language-providers.md): Bun with Hono, Express, Elysia or Fastify, and Python, Go or Rust
+- [Backend language and framework providers](backend-language-providers.md): Bun with Hono, Express, Elysia, Fastify or NestJS, and Python, Go or Rust
 
 ## Recipes and examples
 

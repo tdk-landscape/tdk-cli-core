@@ -238,7 +238,8 @@
         "hono",
         "express",
         "elysia",
-        "fastify"
+        "fastify",
+        "nestjs"
       ],
       "pattern": "^[a-z][a-z0-9-]*$",
       "type": "string"
