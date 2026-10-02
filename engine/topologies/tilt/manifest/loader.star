@@ -64,6 +64,13 @@ def load_from_file(path):
     if manifest == None:
         return struct(manifest=None, error="Invalid manifest: " + path)
     
+    # An `mcp` resource is a Model Context Protocol server: an HTTP service on Bun that is built, routed and health-checked
+    # exactly like a backend. Every backend code path keys off appType == 'backend', so normalise here, once, at the single
+    # place a service.json becomes a manifest, and keep a flag so the original type is not lost.
+    if type(manifest) == "dict" and manifest.get("appType") == "mcp":
+        manifest["appType"] = "backend"
+        manifest["mcp"] = True
+    
     return struct(manifest=manifest, error=None)
 
 def _synthesize_manifest(resource_path, stack, app_type):

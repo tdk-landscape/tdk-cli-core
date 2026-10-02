@@ -78,6 +78,7 @@ tdk resource my-koa-api --type backend --framework koa --stack api
 tdk resource my-h3-api --type backend --framework h3 --stack api
 tdk resource my-fastify-api --type backend --framework fastify --stack api
 tdk resource my-worker --type worker --stack background
+tdk resource my-mcp --type mcp --stack api
 ```
 
 **Creates:**
@@ -173,6 +174,7 @@ tdk resources --stack api
 | `backend` | 4000-4999 | 🏎️ Hono API (or Express, Elysia, Fastify, NestJS, Koa, h3, or Python) | REST APIs, microservices |
 | `frontend` | 3000-3999 | React (default), Vue, Svelte, Preact, Lit, Solid, Qwik or plain TypeScript + Vite | Web apps, dashboards |
 | `worker` | (optional) | 🔧 Background worker | Queue processors, jobs |
+| `mcp` | 4000-5999 | 🔌 Model Context Protocol server over HTTP (Bun; see [docs/mcp.md](../docs/mcp.md)) | Tools and context for AI clients |
 | `bring-your-own` | 4000-5999 | none | Existing app with your own Dockerfile or image |
 | `sdk` | — | none (register existing, `packages/<name>`) | Shared libraries |
 

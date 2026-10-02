@@ -61,6 +61,7 @@ VALID_RESOURCE_TYPES = [
     "sdk",
     "worker",
     "infra",
+    "mcp",
     "bring-your-own",
 ]
 
@@ -88,6 +89,7 @@ PORT_RANGES = {
     "frontend": {"min": 3000, "max": 5999},
     "backend": {"min": 4000, "max": 5999},
     "bring-your-own": {"min": 4000, "max": 5999},
+    "mcp": {"min": 4000, "max": 5999},
     "worker": {"min": 6000, "max": 6999},
     "migrator": {"min": 7000, "max": 7999},
     "sdk": {"min": 3000, "max": 9999},

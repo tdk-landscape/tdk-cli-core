@@ -10,7 +10,7 @@ export interface DiscoveredResource {
 export interface ResourceConfig {
     [key: string]: unknown;
     appName: string;
-    appType: "backend" | "frontend" | "library" | "sdk" | "worker" | "migrator" | "bring-your-own";
+    appType: "backend" | "frontend" | "library" | "sdk" | "worker" | "migrator" | "mcp" | "bring-your-own";
     stack?: string;
     schemaVersion?: number;
     port?: number;
@@ -70,8 +70,8 @@ export interface FileGenerationTask {
     description: string;
     emoji: string;
 }
-export type ResourceType = "frontend" | "backend" | "library" | "sdk" | "worker" | "migrator" | "bring-your-own";
-export declare const CREATABLE_RESOURCE_TYPES: readonly ["backend", "frontend", "worker", "bring-your-own"];
+export type ResourceType = "frontend" | "backend" | "library" | "sdk" | "worker" | "migrator" | "mcp" | "bring-your-own";
+export declare const CREATABLE_RESOURCE_TYPES: readonly ["backend", "frontend", "worker", "mcp", "bring-your-own"];
 export type CreatableResourceType = Extract<ResourceType, (typeof CREATABLE_RESOURCE_TYPES)[number]>;
 export declare function isCreatableResourceType(value: unknown): value is CreatableResourceType;
 export type ResourceStatus = "ready" | "pending" | "error" | "unknown";
@@ -264,7 +264,7 @@ export interface PackageInfo {
     version: string;
     fullPackage: JsonObject;
 }
-export type PortAssignableResourceType = Extract<CreatableResourceType, "backend" | "frontend" | "worker" | "migrator" | "bring-your-own">;
+export type PortAssignableResourceType = Extract<CreatableResourceType, "backend" | "frontend" | "worker" | "migrator" | "mcp" | "bring-your-own">;
 export type MasterConfigFileName = "TILT_TECH_STACK.star" | "TILT_RESOURCE_DEFAULTS.star" | "spec.master";
 /**
  * Type guard to validate filename is a known master config file.

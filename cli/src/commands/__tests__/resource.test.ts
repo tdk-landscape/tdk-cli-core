@@ -447,7 +447,7 @@ describe("resource command", () => {
 
   describe("resource type validation", () => {
     it("should only accept valid resource types via isCreatableResourceType", () => {
-      const validTypes = ["backend", "frontend", "worker", "bring-your-own"];
+      const validTypes = ["backend", "frontend", "worker", "mcp", "bring-your-own"];
       const invalidTypes = ["api", "microservice", "service", "app", "library", "sdk"];
 
       for (const type of validTypes) {
@@ -463,8 +463,9 @@ describe("resource command", () => {
       expect(CREATABLE_RESOURCE_TYPES).toContain("backend");
       expect(CREATABLE_RESOURCE_TYPES).toContain("frontend");
       expect(CREATABLE_RESOURCE_TYPES).toContain("worker");
+      expect(CREATABLE_RESOURCE_TYPES).toContain("mcp");
       expect(CREATABLE_RESOURCE_TYPES).toContain("bring-your-own");
-      expect(CREATABLE_RESOURCE_TYPES).toHaveLength(4);
+      expect(CREATABLE_RESOURCE_TYPES).toHaveLength(5);
     });
   });
 });
