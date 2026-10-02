@@ -1,0 +1,11 @@
+{
+  "name": "mikro-orm-job",
+  "private": true,
+  "version": "0.0.0",
+  "dependencies": {
+    "@mikro-orm/cli": "^6.4.0",
+    "@mikro-orm/core": "^6.4.0",
+    "@mikro-orm/migrations": "^6.4.0",
+    "@mikro-orm/postgresql": "^6.4.0"
+  }
+}
