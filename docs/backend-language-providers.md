@@ -6,10 +6,10 @@ Frontend frameworks follow a [similar recipe](frontend-framework-providers.md). 
 
 ## Backend frameworks on the Bun runtime
 
-Hono is the default Bun framework. `tdk resource api --type backend --framework express` scaffolds Express 5 (or `--framework fastify`
-Fastify 5) on the same
+Hono is the default Bun framework. `tdk resource api --type backend --framework express` scaffolds Express 5 (or `--framework elysia`
+Elysia 1, or `--framework fastify` Fastify 5) on the same
 Bun image instead: same Dockerfile, `tsconfig.json`, health routes, `PORT` read and `0.0.0.0` binding, with `express` and
-`@types/express` in place of `hono`. The id is saved as `framework` in `service.json`; omitting the flag writes no
+`@types/express` (or `elysia`) in place of `hono`. The id is saved as `framework` in `service.json`; omitting the flag writes no
 `framework` field and the output is byte-identical to before. A framework cannot be combined with a language that owns its
 runtime (`--language python`).
 

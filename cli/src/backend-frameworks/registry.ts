@@ -1,5 +1,6 @@
 import { getBackendIndexTemplate } from "../backend-languages/bun.js";
 import { TdkError } from "../utils/errors.js";
+import { elysiaBackendProvider } from "./elysia.js";
 import { expressBackendProvider } from "./express.js";
 import { fastifyBackendProvider } from "./fastify.js";
 import type { BackendFrameworkProvider } from "./types.js";
@@ -18,6 +19,7 @@ export const honoBackendProvider: BackendFrameworkProvider = {
 export const BACKEND_FRAMEWORKS: Record<string, BackendFrameworkProvider> = {
   hono: honoBackendProvider,
   express: expressBackendProvider,
+  elysia: elysiaBackendProvider,
   fastify: fastifyBackendProvider,
 };
 

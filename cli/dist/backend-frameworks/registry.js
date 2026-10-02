@@ -1,5 +1,6 @@
 import { getBackendIndexTemplate } from "../backend-languages/bun.js";
 import { TdkError } from "../utils/errors.js";
+import { elysiaBackendProvider } from "./elysia.js";
 import { expressBackendProvider } from "./express.js";
 import { fastifyBackendProvider } from "./fastify.js";
 /** Hono is the historical default; omitting --framework keeps the exact historical output. */
@@ -14,6 +15,7 @@ export const honoBackendProvider = {
 export const BACKEND_FRAMEWORKS = {
     hono: honoBackendProvider,
     express: expressBackendProvider,
+    elysia: elysiaBackendProvider,
     fastify: fastifyBackendProvider,
 };
 export function getBackendFramework(frameworkId) {

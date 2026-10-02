@@ -236,6 +236,7 @@
         "qwik",
         "hono",
         "express",
+        "elysia",
         "fastify"
       ],
       "pattern": "^[a-z][a-z0-9-]*$",
