@@ -16,15 +16,15 @@ afterEach(() => {
 
 const writeEnv = (content: string) => writeFileSync(join(root, ".env"), content);
 const readEnv = () => readFileSync(join(root, ".env"), "utf-8");
-const valueOf = (content: string, name: string) =>
+const envValue = (content: string, name: string) =>
   content.match(new RegExp(`^${name}=(.*)$`, "m"))?.[1];
 
 describe("generated project .env", () => {
   it("generates a random JWT secret per project", () => {
     const first = envValidator.generateEnvFile();
     const second = envValidator.generateEnvFile();
-    expect(valueOf(first, "JWT_SECRET")).toMatch(/^[0-9a-f]{64}$/);
-    expect(valueOf(first, "JWT_SECRET")).not.toBe(valueOf(second, "JWT_SECRET"));
+    expect(envValue(first, "JWT_SECRET")).toMatch(/^[0-9a-f]{64}$/);
+    expect(envValue(first, "JWT_SECRET")).not.toBe(envValue(second, "JWT_SECRET"));
   });
 
   it("does not require the paid Verdaccio registry", () => {
@@ -34,9 +34,9 @@ describe("generated project .env", () => {
 
   it("uses the generated DB_PASSWORD in DATABASE_URL, not a shared literal", () => {
     const content = envValidator.generateEnvFile();
-    const password = valueOf(content, "DB_PASSWORD");
+    const password = envValue(content, "DB_PASSWORD");
     expect(password).toMatch(/^[0-9a-f]{32}$/);
-    const url = valueOf(content, "DATABASE_URL");
+    const url = envValue(content, "DATABASE_URL");
     if (url !== undefined && url !== "") {
       expect(url).toContain(`:${password}@`);
       expect(url).not.toContain(":postgres@");
@@ -73,9 +73,9 @@ describe("completing an existing .env", () => {
     const added = envValidator.completeEnvFile(root);
     const content = readEnv();
     expect(added).toContain("JWT_SECRET");
-    expect(valueOf(content, "DB_PASSWORD")).toBe("keep-this-password");
-    expect(valueOf(content, "TILT_ENV")).toBe("dev");
-    expect(valueOf(content, "JWT_SECRET")).toMatch(/^[0-9a-f]{64}$/);
+    expect(envValue(content, "DB_PASSWORD")).toBe("keep-this-password");
+    expect(envValue(content, "TILT_ENV")).toBe("dev");
+    expect(envValue(content, "JWT_SECRET")).toMatch(/^[0-9a-f]{64}$/);
   });
 
   it("is idempotent and does not rotate a secret it already added", () => {
@@ -89,12 +89,12 @@ describe("completing an existing .env", () => {
   it("creates the file when it is missing", () => {
     expect(existsSync(join(root, ".env"))).toBe(false);
     expect(envValidator.completeEnvFile(root).length).toBeGreaterThan(0);
-    expect(valueOf(readEnv(), "JWT_SECRET")).toMatch(/^[0-9a-f]{64}$/);
+    expect(envValue(readEnv(), "JWT_SECRET")).toMatch(/^[0-9a-f]{64}$/);
   });
 
   it("keeps ensureEnvFile reporting only a newly created file", () => {
     writeEnv("TILT_ENV=dev\nDB_PASSWORD=keep-this-password\n");
     expect(envValidator.ensureEnvFile(root)).toBe(false);
-    expect(valueOf(readEnv(), "DB_PASSWORD")).toBe("keep-this-password");
+    expect(envValue(readEnv(), "DB_PASSWORD")).toBe("keep-this-password");
   });
 });
