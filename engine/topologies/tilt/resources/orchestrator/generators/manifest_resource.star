@@ -310,7 +310,7 @@ def _generate_all_configs_for_resource(
     
     app_type = manifest.get('appType', 'backend')
     is_frontend = resource_config.get('frontend', False) or app_type == 'frontend'
-    # Python backends own their runtime files (package/pyproject, Dockerfile,
+    # Provider-owned backends (Python, Go) own their runtime files (package/pyproject, Dockerfile,
     # reload command). Bun-only configs below (Vite, tsconfig, Prisma, bunfig) are skipped.
     provider_owned = Docker.is_provider_owned_language(manifest)
     if provider_owned:
@@ -318,7 +318,7 @@ def _generate_all_configs_for_resource(
         # COPY error halfway through the image build.
         root = ctx.get('project_root', '')
         prefix = (root.rstrip('/') + '/' if root else '') + resource_path + '/'
-        for required in ['pyproject.toml', 'src/main.py']:
+        for required in Docker.language_required_files.get(manifest.get('language'), []):
             if not os.path.exists(prefix + required):
                 fail("{}: language '{}' requires {} but {}{} does not exist".format(
                     resource_name, manifest.get('language'), required, resource_path + '/', required))

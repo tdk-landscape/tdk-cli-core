@@ -1,6 +1,6 @@
 # Contributing a backend language provider
 
-`tdk resource --type backend` scaffolds Bun + Hono. That is the historical default and it does not change: omit `--language` and the output is byte-identical to before providers existed. Python is an explicit, opt-in provider. Add one language per pull request, using a lowercase id. Start by copying the Python provider and its tests.
+`tdk resource --type backend` scaffolds Bun + Hono. That is the historical default and it does not change: omit `--language` and the output is byte-identical to before providers existed. Python and Go are explicit, opt-in providers. Add one language per pull request, using a lowercase id. Start by copying the Python provider and its tests.
 
 Frontend frameworks follow a [similar recipe](frontend-framework-providers.md). The difference is deliberate: frontend providers all produce Vite apps that share one Docker and nginx path, while a Python process needs its own base image and reload command. Backend providers therefore own their Dockerfile and reload behavior; everything else stays shared.
 
@@ -11,7 +11,7 @@ Elysia 1, or `--framework fastify` Fastify 5) on the same
 Bun image instead: same Dockerfile, `tsconfig.json`, health routes, `PORT` read and `0.0.0.0` binding, with `express` and
 `@types/express` (or `elysia`) in place of `hono`. The id is saved as `framework` in `service.json`; omitting the flag writes no
 `framework` field and the output is byte-identical to before. A framework cannot be combined with a language that owns its
-runtime (`--language python`).
+runtime (`--language python` or `--language go`).
 
 | File | Responsibility |
 | --- | --- |
@@ -21,6 +21,18 @@ runtime (`--language python`).
 To add one: copy `express.ts`, register it, add tests like `resource-backend-frameworks.test.ts`, and check it with a real
 `tdk up` (the Bun image runs `tsc`, so the type package matters). The engine needs no change: it reads `framework` only for
 frontends.
+
+## Go
+
+`tdk resource api --type backend --language go --stack shop` scaffolds `go.mod`, `main.go` (standard-library `net/http`, `GET /health`,
+reads `PORT`, listens on every interface) and `main_test.go`. The engine generates the image: a `golang:1.23` build stage
+(`CGO_ENABLED=0 go build`), a `test` stage that runs `go test ./...`, and a small `debian:bookworm-slim` `production` stage with a
+health check. It has no package.json, Prisma or Bun configuration, and `--framework` cannot be combined with it.
+
+Go is compiled into the image and has no reload process, so there is **no live update**: Tilt rebuilds the image when a watched
+file changes. (The engine returns no live-update rules for Go; building a `sync()` step and then discarding it makes Tilt fail with
+"live_update steps that were created but not used".) Checked with a real `tdk up`: the generated image builds, `go test ./...` passes
+in the `test` stage, and `GET /api/<name>/health` answers `200` through Traefik.
 
 ## Where the code lives
 
@@ -53,7 +65,7 @@ The container must answer `GET /health`, read `PORT` from the environment, and s
 
 `tdk resource api --type backend --language python --stack shop` creates a resource. Ids match case-insensitively (`--language Python`). An unknown id fails before any file is written. A legacy `service.json` without `language` stays valid and is not rewritten. `tdk config regenerate` rebuilds project-level config; it does not recreate resource source.
 
-For a language without a provider (Go, Java, a legacy service), use `--type bring-your-own` with your own Dockerfile or image.
+For a language without a provider (Java, Ruby, Rust, a legacy service), use `--type bring-your-own` with your own Dockerfile or image.
 
 ## Backend provider pull request checklist
 

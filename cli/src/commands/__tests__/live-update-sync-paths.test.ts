@@ -38,6 +38,14 @@ it("passes the project root and language to the live-update rules by keyword", (
   expect(registration).toContain("language=config.get('manifest', {}).get('language', 'bun'),");
 });
 
+it("gives Go backends no live-update rules, so Tilt rebuilds the image on change", () => {
+  expect(registration).toContain("if language == 'go':\n        return []");
+  // The early return must come before any sync() step is built: Tilt rejects sync steps that are created but unused.
+  expect(registration.indexOf("if language == 'go':")).toBeLessThan(
+    registration.indexOf("live_update_rules.append(sync(full_sync_path, dest))"),
+  );
+});
+
 it("keeps the container destination under /app, independent of the host project root", () => {
   expect(registration).toContain("dest = '/app/' + full_res_path + '/' + sync_path");
 });
