@@ -21,6 +21,33 @@ Here is valid JSON; the explanations are outside the file so it remains parseabl
 
 `appName`, `appType`, `stack`, and `schemaVersion` are required. A backend also needs a port in the supported backend range. See the [authoritative service schema](../engine/schemas/service-schema.json). The `$schema` property is supported by the schema. `tdk doctor` checks local environment readiness and discovered service issues.
 
+### `smoke`: check the public URL after `tdk up`
+
+`healthCheckPath` is a GET inside the container, and `traefik.healthCheck` is Traefik's own probe. Neither opens the URL `tdk up` prints, so a container can be green while the route is a 404, the router is shared with another backend, or the database is not the one the service uses. A `smoke` block closes that gap:
+
+```json
+{
+  "smoke": {
+    "via": "proxy",
+    "timeoutSeconds": 60,
+    "steps": [
+      { "name": "create", "method": "POST", "path": "/records", "body": { "name": "smoke" }, "expect": 201, "save": { "id": "$.id" } },
+      { "name": "read back", "path": "/records/{{id}}", "expect": 200, "bodyContains": "smoke" }
+    ]
+  }
+}
+```
+
+- Once Tilt is up, `tdk up` sends each step to the service's public base URL (`http://api.<project>.localhost[:port]/api/<name>` for a backend, `mcp` or bring-your-own service, `http://app.<project>.localhost[:port]/<name>` for a frontend), the same URL `tdk up` prints. `path` must start with `/`; a full URL or relative path is rejected, because it would skip the proxy.
+- `expect` is the status (default 200). `bodyContains` is optional. `save` copies a response field (`$.id`, `$.data.items[0].id`) into `{{id}}` for later steps, in the path and in string values of `body`.
+- A connection error or a 404, 502, 503 or 504 means the route is not up yet and is retried for `timeoutSeconds` (default 60). Any other wrong status fails at once, so a write is never repeated.
+- A failed step stops Tilt, prints the service, step, URL, method, status and a body snippet, and makes `tdk up` exit non-zero. The containers are left running for inspection; `tdk down` removes them.
+- No `smoke` block, no check: existing projects behave as before. Workers and bring-your-own services with `exposeViaProxy: false` have no public route and are skipped. `tdk doctor` reports a malformed block.
+
+Not covered: a browser test (HTTP only), proving which database answered (a read-back of the written id catches a wrong store, not which one), a Traefik `pathPrefix` override (the check uses the `apiPath` or `basePath` route that `tdk up` prints), and `--dry-run` (nothing is started, so nothing is checked). The ingress port is the one `tdk up` selected (`TDK_HTTP_PORT` or the fallback range).
+
+`scripts/verify-smoke.sh` checks both outcomes through a real `tdk up`.
+
 ## `.tdk/project.json`
 
 For VS Code, associate both filenames with their schema in workspace settings. The project schema provides editor assistance for the current project configuration shape; it does not add or change CLI validation.

@@ -340,6 +340,72 @@
       },
       "type": "array"
     },
+    "smoke": {
+      "description": "Post-start check run by `tdk up` through the public proxy URL (not inside the container): write a record, read it back. `tdk up` fails if a step misses. Absent means no smoke check. Workers and resources with exposeViaProxy false are skipped.",
+      "type": "object",
+      "required": [
+        "via",
+        "steps"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "via": {
+          "const": "proxy",
+          "description": "Only `proxy` is supported: the request goes to the URL `tdk up` prints."
+        },
+        "timeoutSeconds": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "default": 60,
+          "description": "How long to wait for the route to come up. Connection errors and 404/502/503/504 are retried until then; any other wrong answer fails at once."
+        },
+        "steps": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "path"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "method": {
+                "type": "string",
+                "default": "GET"
+              },
+              "path": {
+                "type": "string",
+                "pattern": "^/(?!/)",
+                "description": "Appended to the service's public base URL. `{{name}}` is replaced by a value saved by an earlier step."
+              },
+              "body": {
+                "description": "JSON request body."
+              },
+              "expect": {
+                "type": "integer",
+                "minimum": 100,
+                "maximum": 599,
+                "default": 200
+              },
+              "bodyContains": {
+                "type": "string"
+              },
+              "save": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string",
+                  "pattern": "^\\$\\."
+                },
+                "description": "Saves response fields for later steps, for example {\"id\": \"$.id\"}."
+              }
+            }
+          }
+        }
+      }
+    },
     "traefik": {
       "description": "Custom Traefik routing. Auto-generated if not specified.",
       "properties": {

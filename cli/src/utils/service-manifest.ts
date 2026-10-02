@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
+import { validateSmoke } from "./smoke.js";
 
 export const SERVICE_MANIFEST_SCHEMA_VERSION = 1;
 export const SERVICE_MANIFEST_SCHEMA_URL = "https://tdk-landscape.github.io/schema.service.json";
@@ -45,6 +46,7 @@ const KNOWN_SERVICE_FIELDS = new Set([
   "sablier",
   "schemaVersion",
   "secrets",
+  "smoke",
   "stack",
   "syncs",
   "traefik",
@@ -79,6 +81,9 @@ export function validateServiceManifest(
     errors.push(
       `${displayPath}.schemaVersion: unsupported version ${String(manifest.schemaVersion)} (supported: ${SERVICE_MANIFEST_SCHEMA_VERSION})`,
     );
+  }
+  if ("smoke" in manifest) {
+    for (const message of validateSmoke(manifest.smoke)) errors.push(`${displayPath}.${message}`);
   }
 
   const warnings = Object.keys(manifest).flatMap((field) => {

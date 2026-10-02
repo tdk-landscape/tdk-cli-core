@@ -25,6 +25,28 @@ describe("service manifest compatibility", () => {
     expect(result.manifest?.customerMetadata).toEqual({ owner: "team-a" });
   });
 
+  it("accepts a smoke block without calling it unknown, and reports a bad one as an error by path", () => {
+    const base = {
+      appName: "api",
+      appType: "backend",
+      stack: "shop",
+      schemaVersion: SERVICE_MANIFEST_SCHEMA_VERSION,
+    };
+    const good = validateServiceManifest(
+      { ...base, smoke: { via: "proxy", steps: [{ path: "/records", expect: 200 }] } },
+      "service.json",
+    );
+    expect(good.errors).toEqual([]);
+    expect(good.warnings).toEqual([]);
+
+    const bad = validateServiceManifest(
+      { ...base, smoke: { via: "container", steps: [{ path: "records" }] } },
+      "service.json",
+    );
+    expect(bad.errors.join("\n")).toMatch(/service\.json\.smoke\.via/);
+    expect(bad.errors.join("\n")).toMatch(/service\.json\.smoke\.steps\[0\]\.path/);
+  });
+
   it("warns specifically that a jwtSecret in service.json is ignored and must not be committed", () => {
     const result = validateServiceManifest(
       {

@@ -29,6 +29,7 @@ import {
   getResourcesForStack,
   stackExists,
 } from "../utils/services.js";
+import { buildSmokePlans, formatSmokeFailure, runSmokePlans } from "../utils/smoke.js";
 import { buildTiltUpArgs, runTilt } from "../utils/tilt.js";
 import { stopTiltOnPort } from "../utils/tilt-process.js";
 import { enableDiscoveredStacks } from "./project.js";
@@ -259,6 +260,11 @@ export const upCommand = new Command("up")
         inheritStdio: !options.quiet, // Suppress tilt output in quiet mode
       });
 
+      // Services that declare `smoke` are checked through the public URL once Tilt is up. A miss stops Tilt (containers stay for
+      // inspection; `tdk down` removes them) and fails the command.
+      const smokePlans = buildSmokePlans(servicesToStart, hostPortPlan.ingressHttp);
+      let smokeFailed = false;
+
       let printedSuccess = false;
       const successOutput = (async () => {
         const uiReady = await waitForTiltUi(port);
@@ -266,9 +272,29 @@ export const upCommand = new Command("up")
           for (const line of formatUpSuccess(port)) console.log(chalk.blue(line));
           printedSuccess = true;
         }
+        if (uiReady && smokePlans.length > 0) {
+          if (!options.quiet) {
+            console.log(chalk.gray(`Smoke check: ${smokePlans.map((p) => p.name).join(", ")}`));
+          }
+          const results = await runSmokePlans(smokePlans);
+          for (const smokeResult of results) {
+            if (smokeResult.ok) {
+              if (!options.quiet)
+                console.log(chalk.green(`Smoke check passed: ${smokeResult.name}`));
+            } else {
+              smokeFailed = true;
+              console.error(chalk.red(formatSmokeFailure(smokeResult)));
+            }
+          }
+          if (smokeFailed) stopTiltOnPort(port);
+        }
       })();
       const result = await tiltRun;
       await successOutput;
+
+      if (smokeFailed) {
+        process.exit(1);
+      }
 
       if (result.exitCode !== 0) {
         handleTiltFailure("up", result.exitCode);

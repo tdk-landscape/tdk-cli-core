@@ -24,6 +24,8 @@ export interface ResourceConfig {
     apiPath?: string;
     /** Path the container healthcheck probes (and Traefik too, unless traefik.healthCheck is set). Defaults to /health. */
     healthCheckPath?: string;
+    /** Post-start check through the public proxy URL, run by `tdk up`. See utils/smoke.ts. */
+    smoke?: import("../utils/smoke.js").SmokeConfig;
     /** Traefik routing overrides. `healthCheck` is the path Traefik's load balancer probes; defaults to healthCheckPath. */
     traefik?: {
         host?: string;
