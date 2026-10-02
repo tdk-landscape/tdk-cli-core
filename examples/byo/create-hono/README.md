@@ -5,6 +5,8 @@
 **Notes:**
 - This is for an **existing** Hono app. To start a new one inside TDK, use the default backend: `tdk resource api --type backend`
   (Hono on Bun, no flags).
+- There is another Hono example, [hono](../hono/README.md): a small hand-written app on Node with `@hono/node-server`. This one is the real
+  `create-hono` output on Bun, which is what a Bun user's existing app looks like.
 - The scaffolder runs at build time (`bun create hono@latest app --template bun --install --pm bun`, no prompts). The Hono version is
   whatever it resolves to.
 - **Nothing needs patching.** The template exports the app (`export default app`) and Bun serves it, reading `PORT` itself. Checked: with
