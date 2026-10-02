@@ -58,13 +58,25 @@ keeps a `mcp: true` flag, so the Dockerfile, Compose entry, Traefik route and he
 
 ## What has and has not been checked
 
-Checked, with a real `tdk up` in an isolated project: the scaffold builds on Bun in the engine's image, the resource goes healthy,
-and `initialize`, `tools/list` and `tools/call` (the `echo` tool, with a valid argument) all answered through Traefik. The CLI tests
-cover the scaffold, the type lists, the rejected combinations and the engine normalization.
+Checked, with a real `tdk up` in an isolated project: the scaffold builds on Bun in the engine's image, the resource goes healthy, and
+`initialize`, `tools/list` and `tools/call` (the `echo` tool, with a valid argument) answer through Traefik. The CLI tests cover the
+scaffold, the type lists, the rejected combinations and the engine normalization.
+
+Also checked with the official MCP TypeScript SDK **client** (`@modelcontextprotocol/sdk`, `StreamableHTTPClientTransport`), not just
+`curl`: it connected, listed the `echo` tool and called it, using the real URL `http://api.<project>.localhost:<port>/api/<name>/mcp`.
+Node resolved `api.<project>.localhost` on its own (to `::1`), so no `Host` override was needed. Run it yourself:
+
+```bash
+scripts/verify-mcp.sh
+```
+
+It scaffolds a throwaway `mcp` resource, starts it through `tdk up`, runs that client against it, and removes only what it created. It
+needs Docker, Tilt, a built CLI, Node 18+ and network access (it installs the SDK into a temporary folder).
 
 Not checked:
 
-- A real MCP client (Claude, Cursor, the MCP Inspector) connecting to the URL. Only `curl` JSON-RPC calls were made.
-- Whether a client resolves `api.<project>.localhost` the way `curl` does with a `Host` override.
+- A real MCP *application* (Claude, Cursor, the MCP Inspector) connecting to the URL. The SDK client is the reference implementation, but
+  those applications each have their own connection and URL handling, and none was run.
+- Whether an application that runs somewhere other than your machine can reach `api.<project>.localhost`; it is a local name.
 - Authentication, sessions, resources and prompts, and server-to-client streaming (`GET /mcp` is not implemented).
 - Anything other than Bun: there is no `--language` option for `mcp`.
