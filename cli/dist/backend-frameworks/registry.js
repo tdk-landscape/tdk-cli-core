@@ -1,6 +1,7 @@
 import { getBackendIndexTemplate } from "../backend-languages/bun.js";
 import { TdkError } from "../utils/errors.js";
 import { expressBackendProvider } from "./express.js";
+import { fastifyBackendProvider } from "./fastify.js";
 /** Hono is the historical default; omitting --framework keeps the exact historical output. */
 export const DEFAULT_BACKEND_FRAMEWORK = "hono";
 export const honoBackendProvider = {
@@ -13,6 +14,7 @@ export const honoBackendProvider = {
 export const BACKEND_FRAMEWORKS = {
     hono: honoBackendProvider,
     express: expressBackendProvider,
+    fastify: fastifyBackendProvider,
 };
 export function getBackendFramework(frameworkId) {
     const id = (frameworkId ?? DEFAULT_BACKEND_FRAMEWORK).trim().toLowerCase();
