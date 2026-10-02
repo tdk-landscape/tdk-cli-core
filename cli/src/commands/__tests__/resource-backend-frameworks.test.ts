@@ -24,12 +24,13 @@ function tdk(args: string[], cwd: string, input = "y\n") {
 }
 
 describe("backend framework registry", () => {
-  it("keeps Hono the default and registers exactly hono, express, elysia, fastify, nestjs, koa", () => {
+  it("keeps Hono the default and registers exactly hono, express, elysia, fastify, nestjs, koa, h3", () => {
     expect(DEFAULT_BACKEND_FRAMEWORK).toBe("hono");
     expect(Object.keys(BACKEND_FRAMEWORKS).sort()).toEqual([
       "elysia",
       "express",
       "fastify",
+      "h3",
       "hono",
       "koa",
       "nestjs",
@@ -39,7 +40,7 @@ describe("backend framework registry", () => {
   it("normalizes case and rejects unknown ids, including prototype keys", () => {
     expect(getBackendFramework(" Express ").id).toBe("express");
     expect(() => getBackendFramework("sinatra")).toThrow(
-      /Supported frameworks: hono, express, elysia, fastify, koa, nestjs/,
+      /Supported frameworks: hono, express, elysia, fastify, h3, koa, nestjs/,
     );
     expect(() => getBackendFramework("__proto__")).toThrow(/Unknown backend framework/);
   });
@@ -124,6 +125,18 @@ describe("backend framework registry", () => {
     expect(provider.devDependencies).toHaveProperty("@types/koa");
     expect(index).toContain("from 'koa'");
     expect(index).toContain("ctx.path === '/health'");
+    expect(index).toContain("process.env.PORT");
+    expect(index).toContain("'0.0.0.0'");
+    expect(index).not.toContain("hono");
+  });
+
+  it("keeps h3 source and a pinned 1.x dependency in its provider", () => {
+    const provider = getBackendFramework("h3");
+    const index = provider.createIndex("orders-api");
+
+    expect(provider.dependencies).toEqual({ h3: "^1.15.0" });
+    expect(index).toContain("toNodeListener(app)");
+    expect(index).toContain("router.get('/health'");
     expect(index).toContain("process.env.PORT");
     expect(index).toContain("'0.0.0.0'");
     expect(index).not.toContain("hono");
@@ -271,6 +284,21 @@ describe("tdk resource --framework on a backend", () => {
     expect(pkg.devDependencies).toHaveProperty("@types/koa");
     expect(readFileSync(join(dir("koa-api"), "src", "index.ts"), "utf-8")).toContain("from 'koa'");
   }, 15000);
+
+  it("scaffolds h3 on the shared Bun image with its own source and dependency", () => {
+    const result = tdk(
+      ["resource", "h3-api", "--type", "backend", "--framework", "h3", "--stack", "shop"],
+      projectRoot,
+    );
+    expect(result.status, result.stderr).toBe(0);
+
+    expect(json("h3-api", "service.json")).toMatchObject({ appType: "backend", framework: "h3" });
+    expect(existsSync(join(dir("h3-api"), "Dockerfile"))).toBe(true);
+    const pkg = json("h3-api", "package.json");
+    expect(pkg.dependencies).toHaveProperty("h3");
+    expect(pkg.dependencies).not.toHaveProperty("hono");
+    expect(readFileSync(join(dir("h3-api"), "src", "index.ts"), "utf-8")).toContain("from 'h3'");
+  }, 30000);
 
   it("persists an explicit hono selection and keeps the Hono source", () => {
     const result = tdk(

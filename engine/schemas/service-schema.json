@@ -240,7 +240,8 @@
         "elysia",
         "fastify",
         "nestjs",
-        "koa"
+        "koa",
+        "h3"
       ],
       "pattern": "^[a-z][a-z0-9-]*$",
       "type": "string"
