@@ -15,6 +15,13 @@ scripts/verify-byo-example.sh fastify          # health path /health
 scripts/verify-byo-example.sh create-vue /     # Vite apps answer on /
 ```
 
+An app that needs a database cannot run alone. Check it through a real `tdk up` and Traefik instead, which gives it TDK's
+Postgres and `DATABASE_URL`:
+
+```bash
+scripts/verify-byo-tdk.sh full-stack-fastapi-template /api/v1/utils/health-check/
+```
+
 Every folder has its own `README.md` with its stack, notes and the exact check command, so adding an
 example only adds a folder and never edits a shared table.
 

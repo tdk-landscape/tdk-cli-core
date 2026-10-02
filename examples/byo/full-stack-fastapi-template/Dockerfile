@@ -1,0 +1,15 @@
+# The real fastapi/full-stack-fastapi-template backend, cloned at build time and run with TDK's DATABASE_URL.
+FROM python:3.14
+ENV PYTHONUNBUFFERED=1
+COPY --from=ghcr.io/astral-sh/uv:0.9.26 /uv /uvx /bin/
+ENV UV_LINK_MODE=copy
+RUN git clone --depth 1 https://github.com/fastapi/full-stack-fastapi-template /src \
+ && git -C /src rev-parse HEAD > /src/COMMIT
+WORKDIR /src
+RUN uv sync --frozen --package app
+ENV PATH="/src/.venv/bin:$PATH"
+# The template mounts a built frontend at import time. This example runs the API only, so give it an empty one.
+RUN mkdir -p backend/app/frontend && echo '<!doctype html><title>api only</title>' > backend/app/frontend/index.html
+COPY ensure_db.py entrypoint.sh /
+WORKDIR /src/backend
+CMD ["sh", "/entrypoint.sh"]

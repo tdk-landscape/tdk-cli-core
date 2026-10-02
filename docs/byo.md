@@ -113,6 +113,7 @@ and a check command:
 ```bash
 scripts/verify-byo-example.sh fastify          # health path /health
 scripts/verify-byo-example.sh create-vue /     # Vite apps answer on /
+scripts/verify-byo-tdk.sh full-stack-fastapi-template /api/v1/utils/health-check/   # needs a database: real tdk up
 VERIFY_WAIT_SECONDS=120 scripts/verify-byo-example.sh create-mastra /health   # slow starters
 ```
 
