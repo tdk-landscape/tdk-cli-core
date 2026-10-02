@@ -6,6 +6,13 @@ For a runnable one-service introduction, use [one-backend](../examples/one-backe
 
 A `.tdk/project.json` groups stacks into phases (`pre_alpha`, `alpha`, `beta`, `out_of_scope`) so a large system can be brought up in stages. `tdk up` runs stacks from the first three phases and adds newly discovered stacks to `pre_alpha`.
 
+## History
+
+Development started on 21 April 2026 in the archived [tdk-landscape/tdk](https://github.com/tdk-landscape/tdk) repository (first
+commit [`1714637`](https://github.com/tdk-landscape/tdk/commit/1714637637196ed54cbfa18534230a782c05ab36)). This repository was created
+on 19 September 2026 and the npm package was first published on 21 September 2026, so the repository and package are younger than the
+project. The archived repository is read-only; new work happens here.
+
 ## Repository map
 
 This is the core monorepo. Day-to-day CLI work is under `cli/`; `engine/` and `discovery/` implement the Tilt orchestration the CLI drives.
