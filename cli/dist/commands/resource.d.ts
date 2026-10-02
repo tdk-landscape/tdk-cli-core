@@ -3,7 +3,7 @@ import { getBackendIndexTemplate } from "../backend-languages/bun.js";
 import type { CreatableResourceType } from "../types/index.js";
 export declare const BASE_TEMPLATE: {
     readonly port: 0;
-    readonly dependencies: readonly [];
+    readonly dependsOn: readonly [];
     readonly build: {
         readonly dockerfile: "Dockerfile";
         readonly context: ".";

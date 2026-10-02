@@ -21,7 +21,8 @@ import { discoverResources } from "../utils/services.js";
 import { createKebabCaseValidator, isPathSafe, validateResourceName } from "../utils/validation.js";
 export const BASE_TEMPLATE = {
     port: 0, // Will be assigned
-    dependencies: [],
+    // `dependsOn` is the current name; `dependencies` is deprecated and `tdk doctor` warns about it, so a fresh scaffold must not write it.
+    dependsOn: [],
     build: {
         dockerfile: "Dockerfile",
         context: ".",

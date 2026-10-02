@@ -65,7 +65,7 @@ describe("resource command", () => {
       expect(serviceJson).toHaveProperty("stack", stack);
       expect(serviceJson).toHaveProperty("healthCheckPath", "/health");
       expect(serviceJson).not.toHaveProperty("framework");
-      expect(serviceJson).toHaveProperty("dependencies");
+      expect(serviceJson).toHaveProperty("dependsOn");
       expect(serviceJson).toHaveProperty("build");
       expect(serviceJson).toHaveProperty("dev");
       expect(serviceJson.$schema).toBe("https://tdk-landscape.github.io/schema.service.json");
@@ -111,7 +111,7 @@ describe("resource command", () => {
 
     it("should have correct BASE_TEMPLATE structure", () => {
       expect(BASE_TEMPLATE).toHaveProperty("port", 0);
-      expect(BASE_TEMPLATE).toHaveProperty("dependencies");
+      expect(BASE_TEMPLATE).toHaveProperty("dependsOn");
       expect(BASE_TEMPLATE).toHaveProperty("build");
       expect(BASE_TEMPLATE).toHaveProperty("dev");
       expect(BASE_TEMPLATE.build).toHaveProperty("dockerfile", "Dockerfile");

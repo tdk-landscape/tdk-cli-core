@@ -32,12 +32,12 @@ const sha = (path: string) => createHash("sha256").update(readFileSync(path)).di
 
 // Captured from the CLI on main before the provider extraction: `tdk resource orders-api
 // --type backend --stack shop` with no --language. Any drift here changes historical output.
-// The service.json hash was re-captured on purpose when the unread `healthCheck` key became `healthCheckPath` (the key the engine
-// reads, #402); nothing else changed.
+// The service.json hash was re-captured on purpose, twice, so a fresh scaffold writes the keys the engine reads and trips no warning:
+// the unread `healthCheck` became `healthCheckPath` (#402), and the deprecated `dependencies` became `dependsOn`.
 const BUN_BASELINE: Record<string, string> = {
   Dockerfile: "774de124dcb019d75714cac2613b9f793ee66ed3d95f6b80f7b85150acae6145",
   "package.json": "398877b088717f97af437af3d2233a7863af6ef442a62ba0fafcf29830d29ee1",
-  "service.json": "360f247d6a9c4a8ecd8ed9e710bcfe0ede9ab13c0a22a7f6c01d5778ecb5fc54",
+  "service.json": "bc6598c626865ea3350e5204bbdb14aefd0eb0c36e64b6db6b8c6fe01ae76e6f",
   "src/index.ts": "f50139530382e929db7128be7cb55f3bbc5f2fae03264979d675d3be4d0f4ef3",
   "tests/orders-api.test.ts": "a4946ac3123eb4bee78d7b84304cad8b7c36d4268688e3c878da2aaa11ef98ab",
   "tsconfig.json": "6982db23a5ea4c059e7404031b33634884bf69395ed0b8c143c7079045942804",
