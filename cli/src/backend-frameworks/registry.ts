@@ -4,6 +4,7 @@ import { elysiaBackendProvider } from "./elysia.js";
 import { expressBackendProvider } from "./express.js";
 import { fastifyBackendProvider } from "./fastify.js";
 import { h3BackendProvider } from "./h3.js";
+import { koaBackendProvider } from "./koa.js";
 import { nestBackendProvider } from "./nestjs.js";
 import type { BackendFrameworkProvider } from "./types.js";
 
@@ -24,6 +25,7 @@ export const BACKEND_FRAMEWORKS: Record<string, BackendFrameworkProvider> = {
   elysia: elysiaBackendProvider,
   fastify: fastifyBackendProvider,
   h3: h3BackendProvider,
+  koa: koaBackendProvider,
   nestjs: nestBackendProvider,
 };
 
