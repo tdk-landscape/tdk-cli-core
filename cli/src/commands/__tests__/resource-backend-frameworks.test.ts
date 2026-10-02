@@ -24,14 +24,14 @@ function tdk(args: string[], cwd: string, input = "y\n") {
 }
 
 describe("backend framework registry", () => {
-  it("keeps Hono the default and registers exactly hono, express", () => {
+  it("keeps Hono the default and registers exactly hono, express, elysia", () => {
     expect(DEFAULT_BACKEND_FRAMEWORK).toBe("hono");
-    expect(Object.keys(BACKEND_FRAMEWORKS).sort()).toEqual(["express", "hono"]);
+    expect(Object.keys(BACKEND_FRAMEWORKS).sort()).toEqual(["elysia", "express", "hono"]);
   });
 
   it("normalizes case and rejects unknown ids, including prototype keys", () => {
     expect(getBackendFramework(" Express ").id).toBe("express");
-    expect(() => getBackendFramework("koa")).toThrow(/Supported frameworks: hono, express/);
+    expect(() => getBackendFramework("koa")).toThrow(/Supported frameworks: hono, express, elysia/);
     expect(() => getBackendFramework("__proto__")).toThrow(/Unknown backend framework/);
   });
 
@@ -59,11 +59,26 @@ describe("backend framework registry", () => {
     expect(index).not.toContain("hono");
   });
 
+  it("keeps Elysia source and dependencies in its provider", () => {
+    const provider = getBackendFramework("elysia");
+    const index = provider.createIndex("orders-api");
+
+    expect(provider.dependencies).toHaveProperty("elysia");
+    expect(provider.dependencies).not.toHaveProperty("hono");
+    expect(provider.dependencies).not.toHaveProperty("express");
+    expect(index).toContain("from 'elysia'");
+    expect(index).toContain(".get('/health'");
+    expect(index).toContain("process.env.PORT");
+    expect(index).toContain("hostname: '0.0.0.0'");
+    expect(index).not.toContain("hono");
+  });
+
   it("does not add generated-service dependencies to the CLI package", () => {
     const pkg = JSON.parse(readFileSync(join(repoRoot, "cli", "package.json"), "utf-8"));
     const all = Object.keys({ ...pkg.dependencies, ...pkg.devDependencies });
     expect(all).not.toContain("express");
     expect(all).not.toContain("@types/express");
+    expect(all).not.toContain("elysia");
   });
 
   it("keeps the service schema open to every registered framework id", () => {
@@ -120,6 +135,26 @@ describe("tdk resource --framework on a backend", () => {
     const index = readFileSync(join(root, "src", "index.ts"), "utf-8");
     expect(index).toContain("from 'express'");
     expect(index).not.toContain("Hono");
+  }, 15000);
+
+  it("scaffolds Elysia on the shared Bun image with its own source and dependencies", () => {
+    const result = tdk(
+      ["resource", "elysia-api", "--type", "backend", "--framework", "elysia", "--stack", "shop"],
+      projectRoot,
+    );
+    expect(result.status, result.stderr).toBe(0);
+
+    expect(json("elysia-api", "service.json")).toMatchObject({
+      appType: "backend",
+      framework: "elysia",
+    });
+    expect(existsSync(join(dir("elysia-api"), "Dockerfile"))).toBe(true);
+    const pkg = json("elysia-api", "package.json");
+    expect(pkg.dependencies).toHaveProperty("elysia");
+    expect(pkg.dependencies).not.toHaveProperty("hono");
+    expect(readFileSync(join(dir("elysia-api"), "src", "index.ts"), "utf-8")).toContain(
+      "from 'elysia'",
+    );
   }, 15000);
 
   it("persists an explicit hono selection and keeps the Hono source", () => {

@@ -235,7 +235,8 @@
         "solid",
         "qwik",
         "hono",
-        "express"
+        "express",
+        "elysia"
       ],
       "pattern": "^[a-z][a-z0-9-]*$",
       "type": "string"
