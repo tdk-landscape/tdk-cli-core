@@ -225,7 +225,7 @@
       "uniqueItems": true
     },
     "framework": {
-      "description": "Frontend SPA provider id used to generate Vite and TypeScript config. Only meaningful for frontend resources; omitted means react (legacy manifests). Valid ids come from the CLI provider registry, which rejects unknown ids before writing a resource.",
+      "description": "Framework provider id. For frontend resources it selects the Vite and TypeScript config (omitted means react, legacy manifests). For backend resources it selects the HTTP framework on the Bun runtime (omitted means hono; not used with a language that owns its runtime, such as python). Valid ids come from the CLI provider registries, which reject unknown ids before writing a resource.",
       "examples": [
         "react",
         "vue",
@@ -233,7 +233,9 @@
         "preact",
         "lit",
         "solid",
-        "qwik"
+        "qwik",
+        "hono",
+        "express"
       ],
       "pattern": "^[a-z][a-z0-9-]*$",
       "type": "string"

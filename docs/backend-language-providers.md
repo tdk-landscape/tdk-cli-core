@@ -4,6 +4,23 @@
 
 Frontend frameworks follow a [similar recipe](frontend-framework-providers.md). The difference is deliberate: frontend providers all produce Vite apps that share one Docker and nginx path, while a Python process needs its own base image and reload command. Backend providers therefore own their Dockerfile and reload behavior; everything else stays shared.
 
+## Backend frameworks on the Bun runtime
+
+Hono is the default Bun framework. `tdk resource api --type backend --framework express` scaffolds Express 5 on the same
+Bun image instead: same Dockerfile, `tsconfig.json`, health routes, `PORT` read and `0.0.0.0` binding, with `express` and
+`@types/express` in place of `hono`. The id is saved as `framework` in `service.json`; omitting the flag writes no
+`framework` field and the output is byte-identical to before. A framework cannot be combined with a language that owns its
+runtime (`--language python`).
+
+| File | Responsibility |
+| --- | --- |
+| `cli/src/backend-frameworks/<id>.ts` | Framework id, dependencies, dev dependencies, and the `src/index.ts` template |
+| `cli/src/backend-frameworks/registry.ts` | Registers the provider. `DEFAULT_BACKEND_FRAMEWORK` stays `hono` |
+
+To add one: copy `express.ts`, register it, add tests like `resource-backend-frameworks.test.ts`, and check it with a real
+`tdk up` (the Bun image runs `tsc`, so the type package matters). The engine needs no change: it reads `framework` only for
+frontends.
+
 ## Where the code lives
 
 | File | Responsibility |
