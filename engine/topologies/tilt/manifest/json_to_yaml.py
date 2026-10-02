@@ -3,7 +3,6 @@
 import sys
 import json
 import yaml
-import datetime
 import uuid
 
 if len(sys.argv) < 2:
@@ -19,8 +18,10 @@ try:
     # not be copied into it (the JWT secret belongs in the project .env; `tdk doctor` warns about it).
     data = {key: value for key, value in data.items() if key not in ("jwtSecret",)}
 
-    now = datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z")
-    uid = str(uuid.uuid4())
+    # Deterministic: the mirror is regenerated on every run, so a wall-clock time or random uid would change the file each time.
+    # The uid is derived from the content, and the timestamp is a fixed epoch (nothing reads it).
+    now = "1970-01-01T00:00:00Z"
+    uid = str(uuid.uuid5(uuid.NAMESPACE_URL, json.dumps(data, sort_keys=True)))
     
     # Match exact Tilt get uiresources format
     tilt_resource = {

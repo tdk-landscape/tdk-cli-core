@@ -40,6 +40,22 @@ describe.skipIf(!hasPyYaml)("service.json to service.yaml converter", { timeout:
     expect(result.stdout).not.toContain("jwtSecret");
   });
 
+  it("writes the same YAML for the same manifest, so regenerating it does not change the file", async () => {
+    const manifest = { appName: "orders-api", appType: "backend", port: 4000 };
+    const first = convert(manifest);
+    await new Promise((resolve) => setTimeout(resolve, 1100));
+    const second = convert(manifest);
+    expect(first.status, first.stderr).toBe(0);
+    expect(second.stdout).toBe(first.stdout);
+  });
+
+  it("gives different manifests different uids", () => {
+    const uid = (port: number) =>
+      /uid: (\S+)/.exec(convert({ appName: "orders-api", appType: "backend", port }).stdout)?.[1];
+    expect(uid(4000)).toBeTruthy();
+    expect(uid(4000)).not.toBe(uid(4001));
+  });
+
   it("still carries everything else, including the names in secrets", () => {
     const result = convert({
       appName: "orders-api",
