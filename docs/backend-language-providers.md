@@ -7,9 +7,11 @@ Frontend frameworks follow a [similar recipe](frontend-framework-providers.md). 
 ## Backend frameworks on the Bun runtime
 
 Hono is the default Bun framework. `tdk resource api --type backend --framework express` scaffolds Express 5 (or `--framework elysia`
-Elysia 1, or `--framework fastify` Fastify 5) on the same
+Elysia 1, `--framework fastify` Fastify 5, or `--framework nestjs` NestJS 11) on the same
 Bun image instead: same Dockerfile, `tsconfig.json`, health routes, `PORT` read and `0.0.0.0` binding, with `express` and
-`@types/express` (or `elysia`) in place of `hono`. The id is saved as `framework` in `service.json`; omitting the flag writes no
+`@types/express` (or `elysia`, `fastify`, the `@nestjs/*` packages) in place of `hono`. NestJS also sets `experimentalDecorators` and
+`emitDecoratorMetadata` in the service's `tsconfig.json` (the engine's generated Docker tsconfig already sets them), through the
+provider's optional `compilerOptions`. The id is saved as `framework` in `service.json`; omitting the flag writes no
 `framework` field and the output is byte-identical to before. A framework cannot be combined with a language that owns its
 runtime (`--language python` or `--language go`).
 
