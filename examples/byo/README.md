@@ -26,6 +26,7 @@ scripts/verify-byo-example.sh create-vue /     # Vite apps answer on /
 | `fiber` | Go 1.23, Fiber 2 | multi-stage, static binary |
 | `create-vue` | a real `create-vue` app | scaffolder runs at build time; Vite `--host 0.0.0.0` |
 | `rsbuild` | a real `create-rsbuild` app | scaffolder runs at build time; `rsbuild dev --host 0.0.0.0` |
+| `create-mastra` | a real `create-mastra` project (empty template) | scaffolder runs at build time; `mastra dev` reads `PORT` and is reachable beyond loopback; health path `/health`; slow start, run the verify script with `VERIFY_WAIT_SECONDS=120` |
 | `create-adonisjs` | a real `create-adonisjs` app (slim starter kit, no database) | scaffolder runs at build time; `HOST=0.0.0.0`, port from `PORT` |
 | `ember` | a real `ember new` app (`@ember/app-blueprint`, Vite) | scaffolder runs at build time with `--skip-npm`; Vite `--host 0.0.0.0` |
 | `create-refine` | a real `create-refine-app` project (Vite) | scaffolder only reads answers from a terminal, so the Dockerfile pipes Enter presses to accept defaults; Vite `--host 0.0.0.0` |

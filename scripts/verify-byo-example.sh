@@ -5,6 +5,7 @@
 # checks the 0.0.0.0 requirement from docs/byo.md.
 #
 # Usage: scripts/verify-byo-example.sh <name> [health-path]   (default /health)
+# VERIFY_WAIT_SECONDS (default 20) is how long to wait for a slow-starting app.
 set -euo pipefail
 
 name="${1:?usage: verify-byo-example.sh <name> [health-path]}"
@@ -22,7 +23,7 @@ docker run -d --rm --name "$container" -e PORT=4000 -p 127.0.0.1::4000 "$image" 
 host_port="$(docker port "$container" 4000/tcp | head -1 | sed 's/.*://')"
 
 status=000
-for _ in $(seq 1 40); do
+for _ in $(seq 1 $(( ${VERIFY_WAIT_SECONDS:-20} * 2 ))); do
   status="$(curl -s -o /dev/null -m 2 -w '%{http_code}' "http://127.0.0.1:$host_port$health" || true)"
   [ "$status" = "200" ] && break
   docker inspect -f '{{.State.Running}}' "$container" 2>/dev/null | grep -q true || break
