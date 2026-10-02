@@ -18,11 +18,11 @@ tdk up shop
 curl http://api.shop.localhost/api/orders-api/health
 ```
 
-![TDK scaffolding a backend and a frontend, then listing the stack](docs/demo.svg)
+![TDK scaffolding a backend and a frontend, then listing the stack](docs/assets/demo.svg)
 
 *Scaffolding a backend and frontend, then listing the stack.*
 
-![Top 9 places to use TDK CLI: scaffold a service, start a stack, hot reload, port management, auto-discovery, boot order, proxy routing, include infra, and config verify](docs/tdk-cli-top-9-uses.jpg)
+![Top 9 places to use TDK CLI: scaffold a service, start a stack, hot reload, port management, auto-discovery, boot order, proxy routing, include infra, and config verify](docs/assets/tdk-cli-top-9-uses.jpg)
 
 If Helm, Compose, or your existing Tilt setup already gives you a working local environment, keep using it. TDK CLI is for engineers managing several services who want a clear local service contract and one command to start the stack.
 
@@ -66,9 +66,9 @@ curl -fsSL https://tdk-landscape.github.io/install.sh | sh
 - [Features and license limits](docs/FEATURES.md)
 - [Honest comparison and known limits](docs/compare-honest.md)
 - [Public claims registry](docs/claims.md)
-- [Show HN draft](docs/show-hn.md)
+- [Show HN draft](docs/drafts/show-hn.md)
 - [Architecture and repository map](docs/project-overview.md)
-- [Scale fixture measurements and caveats](docs/scale-bench.md)
+- [Scale fixture measurements and caveats](docs/benchmarks/scale-bench.md)
 
 ## Requirements and support
 

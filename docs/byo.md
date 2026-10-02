@@ -38,6 +38,19 @@ Aliases: `byo`, `bring-your-own`
 - Pass `--dockerfile <path>` to select a custom Dockerfile, or `--image <image>` to use an
   existing image without creating a Dockerfile
 
+## One-shot jobs (migrations, seeders)
+
+A bring-your-own container is restarted with `unless-stopped` by default, so a job that exits `0` is started again forever.
+For a one-shot job, set the restart policy to `no`:
+
+```bash
+tdk resource migrate --type bring-your-own --stack shop --dockerfile ./Dockerfile --restart no --yes
+```
+
+`--restart` takes `no`, `on-failure`, `unless-stopped` (the default) or `always`, and is written to `service.json` as
+`"restart": "no"`. It is rejected for any other resource type. Checked with a real `tdk up` (PR #275): a dbmate job
+(`ghcr.io/amacneil/dbmate:2`, `dbmate up`) with `restart: "no"` applied its migration once and stayed `exited (0)` with zero restarts.
+
 ## Bringing a framework app (Node, Go, Rust, ...)
 
 Any app that fits the contract below can run as a bring-your-own resource. Fastify is the worked example because it needs nothing beyond the framework.
@@ -92,8 +105,35 @@ The existing `Dockerfile` is kept, and the resource gets a `service.json` like t
 - **Ports.** 4000-5999 for this type, shared with backends.
 - **No generated code.** TDK will not add a health route, a `PORT` read or a Dockerfile for you.
 
-### What this recipe has and has not been checked against
+### Examples and recipes
 
-Checked: the Fastify image built from the files above, run with `PORT=4000`, returns `200 {"status":"ok"}` on `/health` and the JSON list on `/orders`, and listens on the container's network interface. `tdk resource ... --type bring-your-own` writes the `service.json` shown, keeps the existing `Dockerfile`, and `tdk up shop --dry-run` lists the service.
+[`examples/byo/`](../examples/byo/README.md) has one folder per framework, each with a Dockerfile, its own `README.md`
+and a check command:
 
-Not checked: a full `tdk up` run of this service through Traefik, and any framework other than Fastify. The Go, Rust, Nest, Adonis and similar variants differ only in their Dockerfile and dev command; if you get one working, add it here.
+```bash
+scripts/verify-byo-example.sh fastify          # health path /health
+scripts/verify-byo-example.sh create-vue /     # Vite apps answer on /
+VERIFY_WAIT_SECONDS=120 scripts/verify-byo-example.sh create-mastra /health   # slow starters
+```
+
+The check builds the image, runs it with `PORT=4000` and expects HTTP 200. Folders named `create-*`, `ember`, `rsbuild`
+and similar run the real scaffolder at build time, so they stay in step with it.
+
+Recipes for using TDK next to other tools live in [`recipes/`](recipes/): [moon](recipes/moon.md).
+
+### Running more than one project
+
+- **Resource names must be unique across TDK projects that share one Docker daemon.** Traefik watches every container,
+  so two projects that both define `orders-api` clash and routes are dropped.
+- **Docker can run out of address pools.** Each project creates several networks. When Docker answers
+  `all predefined address pools have been fully subnetted`, `tdk up` does not report it and fails later with
+  `network ... declared as external, but could not be found`. Free unused networks with `docker network prune`.
+- Through `tdk up`, a service is routed at `http://api.<project>.localhost/api/<name without -api>/...` with the prefix
+  stripped, so a frontend served under that path needs its `base` set.
+
+### What has and has not been checked
+
+Checked: each folder under `examples/byo/` builds and answers `200` on its health path when run with `PORT=4000`. The
+Fastify example also ran through a full `tdk up` and Traefik, and a persistent moon task ran `tdk up` (see the moon recipe).
+
+Not checked: the other examples through `tdk up` and Traefik, and any production image. Most examples run a dev server.

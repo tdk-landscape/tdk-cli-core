@@ -18,5 +18,5 @@ Those tools target a cluster. TDK does not; it runs a local Docker + Tilt develo
 
 - The community is small.
 - Built-in generators are TypeScript-first; bring your own Go, Java, or Python services.
-- The 100-service number is a fixture bench of generated `/health` stubs, not an application workload. See [the claims registry](claims.md) and [bench notes](scale-bench.md).
+- The 100-service number is a fixture bench of generated `/health` stubs, not an application workload. See [the claims registry](claims.md) and [bench notes](benchmarks/scale-bench.md).
 - Native Windows is inspect-only; startup needs Ubuntu on WSL2.
