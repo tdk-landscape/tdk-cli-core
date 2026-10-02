@@ -34,21 +34,6 @@ def generate_api_path(stack, app_name):
     return "/api/" + stack + "-management"
 
 # =============================================================================
-# SERVICE STACK TO API PATH MAPPING (Dynamic)
-# =============================================================================
-# This is populated at runtime from discovered manifests
-# No hardcoded resource names
-
-RESOURCE_STACK_TO_API_PATH = {}
-
-# =============================================================================
-# API PATH TO SERVICE MAPPING (Dynamic)
-# =============================================================================
-
-API_PATH_TO_RESOURCE_STACK = {}
-API_PATH_TO_RESOURCE_DOMAIN = API_PATH_TO_RESOURCE_STACK
-
-# =============================================================================
 # HELPER FUNCTIONS
 # =============================================================================
 
@@ -110,7 +95,7 @@ def get_api_path_for_stack(stack, manifest=None):
         return manifest.get("apiPath")
     
     # NEW: Use /api/{stack}-management pattern instead of /api/v1/{pluralized}
-    return RESOURCE_STACK_TO_API_PATH.get(stack, "/api/" + stack + "-management")
+    return "/api/" + stack + "-management"
 
 # Backwards compatibility alias
 get_api_path_for_domain = get_api_path_for_stack
@@ -176,20 +161,6 @@ def get_api_path_for_resource(resource_name):
 # Backwards compatibility alias
 get_api_path_for_service = get_api_path_for_resource
 
-def get_stack_for_api_path(api_path):
-    """Returns the service stack for an API path (reverse lookup).
-    
-    Args:
-        api_path: Full API path
-    
-    Returns:
-        Service stack string
-    """
-    return API_PATH_TO_RESOURCE_STACK.get(api_path, "")
-
-# Backwards compatibility alias
-get_domain_for_api_path = get_stack_for_api_path
-
 # Load project name for dynamic localhost domain
 # Use TDK_PROJECT_ROOT env var set by Tilt, fallback to current directory
 def _load_project_localhost():
@@ -231,30 +202,3 @@ def build_health_endpoint(api_path, health_path="/health"):
         Full health endpoint path
     """
     return api_path + health_path
-
-def get_all_api_paths():
-    """Returns a list of all defined API paths from discovered services.
-    
-    Returns:
-        List of API path strings
-    """
-    return RESOURCE_DOMAIN_TO_API_PATH.values()
-
-def is_valid_api_path(api_path):
-    """Checks if an API path is valid/defined.
-    
-    Args:
-        api_path: API path to check
-    
-    Returns:
-        True if valid, False otherwise
-    """
-    return api_path in API_PATH_TO_RESOURCE_DOMAIN
-
-# =============================================================================
-# LEGACY COMPATIBILITY (Deprecated - for migration only)
-# =============================================================================
-# All legacy paths removed - use dynamic path generation from manifests
-
-LEGACY_DOMAIN_TO_API_PATH = {}
-RESOURCE_DOMAIN_TO_API_PATH = LEGACY_DOMAIN_TO_API_PATH
