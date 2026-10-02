@@ -37,6 +37,45 @@ def _setting(auth_config, key, default):
     return value
 
 
+def _first_set(*values):
+    """The first value that is not None or an empty string, else None."""
+    for value in values:
+        if value != None and value != '':
+            return value
+    return None
+
+
+def auth_config_from_manifest(manifest):
+    """Build the auth configuration both the env file and the Compose entry use, from one place.
+
+    The two writers used to build this separately and drifted: the env file read `identityServiceUrl` while Compose read
+    `envVars.IDENTITY_RESOURCE_URL`, so setting one field changed only one output.
+
+    - authMode: the manifest's `authMode`, else `identity-service` when `dependsOn` contains `identity`, else unset (local-jwt).
+    - identityServiceUrl: the manifest's `identityServiceUrl`. The deprecated `params` / `envVars` entry named
+      `IDENTITY_RESOURCE_URL` is still honoured when the field is absent, so an existing manifest keeps working.
+
+    Args:
+        manifest: The service manifest dict (may be None)
+
+    Returns:
+        dict: {'authMode': str or None, 'identityServiceUrl': str or None}; None means "use the default"
+    """
+    if not manifest:
+        return {'authMode': None, 'identityServiceUrl': None}
+
+    auth_mode = _first_set(
+        manifest.get('authMode'),
+        'identity-service' if 'identity' in (manifest.get('dependsOn') or []) else None,
+    )
+    identity_url = _first_set(
+        manifest.get('identityServiceUrl'),
+        (manifest.get('params') or {}).get('IDENTITY_RESOURCE_URL'),
+        (manifest.get('envVars') or {}).get('IDENTITY_RESOURCE_URL'),
+    )
+    return {'authMode': auth_mode, 'identityServiceUrl': identity_url}
+
+
 def get_auth_mode(auth_config):
     """Get auth mode from auth config with default fallback.
 
@@ -155,6 +194,7 @@ AUTH_MODE={auth_mode}
 
 # Export all functions as a struct for easy importing
 AuthConfig = struct(
+    from_manifest = auth_config_from_manifest,
     get_auth_mode = get_auth_mode,
     get_identity_resource_url = get_identity_resource_url,
     get_auth_config = get_auth_config,

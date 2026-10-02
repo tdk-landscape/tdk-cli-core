@@ -190,30 +190,8 @@ def _generate_single_backend_entry(resource_path, resource_name, res, manifest, 
     nats_queue = nats_cfg.get('queueGroup', stack + '_backend_svc')
     nats_url = PlatformDockerConstants.NATS_URL
     
-    # Auth configuration - use centralized auth utilities
-    # Extract auth config from manifest to decouple auth.star from manifest structure
-    # Auto-detect identity-service mode if 'identity' is in dependsOn
-    internal_deps = manifest.get('dependsOn', []) if manifest else []
-    has_identity_dep = 'identity' in internal_deps
-    
-    # If manifest has authMode, use it; otherwise auto-detect based on identity dependency
-    manifest_auth_mode = manifest.get('authMode') if manifest else None
-    if manifest_auth_mode:
-        auth_mode = manifest_auth_mode
-    elif has_identity_dep:
-        auth_mode = 'identity-service'
-    else:
-        auth_mode = None
-    
-    auth_config = {
-        'authMode': auth_mode,
-        'jwtSecret': manifest.get('jwtSecret') if manifest else None,
-        'identityServiceUrl': manifest.get('envVars', {}).get('IDENTITY_RESOURCE_URL') if manifest else None,
-    }
-    
-    # If we auto-detected identity-service mode but no URL is set, use default
-    if auth_mode == 'identity-service' and not auth_config['identityServiceUrl']:
-        auth_config['identityServiceUrl'] = AuthConfig.get_identity_resource_url(None)
+    # Auth configuration: one shared builder keeps this identical to the generated env file (see AuthConfig.from_manifest).
+    auth_config = AuthConfig.from_manifest(manifest)
     
     auth_env = AuthConfig.generate_docker_compose_auth_env(auth_config)
     # secrets.required / secrets.optional, read from the project .env by Compose (empty with TDK_SECRET_PROVIDER=infisical)
@@ -243,7 +221,7 @@ def _generate_single_backend_entry(resource_path, resource_name, res, manifest, 
     
     # REMOVED: External port exposure - all services accessed via Traefik only
     # Services are available at {project}.localhost/api/v1/{service}
-    # Internal port 3000 is accessible within Docker network for service-to-service communication
+    # Inside the Docker network a service listens on its own port (manifest.port, passed to it as PORT), for service-to-service calls
     ports_section = ""  # No external ports - Traefik-only access
     
     # Determine service name based on instance

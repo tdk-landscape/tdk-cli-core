@@ -267,3 +267,55 @@ check('TDK_T_NOTHING', '<unset>')
 `);
   });
 });
+
+describe.skipIf(!hasTilt)(
+  "identity service URL is one setting for both writers",
+  { timeout: 40_000 },
+  () => {
+    // The env file (env.star) and the Compose entry (compose.star) used to read different fields, so setting identityServiceUrl
+    // changed one and left the other on the built-in default.
+    const both = (manifest: string) => `load(${envStar}, 'EnvGenerators')
+load(${composeStar}, 'generate_backend_compose_entry')
+manifest = ${manifest}
+manifest['_resource_path'] = 'services/app/orders-api'
+env_file = EnvGenerators.generate_env_file(manifest)
+entry = generate_backend_compose_entry('services/app', 'orders-api', {'name': 'orders-api', '_resource_path': 'services/app/orders-api'}, manifest)
+`;
+
+    it("uses identityServiceUrl in the env file and in Compose", () => {
+      expectPasses(`${both(withManifest({ dependsOn: ["identity"], identityServiceUrl: "http://identity-api:4100" }))}
+if 'IDENTITY_RESOURCE_URL=http://identity-api:4100\\n' not in env_file: fail('the env file ignored identityServiceUrl: ' + env_file)
+if 'http://identity-api:4100' not in entry: fail('the Compose entry ignored identityServiceUrl')
+if 'identity-service:3000' in entry: fail('the Compose entry fell back to the built-in default')
+`);
+    });
+
+    it("still honours the deprecated envVars.IDENTITY_RESOURCE_URL in both, with identityServiceUrl winning", () => {
+      expectPasses(`${both(withManifest({ dependsOn: ["identity"], envVars: { IDENTITY_RESOURCE_URL: "http://legacy-id:4200" } }))}
+if 'http://legacy-id:4200' not in entry: fail('the Compose entry lost the deprecated envVars URL')
+if 'IDENTITY_RESOURCE_URL=http://legacy-id:4200' not in env_file: fail('the env file ignored the deprecated envVars URL: ' + env_file)
+`);
+      expectPasses(`${both(withManifest({ dependsOn: ["identity"], identityServiceUrl: "http://new-id:4300", envVars: { IDENTITY_RESOURCE_URL: "http://legacy-id:4200" } }))}
+if 'http://new-id:4300' not in entry or 'legacy-id' in entry: fail('identityServiceUrl must win in Compose')
+if 'http://new-id:4300' not in env_file: fail('identityServiceUrl must win in the env file')
+`);
+    });
+
+    it("uses the same built-in default in both when nothing is set", () => {
+      expectPasses(`${both(withManifest({ dependsOn: ["identity"] }))}
+if 'IDENTITY_RESOURCE_URL=http://' not in env_file: fail('expected a default URL in the env file')
+default = env_file.split('IDENTITY_RESOURCE_URL=')[1].split('\\n')[0]
+if default not in entry: fail('Compose and the env file use different defaults: ' + default)
+`);
+    });
+
+    it("detects the auth mode the same way in both (authMode, else an identity dependency, else local-jwt)", () => {
+      expectPasses(`${both(withManifest({ authMode: "identity-service" }))}
+if 'AUTH_MODE=identity-service' not in env_file or 'AUTH_MODE=identity-service' not in entry: fail('explicit authMode was not honoured by both')
+`);
+      expectPasses(`${both(withManifest())}
+if 'AUTH_MODE=local-jwt' not in env_file or 'AUTH_MODE=local-jwt' not in entry: fail('the default must be local-jwt in both')
+`);
+    });
+  },
+);
