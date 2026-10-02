@@ -87,8 +87,11 @@ _ENV_BARE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz012345678
 def _format_env_value(value):
     """Format a param value so the generated file stays valid dotenv.
 
-    A plain value stays bare. Anything else (a space, `#`, a quote, a backslash, a newline, or an empty string) is wrapped in double
+    A plain value stays bare. Anything else (a space, `#`, `$`, a quote, a backslash, a newline, or an empty string) is wrapped in double
     quotes with backslash, quote and newline escaped, which is how dotenv parsers (including Docker Compose's) read it back.
+
+    `$` is written as `$$`: Docker Compose expands `$NAME` and `${NAME}` in env files, so an unescaped dollar would silently pick up
+    some other variable (checked in a real container: "price $$FOO" arrives as the literal `price $FOO`).
     """
     text = str(value)
     bare = text != ''
@@ -99,7 +102,7 @@ def _format_env_value(value):
     if bare:
         return text
 
-    escaped = text.replace('\\', '\\\\').replace('"', '\\"').replace('\r', '\\r').replace('\n', '\\n')
+    escaped = text.replace('\\', '\\\\').replace('"', '\\"').replace('$', '$$').replace('\r', '\\r').replace('\n', '\\n')
     return '"' + escaped + '"'
 
 

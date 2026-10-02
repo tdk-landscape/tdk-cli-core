@@ -15,6 +15,10 @@ try:
     with open(json_file, 'r') as f:
         data = json.load(f)
     
+    # The YAML is a generated, committed mirror used only for Tilt resource tracking. A secret that someone put in service.json must
+    # not be copied into it (the JWT secret belongs in the project .env; `tdk doctor` warns about it).
+    data = {key: value for key, value in data.items() if key not in ("jwtSecret",)}
+
     now = datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z")
     uid = str(uuid.uuid4())
     

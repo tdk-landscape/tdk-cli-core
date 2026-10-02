@@ -57,7 +57,9 @@ export function validateServiceManifest(value, displayPath) {
     }
     const warnings = Object.keys(manifest)
         .filter((field) => !KNOWN_SERVICE_FIELDS.has(field))
-        .map((field) => `${displayPath}.${field}: unknown field is preserved`);
+        .map((field) => field === "jwtSecret"
+        ? `${displayPath}.jwtSecret: ignored. A secret must not be committed: remove it and set JWT_SECRET in the project .env`
+        : `${displayPath}.${field}: unknown field is preserved`);
     return { errors, warnings, manifest };
 }
 export function validateServiceManifestFile(filePath, displayPath) {

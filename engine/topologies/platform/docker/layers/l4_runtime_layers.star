@@ -29,6 +29,9 @@ load('./prisma/prisma_runtime.star',
 
 load('./bun_helpers.star', 'bun_hoisted_packages_symlink_fix')
 load('../config/healthcheck.star', 'DOCKER_HEALTHCHECK', 'dockerfile_healthcheck_flags')
+# Infisical is opt-in: use_infisical defaults to False and nothing in the free engine passes True, so the generator behind this
+# (tilt/generators/infisical/secrets_generator.star) is not on the default path. It is an older contract with fixed secret names and
+# ports. Do not wire `secrets.required` through it; the default provider is platform/docker/secrets/env_secrets.star.
 load('./infisical/infisical_docker.star', 'InfisicalDocker')
 
 

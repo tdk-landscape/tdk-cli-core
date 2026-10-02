@@ -127,7 +127,7 @@ lines = content.split('\\n')
 def has(line):
     return line in lines
 if not has('PRICE="$$5"'): fail('a literal $ must be doubled: ' + content)
-if not has('REF="see $${FOO}"'): fail('a ${NAME} must be doubled so Compose leaves it alone: ' + content)
+if not has('REF="see $\${FOO}"'): fail('a braced variable reference must be doubled so Compose leaves it alone: ' + content)
 if not has('PLAIN=ok'): fail('a plain value should stay bare: ' + content)
 `);
   });
