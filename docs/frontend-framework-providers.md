@@ -45,6 +45,16 @@ Last run (2026-10-03): `PASS all 8 frontend frameworks: react vue svelte preact 
 
 Not covered: client-side behaviour in a browser (the script checks HTML and assets over HTTP, not that the app renders), production builds, and hot reload.
 
+## Meta-frameworks are bring-your-own
+
+`tdk resource --frameworks` prints the inventory: only registered, verified Vite SPA providers. A provider is not listed as supported until it is registered in `registry.ts`, appears in `VERIFIED_FRONTEND_FRAMEWORKS` and in the default list of `scripts/verify-frontend-frameworks.sh` (a unit test keeps the registry and the script's list in sync). Next, Nuxt, SvelteKit, Astro, Angular, Remix and TanStack Start own their config and a server, so `--framework <id>` fails with a handoff. Create the app with the framework's own CLI, then register it:
+
+```bash
+tdk resource web --type bring-your-own --stack app --yes
+```
+
+Not run: a bring-your-own app for each of these frameworks.
+
 ## TanStack Router and TanStack Start (SSR)
 
 `tdk resource shop-web --type frontend --framework tanstack-router --stack shop --yes` scaffolds a client-side Vite SPA: React, `@tanstack/react-router`, one code-based route, and the shared Vite config (the React plugin, the base path, the proxy and the port are the same as for `react`). The router's `basepath` is Vite's `import.meta.env.BASE_URL`, so links work under `/<name>/` behind Traefik. File-based routing (the router's Vite plugin) is not scaffolded; add it in the app's own code if you want it.
