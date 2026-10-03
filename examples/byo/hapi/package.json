@@ -1,0 +1,12 @@
+{
+  "name": "hapi",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@hapi/hapi": "^21.4.0"
+  }
+}
