@@ -5,7 +5,11 @@ import { Command } from "commander";
 import { resolveBackendFramework } from "../backend-frameworks/registry.js";
 import { getBackendIndexTemplate } from "../backend-languages/bun.js";
 import { resolveBackendLanguage } from "../backend-languages/registry.js";
-import { resolveFrontendFramework } from "../frontend-frameworks/registry.js";
+import {
+  DEFAULT_FRONTEND_FRAMEWORK,
+  listFrontendFrameworks,
+  resolveFrontendFramework,
+} from "../frontend-frameworks/registry.js";
 import { hasDddLicense } from "../generator/extension-fetch.js";
 import type {
   CreatableResourceType,
@@ -373,6 +377,19 @@ describe('${name}', () => {
 `;
 }
 
+/** Resource types `tdk resource --type` accepts; `byo` is an alias of `bring-your-own`. */
+export function parseResourceType(type: string): CreatableResourceType | "sdk" {
+  const normalized = type === "byo" ? "bring-your-own" : type;
+  const validTypes: readonly string[] = [...CREATABLE_RESOURCE_TYPES, "sdk"];
+  if (!validTypes.includes(normalized)) {
+    throw new TdkError(
+      `Unknown resource type "${type}". Supported types: ${validTypes.join(", ")}.`,
+      [`Use one of: ${validTypes.join(", ")}`, "Omit --type to create a backend"],
+    );
+  }
+  return normalized as CreatableResourceType | "sdk";
+}
+
 export const resourceCommand = new Command("resource")
   .description("Create a new resource (service) from scratch, or register an existing one")
   .argument("[name]", "Resource name (kebab-case)")
@@ -383,8 +400,9 @@ export const resourceCommand = new Command("resource")
   )
   .option(
     "--framework <id>",
-    "Framework: frontend react (default), vue, svelte, preact, lit, solid, qwik, vanilla, tanstack-router; backend hono (default), express, elysia, fastify, nestjs, koa, h3",
+    "Framework: frontend react (default), vue, svelte, preact, lit, solid, qwik, vanilla, tanstack-router (see --frameworks); backend hono (default), express, elysia, fastify, nestjs, koa, h3",
   )
+  .option("--frameworks", "List registered frontend frameworks and exit")
   .option("--language <id>", "Backend language: bun (default), python, go, rust")
   .option("-s, --stack <stack>", "Stack to assign resource to", "default")
   .option("-p, --path <path>", "Custom path for resource directory")
@@ -408,6 +426,14 @@ export const resourceCommand = new Command("resource")
   )
   .option("--port <port>", "Port number (default: next free in 4000-5999)")
   .action(async (name, options) => {
+    if (options.frameworks) {
+      for (const f of listFrontendFrameworks()) {
+        console.log(
+          `${f.id}\t${f.label}\t${f.kind}\t${f.verified ? "verified" : "unverified"}\t${f.command}`,
+        );
+      }
+      return;
+    }
     await runCommand(async () => {
       const projectRoot = requireProjectRoot();
 
@@ -432,42 +458,37 @@ export const resourceCommand = new Command("resource")
         assertValid(validateResourceName(resourceName));
       }
 
-      // Support sdk type for registering existing SDKs
-      let resourceType: CreatableResourceType | "sdk";
-      const validTypes = [...CREATABLE_RESOURCE_TYPES, "sdk"] as const;
+      const resourceType = parseResourceType(options.type);
 
-      // Normalize bring-your-own aliases
-      const normalizedType =
-        options.type === "byo" || options.type === "bring-your-own"
-          ? "bring-your-own"
-          : options.type;
-
-      if (!validTypes.includes(normalizedType)) {
-        const selectedType = await promptSelect({
-          message: "Resource type:",
-          choices: [
-            { title: "backend - API service with HTTP endpoints", value: "backend" },
-            { title: "frontend - Web application/UI", value: "frontend" },
-            { title: "worker - Background job processor", value: "worker" },
-            { title: "mcp - Model Context Protocol server (HTTP)", value: "mcp" },
-            {
-              title:
-                "bring-your-own - Wrap an existing service. No app scaffold. Needs Dockerfile or --image.",
-              value: "bring-your-own",
-            },
-            { title: "sdk - Library/SDK (register existing)", value: "sdk" },
-          ],
+      let frameworkOption: string | undefined = options.framework;
+      if (
+        resourceType === "frontend" &&
+        frameworkOption === undefined &&
+        !options.yes &&
+        process.stdin.isTTY
+      ) {
+        frameworkOption = await promptSelect({
+          message: "Frontend framework:",
+          choices: listFrontendFrameworks()
+            .map((f) => ({ title: f.label, value: f.id }))
+            .sort((a, b) =>
+              a.value === DEFAULT_FRONTEND_FRAMEWORK
+                ? -1
+                : b.value === DEFAULT_FRONTEND_FRAMEWORK
+                  ? 1
+                  : 0,
+            ),
         });
-        resourceType = selectedType;
-      } else {
-        resourceType = normalizedType;
       }
-
-      const frontendFramework = resolveFrontendFramework(resourceType, options.framework);
+      const frontendFramework = resolveFrontendFramework(
+        resourceType,
+        frameworkOption,
+        resourceName,
+      );
       const backendLanguage = resolveBackendLanguage(resourceType, options.language);
       const backendFramework = resolveBackendFramework(
         resourceType,
-        options.framework,
+        frameworkOption,
         backendLanguage,
       );
       // The id passed on to the file generators. An mcp resource has one fixed scaffold and no `framework` setting, so it passes none

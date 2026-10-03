@@ -20,16 +20,54 @@ export const FRONTEND_FRAMEWORKS = {
     vanilla: vanillaFrontendProvider,
     "tanstack-router": tanstackRouterFrontendProvider,
 };
-export function getFrontendFramework(frameworkId) {
+// Frameworks that own their own server or build config. They are never scaffolded as Vite SPA providers; they go through
+// `tdk resource <name> --type bring-your-own` instead.
+export const META_FRAMEWORK_IDS = [
+    "next",
+    "nuxt",
+    "sveltekit",
+    "astro",
+    "angular",
+    "remix",
+    "tanstack-start",
+];
+// Providers that have passed scripts/verify-frontend-frameworks.sh (that script's default list must match this).
+export const VERIFIED_FRONTEND_FRAMEWORKS = [
+    "react",
+    "vue",
+    "svelte",
+    "preact",
+    "lit",
+    "solid",
+    "qwik",
+    "vanilla",
+    "tanstack-router",
+];
+export function listFrontendFrameworks() {
+    return Object.entries(FRONTEND_FRAMEWORKS).map(([id, provider]) => ({
+        id,
+        label: provider.label,
+        kind: "vite-spa",
+        verified: VERIFIED_FRONTEND_FRAMEWORKS.includes(id),
+        command: `tdk resource <name> --type frontend --framework ${id}`,
+    }));
+}
+export function getFrontendFramework(frameworkId, resourceName) {
     const id = (frameworkId ?? DEFAULT_FRONTEND_FRAMEWORK).trim().toLowerCase();
     const provider = Object.hasOwn(FRONTEND_FRAMEWORKS, id) ? FRONTEND_FRAMEWORKS[id] : undefined;
     if (!provider) {
         const supportedIds = Object.keys(FRONTEND_FRAMEWORKS).join(", ");
-        throw new TdkError(`Unknown frontend framework "${frameworkId}". Supported frameworks: ${supportedIds}.`, [`Use one of: ${supportedIds}`, `Omit --framework to use ${DEFAULT_FRONTEND_FRAMEWORK}`]);
+        const isMeta = META_FRAMEWORK_IDS.includes(id);
+        const byo = `tdk resource ${resourceName ?? "<name>"} --type bring-your-own`;
+        throw new TdkError(`${isMeta ? `"${frameworkId}" is not a Vite SPA provider` : `Unknown frontend framework "${frameworkId}"`}. Supported frameworks: ${supportedIds}.`, [
+            `Use one of: ${supportedIds}`,
+            `Omit --framework to use ${DEFAULT_FRONTEND_FRAMEWORK}`,
+            ...(isMeta ? [`Create the app with ${id}'s own CLI, then register it: ${byo}`] : []),
+        ]);
     }
     return provider;
 }
-export function resolveFrontendFramework(resourceType, frameworkId) {
+export function resolveFrontendFramework(resourceType, frameworkId, resourceName) {
     if (resourceType !== "frontend") {
         // Backends take their own framework ids (see backend-frameworks/registry.ts).
         if (frameworkId !== undefined && resourceType !== "backend") {
@@ -39,6 +77,6 @@ export function resolveFrontendFramework(resourceType, frameworkId) {
         }
         return undefined;
     }
-    return getFrontendFramework(frameworkId);
+    return getFrontendFramework(frameworkId, resourceName);
 }
 //# sourceMappingURL=registry.js.map

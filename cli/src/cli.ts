@@ -23,6 +23,7 @@ import { upCommand } from "./commands/up.js";
 import { upgradeCommand } from "./commands/upgrade.js";
 import { versionCommand } from "./commands/version.js";
 import { formatColdPreflight, runColdPreflight } from "./utils/cold-preflight.js";
+import { unknownHelpTarget } from "./utils/help-command.js";
 
 const program = new Command();
 
@@ -76,6 +77,14 @@ if (process.argv[2] === "--doctor") process.argv[2] = "doctor";
 if (process.argv.length === 3 && ["-h", "--help", "help"].includes(process.argv[2])) {
   showHelp();
   process.exit(0);
+}
+
+const unknownHelp = unknownHelpTarget(process.argv.slice(2), program.commands);
+if (unknownHelp) {
+  program.error(`error: unknown command '${unknownHelp}'`, {
+    exitCode: 1,
+    code: "commander.unknownCommand",
+  });
 }
 
 program.parse();
