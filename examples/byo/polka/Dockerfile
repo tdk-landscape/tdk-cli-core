@@ -1,0 +1,9 @@
+# A minimal Polka app (Polka has no project generator, so the app is the files next to this Dockerfile).
+FROM node:22-alpine
+ENV NODE_ENV=production
+WORKDIR /app
+COPY package.json ./
+RUN npm install --omit=dev --no-audit --no-fund
+COPY server.js ./
+# server.js binds 0.0.0.0 and reads PORT, which TDK sets.
+CMD ["node", "server.js"]
