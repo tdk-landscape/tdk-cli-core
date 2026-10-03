@@ -23,8 +23,8 @@ jobs:
   wsl2-smoke:
     runs-on: windows-2022
     needs: docs
-    # Skip on docs-only PRs; a skipped job still satisfies required checks.
-    if: ${{ !cancelled() && needs.docs.outputs.docs_only != 'true' }}
+    # Skip on docs-only and bring-your-own-example-only PRs; a skipped job still satisfies required checks.
+    if: ${{ !cancelled() && needs.docs.outputs.docs_only != 'true' && needs.docs.outputs.examples_only != 'true' }}
     timeout-minutes: 30
     steps:
       - run: git config --global core.autocrlf false
