@@ -23,4 +23,6 @@ GitHub's blob view often shows this drawing without the animation. [Open the raw
 
 The check hits the public URL that `tdk up` prints, not the container's `/health`.
 
+The body snippet in a failure line is a short, one-line excerpt for the terminal and is not kept. The retained copy is the record under `.tdk/smoke/<service>/<step-slug>/` (full body up to 64 KiB, plus the last passing response), which the failure line points to. In CI, `.github/workflows/smoke-e2e.yml` uploads that directory as an artifact, even when the run fails.
+
 Every field, the retry rules and what is not covered are in [Configuration: `smoke`](configuration.md#smoke-check-the-public-url-after-tdk-up). `scripts/verify-smoke.sh` runs both outcomes through a real `tdk up`.

@@ -1,9 +1,13 @@
+import { copyFileSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { isApiServiceType } from "./resource-kind.js";
 import { resolveServicePath, resolveSubdomainBases } from "./service-urls.js";
 export const DEFAULT_SMOKE_TIMEOUT_SECONDS = 60;
 const RETRY_DELAY_MS = 1000;
 const REQUEST_TIMEOUT_MS = 10_000;
 const BODY_SNIPPET_CHARS = 200;
+/** Largest response body kept in a smoke record. */
+export const SMOKE_RECORD_BODY_MAX_BYTES = 64 * 1024;
 /** Statuses a proxy answers while a route or its upstream is not up yet. Anything else is the service's real answer. */
 const NOT_READY_STATUSES = new Set([404, 502, 503, 504]);
 /** Error codes that prove the request never left this machine, so repeating even a write is safe. */
@@ -87,9 +91,12 @@ export function buildSmokePlans(resources, ingressPort) {
         if (config.exposeViaProxy === false)
             continue;
         const base = isApi ? apiBase : appBase;
+        // The container healthcheck path (default /health for APIs) is the one request that is safe to repeat while the route comes up.
+        const readyPath = config.healthCheckPath || (isApi && appType !== "bring-your-own" ? "/health" : undefined);
         plans.push({
             name: resource.name,
             baseUrl: `${base}${resolveServicePath(resource).replace(/\/+$/, "")}`,
+            ...(readyPath?.startsWith("/") ? { readyPath } : {}),
             smoke: config.smoke,
         });
     }
@@ -122,6 +129,51 @@ function snippet(text) {
     const flat = text.replace(/\s+/g, " ").trim();
     return flat.length > BODY_SNIPPET_CHARS ? `${flat.slice(0, BODY_SNIPPET_CHARS)}...` : flat;
 }
+function slug(text) {
+    return (text
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "") || "step");
+}
+/** Writes latest.json (+ body.txt) for a step; a passing step also replaces the last-success pair. Returns the latest.json path. */
+function writeStepRecord(recordDir, stepKey, record, body, passed) {
+    try {
+        const dir = join(recordDir, slug(record.service), stepKey);
+        mkdirSync(dir, { recursive: true });
+        const latest = join(dir, "latest.json");
+        const bodyPath = join(dir, "body.txt");
+        if (body === undefined) {
+            rmSync(bodyPath, { force: true });
+        }
+        else {
+            writeFileSync(bodyPath, body);
+        }
+        writeFileSync(latest, `${JSON.stringify({ ...record, bodyPath: body === undefined ? null : "body.txt" }, null, 2)}\n`);
+        if (passed) {
+            copyFileSync(latest, join(dir, "last-success.json"));
+            if (body === undefined)
+                rmSync(join(dir, "last-success-body.txt"), { force: true });
+            else
+                copyFileSync(bodyPath, join(dir, "last-success-body.txt"));
+        }
+        return latest;
+    }
+    catch {
+        // The record is a diagnostic aid; failing to write it must not change the smoke result.
+        return undefined;
+    }
+}
+/** Caps a body at SMOKE_RECORD_BODY_MAX_BYTES of UTF-8 without splitting a character. */
+function capBody(text) {
+    const buf = Buffer.from(text, "utf8");
+    if (buf.length <= SMOKE_RECORD_BODY_MAX_BYTES)
+        return { body: text, truncated: false, bytes: buf.length };
+    const body = buf
+        .subarray(0, SMOKE_RECORD_BODY_MAX_BYTES)
+        .toString("utf8")
+        .replace(/\uFFFD$/, "");
+    return { body, truncated: true, bytes: Buffer.byteLength(body, "utf8") };
+}
 /** Runs the steps in order. A not-ready answer (connection error, 404, 502-504) is retried until the timeout; a real wrong answer fails at once. */
 export async function runSmokePlan(plan, deps = {}) {
     const doFetch = deps.fetch ?? ((url, init) => fetch(url, init));
@@ -138,6 +190,29 @@ export async function runSmokePlan(plan, deps = {}) {
             failure: `${plan.name}: invalid smoke block: ${invalid.join("; ")}`,
         };
     }
+    // `tdk up` starts the check once Tilt's UI is up, while images may still be building. Traefik then resets or 404s early requests.
+    // A write must not be repeated after a reset (it may have reached the service), so wait for readiness with GETs instead.
+    // If the service never answers, fall through: the first step then fails with its own record.
+    if (plan.readyPath) {
+        const readyUrl = `${plan.baseUrl}${plan.readyPath}`;
+        for (;;) {
+            try {
+                const response = await doFetch(readyUrl, {
+                    method: "GET",
+                    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+                });
+                await response.text();
+                if (!NOT_READY_STATUSES.has(response.status))
+                    break;
+            }
+            catch {
+                // not accepting connections yet
+            }
+            if (now() >= deadline)
+                break;
+            await sleep(RETRY_DELAY_MS);
+        }
+    }
     for (const [index, step] of plan.smoke.steps.entries()) {
         const label = step.name ?? `step ${index + 1}`;
         const method = (step.method ?? "GET").toUpperCase();
@@ -147,8 +222,10 @@ export async function runSmokePlan(plan, deps = {}) {
         let status;
         let text = "";
         let error;
+        let errorCode;
         for (;;) {
             error = undefined;
+            errorCode = undefined;
             status = undefined;
             let retryableError = false;
             try {
@@ -164,6 +241,10 @@ export async function runSmokePlan(plan, deps = {}) {
             catch (err) {
                 retryableError = shouldRetryRequestError(err, method);
                 error = err instanceof Error ? err.message : String(err);
+                const code = isRecord(err)
+                    ? (err.code ?? (isRecord(err.cause) ? err.cause.code : undefined))
+                    : undefined;
+                errorCode = typeof code === "string" ? code : undefined;
             }
             const notReady = (error !== undefined && retryableError) ||
                 (status !== undefined && status !== expected && NOT_READY_STATUSES.has(status));
@@ -172,21 +253,38 @@ export async function runSmokePlan(plan, deps = {}) {
             await sleep(RETRY_DELAY_MS);
         }
         const where = `${plan.name}: ${label}: ${method} ${url}`;
+        // Every step that ran leaves a record. A step is "passed" for last-success only if status and bodyContains both match.
+        let recordPath;
+        if (deps.recordDir) {
+            const capped = status === undefined ? undefined : capBody(text);
+            const passed = error === undefined &&
+                status === expected &&
+                (step.bodyContains === undefined || text.includes(step.bodyContains));
+            recordPath = writeStepRecord(deps.recordDir, slug(label), {
+                service: plan.name,
+                step: label,
+                method,
+                url,
+                expectedStatus: expected,
+                status: status ?? null,
+                ...(error === undefined ? {} : { error: errorCode ?? error }),
+                truncated: capped?.truncated ?? false,
+                bodyBytes: capped?.bytes ?? 0,
+            }, capped?.body, passed);
+        }
+        const fail = (failure) => ({
+            name: plan.name,
+            ok: false,
+            failure,
+            recordPath,
+        });
         if (error !== undefined)
-            return { name: plan.name, ok: false, failure: `${where} never answered (${error})` };
+            return fail(`${where} never answered (${error})`);
         if (status !== expected) {
-            return {
-                name: plan.name,
-                ok: false,
-                failure: `${where} returned ${status}, expected ${expected}${text ? `: ${snippet(text)}` : ""}`,
-            };
+            return fail(`${where} returned ${status}, expected ${expected}${text ? `: ${snippet(text)}` : ""}`);
         }
         if (step.bodyContains !== undefined && !text.includes(step.bodyContains)) {
-            return {
-                name: plan.name,
-                ok: false,
-                failure: `${where} returned ${status} but the body does not contain "${step.bodyContains}": ${snippet(text)}`,
-            };
+            return fail(`${where} returned ${status} but the body does not contain "${step.bodyContains}": ${snippet(text)}`);
         }
         if (step.save) {
             let parsed;
@@ -194,20 +292,12 @@ export async function runSmokePlan(plan, deps = {}) {
                 parsed = JSON.parse(text);
             }
             catch {
-                return {
-                    name: plan.name,
-                    ok: false,
-                    failure: `${where} returned a body that is not JSON, cannot save: ${snippet(text)}`,
-                };
+                return fail(`${where} returned a body that is not JSON, cannot save: ${snippet(text)}`);
             }
             for (const [key, path] of Object.entries(step.save)) {
                 const value = readPath(parsed, path);
                 if (value === undefined || value === null || typeof value === "object") {
-                    return {
-                        name: plan.name,
-                        ok: false,
-                        failure: `${where} response has no ${path} to save as {{${key}}}: ${snippet(text)}`,
-                    };
+                    return fail(`${where} response has no ${path} to save as {{${key}}}: ${snippet(text)}`);
                 }
                 saved[key] = String(value);
             }
@@ -216,7 +306,7 @@ export async function runSmokePlan(plan, deps = {}) {
     return { name: plan.name, ok: true };
 }
 export function formatSmokeFailure(result) {
-    return `Smoke check failed: ${result.failure}`;
+    return `Smoke check failed: ${result.failure}${result.recordPath ? ` (record: ${result.recordPath})` : ""}`;
 }
 /** Runs every plan side by side; each plan keeps its own timeout. */
 export async function runSmokePlans(plans, deps = {}) {

@@ -24,12 +24,16 @@ export interface SmokeConfig {
 export interface SmokePlan {
     name: string;
     baseUrl: string;
+    /** Appended to `baseUrl` and polled with GET before the first step, so a write is never the first request to reach a service that is still starting. */
+    readyPath?: string;
     smoke: SmokeConfig;
 }
 export interface SmokeResult {
     name: string;
     ok: boolean;
     failure?: string;
+    /** Path of the `latest.json` of the step that failed, when a record was written. */
+    recordPath?: string;
 }
 export interface SmokeDeps {
     fetch?: (url: string, init: {
@@ -42,9 +46,13 @@ export interface SmokeDeps {
         text(): Promise<string>;
     }>;
     now?: () => number;
+    /** Directory the per-step records go under (`<dir>/<service>/<step-slug>/`). No directory, no records. */
+    recordDir?: string;
     sleep?: (ms: number) => Promise<void>;
 }
 export declare const DEFAULT_SMOKE_TIMEOUT_SECONDS = 60;
+/** Largest response body kept in a smoke record. */
+export declare const SMOKE_RECORD_BODY_MAX_BYTES: number;
 export declare function validateSmoke(smoke: unknown): string[];
 /** One plan per routable service that declares `smoke`. Workers and BYO with exposeViaProxy false have no public route. */
 export declare function buildSmokePlans(resources: DiscoveredResource[], ingressPort?: number): SmokePlan[];
