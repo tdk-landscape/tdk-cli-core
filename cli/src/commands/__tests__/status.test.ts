@@ -165,4 +165,35 @@ describe("tdk status", () => {
       rmSync(emptyRoot, { recursive: true, force: true });
     }
   });
+
+  it("fails on the missing project before printing any status line", async () => {
+    const outside = mkdtempSync(join(tmpdir(), "tdk-status-outside-"));
+    process.chdir(outside);
+    clearDiscoveryCache();
+    const lines: string[] = [];
+    const log = vi.spyOn(console, "log").mockImplementation((...parts: unknown[]) => {
+      lines.push(parts.map(String).join(" "));
+    });
+    const errors: string[] = [];
+    const err = vi.spyOn(console, "error").mockImplementation((...parts: unknown[]) => {
+      errors.push(parts.map(String).join(" "));
+    });
+    const exit = vi.spyOn(process, "exit").mockImplementation((() => {
+      throw new Error("process.exit");
+    }) as never);
+    try {
+      await statusCommand.parseAsync([], { from: "user" }).catch(() => {});
+    } finally {
+      log.mockRestore();
+      err.mockRestore();
+      exit.mockRestore();
+      process.chdir(projectRoot);
+      rmSync(outside, { recursive: true, force: true });
+    }
+
+    const stdout = stripVTControlCharacters(lines.join("\n"));
+    expect(stdout).not.toContain("TDK Status");
+    expect(stdout).not.toContain("Tilt:");
+    expect(stripVTControlCharacters(errors.join("\n"))).toContain("Could not find project root");
+  });
 });
