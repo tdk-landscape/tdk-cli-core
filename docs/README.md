@@ -29,7 +29,7 @@
 
 - [Recipes](recipes/): using TDK next to other tools. [moon](recipes/moon.md), [Rsbuild](recipes/rsbuild.md)
 - [Bring-your-own examples](../examples/byo/README.md): one folder per framework, each with its own README and a check command
-- [One-shot job examples](../examples/byo-jobs/README.md): database migrations (dbmate, Atlas, Prisma, TypeORM, MikroORM, Drizzle) that run once and exit
+- [One-shot job examples](../examples/byo-jobs/README.md): database migrations (dbmate, Atlas, Ptah, Prisma, TypeORM, MikroORM, Drizzle) that run once and exit
 - [Worked example: a real shop](examples/shop-real.md)
 
 ## Reference
