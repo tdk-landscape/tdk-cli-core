@@ -552,7 +552,7 @@ describe("frontend resource framework selection", () => {
           "--type",
           "frontend",
           "--framework",
-          "angular",
+          "not-a-framework",
           "--stack",
           "shop",
           "--path",
@@ -561,7 +561,32 @@ describe("frontend resource framework selection", () => {
         projectRoot,
       ),
     ).toThrow(
-      /Unknown frontend framework "angular"[\s\S]*Use one of: react, vue, svelte, preact, lit, solid, qwik, vanilla, tanstack-router/,
+      /Unknown frontend framework "not-a-framework"[\s\S]*Use one of: react, vue, svelte, preact, lit, solid, qwik, vanilla, tanstack-router/,
+    );
+    expect(existsSync(resourcePath)).toBe(false);
+  }, 15000);
+
+  it("hands a meta-framework off to bring-your-own before creating a resource directory", () => {
+    const resourcePath = join(projectRoot, "apps", "meta-web");
+
+    expect(() =>
+      runTdk(
+        [
+          "resource",
+          "meta-web",
+          "--type",
+          "frontend",
+          "--framework",
+          "angular",
+          "--stack",
+          "shop",
+          "--path",
+          "apps/meta-web",
+        ],
+        projectRoot,
+      ),
+    ).toThrow(
+      /"angular" is not a Vite SPA provider[\s\S]*tdk resource meta-web --type bring-your-own/,
     );
     expect(existsSync(resourcePath)).toBe(false);
   }, 15000);
