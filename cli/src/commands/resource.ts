@@ -377,6 +377,19 @@ describe('${name}', () => {
 `;
 }
 
+/** Resource types `tdk resource --type` accepts; `byo` is an alias of `bring-your-own`. */
+export function parseResourceType(type: string): CreatableResourceType | "sdk" {
+  const normalized = type === "byo" ? "bring-your-own" : type;
+  const validTypes: readonly string[] = [...CREATABLE_RESOURCE_TYPES, "sdk"];
+  if (!validTypes.includes(normalized)) {
+    throw new TdkError(
+      `Unknown resource type "${type}". Supported types: ${validTypes.join(", ")}.`,
+      [`Use one of: ${validTypes.join(", ")}`, "Omit --type to create a backend"],
+    );
+  }
+  return normalized as CreatableResourceType | "sdk";
+}
+
 export const resourceCommand = new Command("resource")
   .description("Create a new resource (service) from scratch, or register an existing one")
   .argument("[name]", "Resource name (kebab-case)")
@@ -445,36 +458,7 @@ export const resourceCommand = new Command("resource")
         assertValid(validateResourceName(resourceName));
       }
 
-      // Support sdk type for registering existing SDKs
-      let resourceType: CreatableResourceType | "sdk";
-      const validTypes = [...CREATABLE_RESOURCE_TYPES, "sdk"] as const;
-
-      // Normalize bring-your-own aliases
-      const normalizedType =
-        options.type === "byo" || options.type === "bring-your-own"
-          ? "bring-your-own"
-          : options.type;
-
-      if (!validTypes.includes(normalizedType)) {
-        const selectedType = await promptSelect({
-          message: "Resource type:",
-          choices: [
-            { title: "backend - API service with HTTP endpoints", value: "backend" },
-            { title: "frontend - Web application/UI", value: "frontend" },
-            { title: "worker - Background job processor", value: "worker" },
-            { title: "mcp - Model Context Protocol server (HTTP)", value: "mcp" },
-            {
-              title:
-                "bring-your-own - Wrap an existing service. No app scaffold. Needs Dockerfile or --image.",
-              value: "bring-your-own",
-            },
-            { title: "sdk - Library/SDK (register existing)", value: "sdk" },
-          ],
-        });
-        resourceType = selectedType;
-      } else {
-        resourceType = normalizedType;
-      }
+      const resourceType = parseResourceType(options.type);
 
       let frameworkOption: string | undefined = options.framework;
       if (
