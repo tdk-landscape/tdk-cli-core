@@ -5,7 +5,11 @@ import { Command } from "commander";
 import { resolveBackendFramework } from "../backend-frameworks/registry.js";
 import { getBackendIndexTemplate } from "../backend-languages/bun.js";
 import { resolveBackendLanguage } from "../backend-languages/registry.js";
-import { resolveFrontendFramework } from "../frontend-frameworks/registry.js";
+import {
+  DEFAULT_FRONTEND_FRAMEWORK,
+  listFrontendFrameworks,
+  resolveFrontendFramework,
+} from "../frontend-frameworks/registry.js";
 import { hasDddLicense } from "../generator/extension-fetch.js";
 import type {
   CreatableResourceType,
@@ -396,8 +400,9 @@ export const resourceCommand = new Command("resource")
   )
   .option(
     "--framework <id>",
-    "Framework: frontend react (default), vue, svelte, preact, lit, solid, qwik, vanilla, tanstack-router; backend hono (default), express, elysia, fastify, nestjs, koa, h3",
+    "Framework: frontend react (default), vue, svelte, preact, lit, solid, qwik, vanilla, tanstack-router (see --frameworks); backend hono (default), express, elysia, fastify, nestjs, koa, h3",
   )
+  .option("--frameworks", "List registered frontend frameworks and exit")
   .option("--language <id>", "Backend language: bun (default), python, go, rust")
   .option("-s, --stack <stack>", "Stack to assign resource to", "default")
   .option("-p, --path <path>", "Custom path for resource directory")
@@ -421,6 +426,14 @@ export const resourceCommand = new Command("resource")
   )
   .option("--port <port>", "Port number (default: next free in 4000-5999)")
   .action(async (name, options) => {
+    if (options.frameworks) {
+      for (const f of listFrontendFrameworks()) {
+        console.log(
+          `${f.id}\t${f.label}\t${f.kind}\t${f.verified ? "verified" : "unverified"}\t${f.command}`,
+        );
+      }
+      return;
+    }
     await runCommand(async () => {
       const projectRoot = requireProjectRoot();
 
@@ -447,11 +460,35 @@ export const resourceCommand = new Command("resource")
 
       const resourceType = parseResourceType(options.type);
 
-      const frontendFramework = resolveFrontendFramework(resourceType, options.framework);
+      let frameworkOption: string | undefined = options.framework;
+      if (
+        resourceType === "frontend" &&
+        frameworkOption === undefined &&
+        !options.yes &&
+        process.stdin.isTTY
+      ) {
+        frameworkOption = await promptSelect({
+          message: "Frontend framework:",
+          choices: listFrontendFrameworks()
+            .map((f) => ({ title: f.label, value: f.id }))
+            .sort((a, b) =>
+              a.value === DEFAULT_FRONTEND_FRAMEWORK
+                ? -1
+                : b.value === DEFAULT_FRONTEND_FRAMEWORK
+                  ? 1
+                  : 0,
+            ),
+        });
+      }
+      const frontendFramework = resolveFrontendFramework(
+        resourceType,
+        frameworkOption,
+        resourceName,
+      );
       const backendLanguage = resolveBackendLanguage(resourceType, options.language);
       const backendFramework = resolveBackendFramework(
         resourceType,
-        options.framework,
+        frameworkOption,
         backendLanguage,
       );
       // The id passed on to the file generators. An mcp resource has one fixed scaffold and no `framework` setting, so it passes none
