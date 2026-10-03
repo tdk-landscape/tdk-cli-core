@@ -12,6 +12,7 @@ The focused [frontend provider guide](docs/frontend-framework-providers.md) has 
 
 ## Find something to work on
 
+- 🗺️ [The TDK Journey](docs/journey/README.md): pick an island, finish a quest, rank up (8 kyu → 1 dan)
 - [Good first issues](https://github.com/tdk-landscape/tdk-cli-core/labels/good%20first%20issue)
 - [Help wanted](https://github.com/tdk-landscape/tdk-cli-core/labels/help%20wanted)
 - [Report a bug or ask a question](https://github.com/tdk-landscape/tdk-cli-core/issues/new/choose)

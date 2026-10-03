@@ -1,0 +1,41 @@
+# Refreshes docs/journey/map.svg from the `island: ...` issue labels every day.
+# Run manually from the Actions tab too.
+name: 🗺️ journey map
+
+on:
+  schedule:
+    - cron: "30 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  map:
+    name: 🗺️ Refresh map
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: write # commit the refreshed SVG back to main
+      issues: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: true # zizmor: ignore[artipacked] needed to push the refreshed SVG
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: node scripts/journey-map.mjs "$GITHUB_REPOSITORY"
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Commit refreshed map
+        run: |
+          git add docs/journey/map.svg
+          if git diff --cached --quiet; then
+            echo "Map unchanged."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+            git commit -m "chore: refresh journey map"
+            git push
+          fi
