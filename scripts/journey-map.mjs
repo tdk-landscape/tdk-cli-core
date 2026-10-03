@@ -9,11 +9,39 @@ const out = new URL("../docs/journey/map.svg", import.meta.url);
 
 const ISLANDS = [
   { label: "island: CLI Cove", name: "CLI Cove", icon: "🏝️", color: "#1d76db", x: 170, y: 190 },
-  { label: "island: Docs Harbor", name: "Docs Harbor", icon: "⚓", color: "#0075ca", x: 375, y: 190 },
+  {
+    label: "island: Docs Harbor",
+    name: "Docs Harbor",
+    icon: "⚓",
+    color: "#0075ca",
+    x: 375,
+    y: 190,
+  },
   { label: "island: UI Lagoon", name: "UI Lagoon", icon: "🌊", color: "#8a63d2", x: 580, y: 190 },
-  { label: "island: Doctor Reef", name: "Doctor Reef", icon: "🪸", color: "#0e8a16", x: 785, y: 190 },
-  { label: "island: Engine Volcano", name: "Engine Volcano", icon: "🌋", color: "#e36209", x: 785, y: 395 },
-  { label: "island: Launch Port", name: "Launch Port", icon: "🚢", color: "#2496ed", x: 580, y: 395 },
+  {
+    label: "island: Doctor Reef",
+    name: "Doctor Reef",
+    icon: "🪸",
+    color: "#0e8a16",
+    x: 785,
+    y: 190,
+  },
+  {
+    label: "island: Engine Volcano",
+    name: "Engine Volcano",
+    icon: "🌋",
+    color: "#e36209",
+    x: 785,
+    y: 395,
+  },
+  {
+    label: "island: Launch Port",
+    name: "Launch Port",
+    icon: "🚢",
+    color: "#2496ed",
+    x: 580,
+    y: 395,
+  },
   { label: "island: Test Atoll", name: "Test Atoll", icon: "🧪", color: "#d4a72c", x: 375, y: 395 },
 ];
 const RANKS = [
@@ -28,7 +56,20 @@ const RANKS = [
 function quests(label) {
   const json = execFileSync(
     "gh",
-    ["issue", "list", "-R", repo, "--label", label, "--state", "all", "--limit", "200", "--json", "state,labels"],
+    [
+      "issue",
+      "list",
+      "-R",
+      repo,
+      "--label",
+      label,
+      "--state",
+      "all",
+      "--limit",
+      "200",
+      "--json",
+      "state,labels",
+    ],
     { encoding: "utf8" },
   );
   return JSON.parse(json).filter((i) => !i.labels.some((l) => l.name === "tracking"));
