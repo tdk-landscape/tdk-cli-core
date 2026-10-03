@@ -1,6 +1,7 @@
 import type { ValidationResult } from "../types/index.js";
 export declare const KEBAB_CASE_REGEX: RegExp;
 export declare function validateResourceName(name: string): ValidationResult;
+export declare function validateStackName(name: string): ValidationResult;
 export declare function createKebabCaseValidator(context: "resource" | "stack"): (input: string) => true | string;
 export declare function validateOptionalInfraService(service: string): ValidationResult;
 export declare function isValidPort(port: number): boolean;
