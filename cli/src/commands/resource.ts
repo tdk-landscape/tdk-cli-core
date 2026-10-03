@@ -35,7 +35,12 @@ import {
   SERVICE_MANIFEST_SCHEMA_VERSION,
 } from "../utils/service-manifest.js";
 import { discoverResources } from "../utils/services.js";
-import { createKebabCaseValidator, isPathSafe, validateResourceName } from "../utils/validation.js";
+import {
+  createKebabCaseValidator,
+  isPathSafe,
+  validateResourceName,
+  validateStackName,
+} from "../utils/validation.js";
 
 export const BASE_TEMPLATE = {
   port: 0, // Will be assigned
@@ -516,6 +521,7 @@ export const resourceCommand = new Command("resource")
         }
       }
 
+      assertValid(validateStackName(options.stack));
       let stackName = options.stack;
       if (stackName === "default") {
         const existingResources = allResources;
