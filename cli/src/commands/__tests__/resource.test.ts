@@ -11,6 +11,7 @@ import {
   DOCKERFILE_TEMPLATE,
   getBackendIndexTemplate,
   getWorkerIndexTemplate,
+  parseResourceType,
   TSCONFIG_TEMPLATE,
   TYPE_SPECIFIC,
 } from "../../commands/resource.js";
@@ -525,5 +526,22 @@ describe("service.json schema", () => {
     expect(createServiceJson("web", "frontend", "app", 3000).$schema).toContain(
       "schema.service.json",
     );
+  });
+});
+
+describe("parseResourceType", () => {
+  it("accepts every creatable type, sdk and the byo alias", () => {
+    for (const type of [...CREATABLE_RESOURCE_TYPES, "sdk"]) {
+      expect(parseResourceType(type)).toBe(type);
+    }
+    expect(parseResourceType("byo")).toBe("bring-your-own");
+  });
+
+  it("rejects an unknown type with the supported list instead of prompting", () => {
+    expect(() => parseResourceType("bogus")).toThrow(TdkError);
+    expect(() => parseResourceType("bogus")).toThrow(
+      /Unknown resource type "bogus"\. Supported types: backend, frontend/,
+    );
+    expect(() => parseResourceType("")).toThrow(/Unknown resource type/);
   });
 });
