@@ -35,7 +35,8 @@ function evaluate(source: string) {
 // Opt-in Go development loop (#369): a `development` Docker target that rebuilds and restarts on `.go` edits.
 describe.skipIf(!hasTilt)("Go development Dockerfile", { timeout: 30_000 }, () => {
   it("adds a development target with a watcher and build caches, and leaves the default Dockerfile unchanged", () => {
-    const result = evaluate(`load(${JSON.stringify(languageDockerfile)}, 'generate_language_dockerfile')
+    const result =
+      evaluate(`load(${JSON.stringify(languageDockerfile)}, 'generate_language_dockerfile')
 default = generate_language_dockerfile('services/shop/orders', 'go', 4100)
 dev = generate_language_dockerfile('services/shop/orders', 'go', 4100, True)
 if 'AS development' in default: fail('the default Go Dockerfile must not gain a development target')
@@ -52,7 +53,8 @@ if 'EXPOSE 4100' not in dev: fail('port contract changed')
   });
 
   it("does not offer a development target for other languages", () => {
-    const result = evaluate(`load(${JSON.stringify(languageDockerfile)}, 'generate_language_dockerfile')
+    const result =
+      evaluate(`load(${JSON.stringify(languageDockerfile)}, 'generate_language_dockerfile')
 for lang in ['python', 'rust']:
     plain = generate_language_dockerfile('services/shop/orders', lang, 4100)
     flagged = generate_language_dockerfile('services/shop/orders', lang, 4100, True)
