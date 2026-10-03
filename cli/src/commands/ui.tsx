@@ -58,7 +58,6 @@ const HelpPanel: React.FC<HelpPanelProps> = ({ onClose }) => (
           Actions
         </Text>
       </Box>
-      <Text> a Toggle all/pre-alpha services</Text>
       <Text> m Toggle mouse support</Text>
       <Text> t Toggle tooltips</Text>
       <Text> e Toggle enabled/disabled services</Text>
@@ -614,7 +613,7 @@ const TUIApp: React.FC = () => {
             {activeTab === "overview" && selectedStack
               ? `Stack "${selectedStack}" selected. [Enter] view │ [Esc] back │ [e] ${showEnabledOnly ? "show all" : "enabled only"} │ [?] help`
               : activeTab === "overview" && !selectedStack
-                ? `[↑/↓] Navigate │ [Enter] Select │ [a] Pre-alpha │ [e] ${showEnabledOnly ? "show all" : "enabled only"} │ [?] help`
+                ? `[↑/↓] Navigate │ [Enter] Select │ [e] ${showEnabledOnly ? "show all" : "enabled only"} │ [?] help`
                 : activeTab === "resources"
                   ? `[Tab] Tabs │ [r] Refresh │ [/] Search │ [e] ${showEnabledOnly ? "show all" : "enabled only"} │ [?] help`
                   : activeTab === "events"
