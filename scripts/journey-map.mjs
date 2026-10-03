@@ -8,13 +8,13 @@ const repo = process.argv[2] ?? "tdk-landscape/tdk-cli-core";
 const out = new URL("../docs/journey/map.svg", import.meta.url);
 
 const ISLANDS = [
-  { label: "island: CLI Cove", name: "CLI Cove", icon: "🏝️", color: "#1d76db", x: 150, y: 400 },
-  { label: "island: Docs Harbor", name: "Docs Harbor", icon: "⚓", color: "#0075ca", x: 330, y: 200 },
-  { label: "island: Test Atoll", name: "Test Atoll", icon: "🧪", color: "#d4a72c", x: 330, y: 470 },
-  { label: "island: UI Lagoon", name: "UI Lagoon", icon: "🌊", color: "#8a63d2", x: 540, y: 330 },
-  { label: "island: Doctor Reef", name: "Doctor Reef", icon: "🪸", color: "#0e8a16", x: 720, y: 180 },
-  { label: "island: Launch Port", name: "Launch Port", icon: "🚢", color: "#2496ed", x: 740, y: 470 },
-  { label: "island: Engine Volcano", name: "Engine Volcano", icon: "🌋", color: "#e36209", x: 880, y: 330 },
+  { label: "island: CLI Cove", name: "CLI Cove", icon: "🏝️", color: "#1d76db", x: 155, y: 340 },
+  { label: "island: Docs Harbor", name: "Docs Harbor", icon: "⚓", color: "#0075ca", x: 250, y: 150 },
+  { label: "island: Test Atoll", name: "Test Atoll", icon: "🧪", color: "#d4a72c", x: 345, y: 340 },
+  { label: "island: UI Lagoon", name: "UI Lagoon", icon: "🌊", color: "#8a63d2", x: 440, y: 150 },
+  { label: "island: Doctor Reef", name: "Doctor Reef", icon: "🪸", color: "#0e8a16", x: 630, y: 150 },
+  { label: "island: Launch Port", name: "Launch Port", icon: "🚢", color: "#2496ed", x: 535, y: 340 },
+  { label: "island: Engine Volcano", name: "Engine Volcano", icon: "🌋", color: "#e36209", x: 725, y: 340 },
 ];
 const RANKS = [
   ["8 kyu", "🌱"],
@@ -66,25 +66,27 @@ for (const isl of ISLANDS) {
   </g>`;
 }
 
-const route = ISLANDS.map((i) => `${i.x},${i.y}`);
-const path = `M60,300 C100,330 ${route[0]} ${route[0]} S ${route[1]} ${route[1]} S ${route[3]} ${route[3]} S ${route[4]} ${route[4]} S ${route[6]} ${route[6]} S ${route[5]} ${route[5]}`;
+const ORDER = ["CLI Cove", "Docs Harbor", "Test Atoll", "UI Lagoon", "Launch Port", "Doctor Reef", "Engine Volcano"];
+const byName = Object.fromEntries(ISLANDS.map((i) => [i.name, i]));
+const route = ORDER.map((n) => `${byName[n].x},${byName[n].y}`);
+const path = `M50,250 C80,300 ${route[0]} ${route[0]}` + route.slice(1).map((r) => ` S ${r} ${r}`).join("");
 
 const ladder = RANKS.map(
   ([r, icon], n) =>
-    `<g><circle cx="${150 + n * 140}" cy="676" r="22" fill="#fff" stroke="#12304a" stroke-width="2"/><text x="${150 + n * 140}" y="683" font-size="20" text-anchor="middle">${icon}</text><text x="${150 + n * 140}" y="718" font-size="12" font-weight="700" text-anchor="middle" fill="#12304a">${r}</text></g>`,
+    `<g><circle cx="${100 + n * 136}" cy="545" r="22" fill="#fff" stroke="#12304a" stroke-width="2"/><text x="${100 + n * 136}" y="552" font-size="20" text-anchor="middle">${icon}</text><text x="${100 + n * 136}" y="588" font-size="12" font-weight="700" text-anchor="middle" fill="#12304a">${r}</text></g>`,
 ).join("");
 
-const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 740" width="1000" height="740" role="img" aria-label="TDK contributor journey map: ${totalDone} of ${total} quests done across seven islands">
+const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 620" width="880" height="620" role="img" aria-label="TDK contributor journey map: ${totalDone} of ${total} quests done across seven islands">
   <defs><linearGradient id="sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bfe6ff"/><stop offset="1" stop-color="#6bb7e8"/></linearGradient></defs>
-  <rect width="1000" height="740" rx="18" fill="url(#sea)"/>
-  <text x="500" y="46" font-size="26" font-weight="800" text-anchor="middle" fill="#12304a">🗺️ The TDK Journey</text>
-  <text x="500" y="70" font-size="13" text-anchor="middle" fill="#12304a">Pick an island, finish a quest, rank up. Filled dot = merged, hollow dot = open. ${totalDone}/${total} done.</text>
+  <rect width="880" height="620" rx="18" fill="url(#sea)"/>
+  <text x="440" y="44" font-size="26" font-weight="800" text-anchor="middle" fill="#12304a">🗺️ The TDK Journey</text>
+  <text x="440" y="68" font-size="13" text-anchor="middle" fill="#12304a">Pick an island, finish a quest, rank up. Filled dot = merged, hollow dot = open. ${totalDone}/${total} done.</text>
   <path d="${path}" fill="none" stroke="#fff" stroke-width="3" stroke-dasharray="3 9" stroke-linecap="round"/>
-  <text x="60" y="290" font-size="30" text-anchor="middle">🚩</text>
-  <text x="60" y="326" font-size="12" font-weight="700" text-anchor="middle" fill="#12304a">Start here</text>
+  <text x="50" y="215" font-size="30" text-anchor="middle">🚩</text>
+  <text x="50" y="250" font-size="12" font-weight="700" text-anchor="middle" fill="#12304a">Start here</text>
   ${islands}
-  <text x="500" y="640" font-size="14" font-weight="700" text-anchor="middle" fill="#12304a">Your rank ladder (Codewars style)</text>
-  <line x1="150" y1="676" x2="850" y2="676" stroke="#12304a" stroke-width="2" stroke-dasharray="4 6"/>
+  <text x="440" y="500" font-size="14" font-weight="700" text-anchor="middle" fill="#12304a">Your rank ladder (Codewars style)</text>
+  <line x1="100" y1="545" x2="780" y2="545" stroke="#12304a" stroke-width="2" stroke-dasharray="4 6"/>
   ${ladder}
 </svg>
 `;
