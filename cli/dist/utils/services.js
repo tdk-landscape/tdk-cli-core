@@ -42,6 +42,12 @@ function isValidResourceConfig(value) {
         typeof config.type === "string";
     return typeof config.appName === "string" && hasRuntimeOrAppType;
 }
+// Discovery parses every service.json more than once per command (resources, then stacks),
+// so remember what was already printed and show each warning once.
+const printedWarnings = new Set();
+export function resetPrintedServiceWarnings() {
+    printedWarnings.clear();
+}
 function parseResource(serviceJsonPath) {
     const content = readFileSync(serviceJsonPath, "utf-8");
     const parsed = JSON.parse(content);
@@ -51,6 +57,9 @@ function parseResource(serviceJsonPath) {
     const parsedConfig = parsed;
     for (const warning of validateServiceManifest(parsed, serviceJsonPath).warnings) {
         // The warning names the file and field and says what is wrong (unknown, deprecated, ignored), so do not prefix it.
+        if (printedWarnings.has(warning))
+            continue;
+        printedWarnings.add(warning);
         console.warn(`⚠️  ${warning}`);
     }
     const config = {

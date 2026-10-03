@@ -1,5 +1,6 @@
 import type { DiscoveredResource, DiscoveredStack, ResourceMetadata, StackMetadata } from "../types/index.js";
 export declare function discoverServiceManifestPaths(projectRoot: string): string[];
+export declare function resetPrintedServiceWarnings(): void;
 export declare function discoverResourcesFromRoot(projectRoot: string): DiscoveredResource[];
 export declare function discoverResources(): DiscoveredResource[];
 /**
