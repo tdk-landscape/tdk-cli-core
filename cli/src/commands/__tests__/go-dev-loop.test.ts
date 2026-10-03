@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -61,5 +61,60 @@ for lang in ['python', 'rust']:
     if plain != flagged: fail(lang + ' output must not change when dev is requested')
 `);
     expect(result.status, result.stderr).toBe(0);
+  });
+});
+
+const read = (...parts: string[]) => readFileSync(join(repoRoot, ...parts), "utf-8");
+const registration = read(
+  "engine/topologies/tilt/resources/orchestrator/apply_compose_resource_registration.star",
+);
+const tsBuilder = read("engine/topologies/tilt/resources/orchestrator/builders/typescript.star");
+const manifestResource = read(
+  "engine/topologies/tilt/resources/orchestrator/generators/manifest_resource.star",
+);
+
+describe.skipIf(!hasTilt)("Go live reload switch", { timeout: 30_000 }, () => {
+  it("is on only for a Go service with dev.liveReload true", () => {
+    const result = evaluate(`load(${JSON.stringify(languageDockerfile)}, 'go_live_reload_enabled')
+if not go_live_reload_enabled({'language': 'go', 'dev': {'liveReload': True}}): fail('go + liveReload must enable it')
+if go_live_reload_enabled({'language': 'go'}): fail('default must stay off')
+if go_live_reload_enabled({'language': 'go', 'dev': {'liveReload': False}}): fail('false must stay off')
+if go_live_reload_enabled({'language': 'python', 'dev': {'liveReload': True}}): fail('only Go is supported')
+if go_live_reload_enabled({'dev': {'liveReload': True}}): fail('a missing language is Bun')
+if go_live_reload_enabled({'language': 'go', 'dev': 'yes'}): fail('a malformed dev block must not enable it')
+if go_live_reload_enabled(None): fail('no manifest must not enable it')
+`);
+    expect(result.status, result.stderr).toBe(0);
+  });
+});
+
+// The engine wiring is checked as source text, like live-update-sync-paths.test.ts: these paths need Tilt's
+// docker_build and live_update objects, which a unit evaluation cannot create.
+describe("Go development wiring", () => {
+  it("generates the development Dockerfile target only when the switch is on", () => {
+    expect(manifestResource).toContain("dev=Docker.go_live_reload(manifest)");
+  });
+
+  it("builds the development target in Tilt instead of production when the switch is on", () => {
+    expect(tsBuilder).toContain(
+      "def _build_typescript_service(name, context, dockerfile, live_update_rules, deps, env=None, target='production')",
+    );
+    expect(tsBuilder).toContain("target=target,");
+    expect(registration).toContain(
+      "target = 'development' if Docker.go_live_reload(config.get('manifest', {})) else 'production'",
+    );
+  });
+
+  it("syncs the Go sources and falls back to a rebuild for go.mod, go.sum and the Dockerfile", () => {
+    expect(registration).toContain("fall_back_on(");
+    expect(registration).toContain("'go.mod'");
+    expect(registration).toContain("'go.sum'");
+    // Without the switch Go still has no live-update rules.
+    expect(registration).toContain(
+      "if language == 'rust' or (language == 'go' and not go_live_reload):",
+    );
+    expect(
+      registration.indexOf("if language == 'rust' or (language == 'go' and not go_live_reload):"),
+    ).toBeLessThan(registration.indexOf("live_update_rules.append(sync(full_sync_path, dest))"));
   });
 });

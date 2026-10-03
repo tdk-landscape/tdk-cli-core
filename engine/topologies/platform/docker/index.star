@@ -8,6 +8,7 @@ load(
     "./dockerfile/language_dockerfile.star",
     "generate_language_dockerfile",
     "is_provider_owned_language",
+    "go_live_reload_enabled",
     "LANGUAGE_REQUIRED_FILES",
 )
 load("./config/dockerignore.star", "generate_dockerignore")
@@ -26,6 +27,7 @@ Docker = struct(
     migrator = generate_migrator_dockerfile,
     backend_language = generate_language_dockerfile,
     is_provider_owned_language = is_provider_owned_language,
+    go_live_reload = go_live_reload_enabled,
     language_required_files = LANGUAGE_REQUIRED_FILES,
     generate_dockerignore = generate_dockerignore,
     frontend_compose = generate_frontend_compose,

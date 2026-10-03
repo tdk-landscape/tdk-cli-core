@@ -141,3 +141,13 @@ def is_provider_owned_language(manifest):
     if not manifest:
         return False
     return manifest.get("appType", "backend") == "backend" and manifest.get("language", "bun") in PROVIDER_OWNED_LANGUAGES
+
+
+def go_live_reload_enabled(manifest):
+    """True for a Go service that opted in with `dev.liveReload: true` (see _GO_DEVELOPMENT); anything else stays off."""
+    if not manifest or manifest.get("language", "bun") != "go":
+        return False
+    dev = manifest.get("dev")
+    if type(dev) != "dict":
+        return False
+    return dev.get("liveReload") == True

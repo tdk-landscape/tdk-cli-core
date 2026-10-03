@@ -382,6 +382,7 @@ def _generate_all_configs_for_resource(
             res_path=resource_path,
             language=manifest.get('language'),
             port=manifest.get('port', 4000),
+            dev=Docker.go_live_reload(manifest),
         )
     else:
         dockerfile_content = Docker.backend(
