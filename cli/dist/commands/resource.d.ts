@@ -120,5 +120,7 @@ export declare const TSCONFIG_TEMPLATE: {
 export declare const DOCKERFILE_TEMPLATE = "FROM oven/bun:1.2\n\nWORKDIR /app\n\n# Copy package files\nCOPY package.json bun.lock ./\n\n# Install dependencies\nRUN bun install --frozen-lockfile\n\n# Copy source\nCOPY . .\n\n# Build if needed\nRUN bun run build\n\n# Health check\nHEALTHCHECK --interval=10s --timeout=5s --retries=3 \\\n  CMD curl -f http://localhost:3000/health || exit 1\n\nEXPOSE 3000\n\nCMD [\"bun\", \"run\", \"start\"]\n";
 export { getBackendIndexTemplate };
 export declare function getWorkerIndexTemplate(name: string): string;
+/** Resource types `tdk resource --type` accepts; `byo` is an alias of `bring-your-own`. */
+export declare function parseResourceType(type: string): CreatableResourceType | "sdk";
 export declare const resourceCommand: Command;
 //# sourceMappingURL=resource.d.ts.map
