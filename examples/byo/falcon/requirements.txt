@@ -1,0 +1,2 @@
+falcon>=4,<5
+uvicorn>=0.30,<1
