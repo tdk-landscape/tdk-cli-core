@@ -56,4 +56,4 @@ jobs:
           name: smoke-records-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/smoke-records/
           retention-days: 14
-          if-no-files-found: ignore
+          if-no-files-found: error

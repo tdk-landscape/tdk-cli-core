@@ -45,7 +45,7 @@ The CLI does not compute a diff. A later regression shows what changed because `
 
 ### Readiness gate before the first step
 
-`verify-smoke.sh` showed that `tdk up` starts the check when Tilt's UI is up, while images can still be building. The first `POST` then got `ECONNRESET` from Traefik, which the #414 rule does not retry, so the check failed on unmodified code too. The write rules stay as shipped. Instead each plan polls `GET <baseUrl><healthCheckPath>` (default `/health` for API services) until something other than a connection error, 404, 502, 503 or 504 answers, bounded by `timeoutSeconds`. On timeout the first step runs and reports its own failure.
+`verify-smoke.sh` showed that `tdk up` starts the check when Tilt's UI is up, while images can still be building. The first `POST` then got `ECONNRESET` from Traefik, which the #414 rule does not retry, so the check failed on unmodified code too. The write rules stay as shipped. Instead each plan polls `GET <baseUrl><healthCheckPath>` (default `/health` for API services) until something other than a connection error, 404 or a 5xx answers, bounded by `timeoutSeconds`. The steps then get their own `timeoutSeconds`, so a slow build does not eat the first step's budget. On timeout the first step runs and reports its own failure. Steps whose names slug the same get `-2`, `-3` suffixes so their records never collide.
 
 ## Risks / Trade-offs
 

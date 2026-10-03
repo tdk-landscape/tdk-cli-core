@@ -105,5 +105,9 @@ describe("smoke over real HTTP", () => {
     expect(readFileSync(join(dir, "body.txt"), "utf8").trim()).not.toBe("");
     expect(existsSync(join(dir, "last-success-body.txt"))).toBe(true);
     expect(readFileSync(join(dir, "last-success-body.txt"), "utf8")).toContain("smoke");
+    expect(json(join(dir, "last-success.json")).status).toBe(200);
+    // The first run created once; the failed run created once more. Neither repeated a write.
+    expect(writes).toBe(2);
+    expect(healthCalls).toBeGreaterThanOrEqual(3);
   });
 });
