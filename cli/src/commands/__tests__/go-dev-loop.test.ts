@@ -166,11 +166,16 @@ describe("Go development wiring", () => {
   it("prebuilds the same target for a deferStart service as docker_build does", () => {
     // A deferStart Go service with liveReload would otherwise be prebuilt as `production` under the tag its container runs.
     const start = registration.indexOf("def _register_deferred_image_prebuild(");
-    const end = registration.indexOf("\ndef ", start + 1);
     expect(start).toBeGreaterThan(-1);
-    const prebuild = registration.slice(start, end);
-    expect(prebuild).toContain("target = _image_target(config)");
-    expect(prebuild).toContain('docker build --network host --target " + target');
+    const next = registration.indexOf("\ndef ", start + 1);
+    const prebuild = registration.slice(start, next === -1 ? undefined : next);
+    // The variable interpolated into `docker build` is assigned once, from the shared helper, before the command is built.
+    const assignments = prebuild.match(/^\s*target = .*$/gm) ?? [];
+    expect(assignments).toEqual(["    target = _image_target(config)"]);
+    const assigned = prebuild.indexOf("target = _image_target(config)");
+    const used = prebuild.indexOf('docker build --network host --target " + target');
+    expect(assigned).toBeGreaterThan(-1);
+    expect(used).toBeGreaterThan(assigned);
     expect(prebuild).not.toMatch(/--target\s+production/);
   });
 
