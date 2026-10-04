@@ -55,7 +55,7 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           DRY_RUN: ${{ inputs.dry_run }}
-        run: |
+        run: | # zizmor: ignore[use-trusted-publishing] new package: no trusted publisher exists until after the first publish
           NAME=$(node -p "require('./package.json').name")
           VERSION=$(node -p "require('./package.json').version")
           if npm view "$NAME@$VERSION" version >/dev/null 2>&1; then
@@ -66,4 +66,4 @@ jobs:
           FLAGS="--access public --ignore-scripts"
           if [ "$DRY_RUN" = "true" ]; then FLAGS="$FLAGS --dry-run"; fi
           # shellcheck disable=SC2086
-          npm publish $FLAGS # zizmor: ignore[use-trusted-publishing] new package: no trusted publisher exists until after the first publish
+          npm publish $FLAGS
