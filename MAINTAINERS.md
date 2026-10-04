@@ -5,5 +5,6 @@ People with merge rights on tdk-cli-core. Company is the maintainer's employer, 
 | Name | GitHub id | Company |
 | --- | --- | --- |
 | Kateryna Burym | kburym | 221e |
+| Oleksandr Dykyi | odykyi | Independent |
 
-This project currently has one maintainer from one company. `tdk maintainers check` reports that as not eligible for foundation application; that is the accurate state.
+This project currently has two maintainers from two companies. `tdk maintainers check` reports not eligible for a foundation application until a third maintainer is added.
