@@ -46,7 +46,10 @@ export function detectHost(inputs: HostProbeInputs = defaultInputs()): HostInfo 
   if (env.REMOTE_CONTAINERS || (fileExists("/.dockerenv") && env.DEVCONTAINER)) {
     return { kind: "devcontainer", canUp: true };
   }
-  if (platform === "win32") return { kind: "native-windows", canUp: true };
+  // Mirrors nativeWindowsUpRefusal in commands/up.ts: native Windows is inspect-only unless explicitly overridden.
+  if (platform === "win32") {
+    return { kind: "native-windows", canUp: env.TDK_ALLOW_NATIVE_WINDOWS === "1" };
+  }
   if (platform === "linux" && env.WSL_DISTRO_NAME) return { kind: "wsl2", canUp: true };
   return { kind: "local", canUp: true };
 }

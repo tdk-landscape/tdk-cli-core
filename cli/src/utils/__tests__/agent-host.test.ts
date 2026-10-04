@@ -29,6 +29,15 @@ describe("detectHost", () => {
   it("does not treat a bare /.dockerenv as a Dev Container", () => {
     expect(detectHost({ ...base, fileExists: () => true }).kind).toBe("local");
   });
+  it("reports native Windows as unable to up unless explicitly allowed", () => {
+    expect(detectHost({ ...base, platform: "win32" })).toEqual({
+      kind: "native-windows",
+      canUp: false,
+    });
+    expect(
+      detectHost({ ...base, platform: "win32", env: { TDK_ALLOW_NATIVE_WINDOWS: "1" } }).canUp,
+    ).toBe(true);
+  });
   it("detects WSL2 and plain local hosts", () => {
     expect(detectHost({ ...base, env: { WSL_DISTRO_NAME: "Ubuntu" } }).kind).toBe("wsl2");
     expect(detectHost(base).kind).toBe("local");
@@ -67,7 +76,7 @@ describe("doctor report host", () => {
     expect(report.data.host).toEqual({
       kind: "devcontainer",
       canUp: false,
-      dockerReachable: false,
+      containerRuntimeReachable: false,
     });
   });
 });

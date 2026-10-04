@@ -13,7 +13,7 @@ export interface DoctorReport {
     ready: boolean;
     inProject: boolean;
     checks: CheckResult[];
-    host?: HostInfo & { dockerReachable: boolean | null };
+    host?: HostInfo & { containerRuntimeReachable: boolean | null };
     ports?: {
       http: { requested: number; chosen: number | null; explicit: boolean; reason: string };
       https: { requested: number; chosen: number | null; explicit: boolean; reason: string };
@@ -51,7 +51,7 @@ export async function collectDoctorChecks(
   return { checks, errors };
 }
 
-function dockerReachable(checks: CheckResult[]): boolean | null {
+function containerRuntimeReachable(checks: CheckResult[]): boolean | null {
   const runtime = checks.find((check) => check.name === "Container Runtime");
   return runtime ? runtime.didPass : null;
 }
@@ -76,8 +76,8 @@ export function createDoctorReport(
         ? {
             host: {
               ...host,
-              dockerReachable: dockerReachable(checks),
-              canUp: host.canUp && dockerReachable(checks) !== false,
+              containerRuntimeReachable: containerRuntimeReachable(checks),
+              canUp: host.canUp && containerRuntimeReachable(checks) !== false,
             },
           }
         : {}),

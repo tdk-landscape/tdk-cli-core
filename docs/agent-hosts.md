@@ -1,6 +1,6 @@
 # Agent hosts: Dev Containers, Codespaces, WebContainers
 
-`tdk doctor` reports where it is running (`data.host.kind` in `--json`): `local`, `wsl2`, `devcontainer`, `codespaces`, `webcontainer`, or `native-windows`. `data.host.canUp` is false when `tdk up` cannot work, either because the host can never run it or because Docker is not reachable.
+`tdk doctor` reports where it is running (`data.host.kind` in `--json`): `local`, `wsl2`, `devcontainer`, `codespaces`, `webcontainer`, or `native-windows`. `data.host.containerRuntimeReachable` says whether doctor found a working container runtime (Docker, Colima or Podman), and `data.host.canUp` is false when `tdk up` cannot work, either because the host can never run it or because Docker is not reachable.
 
 ## Dev Containers and Codespaces
 
@@ -19,5 +19,5 @@ Not supported for `tdk up`. A WebContainer has no Docker daemon, Compose, or Til
 ## JSON output for agents
 
 - `tdk doctor --json` and `tdk status --json` print a versioned report.
-- `tdk up --json` prints one object on stdout once the stack is ready (or when the command fails), and keeps running Tilt; background it. Human output is suppressed.
-- `tdk down --json` prints one object when done.
+- `tdk up --json` prints one object on stdout: `ok: true` once every non-deferred Tilt resource is built and running, or `ok: false` with `errors` if a resource fails, readiness times out (`TDK_UP_READY_TIMEOUT_MS`, default 15 minutes), a smoke check fails, or Tilt exits first. Tilt keeps running after the object is printed, so background the command. Human output is suppressed.
+- `tdk down --json` prints one object when done, including when preflight fails.

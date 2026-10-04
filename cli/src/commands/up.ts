@@ -1,4 +1,3 @@
-import { writeSync } from "node:fs";
 import { connect } from "node:net";
 import { join } from "node:path";
 import chalk from "chalk";
@@ -27,6 +26,7 @@ import {
   writeSavedHostPortPlan,
 } from "../utils/host-port-config.js";
 import { formatHostPortPlan } from "../utils/host-port-plan.js";
+import { createJsonEmitter } from "../utils/json-output.js";
 import { findProjectRoot } from "../utils/paths.js";
 import { findAvailablePort } from "../utils/port-assignment.js";
 import { isApiServiceType } from "../utils/resource-kind.js";
@@ -40,6 +40,7 @@ import {
 import { buildSmokePlans, formatSmokeFailure, runSmokePlans } from "../utils/smoke.js";
 import { buildTiltUpArgs, runTilt } from "../utils/tilt.js";
 import { stopTiltOnPort } from "../utils/tilt-process.js";
+import { waitForTiltResourcesReady } from "../utils/up-readiness.js";
 import { enableDiscoveredStacks } from "./project.js";
 
 export function formatUpSuccess(port: number, appUrls: string[] = []): string[] {
@@ -99,8 +100,6 @@ function waitForTiltUi(port: number, timeoutMs = 30_000): Promise<boolean> {
   });
 }
 
-let emitUpJson: ((payload: Record<string, unknown>) => void) | undefined;
-
 export const upCommand = new Command("up")
   .description("Start all services (optionally filtered by stack)")
   .alias("deploy")
@@ -115,29 +114,11 @@ export const upCommand = new Command("up")
     false,
   )
   .action(async (stackName, options) => {
-    if (options.json) {
-      options.quiet = true;
-      let emitted = false;
-      emitUpJson = (payload) => {
-        if (emitted) return;
-        emitted = true;
-        writeSync(1, `${JSON.stringify({ schemaVersion: 1, ...payload })}\n`);
-      };
-      process.once("exit", (code) => {
-        if (!emitted)
-          emitUpJson?.({
-            data: { ok: code === 0 },
-            errors:
-              code === 0 ? [] : [{ code: "UP_FAILED", message: `tdk up exited with code ${code}` }],
-          });
-      });
-    }
+    const emit = options.json ? createJsonEmitter("UP_FAILED", "tdk up") : undefined;
+    if (options.json) options.quiet = true;
     const hostRefusal = options.dryRun ? null : await hostUpRefusal();
     if (hostRefusal) {
-      emitUpJson?.({
-        data: { ok: false },
-        errors: [{ code: "HOST_UNSUPPORTED", message: hostRefusal }],
-      });
+      emit?.({ ok: false }, [{ code: "HOST_UNSUPPORTED", message: hostRefusal }]);
       showErrorAndExit(hostRefusal);
     }
     const platformRefusal = nativeWindowsUpRefusal(
@@ -266,16 +247,13 @@ export const upCommand = new Command("up")
           chalk.gray("Override with TDK_HTTP_PORT, TDK_HTTPS_PORT, or TDK_POSTGRES_PORT."),
         );
       }
-      if (options.json && options.dryRun) {
-        emitUpJson?.({
-          data: {
-            ok: true,
-            dryRun: true,
-            stack: stackName ?? null,
-            services: serviceNames,
-            command: dryRunCommand,
-          },
-          errors: [],
+      if (emit && options.dryRun) {
+        emit({
+          ok: true,
+          dryRun: true,
+          stack: stackName ?? null,
+          services: serviceNames,
+          command: dryRunCommand,
         });
         return;
       }
@@ -325,7 +303,7 @@ export const upCommand = new Command("up")
       }
 
       const tiltRun = runTilt("up", tiltArgs, {
-        verbose: options.verbose,
+        verbose: options.verbose && !options.json,
         quiet: options.quiet,
         inheritStdio: !options.quiet, // Suppress tilt output in quiet mode
       });
@@ -338,22 +316,27 @@ export const upCommand = new Command("up")
       let printedSuccess = false;
       const successOutput = (async () => {
         const uiReady = await waitForTiltUi(port);
-        if (uiReady && options.json && smokePlans.length === 0) {
-          emitUpJson?.({
-            data: {
-              ok: true,
-              stack: stackName ?? null,
-              services: serviceNames,
-              tiltUrl: `http://localhost:${port}`,
-            },
-            errors: [],
-          });
+        // JSON consumers get success only after every non-deferred resource is built and running, not when the UI port opens.
+        let jsonReady = false;
+        if (uiReady && emit) {
+          const readiness = await waitForTiltResourcesReady(port);
+          if (readiness.ready) {
+            jsonReady = true;
+          } else {
+            const detail = readiness.failures.map((f) => `${f.name}: ${f.message}`).join("; ");
+            emit({ ok: false, tiltUrl: `http://localhost:${port}`, failures: readiness.failures }, [
+              {
+                code: readiness.timedOut ? "UP_TIMEOUT" : "UP_RESOURCE_FAILED",
+                message: `${readiness.timedOut ? "Timed out waiting for resources" : "Resources failed"}${detail ? ` (${detail})` : ""}. Tilt is still running; inspect it or run: tdk down`,
+              },
+            ]);
+          }
         }
         if (uiReady && !options.quiet) {
           for (const line of formatUpSuccess(port)) console.log(chalk.blue(line));
           printedSuccess = true;
         }
-        if (uiReady && smokePlans.length > 0) {
+        if (uiReady && smokePlans.length > 0 && (!emit || jsonReady)) {
           if (!options.quiet) {
             console.log(chalk.gray(`Smoke check: ${smokePlans.map((p) => p.name).join(", ")}`));
           }
@@ -369,18 +352,20 @@ export const upCommand = new Command("up")
               console.error(chalk.red(formatSmokeFailure(smokeResult)));
             }
           }
-          if (smokeFailed) stopTiltOnPort(port);
-          else if (options.json) {
-            emitUpJson?.({
-              data: {
-                ok: true,
-                stack: stackName ?? null,
-                services: serviceNames,
-                tiltUrl: `http://localhost:${port}`,
-              },
-              errors: [],
-            });
+          if (smokeFailed) {
+            stopTiltOnPort(port);
+            emit?.({ ok: false }, [
+              { code: "UP_SMOKE_FAILED", message: "A smoke check failed; Tilt was stopped" },
+            ]);
           }
+        }
+        if (uiReady && jsonReady && !smokeFailed) {
+          emit?.({
+            ok: true,
+            stack: stackName ?? null,
+            services: serviceNames,
+            tiltUrl: `http://localhost:${port}`,
+          });
         }
       })();
       const result = await tiltRun;
