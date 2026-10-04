@@ -4,6 +4,7 @@ import { dirname, join, normalize, relative } from "node:path";
 import chalk from "chalk";
 import { Command } from "commander";
 import { hasVerdaccioLicense } from "../generator/extension-fetch.js";
+import { DEVCONTAINER_DOCKER_FIX, detectHost, isContainerHost, WEBCONTAINER_DOCS, WEBCONTAINER_UP_MESSAGE, } from "../utils/agent-host.js";
 import { MASTER_CONFIG_FILES, REQUIRED_PACKAGE_SCRIPTS } from "../utils/constants.js";
 import { isPathDiscovered, readDiscoveryPaths } from "../utils/discovery-paths.js";
 import { collectDoctorChecks, createDoctorReport, getDoctorExitCode, } from "../utils/doctor-report.js";
@@ -1005,6 +1006,7 @@ export const doctorCommand = new Command("doctor")
     if (!options.json) {
         console.log("TDK doctor checks your local Docker + Tilt development environment; it does not check cluster deployments.");
     }
+    const host = detectHost();
     if (process.platform === "win32") {
         if (options.json) {
             let windowsPortPlan = null;
@@ -1021,9 +1023,24 @@ export const doctorCommand = new Command("doctor")
                     message: NATIVE_WINDOWS_DOCTOR_MESSAGE,
                     fix: "Use WSL2 Ubuntu with Docker Desktop integration. Guide: docs/wsl2.md",
                 },
-            ], Boolean(findProjectRoot()), [], windowsPortPlan)));
+            ], Boolean(findProjectRoot()), [], windowsPortPlan, { ...host, canUp: false })));
         }
         console.error(NATIVE_WINDOWS_DOCTOR_MESSAGE);
+        process.exit(1);
+        return;
+    }
+    if (host.kind === "webcontainer") {
+        const report = createDoctorReport([
+            {
+                name: "Host",
+                didPass: false,
+                message: WEBCONTAINER_UP_MESSAGE,
+                fix: `Use a machine with Docker. Guide: ${WEBCONTAINER_DOCS}`,
+            },
+        ], Boolean(findProjectRoot()), [], undefined, host);
+        if (options.json)
+            console.log(JSON.stringify(report));
+        console.error(WEBCONTAINER_UP_MESSAGE);
         process.exit(1);
         return;
     }
@@ -1113,7 +1130,14 @@ export const doctorCommand = new Command("doctor")
     // would all fail with "run tdk project".
     const inProject = Boolean(projectRoot);
     const { checks: results, errors } = await collectDoctorChecks(machineChecks, inProject ? projectChecks : []);
-    const report = createDoctorReport(orderDoctorResults(results), inProject, errors, hostPortPlan);
+    if (isContainerHost(host.kind)) {
+        for (const result of results) {
+            if (result.name === "Container Runtime" && !result.didPass) {
+                result.fix = DEVCONTAINER_DOCKER_FIX;
+            }
+        }
+    }
+    const report = createDoctorReport(orderDoctorResults(results), inProject, errors, hostPortPlan, host);
     const exitCode = getDoctorExitCode(report);
     const allPassed = report.data.ready;
     if (options.json) {
