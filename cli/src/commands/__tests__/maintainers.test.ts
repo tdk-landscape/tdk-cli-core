@@ -47,6 +47,12 @@ describe("tdk maintainers check", () => {
     });
   });
 
+  it("counts a duplicated GitHub id once", () => {
+    const result = check(`${header}| A | a | Acme |\n| A | A | Independent |\n| A | a | Acme |\n`);
+    expect(result.exitCode).toBe(1);
+    expect(result.output).toContain("1 maintainers (2 missing)");
+  });
+
   it("fails and names the file when it is missing", () => {
     const result = check(null);
     expect(result.exitCode).toBe(1);
