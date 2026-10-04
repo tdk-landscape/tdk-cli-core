@@ -1,6 +1,6 @@
 # Agent hosts: Dev Containers, Codespaces, WebContainers
 
-`tdk doctor` reports where it is running (`data.host.kind` in `--json`): `local`, `wsl2`, `devcontainer`, `codespaces`, `webcontainer`, or `native-windows`. `data.host.containerRuntimeReachable` says whether doctor found a working container runtime (Docker, Colima or Podman), and `data.host.canUp` is false when `tdk up` cannot work, either because the host can never run it or because Docker is not reachable.
+`tdk doctor` reports where it is running (`data.host.kind` in `--json`): `local`, `wsl2`, `devcontainer`, `codespaces`, `webcontainer`, or `native-windows`. `data.host.containerRuntimeReachable` says whether doctor found a working container runtime (Docker, Colima or Podman), and `data.host.canUp` is false when `tdk up` cannot work: on a WebContainer, on native Windows without `TDK_ALLOW_NATIVE_WINDOWS=1`, or when no container runtime is reachable.
 
 ## Dev Containers and Codespaces
 
@@ -11,6 +11,14 @@ Services run as sibling containers on the host's Docker engine; the Dev Containe
 - A mounted Docker socket gives the container root-equivalent access to the host. Only do this in workspaces you trust.
 
 If Docker is unreachable, `tdk up` exits non-zero without starting Tilt and `tdk doctor` prints this remediation.
+
+## T3-style servers
+
+A server that owns the repo and starts the agent (for example T3 Code) works when the agent runs `tdk` on a machine with Docker, with the services running as sibling containers on that host.
+
+![The client talks to the server; the agent on the server runs tdk up --json; Docker runs the services.](images/agent-host-t3.svg)
+
+The agent runs `tdk doctor`, then `tdk up --json` in the background, and polls `tdk status --json` for ports and URLs. Do not point such a server at a WebContainer: `canUp` stays false there.
 
 ## WebContainers
 
