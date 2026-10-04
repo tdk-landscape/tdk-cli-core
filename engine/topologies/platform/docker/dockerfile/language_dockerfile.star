@@ -62,7 +62,7 @@ RUN CGO_ENABLED=0 go build -o /out/app .
 
 FROM build AS test
 RUN go test ./...
-
+{go_development}
 FROM debian:bookworm-slim AS production
 
 {curl}
@@ -102,14 +102,35 @@ EXPOSE {port}
 CMD ["app"]
 """
 
-def generate_language_dockerfile(res_path, language, port = BASE_PORT_BACKEND):
+# Opt-in Go development target (`dev.liveReload`): the toolchain image with Air, which rebuilds and restarts the app when a `.go`
+# file changes. Dependencies are downloaded in their own layer and the module and build caches live in BuildKit cache mounts, so an
+# ordinary source edit recompiles incrementally. `go.mod`, `go.sum` and the Dockerfile still rebuild the image.
+_GO_DEVELOPMENT = """
+FROM golang:1.23-bookworm AS development
+RUN go install github.com/air-verse/air@v1.61.7
+WORKDIR /app/{res_path}
+COPY {res_path}/go.* ./
+RUN --mount=type=cache,target=/go/pkg/mod go mod download
+COPY {res_path}/ ./
+ENV GOFLAGS=-buildvcs=false
+# Prime the build cache inside the image (a cache mount would not be kept), so the first edit recompiles only what changed.
+RUN go build -o /tmp/app .
+EXPOSE {port}
+CMD ["sh", "-c", "exec air --build.cmd 'go build -o /tmp/app .' --build.bin /tmp/app --build.include_ext go"]
+"""
+
+def generate_language_dockerfile(res_path, language, port = BASE_PORT_BACKEND, dev = False):
     """Dockerfile text for a provider-owned backend language, or fail for an unknown one."""
     template = {"python": _PYTHON, "go": _GO, "rust": _RUST}.get(language)
     if template == None:
         fail("No Dockerfile generator for backend language '{}'".format(language))
+    go_development = ""
+    if dev and language == "go":
+        go_development = _GO_DEVELOPMENT.format(res_path = res_path, port = port)
     return template.format(
         res_path = res_path,
         port = port,
+        go_development = go_development,
         curl = _CURL,
         healthcheck = _HEALTHCHECK.format(port = port),
     )
@@ -120,3 +141,13 @@ def is_provider_owned_language(manifest):
     if not manifest:
         return False
     return manifest.get("appType", "backend") == "backend" and manifest.get("language", "bun") in PROVIDER_OWNED_LANGUAGES
+
+
+def go_live_reload_enabled(manifest):
+    """True for a Go service that opted in with `dev.liveReload: true` (see _GO_DEVELOPMENT); anything else stays off."""
+    if not manifest or manifest.get("language", "bun") != "go":
+        return False
+    dev = manifest.get("dev")
+    if type(dev) != "dict":
+        return False
+    return dev.get("liveReload") == True
