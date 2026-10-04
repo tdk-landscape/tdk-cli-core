@@ -25,7 +25,7 @@ Existing: `tdk doctor --json`, `tdk status --json`, `tdk resources --json`, WSL2
 
 - Socket-mounted Docker gives the Dev Container root-equivalent access to the host; docs must say so.
 - Agent Host Dev Container support is experimental; laptop `tdk up` must never depend on it.
-- Host detection by env var can misfire; `canUp` is decided by an actual Docker reachability check, host kind is informational.
+- Host detection by env var can misfire; `canUp` follows the single rule in decision 6 (host kind only matters for WebContainer and native Windows), and runtime reachability is decided by an actual probe, not by host kind.
 
 ## Open questions
 
