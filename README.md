@@ -14,10 +14,18 @@ Docker runs the containers. Tilt watches services and live-updates containers wh
 
 ```bash
 mkdir shop && cd shop
-tdk project --yes
-tdk resource orders-api --type backend --stack shop --yes
-tdk up shop
+npx -y @tdk-landscape/tdk-cli-core project --yes
+npx -y @tdk-landscape/tdk-cli-core resource orders-api --type backend --stack shop --yes
+# Docker + Tilt step (needs Docker running and Tilt installed; native Windows is inspect-only, use Ubuntu on WSL2)
+npx -y @tdk-landscape/tdk-cli-core up shop
 curl http://api.shop.localhost/api/orders-api/health
+```
+
+Preview without containers (no Docker or Tilt needed):
+
+```bash
+npx -y @tdk-landscape/tdk-cli-core --version
+npx -y @tdk-landscape/tdk-cli-core up shop --dry-run
 ```
 
 ![TDK scaffolding a backend and a frontend, then listing the stack](docs/assets/demo.svg)
@@ -44,8 +52,9 @@ See [how TDK CLI works alongside Helm](https://tdk-landscape.github.io/tdk-websi
 Install the CLI from npm (requires Node.js 22.12+) or use the prebuilt binary (no Node.js or Bun required):
 
 ```bash
+# keep it: global install
 npm install -g @tdk-landscape/tdk-cli-core
-# or install the prebuilt binary
+# or the prebuilt binary
 curl -fsSL https://tdk-landscape.github.io/install.sh | sh
 ```
 

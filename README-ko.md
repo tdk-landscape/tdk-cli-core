@@ -14,10 +14,18 @@ TDK CLI는 노트북에서 서비스를 시작합니다. 배포 도구도, Compo
 
 ```bash
 mkdir shop && cd shop
-tdk project --yes
-tdk resource orders-api --type backend --stack shop --yes
-tdk up shop
+npx -y @tdk-landscape/tdk-cli-core project --yes
+npx -y @tdk-landscape/tdk-cli-core resource orders-api --type backend --stack shop --yes
+# Docker + Tilt step (needs Docker running and Tilt installed; native Windows is inspect-only, use Ubuntu on WSL2)
+npx -y @tdk-landscape/tdk-cli-core up shop
 curl http://api.shop.localhost/api/orders-api/health
+```
+
+Preview without containers (no Docker or Tilt needed):
+
+```bash
+npx -y @tdk-landscape/tdk-cli-core --version
+npx -y @tdk-landscape/tdk-cli-core up shop --dry-run
 ```
 
 ![TDK가 백엔드와 프런트엔드를 스캐폴딩하고 스택을 나열하는 모습](docs/assets/demo.svg)
@@ -44,8 +52,9 @@ Helm, Compose 또는 기존 Tilt 설정으로 이미 로컬 환경이 잘 동작
 npm으로 CLI를 설치하거나(Node.js 22.12+ 필요) 사전 빌드된 바이너리를 사용하세요(Node.js도 Bun도 필요 없음):
 
 ```bash
+# keep it: global install
 npm install -g @tdk-landscape/tdk-cli-core
-# or install the prebuilt binary
+# or the prebuilt binary
 curl -fsSL https://tdk-landscape.github.io/install.sh | sh
 ```
 

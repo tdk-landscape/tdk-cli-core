@@ -2,6 +2,15 @@
 
 ## Start here
 
+Try it with no install and no Docker (Node.js 22.12+ only):
+
+```bash
+npx -y @tdk-landscape/tdk-cli-core --version
+npx -y @tdk-landscape/tdk-cli-core up shop --dry-run   # after project + resource; needs no containers
+```
+
+The first `up` without `--dry-run` is the Docker + Tilt step; native Windows is inspect-only (use Ubuntu on WSL2).
+
 - [Run one backend locally](../examples/one-backend/README.md)
 - [Run one Python backend locally](../examples/one-backend-python/README.md)
 - [Full multi-service example](../examples/tdk-example/README.md)

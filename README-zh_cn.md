@@ -14,10 +14,18 @@ Docker 运行容器。Tilt 监视服务，并在你编码时实时更新容器�
 
 ```bash
 mkdir shop && cd shop
-tdk project --yes
-tdk resource orders-api --type backend --stack shop --yes
-tdk up shop
+npx -y @tdk-landscape/tdk-cli-core project --yes
+npx -y @tdk-landscape/tdk-cli-core resource orders-api --type backend --stack shop --yes
+# Docker + Tilt step (needs Docker running and Tilt installed; native Windows is inspect-only, use Ubuntu on WSL2)
+npx -y @tdk-landscape/tdk-cli-core up shop
 curl http://api.shop.localhost/api/orders-api/health
+```
+
+Preview without containers (no Docker or Tilt needed):
+
+```bash
+npx -y @tdk-landscape/tdk-cli-core --version
+npx -y @tdk-landscape/tdk-cli-core up shop --dry-run
 ```
 
 ![TDK 搭建后端和前端，然后列出 stack](docs/assets/demo.svg)
@@ -44,8 +52,9 @@ curl http://api.shop.localhost/api/orders-api/health
 从 npm 安装 CLI（需要 Node.js 22.12+），或使用预构建二进制文件（无需 Node.js 或 Bun）：
 
 ```bash
+# keep it: global install
 npm install -g @tdk-landscape/tdk-cli-core
-# or install the prebuilt binary
+# or the prebuilt binary
 curl -fsSL https://tdk-landscape.github.io/install.sh | sh
 ```
 

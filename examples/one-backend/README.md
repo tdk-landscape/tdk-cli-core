@@ -10,9 +10,10 @@ From the repository root:
 
 ```bash
 cd examples/one-backend
-tdk project --yes
+npx -y @tdk-landscape/tdk-cli-core project --yes
 bun install --cwd services/one-backend/api
-tdk up one-backend
+# Docker + Tilt step
+npx -y @tdk-landscape/tdk-cli-core up one-backend
 ```
 
 The service is routed at `http://api.one-backend.localhost/api/api-backend`. Check it with:

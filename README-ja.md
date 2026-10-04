@@ -14,10 +14,18 @@ TDK CLI は、ノートPC上でサービスを起動します。デプロイツ�
 
 ```bash
 mkdir shop && cd shop
-tdk project --yes
-tdk resource orders-api --type backend --stack shop --yes
-tdk up shop
+npx -y @tdk-landscape/tdk-cli-core project --yes
+npx -y @tdk-landscape/tdk-cli-core resource orders-api --type backend --stack shop --yes
+# Docker + Tilt step (needs Docker running and Tilt installed; native Windows is inspect-only, use Ubuntu on WSL2)
+npx -y @tdk-landscape/tdk-cli-core up shop
 curl http://api.shop.localhost/api/orders-api/health
+```
+
+Preview without containers (no Docker or Tilt needed):
+
+```bash
+npx -y @tdk-landscape/tdk-cli-core --version
+npx -y @tdk-landscape/tdk-cli-core up shop --dry-run
 ```
 
 ![TDK がバックエンドとフロントエンドをスキャフォールドし、スタックを一覧表示する様子](docs/assets/demo.svg)
@@ -44,8 +52,9 @@ Helm、Compose、既存の Tilt 構成でローカル環境がすでに問題な
 npm から CLI をインストールするか（Node.js 22.12+ が必要）、ビルド済みバイナリを使用します（Node.js も Bun も不要）。
 
 ```bash
+# keep it: global install
 npm install -g @tdk-landscape/tdk-cli-core
-# or install the prebuilt binary
+# or the prebuilt binary
 curl -fsSL https://tdk-landscape.github.io/install.sh | sh
 ```
 

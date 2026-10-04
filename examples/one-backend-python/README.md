@@ -16,8 +16,9 @@ From the repository root:
 
 ```bash
 cd examples/one-backend-python
-tdk project --yes
-tdk up one-backend-python
+npx -y @tdk-landscape/tdk-cli-core project --yes
+# Docker + Tilt step
+npx -y @tdk-landscape/tdk-cli-core up one-backend-python
 ```
 
 The service is routed at `http://api.one-backend-python.localhost/api/api-backend`. If port 80 is busy, TDK picks another host port; `tdk doctor --json` reports it. Check it with:

@@ -6,8 +6,9 @@ This is a local demo, not a Helm chart.
 
 ```sh
 tdk doctor
-tdk project --yes
-tdk up
+npx -y @tdk-landscape/tdk-cli-core project --yes
+# Docker + Tilt step
+npx -y @tdk-landscape/tdk-cli-core up
 ```
 
 Open `http://app.tdk-example.localhost/orders-app/` and create an order, or use the routed API:

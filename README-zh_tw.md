@@ -14,10 +14,18 @@ Docker 執行容器。Tilt 監看服務，並在你寫程式時即時更新容�
 
 ```bash
 mkdir shop && cd shop
-tdk project --yes
-tdk resource orders-api --type backend --stack shop --yes
-tdk up shop
+npx -y @tdk-landscape/tdk-cli-core project --yes
+npx -y @tdk-landscape/tdk-cli-core resource orders-api --type backend --stack shop --yes
+# Docker + Tilt step (needs Docker running and Tilt installed; native Windows is inspect-only, use Ubuntu on WSL2)
+npx -y @tdk-landscape/tdk-cli-core up shop
 curl http://api.shop.localhost/api/orders-api/health
+```
+
+Preview without containers (no Docker or Tilt needed):
+
+```bash
+npx -y @tdk-landscape/tdk-cli-core --version
+npx -y @tdk-landscape/tdk-cli-core up shop --dry-run
 ```
 
 ![TDK 建立後端與前端，然後列出 stack](docs/assets/demo.svg)
@@ -44,8 +52,9 @@ curl http://api.shop.localhost/api/orders-api/health
 從 npm 安裝 CLI（需要 Node.js 22.12+），或使用預先建置的二進位檔（不需要 Node.js 或 Bun）：
 
 ```bash
+# keep it: global install
 npm install -g @tdk-landscape/tdk-cli-core
-# or install the prebuilt binary
+# or the prebuilt binary
 curl -fsSL https://tdk-landscape.github.io/install.sh | sh
 ```
 
