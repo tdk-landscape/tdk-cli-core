@@ -6,15 +6,15 @@
 - [ ] 1.3 `tdk up` fails closed when `canUp` is false, with host-specific remediation
 
 ## 2. Reference Dev Container
-- [ ] 2.1 Contributor `.devcontainer` with `tdk` on PATH and docker-outside-of-docker
-- [ ] 2.2 Opt-in template from `tdk project` (flag, default off)
+- [ ] 2.1 Contributor `.devcontainer` with `tdk` on PATH and docker-outside-of-docker (verified manually in a real Dev Container)
+- [ ] 2.2 Opt-in template from `tdk project --devcontainer` (default off)
 - [ ] 2.3 Docs: Agent Host, Codespaces, T3-style servers; WebContainers non-goal
 
 ## 3. Harness API
-- [ ] 3.1 `--json` on `up`, `down`; new `logs` command with `--json`
+- [ ] 3.1 `--json` on `up`, `down`; new `logs` command with bounded `--json` (`--service`, `--tail`, `--since`)
 - [ ] 3.2 `up --only` (spike Tilt resource selection first)
-- [ ] 3.3 Host/container ports and URL in `status --json`
-- [ ] 3.4 `tdk mcp` sharing command implementations
+- [ ] 3.3 `status --json`: per-service `url`/`containerPort`/nullable `hostPort`, plus stack-level port list
+- [ ] 3.4 `tdk mcp` sharing command implementations; `up` starts detached, callers poll `status`
 - [ ] 3.5 Follow-up PR in tdk-skills to call the JSON/MCP contract
 
 ## 4. Verify
