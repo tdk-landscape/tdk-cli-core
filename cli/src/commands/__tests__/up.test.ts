@@ -47,6 +47,7 @@ vi.mock("../../utils/host-port-config.js", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../utils/host-port-config.js")>()),
   getHostPortPlan: vi.fn(async () => ({ ports: [] })),
 }));
+
 import { parseTiltPort, resolveTiltPort, stopTiltForUp } from "../../utils/tilt-startup.js";
 import { formatUpSuccess, nativeWindowsUpRefusal } from "../up.js";
 
