@@ -19,6 +19,14 @@ The focused [frontend provider guide](docs/frontend-framework-providers.md) has 
 
 If you pick an issue, leave a comment before starting so two people do not do the same work. For a bug report, include the output of `tdk doctor` when you can.
 
+## Sign your commits
+
+Every commit needs a [Developer Certificate of Origin](DCO) sign-off. Add it with `git commit -s`, which appends `Signed-off-by: Your Name <you@example.com>`. To fix existing commits, run `git rebase --signoff origin/main` and force-push your branch. A pull request check fails when a commit is missing the line.
+
+## Governance
+
+See [GOVERNANCE.md](GOVERNANCE.md) for how decisions are made and maintainers are added, [MAINTAINERS.md](MAINTAINERS.md) for who can merge, and [ADOPTERS.md](ADOPTERS.md) for teams using TDK.
+
 ## Be kind
 
 By taking part, you agree to follow the [Code of Conduct](CODE_OF_CONDUCT.md). Please report security problems privately using [SECURITY.md](SECURITY.md), not in a public issue.
