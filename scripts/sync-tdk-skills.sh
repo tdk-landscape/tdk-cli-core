@@ -15,7 +15,7 @@ rm -rf "$repo_root/.claude-plugin/tdk-cli"
 cp -R "$source_repo/plugins/tdk-cli/.claude-plugin" "$repo_root/.claude-plugin/tdk-cli"
 find "$repo_root/.claude/skills" -mindepth 1 -maxdepth 1 -type d -exec rm -rf {} +
 find "$repo_root/.agents/skills" -mindepth 1 -maxdepth 1 -type l -exec rm -f {} +
-for skill in "$source_repo"/plugins/tdk-cli/skills/*; do
+for skill in "$source_repo"/skills/*; do
   [[ -d "$skill" ]] || continue
   name="$(basename "$skill")"
   mkdir -p "$repo_root/.claude/skills/$name"
