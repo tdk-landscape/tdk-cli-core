@@ -1,0 +1,7 @@
+# Example only. Not a real request.
+target: https://github.com/example/awesome-dev-tools
+rationale: Their README.md lists local development CLIs under "Environments".
+url: ""
+sent: ""
+status: draft
+reason: ""

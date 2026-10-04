@@ -1,0 +1,30 @@
+# Candidate public lists to ask. See tool-allowlist-packet.md for the schema.
+# Rows are added by hand after checking list_path and the contributing guide.
+# Nothing here is sent until the packet PR merges.
+# Checked 2026-10-04. tdk-cli-core then: 15 stars, created 2026-09-19, MIT.
+targets:
+  - url: https://github.com/veggiemonk/awesome-docker
+    list_path: README.md
+    why: >-
+      "### Development Environment" section lists Lando ("spin up the services and
+      tools needed to develop their projects"). Maintained (pushed 2026-10-02).
+    channel: pr
+    notes: >-
+      .github/CONTRIBUTING.md applies a "for Docker" test and requires activity in
+      the last 2 years. Borderline: TDK's job is running local Docker containers,
+      but Tilt and Traefik are part of the stack. The PR description must make the
+      Docker connection explicit. Reviewer may reject; accept that.
+  - url: https://github.com/agarrharr/awesome-cli-apps
+    list_path: readme.md
+    why: >-
+      "### Docker" section lists lazydocker ("Simple docker/docker-compose
+      interface."). Maintained (pushed 2026-10-04).
+    channel: pr
+    notes: >-
+      BLOCKED. contributing.md requires at least 3 months of age and 20 GitHub
+      stars; tdk-cli-core is created 2026-09-19 with 15 stars. Earliest 2026-12-19,
+      and only if stars >= 20. It also says AI-generated PRs are not welcome and
+      wants one PR per app with human reasoning, so a human writes it.
+# Rejected after checking:
+# - abhishek-ch/awesome-k8s-resources: lists Tilt, but last push 2020-09-13 (stale).
+# - vilaca/awesome-k8s-tools: ranked automatically by stars, no manual submissions.
