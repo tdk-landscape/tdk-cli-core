@@ -34,12 +34,18 @@ jobs:
         run: |
           git fetch origin journey-map || true
           if git cat-file -e origin/journey-map:docs/journey/map.svg 2>/dev/null \
-            && git diff --quiet origin/journey-map -- docs/journey/map.svg; then
+            && git show origin/journey-map:docs/journey/map.svg | cmp -s - docs/journey/map.svg; then
             echo "Map unchanged."
           else
+            cp docs/journey/map.svg "$RUNNER_TEMP/map.svg"
             git config user.name "github-actions[bot]"
             git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
-            git checkout -B journey-map
+            # The branch holds only the SVG (no history of main), so it never goes stale or drifts from main.
+            git checkout --orphan journey-map
+            git rm -rf -q --cached .
+            git clean -fdxq
+            mkdir -p docs/journey
+            cp "$RUNNER_TEMP/map.svg" docs/journey/map.svg
             git add docs/journey/map.svg
             git commit -m "chore: refresh journey map"
             git push --force origin journey-map
