@@ -1,8 +1,15 @@
+import { writeSync } from "node:fs";
 import { connect } from "node:net";
 import { join } from "node:path";
 import chalk from "chalk";
 import { Command } from "commander";
 import { ensureProjectRuntimeAssets } from "../generator/template-engine.js";
+import {
+  DEVCONTAINER_DOCKER_FIX,
+  detectHost,
+  isContainerHost,
+  WEBCONTAINER_UP_MESSAGE,
+} from "../utils/agent-host.js";
 import { handleDryRun } from "../utils/command-helpers.js";
 import { completeEnvFile } from "../utils/env-validator.js";
 import {
@@ -55,6 +62,23 @@ export function nativeWindowsUpRefusal(
   return "Landscape startup needs Ubuntu on WSL2. Native Windows is inspect-only.";
 }
 
+/** Why `tdk up` cannot work on this host, or null when it may proceed. Docker reachability is only probed in container hosts. */
+export async function hostUpRefusal(
+  host = detectHost(),
+  dockerReachable: () => Promise<boolean> = defaultDockerReachable,
+): Promise<string | null> {
+  if (host.kind === "webcontainer") return WEBCONTAINER_UP_MESSAGE;
+  if (isContainerHost(host.kind) && !(await dockerReachable())) return DEVCONTAINER_DOCKER_FIX;
+  return null;
+}
+
+async function defaultDockerReachable(): Promise<boolean> {
+  const { execFile } = await import("node:child_process");
+  return new Promise((resolve) => {
+    execFile("docker", ["ps"], { timeout: 10_000 }, (error) => resolve(!error));
+  });
+}
+
 function waitForTiltUi(port: number, timeoutMs = 30_000): Promise<boolean> {
   return new Promise((resolve) => {
     const deadline = Date.now() + timeoutMs;
@@ -75,6 +99,8 @@ function waitForTiltUi(port: number, timeoutMs = 30_000): Promise<boolean> {
   });
 }
 
+let emitUpJson: ((payload: Record<string, unknown>) => void) | undefined;
+
 export const upCommand = new Command("up")
   .description("Start all services (optionally filtered by stack)")
   .alias("deploy")
@@ -83,7 +109,37 @@ export const upCommand = new Command("up")
   .option("-q, --quiet", "Suppress non-essential output", false)
   .option("--dry-run", "Show what would be started without starting", false)
   .option("-f, --force", "Kill existing Tilt process before starting", false)
+  .option(
+    "--json",
+    "Print one JSON object on stdout when the stack is ready or the command fails; implies --quiet",
+    false,
+  )
   .action(async (stackName, options) => {
+    if (options.json) {
+      options.quiet = true;
+      let emitted = false;
+      emitUpJson = (payload) => {
+        if (emitted) return;
+        emitted = true;
+        writeSync(1, `${JSON.stringify({ schemaVersion: 1, ...payload })}\n`);
+      };
+      process.once("exit", (code) => {
+        if (!emitted)
+          emitUpJson?.({
+            data: { ok: code === 0 },
+            errors:
+              code === 0 ? [] : [{ code: "UP_FAILED", message: `tdk up exited with code ${code}` }],
+          });
+      });
+    }
+    const hostRefusal = options.dryRun ? null : await hostUpRefusal();
+    if (hostRefusal) {
+      emitUpJson?.({
+        data: { ok: false },
+        errors: [{ code: "HOST_UNSUPPORTED", message: hostRefusal }],
+      });
+      showErrorAndExit(hostRefusal);
+    }
     const platformRefusal = nativeWindowsUpRefusal(
       process.platform,
       process.env.TDK_ALLOW_NATIVE_WINDOWS,
@@ -210,6 +266,19 @@ export const upCommand = new Command("up")
           chalk.gray("Override with TDK_HTTP_PORT, TDK_HTTPS_PORT, or TDK_POSTGRES_PORT."),
         );
       }
+      if (options.json && options.dryRun) {
+        emitUpJson?.({
+          data: {
+            ok: true,
+            dryRun: true,
+            stack: stackName ?? null,
+            services: serviceNames,
+            command: dryRunCommand,
+          },
+          errors: [],
+        });
+        return;
+      }
       if (handleDryRun(options, "not starting services", dryRunCommand)) {
         return;
       }
@@ -269,6 +338,17 @@ export const upCommand = new Command("up")
       let printedSuccess = false;
       const successOutput = (async () => {
         const uiReady = await waitForTiltUi(port);
+        if (uiReady && options.json && smokePlans.length === 0) {
+          emitUpJson?.({
+            data: {
+              ok: true,
+              stack: stackName ?? null,
+              services: serviceNames,
+              tiltUrl: `http://localhost:${port}`,
+            },
+            errors: [],
+          });
+        }
         if (uiReady && !options.quiet) {
           for (const line of formatUpSuccess(port)) console.log(chalk.blue(line));
           printedSuccess = true;
@@ -290,6 +370,17 @@ export const upCommand = new Command("up")
             }
           }
           if (smokeFailed) stopTiltOnPort(port);
+          else if (options.json) {
+            emitUpJson?.({
+              data: {
+                ok: true,
+                stack: stackName ?? null,
+                services: serviceNames,
+                tiltUrl: `http://localhost:${port}`,
+              },
+              errors: [],
+            });
+          }
         }
       })();
       const result = await tiltRun;
