@@ -1,5 +1,7 @@
 # TDK CLI — start services on your laptop
 
+English | [简体中文](README-zh_cn.md) | [繁體中文](README-zh_tw.md) | [日本語](README-ja.md)
+
 TDK CLI starts your services on your laptop. It is not a deploy and not a Compose file: define each service in `service.json`, then run `tdk up`. No Kubernetes is needed on the machine.
 
 Stability: 1.x local dev. Generated files are a contract; verify with `tdk config verify`. Core CLI is MIT and needs no key. Premium is optional.
