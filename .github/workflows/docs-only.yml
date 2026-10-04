@@ -19,7 +19,7 @@ on:
         description: "'true' when every changed file is documentation or under examples/byo/"
         value: ${{ jobs.detect.outputs.examples_only }}
       wsl2_irrelevant:
-        description: "'true' when every changed file is docs, a BYO example, or TUI-only code that cannot affect the WSL2 smoke"
+        description: "'true' when every changed file is docs, a BYO example, a test, build output, or TUI-only code that cannot affect the WSL2 smoke"
         value: ${{ jobs.detect.outputs.wsl2_irrelevant }}
 
 permissions:
@@ -72,8 +72,9 @@ jobs:
               - '!examples/byo/**'
 
       # `code` is true when any changed file could affect the WSL2 smoke (Docker Engine + Tilt + `tdk up` inside WSL2).
-      # Everything outside docs, BYO examples and the TUI screen (`tdk ui`, which the smoke never opens) counts as
-      # relevant, so a new directory fails closed and still runs the smoke.
+      # Everything outside docs, BYO examples, tests, committed build output and the TUI screen (`tdk ui`, which the
+      # smoke never opens) counts as relevant, so a new directory fails closed and still runs the smoke. The smoke
+      # builds the CLI from source, so `cli/dist` alone cannot change its result.
       - uses: dorny/paths-filter@v4
         id: wsl2
         with:
@@ -89,3 +90,7 @@ jobs:
               - '!cli/src/commands/ui.tsx'
               - '!cli/src/commands/__tests__/ui-*'
               - '!cli/dist/commands/ui.*'
+              - '!**/__tests__/**'
+              - '!**/*.test.ts'
+              - '!**/*.test.tsx'
+              - '!cli/dist/**'

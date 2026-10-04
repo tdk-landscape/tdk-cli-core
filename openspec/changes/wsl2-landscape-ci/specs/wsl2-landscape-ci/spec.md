@@ -21,6 +21,11 @@ The existing `.github/workflows/wsl2-smoke.yml` SHALL run `scripts/wsl2-smoke.sh
 - **WHEN** a commit is pushed to the default branch
 - **THEN** the existing WSL2 workflow runs and produces a check result for that commit
 
+#### Scenario: Pull request cannot affect the WSL2 path
+- **WHEN** a pull request is a draft, or changes only documentation, bring-your-own examples, tests, committed build output (`cli/dist`), or the TUI screen
+- **THEN** the WSL2 job is skipped, which satisfies the required check, because Windows runner minutes are limited
+- **AND** the job runs when the pull request leaves draft, and on every push to the default branch regardless of paths
+
 #### Scenario: Unrelated default-branch change is pushed
 - **WHEN** a commit that does not change the workflow or smoke script is pushed to the default branch
 - **THEN** the WSL2 workflow still runs because the push trigger has no path filter
