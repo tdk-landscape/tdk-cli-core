@@ -3,6 +3,8 @@ name: WSL2 Ubuntu smoke (Docker Engine)
 on:
   workflow_dispatch:
   pull_request:
+    # `ready_for_review` re-runs the check for a draft that was skipped while it was a draft.
+    types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches: [main]
 
@@ -23,8 +25,10 @@ jobs:
   wsl2-smoke:
     runs-on: windows-2022
     needs: docs
-    # Skip when only docs, bring-your-own examples, or TUI-only code changed; a skipped job still satisfies required checks.
-    if: ${{ !cancelled() && needs.docs.outputs.docs_only != 'true' && needs.docs.outputs.examples_only != 'true' && needs.docs.outputs.wsl2_irrelevant != 'true' }}
+    # Windows runner minutes are the costly ones, so pull requests skip this job while they are drafts and when only
+    # docs, bring-your-own examples, tests, build output or TUI-only code changed. A skipped job still satisfies required
+    # checks. Pushes to the default branch and manual runs always run it (docs-only.yml fails closed for them).
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || !github.event.pull_request.draft) && needs.docs.outputs.docs_only != 'true' && needs.docs.outputs.examples_only != 'true' && needs.docs.outputs.wsl2_irrelevant != 'true' }}
     timeout-minutes: 30
     steps:
       - run: git config --global core.autocrlf false
