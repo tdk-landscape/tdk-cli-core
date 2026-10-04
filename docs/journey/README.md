@@ -2,6 +2,10 @@
 
 ![The TDK Journey map](https://raw.githubusercontent.com/tdk-landscape/tdk-cli-core/journey-map/docs/journey/map.svg)
 
+![The TDK Hacktoberfest map](https://raw.githubusercontent.com/tdk-landscape/tdk-cli-core/journey-map/docs/journey/hacktoberfest.svg)
+
+*The second map shows only the quests labelled [`hacktoberfest`](https://github.com/tdk-landscape/tdk-cli-core/labels/hacktoberfest), with a countdown to 31 October.*
+
 Contributing to TDK is a small adventure. Pick an island, finish quests, and rank up, Codewars style.
 
 ## How to play
@@ -35,13 +39,17 @@ Your rank is simply the hardest tier you have had merged. Merge a 7 kyu and you 
 | 🧪 Test Atoll | [#463](https://github.com/tdk-landscape/tdk-cli-core/issues/463) | Tests; the safest way to learn the code |
 | 🌋 Engine Volcano | [#464](https://github.com/tdk-landscape/tdk-cli-core/issues/464) | Starlark engine and discovery |
 | 🚢 Launch Port | [#465](https://github.com/tdk-landscape/tdk-cli-core/issues/465) | Packaging, CI, releases |
+| 🌱 Growth Bay | [#513](https://github.com/tdk-landscape/tdk-cli-core/issues/513) | Adopters, community, adoption docs |
+| 🧩 Recipe Archipelago | [#514](https://github.com/tdk-landscape/tdk-cli-core/issues/514) | Integrations, providers, bring-your-own recipes, importers |
+| ⚡ Perf Peak | [#515](https://github.com/tdk-landscape/tdk-cli-core/issues/515) | Performance and benchmarks |
+| 🤖 Agent Isle | [#516](https://github.com/tdk-landscape/tdk-cli-core/issues/516) | AI agents, MCP, AGENTS.md |
 
 ## Refreshing the map
 
 The map is generated from the issue labels (`island: ...`, with `tracking` issues skipped):
 
 ```bash
-node scripts/journey-map.mjs   # needs the gh CLI, rewrites docs/journey/map.svg (CI publishes it daily to the `journey-map` branch)
+node scripts/journey-map.mjs   # needs the gh CLI, rewrites docs/journey/map.svg and hacktoberfest.svg (CI publishes them daily to the `journey-map` branch)
 ```
 
-Maintainers: new quests only need an `island: ...` label and a `rank: ...` label to show up as a dot.
+Maintainers: new quests only need an `island: ...` label and a `rank: ...` label to show up as a dot. Put each issue on one island only. Add the `hacktoberfest` label for it to appear on the Hacktoberfest map too.

@@ -1,4 +1,4 @@
-# Refreshes docs/journey/map.svg from the `island: ...` issue labels every day.
+# Refreshes docs/journey/map.svg and hacktoberfest.svg from the `island: ...` issue labels every day.
 # Run manually from the Actions tab too.
 name: 🗺️ journey map
 
@@ -29,15 +29,19 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
       # `main` is protected (required status checks), and a bot push carries none, so the map is published to
-      # its own unprotected `journey-map` branch instead. docs/journey/README.md embeds it from there.
-      - name: Publish refreshed map to the journey-map branch
+      # its own unprotected `journey-map` branch instead. docs/journey/README.md embeds them from there.
+      - name: Publish refreshed maps to the journey-map branch
         run: |
           git fetch origin journey-map || true
-          if git cat-file -e origin/journey-map:docs/journey/map.svg 2>/dev/null \
-            && git show origin/journey-map:docs/journey/map.svg | cmp -s - docs/journey/map.svg; then
-            echo "Map unchanged."
+          same=true
+          for f in map.svg hacktoberfest.svg; do
+            git cat-file -e "origin/journey-map:docs/journey/$f" 2>/dev/null \
+              && git show "origin/journey-map:docs/journey/$f" | cmp -s - "docs/journey/$f" || same=false
+          done
+          if $same; then
+            echo "Maps unchanged."
           else
-            cp docs/journey/map.svg "$RUNNER_TEMP/map.svg"
+            cp docs/journey/map.svg docs/journey/hacktoberfest.svg "$RUNNER_TEMP/"
             git config user.name "github-actions[bot]"
             git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
             # The branch holds only the SVG (no history of main), so it never goes stale or drifts from main.
@@ -45,8 +49,8 @@ jobs:
             git rm -rf -q --cached .
             git clean -fdxq
             mkdir -p docs/journey
-            cp "$RUNNER_TEMP/map.svg" docs/journey/map.svg
-            git add docs/journey/map.svg
-            git commit -m "chore: refresh journey map"
+            cp "$RUNNER_TEMP/map.svg" "$RUNNER_TEMP/hacktoberfest.svg" docs/journey/
+            git add docs/journey/map.svg docs/journey/hacktoberfest.svg
+            git commit -m "chore: refresh journey maps"
             git push --force origin journey-map
           fi
