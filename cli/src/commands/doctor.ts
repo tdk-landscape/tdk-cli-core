@@ -30,6 +30,7 @@ import {
 import {
   checkDockerNetworkCapacity,
   checkFrontendBackendUrls,
+  checkMigrationsInApi,
   checkNatsBroker,
   checkResourcePackageJson,
   checkServiceUrlPorts,
@@ -1369,6 +1370,7 @@ export const doctorCommand = new Command("doctor")
       () => checkServiceUrlPorts(),
       () => checkFrontendBackendUrls(),
       () => checkNatsBroker(),
+      () => checkMigrationsInApi(),
       () => checkTiltInstances(),
       checkEnvironmentVariables,
       // Preflight: Verdaccio down causes ImageBuild bun install ConnectionRefused.

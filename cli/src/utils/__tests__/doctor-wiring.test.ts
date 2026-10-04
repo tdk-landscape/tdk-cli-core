@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   checkDockerNetworkCapacity,
   checkFrontendBackendUrls,
+  checkMigrationsInApi,
   checkNatsBroker,
   checkResourcePackageJson,
   checkServiceUrlPorts,
@@ -245,5 +246,86 @@ describe("checkDockerNetworkCapacity", async () => {
       });
     }) as unknown as ExecAsync;
     expect((await checkDockerNetworkCapacity(exec)).isSkipped).toBe(true);
+  });
+});
+
+describe("checkMigrationsInApi", () => {
+  const backend = { appType: "backend", port: 4000 };
+
+  it("passes when no service runs a migration from its start-up", () => {
+    resource("app", "api", backend, {
+      "package.json": JSON.stringify({
+        scripts: { start: "bun run dist/index.js", migrate: "prisma migrate deploy" },
+      }),
+      "src/index.ts": "export default {};",
+    });
+    const result = checkMigrationsInApi(root);
+    expect(result.didPass).toBe(true);
+    expect(result.isWarning).toBeUndefined();
+  });
+
+  it("warns about a migration in a start script, naming the script", () => {
+    resource("app", "api", backend, {
+      "package.json": JSON.stringify({
+        scripts: { start: "prisma migrate deploy && bun run dist/index.js" },
+      }),
+    });
+    const result = checkMigrationsInApi(root);
+    expect(result.didPass).toBe(false);
+    expect(result.isWarning).toBe(true);
+    expect(result.message).toContain('api: package.json "start" script');
+    expect(result.fix).toContain("migrator");
+  });
+
+  it("warns about a migration run from the service source, as the failing e2e did", () => {
+    resource("app", "api", backend, {
+      "package.json": "{}",
+      "src/index.ts":
+        'execFileSync("bunx", ["prisma", "migrate", "deploy"], { stdio: "inherit" });',
+    });
+    expect(checkMigrationsInApi(root).message).toContain("src/index.ts");
+  });
+
+  it("warns about a Dockerfile CMD or an entrypoint script, but not a build-time RUN", () => {
+    resource("app", "cmd", backend, {
+      "package.json": "{}",
+      Dockerfile: 'FROM oven/bun\nCMD ["sh", "-c", "drizzle-kit migrate && bun start"]\n',
+    });
+    resource(
+      "app",
+      "run",
+      { appType: "backend", port: 4001 },
+      {
+        "package.json": "{}",
+        Dockerfile: "FROM oven/bun\nRUN bunx prisma migrate deploy\n",
+      },
+    );
+    resource(
+      "app",
+      "entry",
+      { appType: "worker", port: 4002 },
+      {
+        "package.json": "{}",
+        "entrypoint.sh": "#!/bin/sh\nknex migrate:latest\nexec bun start\n",
+      },
+    );
+    const message = checkMigrationsInApi(root).message;
+    expect(message).toContain("cmd: ");
+    expect(message).toContain("entry: ");
+    expect(message).not.toContain("run: ");
+  });
+
+  it("leaves migrators, bring-your-own jobs, tests and comments alone", () => {
+    const migrate = {
+      "package.json": JSON.stringify({ scripts: { start: "prisma migrate deploy" } }),
+    };
+    resource("app", "db-migrator", { appType: "migrator", port: 7000 }, migrate);
+    resource("app", "job", { appType: "bring-your-own", port: 4003 }, migrate);
+    resource("app", "api", backend, {
+      "package.json": "{}",
+      "src/index.ts": "// run prisma migrate deploy from the migrator instead\n",
+      "src/index.test.ts": "prisma migrate deploy",
+    });
+    expect(checkMigrationsInApi(root).didPass).toBe(true);
   });
 });
