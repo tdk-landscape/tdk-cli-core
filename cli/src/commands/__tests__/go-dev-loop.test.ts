@@ -32,17 +32,33 @@ function evaluate(source: string) {
   });
 }
 
-// Opt-in Go development loop (#369): a `development` Docker target that rebuilds and restarts on `.go` edits.
+// Dockerfile text exactly as the engine generates it, written out with local() because tilt's result JSON does not carry print output.
+function generatedGoDockerfile(dev: boolean): string {
+  const dir = mkdtempSync(join(tmpdir(), "tdk-go-dockerfile-"));
+  dirs.push(dir);
+  const out = join(dir, "Dockerfile");
+  const result =
+    evaluate(`load(${JSON.stringify(languageDockerfile)}, 'generate_language_dockerfile')
+local('cat > ' + ${JSON.stringify(out)}, quiet = True, stdin = generate_language_dockerfile('services/shop/orders', 'go', 4100, ${dev ? "True" : "False"}))
+`);
+  expect(result.status, result.stderr).toBe(0);
+  return readFileSync(out, "utf-8");
+}
+
+// Opt-in Go development loop (#369): a `development` Docker target that rebuilds and restarts on source edits.
 describe.skipIf(!hasTilt)("Go development Dockerfile", { timeout: 30_000 }, () => {
-  it("adds a development target with a watcher and build caches, and leaves the default Dockerfile unchanged", () => {
+  it("adds a development target with the watcher and build caches, and leaves the default Dockerfile free of it", () => {
     const result =
       evaluate(`load(${JSON.stringify(languageDockerfile)}, 'generate_language_dockerfile')
 default = generate_language_dockerfile('services/shop/orders', 'go', 4100)
 dev = generate_language_dockerfile('services/shop/orders', 'go', 4100, True)
 if 'AS development' in default: fail('the default Go Dockerfile must not gain a development target')
-if 'air' in default: fail('the default Go Dockerfile must not mention the watcher')
+if 'air-verse' in default: fail('the default Go Dockerfile must not mention Air')
 if 'AS development' not in dev: fail('missing development target')
-if 'cosmtrek/air' not in dev and 'air-verse/air' not in dev: fail('the watcher (Air) is not installed')
+if 'tdk-go-watch' in default: fail('the default Go Dockerfile must not mention the watcher')
+if 'COPY --chmod=755 <<' not in dev or '/usr/local/bin/tdk-go-watch' not in dev: fail('the watcher script is not installed')
+if 'CMD ["tdk-go-watch"]' not in dev: fail('the development target must run the watcher')
+if 'air-verse' in dev or 'cosmtrek' in dev: fail('Air stops the app before it compiles, so the watcher replaced it')
 if '--mount=type=cache,target=/go/pkg/mod' not in dev: fail('missing Go module cache mount')
 if 'RUN go build -o /tmp/app .' not in dev: fail('the image must prime the Go build cache (a RUN, not a cache mount, so the warm cache is kept in the image the watcher runs from)')
 if 'go mod download' not in dev: fail('dependencies must be installed in their own layer so edits do not redownload them')
@@ -50,6 +66,46 @@ if 'AS production' not in dev: fail('the production target must remain available
 if 'EXPOSE 4100' not in dev: fail('port contract changed')
 `);
     expect(result.status, result.stderr).toBe(0);
+  });
+
+  it("builds into a staging binary and stops the running app only after the build succeeded", () => {
+    const dev = generatedGoDockerfile(true);
+    const build = dev.indexOf(`go build -ldflags='-s -w' -o "$next" .`);
+    const stop = dev.indexOf("    stop_app\n    mv ", build);
+    const swap = dev.indexOf('mv "$next" "$app"', build);
+    expect(build).toBeGreaterThan(-1);
+    // Stopping first is what Air does and what left the service down for the whole compile (#369 measurement).
+    expect(stop).toBeGreaterThan(build);
+    expect(swap).toBeGreaterThan(stop);
+    expect(dev).toContain("build failed; the last good build keeps running");
+    expect(dev).toContain("trap 'stop_app; exit 0' TERM INT");
+  });
+
+  it("ships a watcher script the shell accepts", () => {
+    const dev = generatedGoDockerfile(true);
+    const start = dev.indexOf("<<'TDK_GO_DEV_WATCH'");
+    expect(start).toBeGreaterThan(-1);
+    const bodyStart = dev.indexOf("\n", start) + 1;
+    const bodyEnd = dev.indexOf("\nTDK_GO_DEV_WATCH\n", bodyStart);
+    expect(bodyEnd).toBeGreaterThan(bodyStart);
+    const dir = mkdtempSync(join(tmpdir(), "tdk-go-watch-"));
+    dirs.push(dir);
+    const script = join(dir, "tdk-go-watch");
+    writeFileSync(script, `${dev.slice(bodyStart, bodyEnd)}\n`);
+    // `find -printf` needs GNU find, so the script itself only runs in the image; here it is parsed, not executed.
+    const parsed = spawnSync("sh", ["-n", script], { encoding: "utf-8" });
+    expect(parsed.status, parsed.stderr).toBe(0);
+    // `\n` must reach the shell as backslash-n inside find's -printf format, not as a real newline.
+    expect(readFileSync(script, "utf-8")).toContain("-printf '%p %T@ %s\\n'");
+  });
+
+  it("lets Go fetch the toolchain go.mod asks for, in the development and the default build stage", () => {
+    // golang:1.23 sets GOTOOLCHAIN=local, so Gin 1.12 (go 1.25) stopped with "go.mod requires go >= 1.25" (checked in the image).
+    const dev = generatedGoDockerfile(true);
+    const plain = generatedGoDockerfile(false);
+    const count = (text: string) => (text.match(/ENV GOTOOLCHAIN=auto/g) ?? []).length;
+    expect(count(plain)).toBe(1);
+    expect(count(dev)).toBe(2);
   });
 
   it("does not offer a development target for other languages", () => {

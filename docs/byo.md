@@ -101,7 +101,7 @@ The existing `Dockerfile` is kept, and the resource gets a `service.json` like t
 
 ### Limits
 
-- **No live reload.** TDK does not sync source into a bring-your-own container, and only the manifest is watched. After changing source, rebuild the image from the Tilt UI or restart `tdk up`.
+- **No live reload.** TDK does not sync source into a bring-your-own container, and only the manifest is watched. After changing source, rebuild the image from the Tilt UI or restart `tdk up`. For Go, the native provider has an opt-in loop (`dev.liveReload`, see [backend language providers](backend-language-providers.md#opt-in-live-reload)); a Go app you bring as a container, including the Gin example, does not get it.
 - **Ports.** 4000-5999 for this type, shared with backends.
 - **No generated code.** TDK will not add a health route, a `PORT` read or a Dockerfile for you.
 

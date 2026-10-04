@@ -13,6 +13,9 @@
 - Through TDK, Traefik sends `Host: api.<project>.localhost`; Gin accepted it with no host configuration (checked through a real `tdk up`).
 - TDK's native Go provider (`--language go`) scaffolds standard-library `net/http`; this example is for people who already use Gin.
   The other Go framework example is [fiber](../fiber/README.md).
+- This example is a bring-your-own container, so it has **no live reload**. To get TDK's opt-in Go reload loop (`dev.liveReload`) for a Gin app, run it
+  as a native Go service instead; the steps and what was checked are in
+  [the Go provider guide](../../../docs/backend-language-providers.md#gin-and-other-go-frameworks).
 
 ## Check it
 
