@@ -5,6 +5,7 @@ import { createMachineEnvelope } from "../utils/machine-output.js";
 import { isTiltAvailable, runTilt } from "../utils/tilt.js";
 import {
   DEFAULT_LOG_TAIL,
+  isValidPort,
   isValidSince,
   isValidTail,
   parseTiltLogLines,
@@ -47,7 +48,7 @@ export const logsCommand = new Command("logs")
       fail("USAGE", "--since must be a duration such as 30s, 5m or 1h", 2);
     }
     const portText = options.port ?? process.env.TILT_PORT ?? String(STANDARD_PORTS.tiltUi);
-    if (!/^[1-9]\d{0,4}$/.test(portText)) fail("USAGE", "--port must be a valid port number", 2);
+    if (!isValidPort(portText)) fail("USAGE", "--port must be a valid port number", 2);
     const tail = Number(options.tail);
     const services: string[] = options.service ?? [];
 

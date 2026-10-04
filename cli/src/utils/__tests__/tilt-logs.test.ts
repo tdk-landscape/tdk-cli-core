@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isValidSince, isValidTail, parseTiltLogLines } from "../tilt-logs.js";
+import { isValidPort, isValidSince, isValidTail, parseTiltLogLines } from "../tilt-logs.js";
 
 const line = (message: string, extra: Record<string, unknown> = {}) =>
   JSON.stringify({
@@ -33,6 +33,16 @@ describe("option validation", () => {
   it("accepts Go-style durations only", () => {
     for (const ok of ["30s", "5m", "1h", "1h30m", "250ms"]) expect(isValidSince(ok)).toBe(true);
     for (const bad of ["", "5", "m", "5 minutes", "-1s"]) expect(isValidSince(bad)).toBe(false);
+  });
+  it("rejects durations beyond Go's int64 range", () => {
+    expect(isValidSince("999999999999999999999h")).toBe(false);
+    expect(isValidSince("2562047h")).toBe(true);
+    expect(isValidSince("2562048h")).toBe(false);
+  });
+  it("accepts ports 1-65535 only", () => {
+    for (const ok of ["1", "10350", "65535"]) expect(isValidPort(ok)).toBe(true);
+    for (const bad of ["0", "65536", "99999", "100000", "abc", ""])
+      expect(isValidPort(bad)).toBe(false);
   });
   it("accepts positive integer tails only", () => {
     expect(isValidTail("200")).toBe(true);

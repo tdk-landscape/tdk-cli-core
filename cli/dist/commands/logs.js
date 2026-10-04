@@ -3,7 +3,7 @@ import { STANDARD_PORTS } from "../utils/constants.js";
 import { runCommand, showErrorAndExit } from "../utils/errors.js";
 import { createMachineEnvelope } from "../utils/machine-output.js";
 import { isTiltAvailable, runTilt } from "../utils/tilt.js";
-import { DEFAULT_LOG_TAIL, isValidSince, isValidTail, parseTiltLogLines, } from "../utils/tilt-logs.js";
+import { DEFAULT_LOG_TAIL, isValidPort, isValidSince, isValidTail, parseTiltLogLines, } from "../utils/tilt-logs.js";
 /** Resource names Tilt knows about, or null when they cannot be listed (the logs call then reports the real error). */
 async function tiltResourceNames(port) {
     try {
@@ -42,7 +42,7 @@ export const logsCommand = new Command("logs")
         fail("USAGE", "--since must be a duration such as 30s, 5m or 1h", 2);
     }
     const portText = options.port ?? process.env.TILT_PORT ?? String(STANDARD_PORTS.tiltUi);
-    if (!/^[1-9]\d{0,4}$/.test(portText))
+    if (!isValidPort(portText))
         fail("USAGE", "--port must be a valid port number", 2);
     const tail = Number(options.tail);
     const services = options.service ?? [];
