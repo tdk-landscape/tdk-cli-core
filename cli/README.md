@@ -295,7 +295,10 @@ tdk resource --help
 tdk stack --help
 tdk up --help
 tdk eject --help
+tdk import --help
 ```
+
+To bring an existing repo in (Procfile, Compose, Dockerfile, `package.json`), `tdk import` runs [tdk-import](https://github.com/tdk-landscape/tdk-import) (it needs `npx`). Flags such as `--dry-run`, `--yes`, `--force` and `--only` go straight to it.
 
 ---
 
