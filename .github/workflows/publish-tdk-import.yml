@@ -55,7 +55,7 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           DRY_RUN: ${{ inputs.dry_run }}
-        run: |
+        run: | # zizmor: ignore[use-trusted-publishing] a new package has no trusted publisher to configure yet; switch after the first publish
           NAME=$(node -p "require('./package.json').name")
           VERSION=$(node -p "require('./package.json').version")
           if npm view "$NAME@$VERSION" version >/dev/null 2>&1; then
