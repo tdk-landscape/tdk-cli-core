@@ -1,5 +1,8 @@
 blank_issues_enabled: true
 contact_links:
+  - name: Quick question or idea
+    url: https://github.com/tdk-landscape/tdk-cli-core/discussions
+    about: Not sure it deserves an issue? Ask in Discussions. We aim to reply within one working day.
   - name: Request a Premium license (form)
     url: https://tdk-landscape.github.io/tdk-website/#waitlist
     about: Private request form on the TDK website
