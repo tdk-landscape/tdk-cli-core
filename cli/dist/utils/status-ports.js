@@ -17,9 +17,11 @@ export function buildStackPorts(plan, tiltPort) {
     if (plan) {
         ports.push({ name: "ingress-http", hostPort: plan.ingressHttp, purpose: "Traefik HTTP ingress" }, { name: "ingress-https", hostPort: plan.ingressHttps, purpose: "Traefik HTTPS ingress" });
     }
+    // `tdk up` may move Tilt off 10350 and records that only in its own process, so this is the default or TILT_PORT.
+    const validTiltPort = tiltPort !== undefined && Number.isInteger(tiltPort) && tiltPort > 0;
     ports.push({
         name: "tilt-ui",
-        hostPort: tiltPort ?? STANDARD_PORTS.tiltUi,
+        hostPort: validTiltPort ? tiltPort : STANDARD_PORTS.tiltUi,
         purpose: "Tilt UI",
     });
     if (plan) {
