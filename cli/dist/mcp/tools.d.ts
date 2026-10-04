@@ -8,6 +8,11 @@ export interface TdkRun {
     stdout: string;
     stderr: string;
 }
+/**
+ * How to run this CLI again: `node <script>` / `bun <script>` when started from a script, or the executable alone when it is
+ * a `bun build --compile` binary, whose argv[1] is a virtual path that exists only inside the binary.
+ */
+export declare function cliInvocation(execPath?: string, script?: string | undefined, fileExists?: (path: string) => boolean): string[];
 /** Runs this same CLI (`tdk <args>`) so every tool behaves exactly like its command. */
 export declare const runTdkCli: RunTdk;
 /** Turn a command's `--json` stdout into a tool result. A parseable envelope with errors, or `ok: false`, is an error result. */

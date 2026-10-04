@@ -1,13 +1,24 @@
 import { spawn } from "node:child_process";
-import { closeSync, openSync, readFileSync } from "node:fs";
+import { closeSync, existsSync, openSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 /** A service or stack name. A leading "-" is rejected so a value can never be read as a flag. */
 const NAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const SINCE = /^(\d+(\.\d+)?(ns|us|µs|ms|s|m|h))+$/;
+/**
+ * How to run this CLI again: `node <script>` / `bun <script>` when started from a script, or the executable alone when it is
+ * a `bun build --compile` binary, whose argv[1] is a virtual path that exists only inside the binary.
+ */
+export function cliInvocation(execPath = process.execPath, script = process.argv[1], fileExists = existsSync) {
+    if (!script || script.startsWith("/$bunfs/") || script.includes("~BUN") || !fileExists(script)) {
+        return [execPath];
+    }
+    return [execPath, script];
+}
 /** Runs this same CLI (`tdk <args>`) so every tool behaves exactly like its command. */
 export const runTdkCli = (args, options = {}) => new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [process.argv[1], ...args], {
+    const [command, ...prefix] = cliInvocation();
+    const child = spawn(command, [...prefix, ...args], {
         stdio: ["ignore", "pipe", "pipe"],
         env: { ...process.env, NO_COLOR: "1" },
     });
@@ -85,7 +96,8 @@ export function toToolResult(run) {
 export const defaultUpDeps = {
     spawnUp(args, logFile) {
         const fd = openSync(logFile, "a");
-        const child = spawn(process.execPath, [process.argv[1], ...args], {
+        const [command, ...prefix] = cliInvocation();
+        const child = spawn(command, [...prefix, ...args], {
             detached: true,
             stdio: ["ignore", fd, fd],
             env: { ...process.env, NO_COLOR: "1" },

@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   buildLogsArgs,
   buildUpArgs,
+  cliInvocation,
   createTdkTools,
   startUp,
   toToolResult,
@@ -41,6 +42,26 @@ describe("argument building", () => {
     for (const bad of [{ tail: 0 }, { tail: 1.5 }, { since: "5" }, { services: ["-x"] }]) {
       expect(() => buildLogsArgs(bad)).toThrow();
     }
+  });
+});
+
+describe("cliInvocation", () => {
+  it("re-runs a script with its interpreter", () => {
+    expect(cliInvocation("/usr/bin/node", "/opt/tdk/bin/tdk.js", () => true)).toEqual([
+      "/usr/bin/node",
+      "/opt/tdk/bin/tdk.js",
+    ]);
+  });
+  it("runs a compiled binary alone, because its argv[1] is a virtual path", () => {
+    expect(cliInvocation("/usr/local/bin/tdk", "/$bunfs/root/tdk", () => false)).toEqual([
+      "/usr/local/bin/tdk",
+    ]);
+    expect(cliInvocation("C:\\tdk.exe", "B:\\~BUN\\root\\tdk.exe", () => false)).toEqual([
+      "C:\\tdk.exe",
+    ]);
+  });
+  it("falls back to the executable when there is no script", () => {
+    expect(cliInvocation("/usr/local/bin/tdk", "")).toEqual(["/usr/local/bin/tdk"]);
   });
 });
 

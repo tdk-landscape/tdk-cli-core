@@ -1,5 +1,5 @@
 import { type ChildProcess, spawn } from "node:child_process";
-import { closeSync, openSync, readFileSync } from "node:fs";
+import { closeSync, existsSync, openSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { McpTool, McpToolResult } from "./server.js";
@@ -16,10 +16,26 @@ export interface TdkRun {
   stderr: string;
 }
 
+/**
+ * How to run this CLI again: `node <script>` / `bun <script>` when started from a script, or the executable alone when it is
+ * a `bun build --compile` binary, whose argv[1] is a virtual path that exists only inside the binary.
+ */
+export function cliInvocation(
+  execPath: string = process.execPath,
+  script: string | undefined = process.argv[1],
+  fileExists: (path: string) => boolean = existsSync,
+): string[] {
+  if (!script || script.startsWith("/$bunfs/") || script.includes("~BUN") || !fileExists(script)) {
+    return [execPath];
+  }
+  return [execPath, script];
+}
+
 /** Runs this same CLI (`tdk <args>`) so every tool behaves exactly like its command. */
 export const runTdkCli: RunTdk = (args, options = {}) =>
   new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [process.argv[1] as string, ...args], {
+    const [command, ...prefix] = cliInvocation();
+    const child = spawn(command as string, [...prefix, ...args], {
       stdio: ["ignore", "pipe", "pipe"],
       env: { ...process.env, NO_COLOR: "1" },
     });
@@ -109,7 +125,8 @@ export interface UpDeps {
 export const defaultUpDeps: UpDeps = {
   spawnUp(args, logFile) {
     const fd = openSync(logFile, "a");
-    const child = spawn(process.execPath, [process.argv[1] as string, ...args], {
+    const [command, ...prefix] = cliInvocation();
+    const child = spawn(command as string, [...prefix, ...args], {
       detached: true,
       stdio: ["ignore", fd, fd],
       env: { ...process.env, NO_COLOR: "1" },
