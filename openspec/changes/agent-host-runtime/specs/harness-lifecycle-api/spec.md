@@ -21,12 +21,20 @@
 - **WHEN** `tdk logs --json --service api --tail 100` runs
 - **THEN** one object with at most 100 lines for `api` is printed and the command exits
 
-### Requirement: Selective start semantics follow the spike
-`tdk up <stack> --only <service...>` SHALL start the named services. Whether declared dependencies start with them SHALL be decided by the Tilt-resource-selection spike (design.md, open questions) and recorded here before implementation; no dependency behavior is required until `service.json` has a dependency field to read. Unknown names SHALL fail without starting anything and list valid names.
+### Requirement: Selective start
+`tdk up [stack] --only <service...>` SHALL start the named services, the services they list in `dependsOn` (transitively), and the shared infrastructure the Tiltfile always enables, and nothing else. Unknown names SHALL fail with `UNKNOWN_SERVICE` and exit 2 before anything starts, listing the valid names, because the Tiltfile enables the whole stack for an unknown focus name. When a Tilt appears to be running already, `--only` SHALL fail with `TILT_ALREADY_RUNNING` unless `--force` is given. With `--json`, readiness SHALL cover only the enabled resources, and the success object SHALL include `requested` and `dependencies`. See `spike-up-only.md`.
+
+#### Scenario: Service with a dependency
+- **WHEN** `--only storefront-web` is given and it depends on `catalog-api`
+- **THEN** both start, `dependencies` is `["catalog-api"]`, and no other service starts
 
 #### Scenario: Unknown service name
-- **WHEN** `--only` names a service not in the stack
-- **THEN** the command exits non-zero without starting anything and lists valid names
+- **WHEN** `--only` names a service not in the project
+- **THEN** the command exits 2 without starting anything and lists valid names
+
+#### Scenario: Partial start reports ready
+- **WHEN** a `--only` start has finished building and running its resources
+- **THEN** `up --json` reports `ok: true` even though other resources are disabled
 
 ### Requirement: Status separates ingress, service and stack ports
 `tdk status --json` SHALL report, per service: `url` (the ingress address, for example `http://api.shop.localhost/...`), `containerPort` (the in-container listen port), and `hostPort` (a direct host mapping, or `null` when the service is only reachable through the ingress). It SHALL also report a separate stack-level list of ports (ingress HTTP and HTTPS, Tilt UI, published datastores).

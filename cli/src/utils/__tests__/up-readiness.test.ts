@@ -37,6 +37,24 @@ describe("waitForTiltResourcesReady", () => {
     });
     expect(result.ready).toBe(true);
   });
+  it("ignores resources Tilt reports as disabled, as in a partial or phased up", async () => {
+    const disabled = {
+      metadata: { name: "web-run-only" },
+      status: { updateStatus: "none", runtimeStatus: "none", disableStatus: { state: "Disabled" } },
+    };
+    const result = await waitForTiltResourcesReady(1, {
+      ...opts,
+      fetchJson: async () => json(item("api", "ok", "ok"), disabled),
+    });
+    expect(result.ready).toBe(true);
+  });
+  it("treats a serve-only resource (update not_applicable) as built", async () => {
+    const result = await waitForTiltResourcesReady(1, {
+      ...opts,
+      fetchJson: async () => json(item("api", "not_applicable", "ok")),
+    });
+    expect(result.ready).toBe(true);
+  });
   it("times out while resources stay pending", async () => {
     const result = await waitForTiltResourcesReady(1, {
       ...opts,

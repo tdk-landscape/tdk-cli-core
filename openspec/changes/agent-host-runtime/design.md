@@ -29,4 +29,4 @@ Existing: `tdk doctor --json`, `tdk status --json`, `tdk resources --json`, WSL2
 
 ## Open questions
 
-- Does `up --only` need Tilt `--resource` semantics or a generated subset? That is an engine change, not just a flag. `service.json` has no dependency field today, so dependency start-up stays unspecified until the spike answers this.
+- Resolved by the spike (`spike-up-only.md`): `up --only` reuses the Tiltfile focus filter, which already follows `dependsOn`; the CLI validates names and refuses to start a second Tilt.

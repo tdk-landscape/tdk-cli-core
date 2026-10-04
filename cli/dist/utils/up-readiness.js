@@ -6,6 +6,15 @@ function tiltGetUiResources(port) {
         execFile(findOnPath("tilt") ?? "tilt", ["get", "uiresources", "-o", "json", "--port", String(port)], { timeout: 15_000, maxBuffer: 16 * 1024 * 1024 }, (error, stdout) => resolve(error ? null : stdout));
     });
 }
+export function onlyEnabledResources(jsonText) {
+    const parsed = JSON.parse(jsonText);
+    const items = (parsed.items ?? [])
+        .filter((item) => item.status?.disableStatus?.state !== "Disabled")
+        .map((item) => item.status?.updateStatus === "not_applicable"
+        ? { ...item, status: { ...item.status, updateStatus: "ok" } }
+        : item);
+    return JSON.stringify({ items });
+}
 /**
  * Waits until every non-deferred Tilt resource is built and running. Resolves not-ready as soon as the rest has settled
  * with an errored resource, or at the deadline. Sablier-deferred resources are excluded: they stay idle by design.
@@ -21,7 +30,7 @@ export async function waitForTiltResourcesReady(port, options = {}) {
         const text = await fetchJson(port);
         if (text) {
             try {
-                const parsed = parseTiltResourceFailures(text, deferred);
+                const parsed = parseTiltResourceFailures(onlyEnabledResources(text), deferred);
                 last = {
                     ready: parsed.failures.length === 0 && parsed.pendingCount === 0 && parsed.okCount > 0,
                     failures: parsed.failures.map((failure) => ({

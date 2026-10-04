@@ -40,6 +40,7 @@ import {
 import { buildSmokePlans, formatSmokeFailure, runSmokePlans } from "../utils/smoke.js";
 import { buildTiltUpArgs, runTilt } from "../utils/tilt.js";
 import { stopTiltOnPort } from "../utils/tilt-process.js";
+import { findUnknownServices, resolveOnlySelection } from "../utils/up-only.js";
 import { waitForTiltResourcesReady } from "../utils/up-readiness.js";
 import { enableDiscoveredStacks } from "./project.js";
 
@@ -108,6 +109,10 @@ export const upCommand = new Command("up")
   .option("-q, --quiet", "Suppress non-essential output", false)
   .option("--dry-run", "Show what would be started without starting", false)
   .option("-f, --force", "Kill existing Tilt process before starting", false)
+  .option(
+    "--only <services...>",
+    "Start only these services plus the services they depend on (and shared infrastructure)",
+  )
   .option(
     "--json",
     "Print one JSON object on stdout when the stack is ready or the command fails; implies --quiet",
@@ -185,6 +190,22 @@ export const upCommand = new Command("up")
         stackDescription = `all stacks (${formatCount(allStacks.length, "stack")}, ${formatCount(servicesToStart.length, "service")})`;
       }
 
+      let dependencyNames: string[] = [];
+      if (options.only) {
+        const unknown = findUnknownServices(options.only, servicesToStart);
+        if (unknown.length > 0) {
+          const message = `Unknown service ${unknown.join(", ")}. Valid names: ${servicesToStart.map((s) => s.name).join(", ")}`;
+          emit?.({ ok: false }, [{ code: "UNKNOWN_SERVICE", message }]);
+          showErrorAndExit(message, 2);
+        }
+        // Dependencies come from the whole project, not just the named stack: dependsOn may cross stacks.
+        const selection = resolveOnlySelection(options.only, discoverResources());
+        servicesToStart = selection.selected;
+        dependencyNames = selection.dependencies;
+        focusServiceNames = servicesToStart.map((s) => s.name);
+        stackDescription = `${formatCount(options.only.length, "requested service")}${dependencyNames.length > 0 ? ` plus ${dependencyNames.join(", ")}` : ""}`;
+      }
+
       if (options.verbose && !options.quiet) {
         console.log(
           chalk.gray(
@@ -238,9 +259,11 @@ export const upCommand = new Command("up")
         }
       }
 
-      const dryRunCommand = stackName
-        ? `tilt up -- --focus=${stackName} ${focusServiceNames.join(" ")}`
-        : "tilt up";
+      const dryRunCommand = options.only
+        ? `tilt up -- --focus=${options.only.join(",")} ${focusServiceNames.join(" ")}`
+        : stackName
+          ? `tilt up -- --focus=${stackName} ${focusServiceNames.join(" ")}`
+          : "tilt up";
       if (!options.quiet) {
         console.log(chalk.blue(formatHostPortPlan(hostPortPlan)));
         console.log(
@@ -253,6 +276,7 @@ export const upCommand = new Command("up")
           dryRun: true,
           stack: stackName ?? null,
           services: serviceNames,
+          ...(options.only ? { requested: options.only, dependencies: dependencyNames } : {}),
           command: dryRunCommand,
         });
         return;
@@ -271,6 +295,12 @@ export const upCommand = new Command("up")
         port = parseInt(process.env.TILT_PORT, 10);
       } else if (!options.force) {
         const availablePort = await findAvailablePort(basePort, 10);
+        if (availablePort && availablePort !== basePort && options.only) {
+          // A second Tilt on another port would run a different Tiltfile selection against the same containers.
+          const message = `Port ${basePort} is already in use, so a stack may already be running. --only cannot change a running stack's services: run \`tdk down\` first, or pass --force to replace it.`;
+          emit?.({ ok: false }, [{ code: "TILT_ALREADY_RUNNING", message }]);
+          showErrorAndExit(message);
+        }
         if (availablePort && availablePort !== basePort) {
           port = availablePort;
           if (!options.quiet) {
@@ -294,7 +324,7 @@ export const upCommand = new Command("up")
         verbose: options.verbose,
         quiet: options.quiet,
         force: options.force,
-        focusTargets: stackName ? [stackName] : undefined,
+        focusTargets: options.only ?? (stackName ? [stackName] : undefined),
       });
 
       if (!options.quiet) {
@@ -364,6 +394,7 @@ export const upCommand = new Command("up")
             ok: true,
             stack: stackName ?? null,
             services: serviceNames,
+            ...(options.only ? { requested: options.only, dependencies: dependencyNames } : {}),
             tiltUrl: `http://localhost:${port}`,
           });
         }

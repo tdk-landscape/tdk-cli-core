@@ -21,6 +21,28 @@ function tiltGetUiResources(port: number): Promise<string | null> {
 }
 
 /**
+ * Tilt lists resources outside the current focus (the other release phases, or everything but a `--only` selection) with
+ * `disableStatus.state: Disabled` and both statuses `none`, which would read as pending forever. A resource whose update
+ * status is `not_applicable` (a serve-only local resource) has nothing to build, so it counts as built.
+ */
+interface TiltItem {
+  status?: { disableStatus?: { state?: string }; updateStatus?: string; [key: string]: unknown };
+  [key: string]: unknown;
+}
+
+export function onlyEnabledResources(jsonText: string): string {
+  const parsed = JSON.parse(jsonText) as { items?: Array<TiltItem> };
+  const items = (parsed.items ?? [])
+    .filter((item) => item.status?.disableStatus?.state !== "Disabled")
+    .map((item) =>
+      item.status?.updateStatus === "not_applicable"
+        ? { ...item, status: { ...item.status, updateStatus: "ok" } }
+        : item,
+    );
+  return JSON.stringify({ items });
+}
+
+/**
  * Waits until every non-deferred Tilt resource is built and running. Resolves not-ready as soon as the rest has settled
  * with an errored resource, or at the deadline. Sablier-deferred resources are excluded: they stay idle by design.
  */
@@ -43,7 +65,7 @@ export async function waitForTiltResourcesReady(
     const text = await fetchJson(port);
     if (text) {
       try {
-        const parsed = parseTiltResourceFailures(text, deferred);
+        const parsed = parseTiltResourceFailures(onlyEnabledResources(text), deferred);
         last = {
           ready: parsed.failures.length === 0 && parsed.pendingCount === 0 && parsed.okCount > 0,
           failures: parsed.failures.map((failure) => ({

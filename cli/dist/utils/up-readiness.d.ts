@@ -7,6 +7,7 @@ export interface ReadinessResult {
     pending: number;
     timedOut: boolean;
 }
+export declare function onlyEnabledResources(jsonText: string): string;
 /**
  * Waits until every non-deferred Tilt resource is built and running. Resolves not-ready as soon as the rest has settled
  * with an errored resource, or at the deadline. Sablier-deferred resources are excluded: they stay idle by design.
