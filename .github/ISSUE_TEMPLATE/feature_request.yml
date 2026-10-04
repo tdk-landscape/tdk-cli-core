@@ -2,6 +2,11 @@ name: Feature request
 description: Suggest an idea or improvement for TDK
 labels: [enhancement]
 body:
+  - type: markdown
+    attributes:
+      value: >-
+        Thanks for taking the time to write this up. We aim to reply within one
+        working day, and a rough report is better than none.
   - type: dropdown
     id: request-scope
     attributes:
