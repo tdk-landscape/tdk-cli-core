@@ -2,6 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/@tdk-landscape/tdk-cli-core.svg?style=flat&color=blue)](https://www.npmjs.com/package/@tdk-landscape/tdk-cli-core)
 [![unpacked size](https://img.shields.io/npm/unpacked-size/@tdk-landscape/tdk-cli-core)](https://packagephobia.com/result?p=@tdk-landscape/tdk-cli-core)
+[![install size](https://packagephobia.com/badge?p=@tdk-landscape/tdk-cli-core@1.3.81)](https://packagephobia.com/result?p=@tdk-landscape/tdk-cli-core@1.3.81)
 [![CI](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/ci.yml/badge.svg)](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/ci.yml)
 [![Quickstart E2E](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/quickstart-e2e.yml/badge.svg)](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/quickstart-e2e.yml)
 [![ERP fixture scale E2E](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/erp-scale-e2e.yml/badge.svg)](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/erp-scale-e2e.yml)
