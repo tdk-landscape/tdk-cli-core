@@ -62,7 +62,8 @@ jobs:
             echo "$NAME@$VERSION is already published, skipping."
             exit 0
           fi
-          FLAGS="--access public"
+          # dist/ was built by `npm install` (prepare) above; do not run package scripts again with the token in the environment.
+          FLAGS="--access public --ignore-scripts"
           if [ "$DRY_RUN" = "true" ]; then FLAGS="$FLAGS --dry-run"; fi
           # shellcheck disable=SC2086
           npm publish $FLAGS # zizmor: ignore[use-trusted-publishing] new package: no trusted publisher exists until after the first publish
