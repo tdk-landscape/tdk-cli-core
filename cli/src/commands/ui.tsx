@@ -64,7 +64,7 @@ const HelpPanel: React.FC<HelpPanelProps> = ({ onClose }) => (
       <Text> r Refresh data</Text>
       <Text> / Search/filter</Text>
       <Text> ? Show this help</Text>
-      <Text> q/Esc Quit / Back</Text>
+      <Text> q Quit │ Esc Back</Text>
     </Box>
     <Box marginTop={1}>
       <Text color="gray" dimColor>
@@ -442,7 +442,8 @@ const TUIApp: React.FC = () => {
         setSelectedStack(null);
         return;
       }
-      exit();
+      setMessage("Press q to quit");
+      setTimeout(() => setMessage(""), 2000);
       return;
     }
 
