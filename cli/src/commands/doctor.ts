@@ -1250,6 +1250,7 @@ export const doctorCommand = new Command("doctor")
       );
     }
 
+    const host = detectHost();
     if (process.platform === "win32") {
       if (options.json) {
         let windowsPortPlan: HostPortPlan | null = null;
@@ -1272,6 +1273,7 @@ export const doctorCommand = new Command("doctor")
               Boolean(findProjectRoot()),
               [],
               windowsPortPlan,
+              { ...host, canUp: false },
             ),
           ),
         );
@@ -1281,7 +1283,6 @@ export const doctorCommand = new Command("doctor")
       return;
     }
 
-    const host = detectHost();
     if (host.kind === "webcontainer") {
       const report = createDoctorReport(
         [
