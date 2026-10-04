@@ -13,7 +13,7 @@
 ## 3. Harness API
 - [ ] 3.1 `--json` on `up`, `down` (done); new `logs` command with bounded `--json` (`--service`, `--tail`, `--since`)
 - [ ] 3.2 `up --only` (spike Tilt resource selection first)
-- [ ] 3.3 `status --json`: per-service `url`/`containerPort`/nullable `hostPort`, plus stack-level port list
+- [x] 3.3 `status --json`: per-service `url`/`containerPort`/nullable `hostPort`, plus stack-level port list
 - [ ] 3.4 `tdk mcp` sharing command implementations; `up` starts detached, callers poll `status`
 - [ ] 3.5 Follow-up PR in tdk-skills to call the JSON/MCP contract
 
