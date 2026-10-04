@@ -21,6 +21,7 @@
 ## Guides
 
 - [Pilot TDK on a real repository](adopt-tdk.md): a team lead's guide to trying TDK in an afternoon
+- [FAQ for agencies and multi-client teams](faq-teams.md): honest answers on stacks, proxies, Windows, licence and exit
 - [Bring-your-own resources](byo.md): wrap an existing service or image, one-shot jobs, `--restart`
 - [Frontend framework providers](frontend-framework-providers.md): add a Vite framework (React, Vue, Svelte, Preact, Lit, Solid, Qwik, plain TypeScript)
 - [MCP resources](mcp.md): `--type mcp` scaffolds a Model Context Protocol server
