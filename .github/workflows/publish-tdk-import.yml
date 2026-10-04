@@ -60,8 +60,9 @@ jobs:
           VERSION=$(node -p "require('./package.json').version")
           if npm view "$NAME@$VERSION" version >/dev/null 2>&1; then
             echo "$NAME@$VERSION is already published, skipping."
-          elif [ "$DRY_RUN" = "true" ]; then
-            npm publish --access public --dry-run # zizmor: ignore[use-trusted-publishing] new package: no trusted publisher exists until after the first publish
-          else
-            npm publish --access public # zizmor: ignore[use-trusted-publishing] new package: no trusted publisher exists until after the first publish
+            exit 0
           fi
+          FLAGS="--access public"
+          if [ "$DRY_RUN" = "true" ]; then FLAGS="$FLAGS --dry-run"; fi
+          # shellcheck disable=SC2086
+          npm publish $FLAGS # zizmor: ignore[use-trusted-publishing] new package: no trusted publisher exists until after the first publish
