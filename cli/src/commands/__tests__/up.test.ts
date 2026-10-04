@@ -47,6 +47,8 @@ vi.mock("../../utils/host-port-config.js", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../utils/host-port-config.js")>()),
   getHostPortPlan: vi.fn(async () => ({ ports: [] })),
 }));
+import { parseTiltPort, resolveTiltPort, stopTiltForUp } from "../../utils/tilt-startup.js";
+import { formatUpSuccess, nativeWindowsUpRefusal } from "../up.js";
 
 describe("tdk up success output", () => {
   it("prints the first-win block with exact UI and networks copy", () => {
@@ -319,5 +321,100 @@ describe("tdk up drift gate", () => {
     const exit = vi.fn() as unknown as (code: number) => never;
     enforceDriftGate("/project", {}, exit);
     expect(exit).not.toHaveBeenCalled();
+describe("Tilt startup port selection", () => {
+  it("accepts an unset port and valid boundary ports", () => {
+    expect(parseTiltPort(undefined)).toEqual({ ok: true, port: undefined });
+    expect(parseTiltPort("1")).toEqual({ ok: true, port: 1 });
+    expect(parseTiltPort("65535")).toEqual({ ok: true, port: 65535 });
+  });
+
+  it.each(["0", "65536", "abc", "10350.5", "10350abc"])(
+    "rejects invalid TILT_PORT value %s",
+    (value) => {
+      expect(parseTiltPort(value)).toEqual({
+        ok: false,
+        message: `Invalid TILT_PORT "${value}": expected an integer from 1 to 65535.`,
+      });
+    },
+  );
+
+  it("uses the configured port without probing for an alternative", async () => {
+    const findAvailablePort = vi.fn(async () => 10351);
+
+    await expect(
+      resolveTiltPort({
+        configuredPort: 10444,
+        force: false,
+        basePort: 10350,
+        findAvailablePort,
+      }),
+    ).resolves.toEqual({ port: 10444, autoSwitched: false });
+    expect(findAvailablePort).not.toHaveBeenCalled();
+  });
+
+  it("uses the next available port when no port is configured", async () => {
+    const findAvailablePort = vi.fn(async () => 10351);
+
+    await expect(
+      resolveTiltPort({
+        configuredPort: undefined,
+        force: false,
+        basePort: 10350,
+        findAvailablePort,
+      }),
+    ).resolves.toEqual({ port: 10351, autoSwitched: true });
+    expect(findAvailablePort).toHaveBeenCalledWith(10350, 10);
+  });
+
+  it("keeps the default port when force is set", async () => {
+    const findAvailablePort = vi.fn(async () => 10351);
+
+    await expect(
+      resolveTiltPort({
+        configuredPort: undefined,
+        force: true,
+        basePort: 10350,
+        findAvailablePort,
+      }),
+    ).resolves.toEqual({ port: 10350, autoSwitched: false });
+    expect(findAvailablePort).not.toHaveBeenCalled();
+  });
+});
+
+describe("Tilt force startup", () => {
+  it("stops Tilt without printing in quiet mode", async () => {
+    const stop = vi.fn();
+    const log = vi.fn();
+    const wait = vi.fn(async (_milliseconds: number) => {});
+
+    await stopTiltForUp({ force: true, quiet: true, port: 10350 }, { stop, log, wait });
+
+    expect(stop).toHaveBeenCalledWith(10350);
+    expect(log).not.toHaveBeenCalled();
+    expect(wait).toHaveBeenCalledWith(2000);
+  });
+
+  it("prints and stops Tilt when force is set without quiet", async () => {
+    const stop = vi.fn();
+    const log = vi.fn();
+    const wait = vi.fn(async (_milliseconds: number) => {});
+
+    await stopTiltForUp({ force: true, quiet: false, port: 10351 }, { stop, log, wait });
+
+    expect(stop).toHaveBeenCalledWith(10351);
+    expect(log).toHaveBeenCalledWith("Force flag set - stopping Tilt on port 10351 if running...");
+    expect(wait).toHaveBeenCalledWith(2000);
+  });
+
+  it("does not stop Tilt when force is unset", async () => {
+    const stop = vi.fn();
+    const log = vi.fn();
+    const wait = vi.fn(async (_milliseconds: number) => {});
+
+    await stopTiltForUp({ force: false, quiet: false, port: 10350 }, { stop, log, wait });
+
+    expect(stop).not.toHaveBeenCalled();
+    expect(log).not.toHaveBeenCalled();
+    expect(wait).not.toHaveBeenCalled();
   });
 });

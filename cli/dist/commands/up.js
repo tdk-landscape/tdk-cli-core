@@ -20,6 +20,7 @@ import { discoverResources, discoverResourcesStrict, discoverStacks, stackExists
 import { buildSmokePlans, formatSmokeFailure, runSmokePlans } from "../utils/smoke.js";
 import { buildTiltUpArgs, runTilt } from "../utils/tilt.js";
 import { stopTiltOnPort } from "../utils/tilt-process.js";
+import { parseTiltPort, resolveTiltPort, stopTiltForUp } from "../utils/tilt-startup.js";
 import { findUnknownServices, resolveOnlySelection } from "../utils/up-only.js";
 import { tiltGetUiResources, waitForTiltResourcesReady } from "../utils/up-readiness.js";
 import { enableDiscoveredStacks } from "./project.js";
@@ -132,6 +133,12 @@ export const upCommand = new Command("up")
     const emit = options.json ? createJsonEmitter("UP_FAILED", "tdk up") : undefined;
     if (options.json)
         options.quiet = true;
+    const portSetting = parseTiltPort(process.env.TILT_PORT);
+    if (!portSetting.ok) {
+        emit?.({ ok: false }, [{ code: "INVALID_TILT_PORT", message: portSetting.message }]);
+        showErrorAndExit(portSetting.message);
+    }
+    const configuredTiltPort = portSetting.port;
     const hostRefusal = options.dryRun ? null : await hostUpRefusal();
     if (hostRefusal) {
         emit?.({ ok: false }, [{ code: "HOST_UNSUPPORTED", message: hostRefusal }]);
@@ -278,14 +285,12 @@ export const upCommand = new Command("up")
         exportHostPortPlan(hostPortPlan);
         writeSavedHostPortPlan(projectRoot, hostPortPlan);
         const basePort = 10350;
-        let port = basePort;
         // A second Tilt would apply a different selection to the same containers, whatever port it listens on, so `--only`
         // looks for a Tilt that answers on the default port and on TILT_PORT before it chooses one. A listener that is not
         // Tilt does not count: the port is then picked below as usual.
         if (options.only) {
-            const envPort = process.env.TILT_PORT ? Number.parseInt(process.env.TILT_PORT, 10) : NaN;
             const candidatePorts = [
-                ...new Set([basePort, ...(Number.isInteger(envPort) ? [envPort] : [])]),
+                ...new Set([basePort, ...(configuredTiltPort === undefined ? [] : [configuredTiltPort])]),
             ];
             const running = [];
             for (const candidate of candidatePorts) {
@@ -300,27 +305,23 @@ export const upCommand = new Command("up")
             for (const runningPort of running)
                 stopTiltOnPort(runningPort);
         }
-        if (process.env.TILT_PORT) {
-            port = parseInt(process.env.TILT_PORT, 10);
-        }
-        else if (!options.force) {
-            const availablePort = await findAvailablePort(basePort, 10);
-            if (availablePort && availablePort !== basePort) {
-                port = availablePort;
-                if (!options.quiet) {
-                    console.log(chalk.yellow(`⚠️  Port ${basePort} is already in use`));
-                    console.log(chalk.blue(`🔄 Auto-switching to port ${port}\n`));
-                }
-            }
+        const resolution = await resolveTiltPort({
+            configuredPort: configuredTiltPort,
+            force: options.force,
+            basePort,
+            findAvailablePort,
+        });
+        const port = resolution.port;
+        if (resolution.autoSwitched && !options.quiet) {
+            console.log(chalk.yellow(`⚠️  Port ${basePort} is already in use`));
+            console.log(chalk.blue(`🔄 Auto-switching to port ${port}\n`));
         }
         process.env.TILT_PORT = port.toString();
-        if (options.force) {
-            if (!options.quiet) {
-                console.log(chalk.yellow(`Force flag set - stopping Tilt on port ${port} if running...`));
-            }
-            stopTiltOnPort(port);
-            await new Promise((resolve) => setTimeout(resolve, 2000));
-        }
+        await stopTiltForUp({ force: options.force, quiet: options.quiet, port }, {
+            stop: stopTiltOnPort,
+            log: (message) => console.log(chalk.yellow(message)),
+            wait: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
+        });
         if (!options.quiet) {
             console.log(chalk.gray("\nRunning tilt up..."));
             console.log(chalk.gray(`Using Tiltfile: .tdk/.tdk-out/Tiltfile`));
