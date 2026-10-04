@@ -1,4 +1,5 @@
 # Refreshes docs/journey/map.svg and hacktoberfest.svg from the `island: ...` issue labels every day.
+# Also adds the Hacktoberfest map to every open `hacktoberfest` issue (daily, and when the label is applied).
 # Run manually from the Actions tab too.
 name: 🗺️ journey map
 
@@ -6,6 +7,13 @@ on:
   schedule:
     - cron: "30 6 * * *"
   workflow_dispatch:
+  issues:
+    types: [labeled] # a new `hacktoberfest` issue gets the Hacktoberfest map straight away
+
+# One run at a time: the map branch is force-pushed.
+concurrency:
+  group: journey-map
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -14,10 +22,12 @@ jobs:
   map:
     name: 🗺️ Refresh map
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 5
+    # Label events run this job only for `hacktoberfest`; no event text is used in any script.
+    if: github.event_name != 'issues' || github.event.label.name == 'hacktoberfest'
     permissions:
       contents: write # push the refreshed SVG to the journey-map branch
-      issues: read
+      issues: write # add the Hacktoberfest map to open `hacktoberfest` issues
     steps:
       - uses: actions/checkout@v7
         with:
@@ -26,6 +36,10 @@ jobs:
         with:
           node-version: 22
       - run: node scripts/journey-map.mjs "$GITHUB_REPOSITORY"
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Embed the Hacktoberfest map in open hacktoberfest issues
+        run: node scripts/hacktoberfest-embed.mjs "$GITHUB_REPOSITORY"
         env:
           GH_TOKEN: ${{ github.token }}
       # `main` is protected (required status checks), and a bot push carries none, so the map is published to

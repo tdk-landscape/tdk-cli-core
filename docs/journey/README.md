@@ -52,4 +52,6 @@ The map is generated from the issue labels (`island: ...`, with `tracking` issue
 node scripts/journey-map.mjs   # needs the gh CLI, rewrites docs/journey/map.svg and hacktoberfest.svg (CI publishes them daily to the `journey-map` branch)
 ```
 
+The same workflow adds the Hacktoberfest map to every open `hacktoberfest` issue (daily, and when the label is applied) with `scripts/hacktoberfest-embed.mjs`; issues that already show it are skipped.
+
 Maintainers: new quests only need an `island: ...` label and a `rank: ...` label to show up as a dot. Put each issue on one island only. Add the `hacktoberfest` label for it to appear on the Hacktoberfest map too.
