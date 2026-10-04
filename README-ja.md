@@ -10,6 +10,10 @@ TDK CLI は、ノートPC上でサービスを起動します。デプロイツ�
 
 [ウェブサイト](https://tdk-landscape.github.io/tdk-website/) · [クイックスタート](https://tdk-landscape.github.io/tdk-website/docs/quickstart/) · [サンプル](https://tdk-landscape.github.io/tdk-website/docs/examples/) · [Awesome TDK](https://github.com/tdk-landscape/awesome-tdk-framework) · [デモ](https://tdk-landscape.github.io/tdk-demo-animation/) · [バグ報告](https://github.com/tdk-landscape/tdk-cli-core/issues)
 
+## TDK を使っているチーム
+
+まだ掲載されているチームはありません。最初の一組になりませんか。[TDK を使っていることを知らせる](https://github.com/tdk-landscape/tdk-cli-core/issues/new?template=we-use-tdk.yml)か、[ADOPTERS.md](ADOPTERS.md) に行を追加してください。
+
 ## クイックスタート
 
 ```bash

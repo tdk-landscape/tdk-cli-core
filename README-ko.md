@@ -10,6 +10,10 @@ TDK CLI는 노트북에서 서비스를 시작합니다. 배포 도구도, Compo
 
 [웹사이트](https://tdk-landscape.github.io/tdk-website/) · [빠른 시작](https://tdk-landscape.github.io/tdk-website/docs/quickstart/) · [예제](https://tdk-landscape.github.io/tdk-website/docs/examples/) · [Awesome TDK](https://github.com/tdk-landscape/awesome-tdk-framework) · [데모](https://tdk-landscape.github.io/tdk-demo-animation/) · [버그 신고](https://github.com/tdk-landscape/tdk-cli-core/issues)
 
+## TDK를 사용하는 팀
+
+아직 등록된 팀이 없습니다. 첫 번째가 되어 주세요. [TDK를 사용한다고 알려 주세요](https://github.com/tdk-landscape/tdk-cli-core/issues/new?template=we-use-tdk.yml) 또는 [ADOPTERS.md](ADOPTERS.md)에 행을 추가하세요.
+
 ## 빠른 시작
 
 ```bash
