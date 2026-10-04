@@ -161,6 +161,15 @@ describe("Go development wiring", () => {
     );
   });
 
+  it("prebuilds the same target for a deferStart service as docker_build does", () => {
+    // A deferStart Go service with liveReload would otherwise be prebuilt as `production` under the tag its container runs.
+    expect(registration).toContain(
+      "target = 'development' if Docker.go_live_reload(config.get('manifest', {})) else 'production'",
+    );
+    expect(registration).toContain('docker build --network host --target " + target');
+    expect(registration).not.toContain("--target production");
+  });
+
   it("syncs the Go sources and falls back to a rebuild for go.mod, go.sum and the Dockerfile", () => {
     expect(registration).toContain("fall_back_on(");
     expect(registration).toContain("'go.mod'");

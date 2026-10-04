@@ -309,20 +309,23 @@ def _register_deferred_image_prebuild(config, auto_init_apps):
     live on tdk-erp-system, task 7.2), so a fresh project's first request would
     find no image and the wake gateway would fall back to `tilt trigger`, which
     queues behind every other build. This local_resource builds the same image
-    (same Dockerfile, `production` target, host network, and an allowlist
+    (same Dockerfile and target as docker_build: `production`, or `development` for Go with `dev.liveReload`; host network, and an allowlist
     .dockerignore equivalent to docker_build's only=/ignore=) under the tag the
     compose service declares, so the gateway can start it directly.
     """
     project_root = config.get('project_root', '')
     dockerfile = _resolve_dockerfile(config)
     prebuild_dockerfile = dockerfile + '.prebuild'
+    # The same target _register_docker_build picks: a Go service with `dev.liveReload` runs the development image (the watcher), so
+    # prebuilding `production` under the same tag would start the compiled binary with no reload.
+    target = 'development' if Docker.go_live_reload(config.get('manifest', {})) else 'production'
     ignore_content = TypescriptBuilders.prebuild_dockerignore(dockerfile, project_root, config['res_path'])
     # BuildKit reads `<dockerfile>.dockerignore` for `-f <dockerfile>`; the
     # original Dockerfile already has a (denylist) one, hence the copy.
     cmd = (
         "cp '" + dockerfile + "' '" + prebuild_dockerfile + "'"
         + " && printf '%s' '" + ignore_content + "' > '" + prebuild_dockerfile + ".dockerignore'"
-        + " && docker build --network host --target production"
+        + " && docker build --network host --target " + target
         + " -f '" + prebuild_dockerfile + "'"
         + " -t '" + _app_image_name(config['resource_name'], config['res_name']) + "'"
         + " '" + (project_root or '.') + "'"

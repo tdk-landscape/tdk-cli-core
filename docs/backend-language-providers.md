@@ -72,8 +72,8 @@ Without the switch nothing changes, and `liveReload` on a non-Go service logs a 
 - **Watcher limits.** The loop is synchronous: a file saved while `go build` is running is not in that binary, and is picked up on the
   next pass. If the app exits on its own (a panic at startup, say), the watcher does not restart it until the next file change; the log
   says `waiting for a change to rebuild`, which is easy to mistake for a hung reload.
-- **Not covered.** One module per service folder. A `go.work` workspace, or a `replace` to a directory outside the service folder, was not
-  tried and is not synced.
+- **One module per service folder.** Only the service folder is copied into the image, so a `replace` to a directory outside it fails the
+  image build at `go mod download` (checked, in the `development` target; the default image has the same limit). A `go.work` workspace was not tried.
 
 ### Gin and other Go frameworks
 
@@ -85,7 +85,11 @@ Checked with a real `tdk up`: the Gin example (Gin 1.12.0, `go 1.25.0`, plus a `
 service with `liveReload`, through `scripts/e2e/go-dev-loop.sh` with `GO_SERVICE_DIR` pointing at it. Edit-to-ready over 8 edits was
 2.25 s / 3.14 s / 5.82 s (min / median / max, load average about 7, a larger binary than the scaffold), the app was unreachable for at most
 0.20 s, a broken edit put the compiler error in the Tilt log while the last good build kept serving, and a `go.mod` change rebuilt the image and
-recreated the container in 124 s, including the Go 1.25 toolchain download. First start was 146 s. Fiber, Echo and chi were not run.
+recreated the container in 124 s, including the Go 1.25 toolchain download. First start was 146 s.
+
+The same check passed for the other three Go examples under `examples/byo` (Fiber 2.52, Echo and chi, each given a `go.sum` and a `version`
+field on `GET /`), 5 edits each at a load average of 7 to 10: median edit-to-ready 1.85 s (Fiber), 1.57 s (Echo) and 1.55 s (chi), the app
+down for at most 0.13 s, no Traefik `503`, the compiler error in the Tilt log, and a `go.mod` change rebuilding the image in 38 to 50 s.
 
 A bring-your-own container (`--type bring-your-own`, including that example's Dockerfile) has no live reload, because TDK does not
 generate its image: see [docs/byo.md](byo.md#limits). Use the native Go provider when you want the loop above.
