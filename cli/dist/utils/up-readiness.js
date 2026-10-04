@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { getDeferredResourceNames, parseTiltResourceFailures } from "./doctor-runtime.js";
 import { findOnPath } from "./which.js";
-function tiltGetUiResources(port) {
+export function tiltGetUiResources(port) {
     return new Promise((resolve) => {
         execFile(findOnPath("tilt") ?? "tilt", ["get", "uiresources", "-o", "json", "--port", String(port)], { timeout: 15_000, maxBuffer: 16 * 1024 * 1024 }, (error, stdout) => resolve(error ? null : stdout));
     });
@@ -19,6 +19,11 @@ export function onlyEnabledResources(jsonText) {
         ? { ...item, status: { ...item.status, updateStatus: "ok" } }
         : item);
     return JSON.stringify({ items });
+}
+function enabledNames(jsonText) {
+    return (JSON.parse(jsonText).items ?? [])
+        .filter((item) => item.status?.disableStatus?.state !== "Disabled")
+        .flatMap((item) => (item.metadata?.name ? [item.metadata.name] : []));
 }
 /**
  * Services the caller asked for must not vanish into the disabled filter: one that Tilt lists as disabled (it can be
@@ -42,7 +47,13 @@ export async function waitForTiltResourcesReady(port, options = {}) {
     const fetchJson = options.fetchJson ?? tiltGetUiResources;
     const deferred = options.deferred ?? getDeferredResourceNames();
     const deadline = Date.now() + timeoutMs;
-    let last = { ready: false, failures: [], pending: 0, timedOut: false };
+    let last = {
+        ready: false,
+        failures: [],
+        pending: 0,
+        timedOut: false,
+        enabled: [],
+    };
     for (;;) {
         const text = await fetchJson(port);
         if (text) {
@@ -56,6 +67,7 @@ export async function waitForTiltResourcesReady(port, options = {}) {
                     })),
                     pending: parsed.pendingCount,
                     timedOut: false,
+                    enabled: enabledNames(text),
                 };
                 if (options.expected && options.expected.length > 0) {
                     const { missing, disabled } = checkExpectedResources(text, options.expected);
@@ -67,6 +79,7 @@ export async function waitForTiltResourcesReady(port, options = {}) {
                             ready: false,
                             pending: last.pending,
                             timedOut: false,
+                            enabled: last.enabled,
                             failures: [
                                 ...last.failures,
                                 ...disabled.map((name) => ({ name, message: "disabled in Tilt" })),

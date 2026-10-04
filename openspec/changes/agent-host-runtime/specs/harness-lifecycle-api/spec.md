@@ -22,11 +22,11 @@
 - **THEN** one object with at most 100 lines for `api` is printed and the command exits
 
 ### Requirement: Selective start
-`tdk up [stack] --only <service...>` SHALL start the named services, the services they list in `dependsOn` (transitively), and the shared infrastructure the Tiltfile always enables, and nothing else. Unknown names SHALL fail with `UNKNOWN_SERVICE` and exit 2 before anything starts, listing the valid names, because the Tiltfile enables the whole stack for an unknown focus name. When a Tilt appears to be running already, `--only` SHALL fail with `TILT_ALREADY_RUNNING` unless `--force` is given. With `--json`, readiness SHALL cover only the enabled resources, and the success object SHALL include `requested` and `dependencies`. See `spike-up-only.md`.
+`tdk up [stack] --only <service...>` SHALL start the named services, the services they list in `dependsOn` (transitively), and the shared infrastructure the Tiltfile always enables, and nothing else. Unknown names SHALL fail with `UNKNOWN_SERVICE` and exit 2 before anything starts, listing the valid names, because the Tiltfile enables the whole stack for an unknown focus name. When a Tilt answers on the default port or on `TILT_PORT`, `--only` SHALL fail with `TILT_ALREADY_RUNNING` unless `--force` is given. With `--json`, readiness SHALL cover only the enabled resources, and the success object SHALL include `requested` and `dependencies`, where `dependencies` is what Tilt actually enabled besides the requested services (a dry run reports the `service.json` closure as `declaredDependencies`). See `spike-up-only.md`.
 
 #### Scenario: Service with a dependency
 - **WHEN** `--only storefront-web` is given and it depends on `catalog-api`
-- **THEN** both start, `dependencies` is `["catalog-api"]`, and no other service starts
+- **THEN** both start, `dependencies` is `["catalog-api"]` as reported from Tilt, and no other service starts
 
 #### Scenario: Unknown service name
 - **WHEN** `--only` names a service not in the project

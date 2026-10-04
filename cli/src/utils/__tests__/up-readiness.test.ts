@@ -85,6 +85,26 @@ describe("waitForTiltResourcesReady", () => {
     });
     expect(result.ready).toBe(true);
   });
+  it("keeps a not_applicable resource failed when its runtime status is an error", async () => {
+    const result = await waitForTiltResourcesReady(1, {
+      ...opts,
+      fetchJson: async () =>
+        json(item("api", "ok", "ok"), item("worker", "not_applicable", "error")),
+    });
+    expect(result.ready).toBe(false);
+    expect(result.failures.map((f) => f.name)).toEqual(["worker"]);
+  });
+  it("returns the names Tilt has enabled", async () => {
+    const disabled = {
+      metadata: { name: "other" },
+      status: { updateStatus: "none", runtimeStatus: "none", disableStatus: { state: "Disabled" } },
+    };
+    const result = await waitForTiltResourcesReady(1, {
+      ...opts,
+      fetchJson: async () => json(item("api", "ok", "ok"), disabled),
+    });
+    expect(result.enabled).toEqual(["api"]);
+  });
   it("times out while resources stay pending", async () => {
     const result = await waitForTiltResourcesReady(1, {
       ...opts,

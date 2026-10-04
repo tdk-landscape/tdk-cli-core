@@ -31,8 +31,10 @@ Always on in every case: `init-networks`, `postgres`, `traefik`, `golden-layers-
 - `--only` is passed to the Tiltfile as `--focus=<names>`; the stack argument only limits which names are valid.
 - `--json` readiness covers the enabled resources only, so a partial up reports ready when its own resources are running. The success object adds `requested` and `dependencies`.
 - `--only` validates names before the CLI writes anything to the project (`.env`, runtime assets, `.tdk/project.json`).
-- `--only` while Tilt appears to be running (a listener on the default port 10350 or on `TILT_PORT`) is an error, not a second Tilt; with `--force` it stops whatever holds those ports first.
-- Readiness for `--only` expects each requested service (and its dependencies) to be listed, enabled and running: one Tilt lists as disabled is reported as a failure, and one not listed yet counts as pending, so it can never be filtered out of an otherwise-ready stack.
+- `--only` while a Tilt answers on the default port 10350 or on `TILT_PORT` is `TILT_ALREADY_RUNNING`, not a second Tilt; with `--force` it stops those instances first. A listener that is not Tilt does not count.
+- Readiness for `--only` expects each requested service to be listed, enabled and running: one Tilt lists as disabled is a failure, and one not listed yet is pending, so it cannot be filtered out of an otherwise-ready stack. Dependencies are not individually expected, because the Tiltfile skips some on purpose (for example a dependency whose name contains `frontend`).
+- `dependencies` in the success object is what Tilt actually enabled (services that are not `requested`). The dry-run object has no Tilt to ask and reports the `service.json` closure as `declaredDependencies`, which can differ from the Tiltfile's expansion (aliases, domains, frontend skipping).
+- The dry-run `command` is built from the same arguments as the real run.
 
 ## Not verified
 

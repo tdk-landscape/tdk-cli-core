@@ -6,7 +6,10 @@ export interface ReadinessResult {
     }>;
     pending: number;
     timedOut: boolean;
+    /** Names of the resources Tilt has enabled (everything not `Disabled`), so callers report what actually started. */
+    enabled: string[];
 }
+export declare function tiltGetUiResources(port: number): Promise<string | null>;
 /**
  * Tilt lists resources outside the current focus (the other release phases, or everything but a `--only` selection) with
  * `disableStatus.state: Disabled` and both statuses `none`, which would read as pending forever. A resource whose update

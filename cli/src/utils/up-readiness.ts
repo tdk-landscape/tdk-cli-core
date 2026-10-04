@@ -7,9 +7,11 @@ export interface ReadinessResult {
   failures: Array<{ name: string; message: string }>;
   pending: number;
   timedOut: boolean;
+  /** Names of the resources Tilt has enabled (everything not `Disabled`), so callers report what actually started. */
+  enabled: string[];
 }
 
-function tiltGetUiResources(port: number): Promise<string | null> {
+export function tiltGetUiResources(port: number): Promise<string | null> {
   return new Promise((resolve) => {
     execFile(
       findOnPath("tilt") ?? "tilt",
@@ -41,6 +43,12 @@ export function onlyEnabledResources(jsonText: string): string {
         : item,
     );
   return JSON.stringify({ items });
+}
+
+function enabledNames(jsonText: string): string[] {
+  return ((JSON.parse(jsonText) as { items?: TiltItem[] }).items ?? [])
+    .filter((item) => item.status?.disableStatus?.state !== "Disabled")
+    .flatMap((item) => (item.metadata?.name ? [item.metadata.name] : []));
 }
 
 /**
@@ -81,7 +89,13 @@ export async function waitForTiltResourcesReady(
   const fetchJson = options.fetchJson ?? tiltGetUiResources;
   const deferred = options.deferred ?? getDeferredResourceNames();
   const deadline = Date.now() + timeoutMs;
-  let last: ReadinessResult = { ready: false, failures: [], pending: 0, timedOut: false };
+  let last: ReadinessResult = {
+    ready: false,
+    failures: [],
+    pending: 0,
+    timedOut: false,
+    enabled: [],
+  };
   for (;;) {
     const text = await fetchJson(port);
     if (text) {
@@ -95,6 +109,7 @@ export async function waitForTiltResourcesReady(
           })),
           pending: parsed.pendingCount,
           timedOut: false,
+          enabled: enabledNames(text),
         };
         if (options.expected && options.expected.length > 0) {
           const { missing, disabled } = checkExpectedResources(text, options.expected);
@@ -106,6 +121,7 @@ export async function waitForTiltResourcesReady(
               ready: false,
               pending: last.pending,
               timedOut: false,
+              enabled: last.enabled,
               failures: [
                 ...last.failures,
                 ...disabled.map((name) => ({ name, message: "disabled in Tilt" })),
