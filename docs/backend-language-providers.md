@@ -73,7 +73,7 @@ Without the switch nothing changes, and `liveReload` on a non-Go service logs a 
   next pass. If the app exits on its own (a panic at startup, say), the watcher does not restart it until the next file change; the log
   says `waiting for a change to rebuild`, which is easy to mistake for a hung reload.
 - **One module per service folder.** Only the service folder is copied into the image, so a `replace` to a directory outside it fails the
-  image build at `go mod download` (checked, in the `development` target; the default image has the same limit). A `go.work` workspace was not tried.
+  image build at `go mod download` (checked on the `development` target only; the default image copies the same single folder, but I did not run it). A `go.work` workspace was not tried.
 
 ### Gin and other Go frameworks
 
@@ -87,9 +87,13 @@ service with `liveReload`, through `scripts/e2e/go-dev-loop.sh` with `GO_SERVICE
 0.20 s, a broken edit put the compiler error in the Tilt log while the last good build kept serving, and a `go.mod` change rebuilt the image and
 recreated the container in 124 s, including the Go 1.25 toolchain download. First start was 146 s.
 
-The same check passed for the other three Go examples under `examples/byo` (Fiber 2.52, Echo and chi, each given a `go.sum` and a `version`
-field on `GET /`), one run each on the same Mac, 5 edits each at a load average of 7 to 10: median edit-to-ready 1.85 s (Fiber), 1.57 s (Echo) and 1.55 s (chi), the app
-down for at most 0.13 s, no Traefik `503`, the compiler error in the Tilt log, and a `go.mod` change rebuilding the image in 38 to 50 s.
+`scripts/e2e/go-dev-loop.sh` also passed, one run each on the same Mac, for the other three Go examples under `examples/byo`: Fiber v2.52.5
+(`go 1.23`), Echo v4.16.0 and chi v5.3.2 (both `go 1.25`). The examples in the repository have no `go.sum` and no `version` field, so for
+these runs I added a `go.sum` (from `go mod tidy`) and a `version` field on `GET /` locally; the committed examples are unchanged. These
+were 5 edits each, not the Gin run's 8, at a load average of 7 to 10: median edit-to-ready 1.85 s (Fiber), 1.57 s (Echo) and 1.55 s (chi),
+the app down for at most 0.13 s, no Traefik `503`, the compiler error in the Tilt log, and a `go.mod` change rebuilding the image in 38 to
+50 s. That is not directly comparable with the Gin run's 124 s for the same step: the runs differ in load and Docker cache state, and I did
+not isolate why.
 
 A bring-your-own container (`--type bring-your-own`, including that example's Dockerfile) has no live reload, because TDK does not
 generate its image: see [docs/byo.md](byo.md#limits). Use the native Go provider when you want the loop above.
@@ -111,7 +115,8 @@ container and about 0.45 s was sync and polling. First start (from launching `td
 image builds) was 74 s for the watcher and 40 s for Air in those runs. Compile time moves a lot with machine load: an earlier run of the
 watcher at a load average of about 12 had edits of 2 to 15 s, with the app unreachable for at most 1.4 s of each, because the old
 build kept answering while the slow compile ran. Treat these as one machine's numbers, not a promise. The 1 to 2 second target in #369
-was met on the median in the run above, not by every edit (the slowest was 2.5 s) and not in the busier run.
+was met on the median in the run above, not by every edit (the slowest was 2.5 s) and not in the busier run. The table is the scaffolded service only; Gin, Fiber, Echo and chi
+are under [Gin and other Go frameworks](#gin-and-other-go-frameworks).
 
 Run it yourself: `scripts/e2e/go-dev-loop.sh [edits]` (Docker, Tilt, Python 3 and a built CLI). It fails if the app itself is down for longer than
 a swap should take (refused connections or 502s; a Traefik `503` from its health check is printed as a warning, not counted), if the compiler error is missing from the Tilt log, if the service does not keep serving after a broken edit, or if a
