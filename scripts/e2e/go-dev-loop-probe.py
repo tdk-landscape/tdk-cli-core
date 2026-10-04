@@ -180,6 +180,10 @@ try:
         hard, seconds_503 = outages(t0, time.time())
         ready.append(took)
         rows.append((i, took, hard, seconds_503))
+        if seconds_503 > 0:
+            # Not a failure (Traefik's 10 s health check removed the route while the app restarted, which the watcher cannot
+            # control and which would make this check flaky), but a client saw it, so say so loudly.
+            print(f"WARNING: edit {i}: Traefik answered 503 for {seconds_503:.1f}s while the app restarted")
         limit = max(1.0, 0.3 * took)
         if hard > limit:
             failures.append(
