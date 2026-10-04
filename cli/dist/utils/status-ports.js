@@ -1,0 +1,30 @@
+import { STANDARD_PORTS } from "./constants.js";
+import { isApiServiceType } from "./resource-kind.js";
+import { resolveServicePath, resolveSubdomainBases } from "./service-urls.js";
+export function buildServicePorts(resource, ingressHttp) {
+    const appType = resource.config?.appType;
+    const routable = appType === "frontend" || isApiServiceType(appType);
+    let url = null;
+    if (routable) {
+        const { appBase, apiBase } = resolveSubdomainBases(ingressHttp);
+        url = `${isApiServiceType(appType) ? apiBase : appBase}${resolveServicePath(resource)}`;
+    }
+    return { url, containerPort: resource.port ?? resource.config?.port ?? null, hostPort: null };
+}
+/** Ports a client should forward or open: ingress, Tilt UI, and the published datastore. Not one per service. */
+export function buildStackPorts(plan, tiltPort) {
+    const ports = [];
+    if (plan) {
+        ports.push({ name: "ingress-http", hostPort: plan.ingressHttp, purpose: "Traefik HTTP ingress" }, { name: "ingress-https", hostPort: plan.ingressHttps, purpose: "Traefik HTTPS ingress" });
+    }
+    ports.push({
+        name: "tilt-ui",
+        hostPort: tiltPort ?? STANDARD_PORTS.tiltUi,
+        purpose: "Tilt UI",
+    });
+    if (plan) {
+        ports.push({ name: "postgres", hostPort: plan.postgres, purpose: "Published Postgres" });
+    }
+    return ports;
+}
+//# sourceMappingURL=status-ports.js.map
