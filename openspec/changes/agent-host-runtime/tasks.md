@@ -11,7 +11,7 @@
 - [x] 2.3 Docs: Agent Host, Codespaces, T3-style servers; WebContainers non-goal
 
 ## 3. Harness API
-- [ ] 3.1 `--json` on `up`, `down` (done); new `logs` command with bounded `--json` (`--service`, `--tail`, `--since`)
+- [x] 3.1 `--json` on `up`, `down`; new `logs` command with bounded `--json` (`--service`, `--tail`, `--since`)
 - [ ] 3.2 `up --only` (spike Tilt resource selection first)
 - [x] 3.3 `status --json`: per-service `url`/`containerPort`/nullable `hostPort`, plus stack-level port list
 - [ ] 3.4 `tdk mcp` sharing command implementations; `up` starts detached, callers poll `status`

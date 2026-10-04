@@ -28,4 +28,5 @@ Not supported for `tdk up`. A WebContainer has no Docker daemon, Compose, or Til
 
 - `tdk doctor --json` and `tdk status --json` print a versioned report.
 - `tdk up --json` prints one object on stdout: `ok: true` once every non-deferred Tilt resource is built and running, or `ok: false` with `errors` if a resource fails, readiness times out (`TDK_UP_READY_TIMEOUT_MS`, default 15 minutes), a smoke check fails, or Tilt exits first. Tilt keeps running after the object is printed, so background the command. Human output is suppressed.
+- `tdk logs --json [--service <name...>] [--tail <n>] [--since <duration>] [--port <n>]` prints one object with the most recent lines (default 200, never unbounded) and exits. Each line has `time`, `resource`, `level`, `source` and `text`. An unknown service is an error that lists valid names. It reads from the running Tilt, so it fails with `TILT_NOT_RUNNING` when the stack is down. There is no follow mode in JSON.
 - `tdk down --json` prints one object when done, including when preflight fails.
