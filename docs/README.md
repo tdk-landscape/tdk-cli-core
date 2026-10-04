@@ -7,6 +7,7 @@
 - [Full multi-service example](../examples/tdk-example/README.md)
 - [Configuration and editor schemas](configuration.md)
 - [Environment, params and secrets](environment.md): the project `.env`, `params`, `secrets` and auth
+- [Operator runbook](operator-runbook.md): install matrix, version minimums, releases, license key
 - [WSL2 setup](wsl2.md)
 - [Install and use TDK alongside Helm](with-helm.md)
 

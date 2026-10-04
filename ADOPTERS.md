@@ -1,5 +1,7 @@
 # Adopters
 
+**There are no external adopters yet.** The list below stays empty until a named team agrees to be listed. Example repositories and the maintainers are not adopters.
+
 Teams that run `tdk up` on their own repositories. There are two ways to be listed:
 
 - **Fill in the form.** Open the [We use TDK](https://github.com/tdk-landscape/tdk-cli-core/issues/new?template=we-use-tdk.yml) issue form. A maintainer turns it into a row for you, so you do not have to edit a Markdown table.

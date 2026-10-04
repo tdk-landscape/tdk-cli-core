@@ -62,6 +62,8 @@ export declare function verifyMasterConfigs(projectRoot: string): {
         file: string;
         diff: string;
     }>;
+    /** Generated service files (project-relative) whose content differs from their TDK snapshot, i.e. edited by hand. */
+    handEdited: string[];
 };
 export {};
 //# sourceMappingURL=template-engine.d.ts.map

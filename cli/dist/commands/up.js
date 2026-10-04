@@ -2,7 +2,7 @@ import { connect } from "node:net";
 import { join } from "node:path";
 import chalk from "chalk";
 import { Command } from "commander";
-import { ensureProjectRuntimeAssets } from "../generator/template-engine.js";
+import { ensureProjectRuntimeAssets, verifyMasterConfigs } from "../generator/template-engine.js";
 import { DEVCONTAINER_DOCKER_FIX, detectHost, isContainerHost, WEBCONTAINER_UP_MESSAGE, } from "../utils/agent-host.js";
 import { handleDryRun } from "../utils/command-helpers.js";
 import { getDeferredResourceNames } from "../utils/doctor-runtime.js";
@@ -53,6 +53,46 @@ async function defaultDockerReachable() {
         execFile("docker", ["ps"], { timeout: 10_000 }, (error) => resolve(!error));
     });
 }
+/** Exit status for `tdk up` when generated files no longer match service.json / project.json. */
+export const DRIFT_EXIT_CODE = 2;
+/**
+ * Generated service files edited by hand. Only these block `tdk up`: when service.json itself changed, `tdk up` regenerates
+ * the outputs, so stale outputs are the normal edit-then-up loop and not drift.
+ */
+export function driftReport(projectRoot) {
+    let handEdited;
+    try {
+        ({ handEdited } = verifyMasterConfigs(projectRoot));
+    }
+    catch {
+        // No readable project config (e.g. a minimal manifest) means there is no snapshot to compare, so no hand edits to report.
+        return null;
+    }
+    if (handEdited.length === 0)
+        return null;
+    return [
+        "Generated files were edited by hand and no longer match service.json:",
+        ...handEdited.map((file) => `  ${file}`),
+        "Run `tdk config regenerate` to discard the edits, or bypass with `tdk up --ignore-drift`.",
+    ];
+}
+/**
+ * Runs before Tilt is started: exits with DRIFT_EXIT_CODE on drift unless `ignoreDrift` is set. With `ignoreDrift` the
+ * warning is printed every time, whether or not anything drifted, because the check is skipped and cannot tell.
+ */
+export function enforceDriftGate(projectRoot, options, exit = process.exit) {
+    if (options.ignoreDrift) {
+        console.warn(chalk.yellow("Warning: --ignore-drift set; generated files were not checked."));
+        return;
+    }
+    const drift = driftReport(projectRoot);
+    if (!drift)
+        return;
+    options.onDrift?.(drift.join("\n"));
+    for (const line of drift)
+        console.error(chalk.red(line));
+    exit(DRIFT_EXIT_CODE);
+}
 function waitForTiltUi(port, timeoutMs = 30_000) {
     return new Promise((resolve) => {
         const deadline = Date.now() + timeoutMs;
@@ -83,6 +123,7 @@ export const upCommand = new Command("up")
     .option("-q, --quiet", "Suppress non-essential output", false)
     .option("--dry-run", "Show what would be started without starting", false)
     .option("-f, --force", "Kill existing Tilt process before starting", false)
+    .option("--ignore-drift", "Start even if generated files differ from service.json", false)
     .option("--only <services...>", "Start only these services plus what the Tiltfile enables for them (their dependsOn services and shared infrastructure). With a stack, names must belong to that stack; dependencies may cross stacks")
     .option("--json", "Print one JSON object on stdout when the stack is ready or the command fails; implies --quiet", false)
     .action(async (stackName, options) => {
@@ -102,9 +143,8 @@ export const upCommand = new Command("up")
         await assertMachineReadyOrExit();
     }
     const action = async () => {
-        const projectRoot = options.dryRun
-            ? requireProjectRoot()
-            : (findProjectRoot() ?? process.cwd());
+        const foundRoot = options.dryRun ? requireProjectRoot() : findProjectRoot();
+        const projectRoot = foundRoot ?? process.cwd();
         const discoveredResources = discoverResourcesStrict();
         // Reject a bad request before anything below can write to the project (.env, runtime assets, .tdk/project.json).
         if (options.only) {
@@ -123,10 +163,17 @@ export const upCommand = new Command("up")
         const hostPortPlan = await getHostPortPlan(projectRoot, {
             inspectDocker: !options.dryRun,
         });
+        // Also under --dry-run: the check only reads, and a dry run should show what a real run would refuse.
+        if (foundRoot) {
+            enforceDriftGate(foundRoot, {
+                ignoreDrift: options.ignoreDrift,
+                onDrift: (message) => emit?.({ ok: false }, [{ code: "DRIFT_DETECTED", message }]),
+            });
+        }
         if (!options.dryRun) {
             // An older project's .env predates keys such as JWT_SECRET, which Compose now requires. Add what is missing (never
             // changing an existing value) before anything starts. Only inside a real project, so a stray run never writes a .env.
-            if (findProjectRoot()) {
+            if (foundRoot) {
                 const addedEnvKeys = completeEnvFile(projectRoot);
                 if (addedEnvKeys.length > 0 && !options.quiet) {
                     console.log(chalk.gray(`Added ${addedEnvKeys.join(", ")} to .env (generated; existing values unchanged)`));
