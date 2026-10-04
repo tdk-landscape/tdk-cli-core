@@ -60,7 +60,7 @@ if 'COPY --chmod=755 <<' not in dev or '/usr/local/bin/tdk-go-watch' not in dev:
 if 'CMD ["tdk-go-watch"]' not in dev: fail('the development target must run the watcher')
 if 'air-verse' in dev or 'cosmtrek' in dev: fail('Air stops the app before it compiles, so the watcher replaced it')
 if '--mount=type=cache,target=/go/pkg/mod' not in dev: fail('missing Go module cache mount')
-if 'RUN go build -o /tmp/app .' not in dev: fail('the image must prime the Go build cache (a RUN, not a cache mount, so the warm cache is kept in the image the watcher runs from)')
+if "RUN go build -ldflags='-s -w' -o /tmp/app ." not in dev: fail('the image must prime the Go build cache (a RUN, not a cache mount, so the warm cache is kept in the image the watcher runs from)')
 if 'go mod download' not in dev: fail('dependencies must be installed in their own layer so edits do not redownload them')
 if 'AS production' not in dev: fail('the production target must remain available')
 if 'EXPOSE 4100' not in dev: fail('port contract changed')
@@ -71,8 +71,8 @@ if 'EXPOSE 4100' not in dev: fail('port contract changed')
   it("builds into a staging binary and stops the running app only after the build succeeded", () => {
     const dev = generatedGoDockerfile(true);
     const build = dev.indexOf(`go build -ldflags='-s -w' -o "$next" .`);
-    const stop = dev.indexOf("    stop_app\n    mv ", build);
-    const swap = dev.indexOf('mv "$next" "$app"', build);
+    const stop = dev.indexOf("if stop_app && mv ", build);
+    const swap = dev.indexOf('mv "$next" "$app"', stop);
     expect(build).toBeGreaterThan(-1);
     // Stopping first is what Air does and what left the service down for the whole compile (#369 measurement).
     expect(stop).toBeGreaterThan(build);

@@ -121,21 +121,26 @@ signature() {
   find . -type f -not -path '*/.*' -not -path './tmp/*' -not -name '*_test.go' -not -name '*.md' -printf '%p %T@ %s\\n' | sort | cksum
 }
 
+# The app runs in its own session so a signal reaches everything it forked and no child keeps the listen socket.
 start_app() {
-  "$app" &
+  setsid "$app" &
   pid=$!
 }
 
+# Succeeds only when the app is really gone; a swap on top of a live process would fail (ETXTBSY) or hit address-in-use.
 stop_app() {
   [ -n "$pid" ] || return 0
-  kill "$pid" 2>/dev/null
+  kill -TERM -- "-$pid" 2>/dev/null || kill "$pid" 2>/dev/null
   waited=0
   while kill -0 "$pid" 2>/dev/null && [ "$waited" -lt 50 ]; do
     sleep 0.1
     waited=$((waited + 1))
   done
-  kill -9 "$pid" 2>/dev/null
+  kill -KILL -- "-$pid" 2>/dev/null || kill -9 "$pid" 2>/dev/null
   wait "$pid" 2>/dev/null
+  if kill -0 "$pid" 2>/dev/null; then
+    return 1
+  fi
   pid=
 }
 
@@ -158,10 +163,13 @@ while true; do
   last=$now
   echo "[tdk] change detected, rebuilding..."
   if go build -ldflags='-s -w' -o "$next" . ; then
-    stop_app
-    mv "$next" "$app"
-    start_app
-    echo "[tdk] rebuilt and restarted"
+    if stop_app && mv "$next" "$app"; then
+      start_app
+      echo "[tdk] rebuilt and restarted"
+    else
+      echo "[tdk] could not stop the running app or install the new build; save again to retry"
+      last=
+    fi
   else
     echo "[tdk] build failed; the last good build keeps running. Fix the error and save again."
   fi
@@ -179,9 +187,10 @@ WORKDIR /app/{res_path}
 COPY {res_path}/go.* ./
 RUN --mount=type=cache,target=/go/pkg/mod go mod download
 COPY {res_path}/ ./
-ENV GOFLAGS=-buildvcs=false
+ENV GOFLAGS=-buildvcs=false CGO_ENABLED=0
 # Prime the build cache inside the image (a cache mount would not be kept), so the first edit recompiles only what changed.
-RUN go build -o /tmp/app .
+# Same flags as the watcher's builds (and CGO off like the production stage), so the primed binary and cache match every later one.
+RUN go build -ldflags='-s -w' -o /tmp/app .
 COPY --chmod=755 <<'TDK_GO_DEV_WATCH' /usr/local/bin/tdk-go-watch
 {watch_script}TDK_GO_DEV_WATCH
 EXPOSE {port}
