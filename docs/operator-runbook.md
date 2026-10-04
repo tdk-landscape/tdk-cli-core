@@ -35,6 +35,7 @@ The source of truth is `cli/src/commands/doctor.ts` (`MIN_*` constants).
 - `tdk config verify` runs a wider check (including master files) and prints the diffs.
 - `tdk up --dry-run` runs the same check and exits 2 on drift, so you can see it without starting anything.
 - `tdk up --ignore-drift` skips the check and always prints a warning, whether or not anything drifted, because the check did not run.
+- A missing `.tdk-contract` snapshot is reported by `tdk config verify` as an error, but it does not block `tdk up`: only files that differ from an existing snapshot count as hand edits. A project with no `.tdk/project.json` is not checked.
 
 ## Importing an existing repo
 

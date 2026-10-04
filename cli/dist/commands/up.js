@@ -2,7 +2,7 @@ import { connect } from "node:net";
 import { join } from "node:path";
 import chalk from "chalk";
 import { Command } from "commander";
-import { ensureProjectRuntimeAssets, verifyMasterConfigs } from "../generator/template-engine.js";
+import { ensureProjectRuntimeAssets, ProjectConfigNotFoundError, verifyMasterConfigs, } from "../generator/template-engine.js";
 import { DEVCONTAINER_DOCKER_FIX, detectHost, isContainerHost, WEBCONTAINER_UP_MESSAGE, } from "../utils/agent-host.js";
 import { handleDryRun } from "../utils/command-helpers.js";
 import { getDeferredResourceNames } from "../utils/doctor-runtime.js";
@@ -64,9 +64,11 @@ export function driftReport(projectRoot) {
     try {
         ({ handEdited } = verifyMasterConfigs(projectRoot));
     }
-    catch {
-        // No readable project config (e.g. a minimal manifest) means there is no snapshot to compare, so no hand edits to report.
-        return null;
+    catch (error) {
+        // A project with no .tdk/project.json has no snapshots to compare. Anything else (a corrupt config) must not skip the gate.
+        if (error instanceof ProjectConfigNotFoundError)
+            return null;
+        throw error;
     }
     if (handEdited.length === 0)
         return null;

@@ -412,11 +412,16 @@ function normalizeProjectConfig(value: unknown): ProjectConfig | null {
   };
 }
 
+/** The project has no .tdk/project.json yet, as opposed to one that exists but is unreadable or invalid. */
+export class ProjectConfigNotFoundError extends Error {}
+
 export function readProjectConfig(projectRoot: string): ProjectConfig {
   const projectJsonPath = path.join(projectRoot, ".tdk", "project.json");
 
   if (!fs.existsSync(projectJsonPath)) {
-    throw new Error(`Project config not found: ${projectJsonPath}. Run 'tdk project --yes' first.`);
+    throw new ProjectConfigNotFoundError(
+      `Project config not found: ${projectJsonPath}. Run 'tdk project --yes' first.`,
+    );
   }
 
   const jsonContent = fs.readFileSync(projectJsonPath, "utf-8");
@@ -854,7 +859,8 @@ function verifyGeneratedResourceFiles(
     } else if (
       fs.readFileSync(generated.fullPath, "utf-8") !== fs.readFileSync(snapshotPath, "utf-8")
     ) {
-      handEdited.push(display);
+      // Windows path.relative uses backslashes; report project-relative paths with forward slashes everywhere.
+      handEdited.push(display.split(path.sep).join("/"));
       errors.push(
         `${display}: generated file differs from its TDK snapshot (run tdk up to regenerate)`,
       );

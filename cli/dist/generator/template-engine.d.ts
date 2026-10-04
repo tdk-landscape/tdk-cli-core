@@ -50,6 +50,9 @@ export declare class TemplateEngine {
     generateAll(projectConfig: ProjectConfig): Record<GeneratedFileName, string>;
 }
 export declare function generateDatabaseManagementCompose(projectConfig: ProjectConfig): string;
+/** The project has no .tdk/project.json yet, as opposed to one that exists but is unreadable or invalid. */
+export declare class ProjectConfigNotFoundError extends Error {
+}
 export declare function readProjectConfig(projectRoot: string): ProjectConfig;
 export declare function generateMasterConfigs(projectRoot: string): Promise<void>;
 export declare function findCliAssetRoot(): string | null;
