@@ -39,7 +39,7 @@ function generatedGoDockerfile(dev: boolean): string {
   const out = join(dir, "Dockerfile");
   const result =
     evaluate(`load(${JSON.stringify(languageDockerfile)}, 'generate_language_dockerfile')
-local('cat > ' + ${JSON.stringify(out)}, quiet = True, stdin = generate_language_dockerfile('services/shop/orders', 'go', 4100, ${dev ? "True" : "False"}))
+local('cat > "' + ${JSON.stringify(out)} + '"', quiet = True, stdin = generate_language_dockerfile('services/shop/orders', 'go', 4100, ${dev ? "True" : "False"}))
 `);
   expect(result.status, result.stderr).toBe(0);
   return readFileSync(out, "utf-8");

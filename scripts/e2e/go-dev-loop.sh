@@ -25,11 +25,12 @@ export TDK_EXTENSION_SOURCE="$root"
 tdk() { node "$root/cli/bin/tdk.js" "$@"; }
 
 cleanup() {
-  pkill -f "tilt up.*$proj" >/dev/null 2>&1 || true
-  docker rm -f $(docker ps -aq --filter "name=$proj") >/dev/null 2>&1 || true
-  docker network ls --format '{{.Name}}' | grep "^${proj}" | xargs -r docker network rm >/dev/null 2>&1 || true
+  # Anchored on the whole project name: golive123 must not match a concurrent run's golive1234.
+  pkill -f "tilt up.*/${proj}/" >/dev/null 2>&1 || true
+  docker rm -f $(docker ps -aq --filter "name=^${proj}[-_]") >/dev/null 2>&1 || true
+  docker network ls --format '{{.Name}}' | grep -E "^${proj}_" | xargs -r docker network rm >/dev/null 2>&1 || true
   # Every tag of this run's own repositories: the service image, Tilt's app_<project> build tags, and the per-project golden layers.
-  docker images --format '{{.Repository}}:{{.Tag}}' | grep -E "^(${proj}_api|app_${proj}|${proj}-l[0-9]+)" | xargs -r docker rmi -f >/dev/null 2>&1 || true
+  docker images --format '{{.Repository}}:{{.Tag}}' | grep -E "^(${proj}_api:|app_${proj}:|${proj}-l[0-9]+)" | xargs -r docker rmi -f >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
