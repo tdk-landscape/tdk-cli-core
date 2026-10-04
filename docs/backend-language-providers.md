@@ -88,7 +88,7 @@ service with `liveReload`, through `scripts/e2e/go-dev-loop.sh` with `GO_SERVICE
 recreated the container in 124 s, including the Go 1.25 toolchain download. First start was 146 s.
 
 The same check passed for the other three Go examples under `examples/byo` (Fiber 2.52, Echo and chi, each given a `go.sum` and a `version`
-field on `GET /`), 5 edits each at a load average of 7 to 10: median edit-to-ready 1.85 s (Fiber), 1.57 s (Echo) and 1.55 s (chi), the app
+field on `GET /`), one run each on the same Mac, 5 edits each at a load average of 7 to 10: median edit-to-ready 1.85 s (Fiber), 1.57 s (Echo) and 1.55 s (chi), the app
 down for at most 0.13 s, no Traefik `503`, the compiler error in the Tilt log, and a `go.mod` change rebuilding the image in 38 to 50 s.
 
 A bring-your-own container (`--type bring-your-own`, including that example's Dockerfile) has no live reload, because TDK does not
