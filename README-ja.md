@@ -1,6 +1,6 @@
 # TDK CLI — ノートPCでサービスを起動する
 
-[English](README.md) | [简体中文](README-zh_cn.md) | [繁體中文](README-zh_tw.md) | 日本語
+[English](README.md) | [简体中文](README-zh_cn.md) | [繁體中文](README-zh_tw.md) | 日本語 | [한국어](README-ko.md)
 
 TDK CLI は、ノートPC上でサービスを起動します。デプロイツールでも Compose ファイルでもありません。各サービスを `service.json` で定義し、`tdk up` を実行するだけです。マシンに Kubernetes は不要です。
 

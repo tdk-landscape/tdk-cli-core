@@ -1,6 +1,6 @@
 # TDK CLI — 在你的笔记本上启动服务
 
-[English](README.md) | 简体中文 | [繁體中文](README-zh_tw.md) | [日本語](README-ja.md)
+[English](README.md) | 简体中文 | [繁體中文](README-zh_tw.md) | [日本語](README-ja.md) | [한국어](README-ko.md)
 
 TDK CLI 在你的笔记本上启动服务。它不是部署工具，也不是 Compose 文件：在 `service.json` 中定义每个服务，然后运行 `tdk up`。机器上不需要 Kubernetes。
 
