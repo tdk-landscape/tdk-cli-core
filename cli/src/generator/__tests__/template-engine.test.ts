@@ -215,7 +215,12 @@ describe("template-engine", () => {
       expect(focusBlock).toMatch(/_messaging_compose_doc\.get\('services',\s*\{\}\)\.keys\(\)/);
       expect(focusBlock).toContain("_ALWAYS_ENABLED_INFRA_RESOURCES.append(_messaging_svc_name)");
       expect(focusBlock).toContain("_ALWAYS_ENABLED_INFRA_RESOURCES.append('nats')");
-      expect(focusBlock).toContain("_FILTERED_RESOURCES.append(_STACK_RES_NAME + '-image')");
+      // The `-image` prebuild only exists when deferStart is active (licensed);
+      // enabling a name Tilt never registered fails `tilt up`.
+      expect(focusBlock).toMatch(
+        /if _STACK_RES_NAME \+ '-image' in _DEFERRED_IMAGE_RESOURCES:\s*\n\s*_FILTERED_RESOURCES\.append\(_STACK_RES_NAME \+ '-image'\)/,
+      );
+      expect(tiltfile).toContain("if resource_defers_start(_KNOWN_RES_MANIFEST):");
       // Config.apply_focus expands a stack target into concrete service
       // resources before this template filter sees it. Deferred image
       // prebuilds must follow that concrete-resource path too.

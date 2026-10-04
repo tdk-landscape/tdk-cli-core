@@ -36,6 +36,7 @@ load("./topologies/tilt/resources/conditions.star", _Database = "Database")
 load("./topologies/tilt/resources/declaration.star", _Orchestrator = "Orchestrator")
 load("./topologies/tilt/resources/ordering.star", _Infra = "Infra")
 load("./topologies/tilt/resources/triggers.star", _Watchers = "Watchers")
+load("./topologies/tilt/resources/orchestrator/apply_compose_resource_registration.star", _resource_defers_start = "resource_defers_start")
 
 Utils = _Utils
 Manifest = _Manifest
@@ -65,6 +66,7 @@ Database = _Database
 Orchestrator = _Orchestrator
 Infra = _Infra
 Watchers = _Watchers
+resource_defers_start = _resource_defers_start
 
 # =============================================================================
 # 🔮 AUTO-DISCOVERY DAEMON

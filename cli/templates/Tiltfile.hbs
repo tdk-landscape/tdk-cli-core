@@ -89,6 +89,7 @@ load('ext://tdk-cli',
 'APP_RESOURCES',
 'GLOBAL_CONFIG_EXPORT',
 'Registry',
+'resource_defers_start',
 )
 
 # =============================================================================
@@ -265,7 +266,7 @@ for _KNOWN_SVC in _app_resources_list:
                 _KNOWN_TILT_RESOURCES.add(_KNOWN_RES_NAME + '-config-gen')
                 _KNOWN_RES_MANIFEST = _KNOWN_RES.get('_manifest', {})
                 _KNOWN_RES_SABLIER = _KNOWN_RES_MANIFEST.get('sablier', {})
-                if _KNOWN_RES_SABLIER.get('enable', False) and _KNOWN_RES_SABLIER.get('deferStart', False):
+                if resource_defers_start(_KNOWN_RES_MANIFEST):
                     _DEFERRED_IMAGE_RESOURCES.add(_KNOWN_RES_NAME + '-image')
                 if _KNOWN_SVC_STACK:
                     _STACK_TO_RESOURCE_NAMES.setdefault(_KNOWN_SVC_STACK, [])
@@ -291,7 +292,11 @@ if FOCUS_MODE and FOCUS_ENABLED_RESOURCES:
                 # local_resource because their dc_resource is not auto-init.
                 # Keep that prebuild in focus mode so `tdk up <stack>` still
                 # prepares the image before the first request wakes the service.
-                _FILTERED_RESOURCES.append(_STACK_RES_NAME + '-image')
+                # Only when it exists: without a license deferStart is off and
+                # no `-image` resource is registered, and Tilt errors on an
+                # enabled name it cannot find.
+                if _STACK_RES_NAME + '-image' in _DEFERRED_IMAGE_RESOURCES:
+                    _FILTERED_RESOURCES.append(_STACK_RES_NAME + '-image')
         else:
             _MATCHED = [kr for kr in _KNOWN_TILT_RESOURCES if kr != 'service-discovery-daemon' and kr.startswith(_R + '-')]
             _FILTERED_RESOURCES.extend(_MATCHED)
