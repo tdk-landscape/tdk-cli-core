@@ -117,8 +117,8 @@ const EmptyState: React.FC<{ message?: string }> = ({ message }) => (
     <Text color="gray">◉ No service.json files found</Text>
     <Box marginY={1} />
     <Text>To get started:</Text>
-    <Text> 1. Run: tdk init</Text>
-    <Text> 2. Or create services manually</Text>
+    <Text> 1. Run: tdk project</Text>
+    <Text> 2. Run: tdk resource api --type backend</Text>
     <Box marginY={1} />
     <Text color="cyan">Press [r] to refresh or [q] to quit</Text>
     {/* The top-level Esc hint has to be visible here too — with no services this is the
