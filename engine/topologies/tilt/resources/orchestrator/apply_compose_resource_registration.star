@@ -220,7 +220,7 @@ def _build_live_update_rules(res_path, full_res_path, syncs, project_root='', la
 
     Python backends reload their own process after a sync (uvicorn --reload), so they have
     no Bun install step. A changed pyproject.toml is not synced, so Tilt rebuilds the image instead.
-    Go and Rust backends have no live update at all (see the early return).
+    Rust backends, and Go backends without `dev.liveReload`, have no live update (see the early return).
     """
     # Go and Rust are compiled into the image and have no reload process, so syncing sources would leave the
     # old binary running. Return before any sync() step is built (Tilt rejects sync steps that are created
@@ -229,7 +229,7 @@ def _build_live_update_rules(res_path, full_res_path, syncs, project_root='', la
         return []
 
     if go_live_reload:
-        # Opted-in Go development loop: sync the sources into the development image, where Air rebuilds and restarts.
+        # Opted-in Go development loop: sync the sources into the development image, where the tdk-go-watch script rebuilds and restarts.
         # Dependency and Dockerfile changes cannot be picked up by a restart, so they fall back to a full image rebuild.
         source_dir = _live_update_sync_source(project_root, full_res_path, '')
         return [
