@@ -5,6 +5,7 @@ import { Command } from "commander";
 import { ensureProjectRuntimeAssets } from "../generator/template-engine.js";
 import { DEVCONTAINER_DOCKER_FIX, detectHost, isContainerHost, WEBCONTAINER_UP_MESSAGE, } from "../utils/agent-host.js";
 import { handleDryRun } from "../utils/command-helpers.js";
+import { getDeferredResourceNames } from "../utils/doctor-runtime.js";
 import { completeEnvFile } from "../utils/env-validator.js";
 import { errorFactories, handleTiltFailure, requireProjectRoot, runCommand, showErrorAndExit, withTiltCheck, } from "../utils/errors.js";
 import { formatCount } from "../utils/formatting.js";
@@ -104,6 +105,18 @@ export const upCommand = new Command("up")
         const projectRoot = options.dryRun
             ? requireProjectRoot()
             : (findProjectRoot() ?? process.cwd());
+        // Reject a bad request before anything below can write to the project (.env, runtime assets, .tdk/project.json).
+        if (options.only) {
+            if (stackName && !stackExists(stackName))
+                errorFactories.stackNotFound(stackName).exit();
+            const candidates = stackName ? getResourcesForStack(stackName) : discoverResources();
+            const unknown = findUnknownServices(options.only, candidates);
+            if (unknown.length > 0) {
+                const message = `Unknown service ${unknown.join(", ")}. Valid names: ${candidates.map((s) => s.name).join(", ")}`;
+                emit?.({ ok: false }, [{ code: "UNKNOWN_SERVICE", message }]);
+                showErrorAndExit(message, 2);
+            }
+        }
         const hostPortPlan = await getHostPortPlan(projectRoot, {
             inspectDocker: !options.dryRun,
         });
@@ -143,12 +156,6 @@ export const upCommand = new Command("up")
         }
         let dependencyNames = [];
         if (options.only) {
-            const unknown = findUnknownServices(options.only, servicesToStart);
-            if (unknown.length > 0) {
-                const message = `Unknown service ${unknown.join(", ")}. Valid names: ${servicesToStart.map((s) => s.name).join(", ")}`;
-                emit?.({ ok: false }, [{ code: "UNKNOWN_SERVICE", message }]);
-                showErrorAndExit(message, 2);
-            }
             // Dependencies come from the whole project, not just the named stack: dependsOn may cross stacks.
             const selection = resolveOnlySelection(options.only, discoverResources());
             servicesToStart = selection.selected;
@@ -215,17 +222,31 @@ export const upCommand = new Command("up")
         writeSavedHostPortPlan(projectRoot, hostPortPlan);
         const basePort = 10350;
         let port = basePort;
-        if (process.env.TILT_PORT) {
-            port = parseInt(process.env.TILT_PORT, 10);
-        }
-        else if (!options.force) {
-            const availablePort = await findAvailablePort(basePort, 10);
-            if (availablePort && availablePort !== basePort && options.only) {
-                // A second Tilt on another port would run a different Tiltfile selection against the same containers.
-                const message = `Port ${basePort} is already in use, so a stack may already be running. --only cannot change a running stack's services: run \`tdk down\` first, or pass --force to replace it.`;
+        // A second Tilt would apply a different selection to the same containers, whatever port it listens on, so `--only`
+        // looks for an existing instance on the default port and on TILT_PORT before it chooses one.
+        if (options.only) {
+            const envPort = process.env.TILT_PORT ? Number.parseInt(process.env.TILT_PORT, 10) : NaN;
+            const candidatePorts = [
+                ...new Set([basePort, ...(Number.isInteger(envPort) ? [envPort] : [])]),
+            ];
+            const busy = [];
+            for (const candidate of candidatePorts) {
+                if (await waitForTiltUi(candidate, 0))
+                    busy.push(candidate);
+            }
+            if (busy.length > 0 && !options.force) {
+                const message = `Port ${busy.join(", ")} is already in use, so a stack may already be running. --only cannot change a running stack's services: run \`tdk down\` first, or pass --force to replace it.`;
                 emit?.({ ok: false }, [{ code: "TILT_ALREADY_RUNNING", message }]);
                 showErrorAndExit(message);
             }
+            for (const busyPort of busy)
+                stopTiltOnPort(busyPort);
+        }
+        if (process.env.TILT_PORT) {
+            port = parseInt(process.env.TILT_PORT, 10);
+        }
+        else if (!options.force && !options.only) {
+            const availablePort = await findAvailablePort(basePort, 10);
             if (availablePort && availablePort !== basePort) {
                 port = availablePort;
                 if (!options.quiet) {
@@ -267,7 +288,11 @@ export const upCommand = new Command("up")
             // JSON consumers get success only after every non-deferred resource is built and running, not when the UI port opens.
             let jsonReady = false;
             if (uiReady && emit) {
-                const readiness = await waitForTiltResourcesReady(port);
+                const deferred = getDeferredResourceNames();
+                const readiness = await waitForTiltResourcesReady(port, {
+                    deferred,
+                    expected: options.only ? serviceNames.filter((name) => !deferred.has(name)) : undefined,
+                });
                 if (readiness.ready) {
                     jsonReady = true;
                 }

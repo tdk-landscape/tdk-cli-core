@@ -30,7 +30,9 @@ Always on in every case: `init-networks`, `postgres`, `traefik`, `golden-layers-
 - `tdk up [stack] --only <service...>` starts the named services plus their `dependsOn` closure, and the always-on infra. Unknown names fail before anything starts.
 - `--only` is passed to the Tiltfile as `--focus=<names>`; the stack argument only limits which names are valid.
 - `--json` readiness covers the enabled resources only, so a partial up reports ready when its own resources are running. The success object adds `requested` and `dependencies`.
-- `--only` while Tilt appears to be running is an error, not a second Tilt.
+- `--only` validates names before the CLI writes anything to the project (`.env`, runtime assets, `.tdk/project.json`).
+- `--only` while Tilt appears to be running (a listener on the default port 10350 or on `TILT_PORT`) is an error, not a second Tilt; with `--force` it stops whatever holds those ports first.
+- Readiness for `--only` expects each requested service (and its dependencies) to be listed, enabled and running: one Tilt lists as disabled is reported as a failure, and one not listed yet counts as pending, so it can never be filtered out of an otherwise-ready stack.
 
 ## Not verified
 

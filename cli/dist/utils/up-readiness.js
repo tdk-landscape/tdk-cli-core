@@ -6,6 +6,11 @@ function tiltGetUiResources(port) {
         execFile(findOnPath("tilt") ?? "tilt", ["get", "uiresources", "-o", "json", "--port", String(port)], { timeout: 15_000, maxBuffer: 16 * 1024 * 1024 }, (error, stdout) => resolve(error ? null : stdout));
     });
 }
+/**
+ * Tilt lists resources outside the current focus (the other release phases, or everything but a `--only` selection) with
+ * `disableStatus.state: Disabled` and both statuses `none`, which would read as pending forever. A resource whose update
+ * status is `not_applicable` (a serve-only local resource) has nothing to build, so it counts as built.
+ */
 export function onlyEnabledResources(jsonText) {
     const parsed = JSON.parse(jsonText);
     const items = (parsed.items ?? [])
@@ -14,6 +19,18 @@ export function onlyEnabledResources(jsonText) {
         ? { ...item, status: { ...item.status, updateStatus: "ok" } }
         : item);
     return JSON.stringify({ items });
+}
+/**
+ * Services the caller asked for must not vanish into the disabled filter: one that Tilt lists as disabled (it can be
+ * disabled while running) is a failure, and one Tilt does not list yet is still pending.
+ */
+export function checkExpectedResources(jsonText, expected) {
+    const items = JSON.parse(jsonText).items ?? [];
+    const byName = new Map(items.map((item) => [item.metadata?.name, item]));
+    return {
+        missing: expected.filter((name) => !byName.has(name)),
+        disabled: expected.filter((name) => byName.get(name)?.status?.disableStatus?.state === "Disabled"),
+    };
 }
 /**
  * Waits until every non-deferred Tilt resource is built and running. Resolves not-ready as soon as the rest has settled
@@ -40,6 +57,23 @@ export async function waitForTiltResourcesReady(port, options = {}) {
                     pending: parsed.pendingCount,
                     timedOut: false,
                 };
+                if (options.expected && options.expected.length > 0) {
+                    const { missing, disabled } = checkExpectedResources(text, options.expected);
+                    if (missing.length > 0) {
+                        last = { ...last, ready: false, pending: last.pending + missing.length };
+                    }
+                    if (disabled.length > 0) {
+                        return {
+                            ready: false,
+                            pending: last.pending,
+                            timedOut: false,
+                            failures: [
+                                ...last.failures,
+                                ...disabled.map((name) => ({ name, message: "disabled in Tilt" })),
+                            ],
+                        };
+                    }
+                }
                 if (last.ready)
                     return last;
                 if (last.failures.length > 0 && last.pending === 0)
