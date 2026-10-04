@@ -69,6 +69,9 @@ Without the switch nothing changes, and `liveReload` on a non-Go service logs a 
 - **Go version.** The image is `golang:1.23-bookworm` with `GOTOOLCHAIN=auto`, so a `go.mod` that asks for a newer Go (Gin 1.12 asks
   for 1.25) makes Go download that toolchain on the first image build instead of stopping with `go.mod requires go >= 1.25`. The
   default `production` and `test` stages set the same variable.
+- **Watcher limits.** The loop is synchronous: a file saved while `go build` is running is not in that binary, and is picked up on the
+  next pass. If the app exits on its own (a panic at startup, say), the watcher does not restart it until the next file change; the log
+  says `waiting for a change to rebuild`, which is easy to mistake for a hung reload.
 - **Not covered.** One module per service folder. A `go.work` workspace, or a `replace` to a directory outside the service folder, was not
   tried and is not synced.
 
