@@ -3,7 +3,10 @@ import { Command } from "commander";
 import { createDiscoveryContext } from "../utils/discovery-context.js";
 import { runCommand } from "../utils/errors.js";
 import { formatCount, showDetail, showStep } from "../utils/formatting.js";
+import { getHostPortPlan } from "../utils/host-port-config.js";
 import { createMachineEnvelope, writeMachineError } from "../utils/machine-output.js";
+import { findProjectRoot } from "../utils/paths.js";
+import { buildServicePorts, buildStackPorts } from "../utils/status-ports.js";
 import { getTiltfilePath, isTiltAvailable, runTilt } from "../utils/tilt.js";
 
 export const statusCommand = new Command("status")
@@ -61,6 +64,13 @@ export const statusCommand = new Command("status")
       }
 
       if (options.json) {
+        let portPlan = null;
+        try {
+          const root = findProjectRoot();
+          portPlan = root ? await getHostPortPlan(root, { inspectDocker: false }) : null;
+        } catch {
+          // Port planning is best effort; stack ports then list only the Tilt UI.
+        }
         const errors = queryError ? [{ code: "TILT_STATUS_UNAVAILABLE", message: queryError }] : [];
         const data = {
           tilt: {
@@ -73,7 +83,12 @@ export const statusCommand = new Command("status")
             stack: resource.stack ?? null,
             type: resource.type ?? "unknown",
             port: resource.port ?? null,
+            ...buildServicePorts(resource, portPlan?.ingressHttp),
           })),
+          ports: buildStackPorts(
+            portPlan,
+            process.env.TILT_PORT ? Number.parseInt(process.env.TILT_PORT, 10) : undefined,
+          ),
           stacks: discovery.stacks.map((stack) => ({
             name: stack.name,
             resourceCount: stack.resourceCount,
