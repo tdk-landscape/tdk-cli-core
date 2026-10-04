@@ -10,6 +10,10 @@ Docker 运行容器。Tilt 监视服务，并在你编码时实时更新容器�
 
 [官网](https://tdk-landscape.github.io/tdk-website/) · [快速开始](https://tdk-landscape.github.io/tdk-website/docs/quickstart/) · [示例](https://tdk-landscape.github.io/tdk-website/docs/examples/) · [Awesome TDK](https://github.com/tdk-landscape/awesome-tdk-framework) · [演示](https://tdk-landscape.github.io/tdk-demo-animation/) · [报告问题](https://github.com/tdk-landscape/tdk-cli-core/issues)
 
+## 谁在使用 TDK
+
+目前还没有团队列入。成为第一个吧：[告诉我们你在使用 TDK](https://github.com/tdk-landscape/tdk-cli-core/issues/new?template=we-use-tdk.yml)，或在 [ADOPTERS.md](ADOPTERS.md) 中添加一行。
+
 ## 快速开始
 
 ```bash
