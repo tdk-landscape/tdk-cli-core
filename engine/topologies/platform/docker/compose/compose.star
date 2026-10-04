@@ -207,6 +207,12 @@ def _generate_single_backend_entry(resource_path, resource_name, res, manifest, 
             # context instead of the project root used by generated TDK apps.
             context_prefix = '/'.join(['..'] * (len(resource_path.split('/')) + 1))
             build_context = context_prefix + '/' + full_resource_path
+            # `buildContext` (relative to the service directory) moves the context
+            # to the source tree an imported Dockerfile lives in; `dockerfile` is then
+            # relative to that context, as in Compose.
+            custom_context = manifest.get('buildContext')
+            if custom_context and custom_context != '.':
+                build_context = build_context + '/' + custom_context
             dockerfile = manifest.get('dockerfile', 'Dockerfile')
             if dockerfile.startswith('./'):
                 dockerfile = dockerfile[2:]

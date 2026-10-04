@@ -23,6 +23,7 @@ const KNOWN_SERVICE_FIELDS = new Set([
   "backendName",
   "basePath",
   "build",
+  "buildContext",
   "databaseName",
   "dependencies",
   "dev",
