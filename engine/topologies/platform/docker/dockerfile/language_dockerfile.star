@@ -177,15 +177,16 @@ done
 """
 
 # Opt-in Go development target (`dev.liveReload`): the toolchain image plus the watcher above, which rebuilds and restarts the app when a
-# source file changes. Dependencies are downloaded in their own layer and the Go module cache is a BuildKit cache mount, so an ordinary
+# source file changes. Dependencies are downloaded in their own layer and the module download is its own image layer, so an ordinary
 # source edit recompiles incrementally. `go.mod`, `go.sum` and the Dockerfile still rebuild the image. The heredoc needs BuildKit's
-# Dockerfile frontend 1.4 (Docker Engine 23+), which is also what makes the cache mount available.
+# Dockerfile frontend 1.4 (Docker Engine 23+).
 _GO_DEVELOPMENT = """
 FROM golang:1.23-bookworm AS development
 ENV GOTOOLCHAIN=auto
 WORKDIR /app/{res_path}
 COPY {res_path}/go.* ./
-RUN --mount=type=cache,target=/go/pkg/mod go mod download
+# A plain RUN (not a cache mount) keeps the modules in a layer keyed on go.mod and go.sum, so the priming build below reuses them.
+RUN go mod download
 COPY {res_path}/ ./
 ENV GOFLAGS=-buildvcs=false CGO_ENABLED=0
 # Prime the build cache inside the image (a cache mount would not be kept), so the first edit recompiles only what changed.

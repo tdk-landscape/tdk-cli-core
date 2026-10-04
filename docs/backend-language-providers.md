@@ -106,8 +106,8 @@ watcher at a load average of about 12 had edits of 2 to 15 s, with the app unrea
 build kept answering while the slow compile ran. Treat these as one machine's numbers, not a promise. The 1 to 2 second target in #369
 was met on the median in the run above, not by every edit (the slowest was 2.5 s) and not in the busier run.
 
-Run it yourself: `scripts/e2e/go-dev-loop.sh [edits]` (Docker, Tilt, Python 3 and a built CLI). It fails if the app is down for longer than
-a swap should take, if the compiler error is missing from the Tilt log, if the service does not keep serving after a broken edit, or if a
+Run it yourself: `scripts/e2e/go-dev-loop.sh [edits]` (Docker, Tilt, Python 3 and a built CLI). It fails if the app itself is down for longer than
+a swap should take (refused connections or 502s; a Traefik `503` from its health check is printed as a warning, not counted), if the compiler error is missing from the Tilt log, if the service does not keep serving after a broken edit, or if a
 `go.mod` change does not rebuild the image.
 
 ## Rust

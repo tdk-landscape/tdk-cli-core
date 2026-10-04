@@ -148,9 +148,11 @@ def rebuild_times() -> list[tuple[str, float]]:
     return cycles
 
 
-def identity() -> tuple[str, str]:
+def identity() -> tuple[str, str, str]:
+    """(container id, image id, start time)."""
     return (
-        sh("docker", "inspect", "-f", "{{.Id}} {{.Image}}", args.container),
+        sh("docker", "inspect", "-f", "{{.Id}}", args.container),
+        sh("docker", "inspect", "-f", "{{.Image}}", args.container),
         sh("docker", "inspect", "-f", "{{.State.StartedAt}}", args.container),
     )
 
@@ -208,8 +210,13 @@ try:
     if "undefinedHandlerForTdkProbe" not in log:
         failures.append("the compiler error never appeared in Tilt's log")
     time.sleep(2.0)
-    still = [s for t, s in samples if t > t_broken + 1.0]
-    if not still or any(s != f"200 {good_version}" for s in still[-20:]):
+    # Every sample from the broken edit on, not just the last few: an app that was stopped and restarted would have recovered by now.
+    since = [s for t, s in samples if t >= t_broken]
+    still = [s for s in since]
+    interrupted = [s for s in since if not s.startswith("200") and s != "HTTP 503"]
+    if interrupted:
+        failures.append(f"the service was interrupted by the broken edit ({len(interrupted)} refused or failed requests, first {interrupted[0]!r})")
+    if not still or still[-1] != f"200 {good_version}" or any(s.startswith("200") and s != f"200 {good_version}" for s in still):
         failures.append(f"after the broken edit the service did not keep serving {good_version}: last answers {still[-3:]}")
     if any(s == "200 9.9.9" for _, s in samples):
         failures.append("the broken edit was served")
@@ -240,9 +247,11 @@ try:
     after_dep = identity()
     if dep_took is None:
         failures.append("after a go.mod change the rebuilt service was not served within 300s")
-    elif before_dep == after_dep:
-        failures.append("a go.mod change was applied without rebuilding the image and recreating the container")
-    print(f"go.mod change: image rebuilt and container recreated: {before_dep != after_dep}; new response served after "
+    elif before_dep[1] == after_dep[1]:
+        failures.append("a go.mod change was applied without rebuilding the image")
+    elif before_dep[0] == after_dep[0]:
+        failures.append("a go.mod change rebuilt the image but did not recreate the container")
+    print(f"go.mod change: image rebuilt: {before_dep[1] != after_dep[1]}, container recreated: {before_dep[0] != after_dep[0]}; new response served after "
           f"{'%.1fs' % dep_took if dep_took is not None else 'NEVER'}")
 
     # Cycles are in order: one per valid edit, then the recovery edit. Only trust the pairing when the counts agree.

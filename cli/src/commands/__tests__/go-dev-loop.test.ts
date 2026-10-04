@@ -59,7 +59,7 @@ if 'tdk-go-watch' in default: fail('the default Go Dockerfile must not mention t
 if 'COPY --chmod=755 <<' not in dev or '/usr/local/bin/tdk-go-watch' not in dev: fail('the watcher script is not installed')
 if 'CMD ["tdk-go-watch"]' not in dev: fail('the development target must run the watcher')
 if 'air-verse' in dev or 'cosmtrek' in dev: fail('Air stops the app before it compiles, so the watcher replaced it')
-if '--mount=type=cache,target=/go/pkg/mod' not in dev: fail('missing Go module cache mount')
+if '--mount=type=cache,target=/go/pkg/mod' in dev: fail('modules must be downloaded into an image layer, not a cache mount that the priming build cannot see')
 if "RUN go build -ldflags='-s -w' -o /tmp/app ." not in dev: fail('the image must prime the Go build cache (a RUN, not a cache mount, so the warm cache is kept in the image the watcher runs from)')
 if 'go mod download' not in dev: fail('dependencies must be installed in their own layer so edits do not redownload them')
 if 'AS production' not in dev: fail('the production target must remain available')
