@@ -266,7 +266,9 @@ for _KNOWN_SVC in _app_resources_list:
                 _KNOWN_TILT_RESOURCES.add(_KNOWN_RES_NAME + '-config-gen')
                 _KNOWN_RES_MANIFEST = _KNOWN_RES.get('_manifest', {})
                 _KNOWN_RES_SABLIER = _KNOWN_RES_MANIFEST.get('sablier', {})
-                if resource_defers_start(_KNOWN_RES_MANIFEST):
+                # Mirrors _register_single_resource: the prebuild only exists for
+                # a resource that gets a docker_build (has syncs, not a library/sdk/BYO).
+                if resource_defers_start(_KNOWN_RES_MANIFEST) and _KNOWN_RES_MANIFEST.get('appType', 'backend') not in ['library', 'sdk', 'bring-your-own'] and _KNOWN_RES_MANIFEST.get('syncs'):
                     _DEFERRED_IMAGE_RESOURCES.add(_KNOWN_RES_NAME + '-image')
                 if _KNOWN_SVC_STACK:
                     _STACK_TO_RESOURCE_NAMES.setdefault(_KNOWN_SVC_STACK, [])
