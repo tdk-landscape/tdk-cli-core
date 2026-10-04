@@ -16,6 +16,7 @@ describe("ensureGitignore", () => {
       ".env",
       ".tdk/.tdk-out/",
       ".tdk/.project-id",
+      ".tdk/smoke/",
       "node_modules/",
     ]);
     expect(readFileSync(join(dir, ".gitignore"), "utf-8")).toContain(".env\n");
@@ -23,7 +24,12 @@ describe("ensureGitignore", () => {
 
   it("appends only what's missing and keeps existing lines", () => {
     writeFileSync(join(dir, ".gitignore"), "node_modules\ndist");
-    expect(ensureGitignore(dir)).toEqual([".env", ".tdk/.tdk-out/", ".tdk/.project-id"]);
+    expect(ensureGitignore(dir)).toEqual([
+      ".env",
+      ".tdk/.tdk-out/",
+      ".tdk/.project-id",
+      ".tdk/smoke/",
+    ]);
     const content = readFileSync(join(dir, ".gitignore"), "utf-8");
     expect(content.startsWith("node_modules\ndist\n")).toBe(true);
   });

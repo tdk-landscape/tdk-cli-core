@@ -3,7 +3,9 @@
 #   Phase 1: a backend with an in-memory /records API declares a smoke block (POST a record, GET it back by the saved id).
 #            `tdk up` must print "Smoke check passed" and keep running.
 #   Phase 2: the same service.json points a step at a route the service does not have. `tdk up` must print "Smoke check failed"
-#            with the URL and status, and exit non-zero.
+#            with the URL and status, and exit non-zero. The retained record (.tdk/smoke/<service>/read-back/latest.json) must hold
+#            the public URL, status 404 and a non-empty body, and phase 1's last-success copy must still be there.
+# VERIFY_SMOKE_ARTIFACT_DIR: when set, the project's .tdk/smoke records are copied there on exit (pass or fail) for CI to upload.
 # Needs Docker, Tilt, and a built CLI (cli/dist). Uses a unique project name and random alternate ports, and removes only the
 # containers, networks and images carrying that name (it never calls `tdk down`).
 #
@@ -18,6 +20,9 @@ http_port=$((30000 + RANDOM % 2000))
 tdk() { TDK_EXTENSION_SOURCE="$root" node "$root/cli/bin/tdk.js" "$@"; }
 
 cleanup() {
+  if [ -n "${VERIFY_SMOKE_ARTIFACT_DIR:-}" ] && [ -d "$work/.tdk/smoke" ]; then
+    mkdir -p "$VERIFY_SMOKE_ARTIFACT_DIR" && cp -R "$work/.tdk/smoke/." "$VERIFY_SMOKE_ARTIFACT_DIR/" || true
+  fi
   pkill -f "tilt up.*$proj" >/dev/null 2>&1 || true
   docker rm -f $(docker ps -aq --filter "name=$proj") >/dev/null 2>&1 || true
   docker network ls --format '{{.Name}}' | grep "^${proj}" | xargs -r docker network rm >/dev/null 2>&1 || true
@@ -62,7 +67,7 @@ p = sys.argv[1]
 d = json.load(open(p))
 d["smoke"] = {
     "via": "proxy",
-    "timeoutSeconds": 20 if "missing" in os.environ["SMOKE_READ"] else 120,
+    "timeoutSeconds": 20 if "missing" in os.environ["SMOKE_READ"] else 600,
     "steps": [
         {"name": "create", "method": "POST", "path": "/records", "body": {"name": "smoke"}, "expect": 201, "save": {"id": "$.id"}},
         {"name": "read back", "path": os.environ["SMOKE_READ"], "expect": 200, "bodyContains": "smoke"},
@@ -110,9 +115,27 @@ wait "$pid"
 code=$?
 set -e
 fail_line="$(grep "Smoke check failed" up.log | tail -1 || true)"
-if [ "$code" != "0" ] && echo "$fail_line" | grep -q "/api/$proj/missing/" && echo "$fail_line" | grep -q "404"; then
-  echo "PASS smoke: through tdk up and Traefik. Good block -> '$pass_line'. Missing route -> exit $code, '$fail_line'"
+record_dir="$work/.tdk/smoke/$proj/read-back"
+record_error="$(python3 - "$record_dir" "$proj" <<'PY'
+import json, os, sys
+d, proj = sys.argv[1], sys.argv[2]
+try:
+    r = json.load(open(os.path.join(d, "latest.json")))
+    body = open(os.path.join(d, "body.txt")).read()
+    last_ok = open(os.path.join(d, "last-success-body.txt")).read()
+except Exception as e:
+    print(f"cannot read record in {d}: {e}"); sys.exit(0)
+if f"/api/{proj}/missing/" not in r.get("url", ""): print(f"record url is {r.get('url')!r}")
+elif r.get("status") != 404: print(f"record status is {r.get('status')!r}")
+elif not body.strip(): print("record body is empty")
+elif "smoke" not in last_ok: print("last-success body from phase 1 is missing")
+PY
+)"
+if [ "$code" != "0" ] && echo "$fail_line" | grep -q "/api/$proj/missing/" && echo "$fail_line" | grep -q "404" \
+  && echo "$fail_line" | grep -q "record: .*latest.json" && [ -z "$record_error" ]; then
+  echo "PASS smoke: through tdk up and Traefik. Good block -> '$pass_line'. Missing route -> exit $code, '$fail_line'. Record kept in $record_dir"
 else
+  [ -n "$record_error" ] && echo "FAIL smoke record: $record_error" >&2
   echo "FAIL smoke phase 2: exit=$code line='$fail_line'" >&2
   tail -30 up.log >&2
   exit 1

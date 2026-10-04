@@ -1,8 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
 import type { DiscoveredResource } from "../../types/index.js";
 import {
   buildSmokePlans,
+  formatSmokeFailure,
   runSmokePlan,
+  SMOKE_RECORD_BODY_MAX_BYTES,
   type SmokeConfig,
   type SmokePlan,
   validateSmoke,
@@ -113,6 +118,19 @@ describe("buildSmokePlans", () => {
       ["orders-api", expect.stringMatching(/^http:\/\/.*:8080\/api\/orders$/)],
       ["shop-web", expect.stringMatching(/^http:\/\/.*:8080\/shop-web$/)],
     ]);
+  });
+
+  it("polls healthCheckPath before the first step, defaulting to /health for APIs only", () => {
+    const [api, custom, web, byo] = buildSmokePlans([
+      resource("orders-api", "backend", { smoke: SMOKE }),
+      resource("ping-api", "backend", { smoke: SMOKE, healthCheckPath: "/healthz" }),
+      resource("shop-web", "frontend", { smoke: SMOKE }),
+      resource("byo", "bring-your-own", { smoke: SMOKE }),
+    ]);
+    expect(api?.readyPath).toBe("/health");
+    expect(custom?.readyPath).toBe("/healthz");
+    expect(web?.readyPath).toBeUndefined();
+    expect(byo?.readyPath).toBeUndefined();
   });
 
   it("skips workers and bring-your-own with exposeViaProxy false", () => {
@@ -260,5 +278,199 @@ describe("runSmokePlan", () => {
     });
     expect((await runSmokePlan(plan, { fetch, ...clock() })).ok).toBe(true);
     expect(calls[1]?.url).toBe(`${base}/x/two`);
+  });
+});
+
+describe("readiness gate", () => {
+  const base = PLAN.baseUrl;
+  const gated: SmokePlan = { ...PLAN, readyPath: "/health" };
+
+  it("sends no write until a GET to the health path is answered, and never repeats the write", async () => {
+    const reset = Object.assign(new Error("read ECONNRESET"), { code: "ECONNRESET" });
+    const { fetch, calls } = fakeFetch({
+      [`GET ${base}/health`]: [
+        reset,
+        { status: 404 },
+        { status: 503 },
+        { status: 500 },
+        { status: 200 },
+      ],
+      [`POST ${base}/records`]: [{ status: 201, body: '{"id":"a1"}' }],
+      [`GET ${base}/records/a1`]: [{ status: 200, body: "smoke" }],
+    });
+    expect((await runSmokePlan(gated, { fetch, ...clock() })).ok).toBe(true);
+    const firstPost = calls.findIndex((c) => c.method === "POST");
+    expect(calls.slice(0, firstPost).map((c) => `${c.method} ${c.url}`)).toEqual(
+      Array(5).fill(`GET ${base}/health`),
+    );
+    expect(calls.filter((c) => c.method === "POST")).toHaveLength(1);
+  });
+
+  it("gives the steps their own timeout after a slow readiness wait", async () => {
+    const plan: SmokePlan = {
+      ...gated,
+      smoke: { via: "proxy", timeoutSeconds: 3, steps: [{ name: "ping", path: "/ping" }] },
+    };
+    // Three not-ready health answers use up the whole 3s budget; the step still gets its own retries.
+    const { fetch, calls } = fakeFetch({
+      [`GET ${base}/health`]: [{ status: 503 }, { status: 503 }, { status: 503 }, { status: 200 }],
+      [`GET ${base}/ping`]: [{ status: 503 }, { status: 200, body: "ok" }],
+    });
+    const result = await runSmokePlan(plan, { fetch, ...clock() });
+    expect(result.ok).toBe(true);
+    expect(calls.filter((c) => c.url.endsWith("/ping"))).toHaveLength(2);
+  });
+
+  it("falls through to the first step when the service never answers, so that step reports it", async () => {
+    const down = Object.assign(new Error("connect ECONNREFUSED"), { code: "ECONNREFUSED" });
+    const { fetch, calls } = fakeFetch({
+      [`GET ${base}/health`]: [down],
+      [`POST ${base}/records`]: [down],
+    });
+    const result = await runSmokePlan(gated, { fetch, ...clock() });
+    expect(result.ok).toBe(false);
+    expect(result.failure).toMatch(/create: POST .* never answered/);
+    expect(calls.some((c) => c.method === "POST")).toBe(true);
+  });
+});
+
+describe("smoke records", () => {
+  const dirs: string[] = [];
+  afterEach(() => {
+    for (const d of dirs.splice(0)) rmSync(d, { recursive: true, force: true });
+  });
+  const tmp = () => {
+    const d = mkdtempSync(join(tmpdir(), "smoke-record-"));
+    dirs.push(d);
+    return d;
+  };
+  const base = PLAN.baseUrl;
+  const stepDir = (dir: string, step: string) => join(dir, "orders-api", step);
+  const json = (path: string) => JSON.parse(readFileSync(path, "utf8"));
+
+  it("keeps status and body of a passing step, and a last-success copy", async () => {
+    const recordDir = tmp();
+    const { fetch } = fakeFetch({
+      [`POST ${base}/records`]: [{ status: 201, body: '{"id":"a1"}' }],
+      [`GET ${base}/records/a1`]: [{ status: 200, body: "smoke" }],
+    });
+    expect((await runSmokePlan(PLAN, { fetch, recordDir, ...clock() })).ok).toBe(true);
+    const dir = stepDir(recordDir, "create");
+    expect(json(join(dir, "latest.json"))).toMatchObject({
+      service: "orders-api",
+      step: "create",
+      method: "POST",
+      url: `${base}/records`,
+      expectedStatus: 201,
+      status: 201,
+      truncated: false,
+    });
+    expect(readFileSync(join(dir, "body.txt"), "utf8")).toBe('{"id":"a1"}');
+    expect(readFileSync(join(dir, "last-success-body.txt"), "utf8")).toBe('{"id":"a1"}');
+    expect(json(join(dir, "last-success.json")).status).toBe(201);
+  });
+
+  it("records a failure with the public URL, status and body, and keeps the last success", async () => {
+    const recordDir = tmp();
+    const ok = fakeFetch({
+      [`POST ${base}/records`]: [{ status: 201, body: '{"id":"a1"}' }],
+      [`GET ${base}/records/a1`]: [{ status: 200, body: "smoke" }],
+    });
+    await runSmokePlan(PLAN, { fetch: ok.fetch, recordDir, ...clock() });
+
+    const bad = fakeFetch({
+      [`POST ${base}/records`]: [{ status: 201, body: '{"id":"a1"}' }],
+      [`GET ${base}/records/a1`]: [{ status: 500, body: "boom" }],
+    });
+    const result = await runSmokePlan(PLAN, { fetch: bad.fetch, recordDir, ...clock() });
+    expect(result.ok).toBe(false);
+    const dir = stepDir(recordDir, "read-back");
+    expect(result.recordPath).toBe(join(dir, "latest.json"));
+    expect(formatSmokeFailure(result)).toContain(`(record: ${join(dir, "latest.json")})`);
+    expect(json(join(dir, "latest.json"))).toMatchObject({
+      url: `${base}/records/a1`,
+      status: 500,
+    });
+    expect(readFileSync(join(dir, "body.txt"), "utf8")).toBe("boom");
+    expect(readFileSync(join(dir, "last-success-body.txt"), "utf8")).toBe("smoke");
+    expect(json(join(dir, "last-success.json")).status).toBe(200);
+  });
+
+  it("does not count a status match with a missing bodyContains as a success", async () => {
+    const recordDir = tmp();
+    const { fetch } = fakeFetch({
+      [`POST ${base}/records`]: [{ status: 201, body: '{"id":"a1"}' }],
+      [`GET ${base}/records/a1`]: [{ status: 200, body: "other" }],
+    });
+    expect((await runSmokePlan(PLAN, { fetch, recordDir, ...clock() })).ok).toBe(false);
+    const dir = stepDir(recordDir, "read-back");
+    expect(existsSync(join(dir, "latest.json"))).toBe(true);
+    expect(existsSync(join(dir, "last-success.json"))).toBe(false);
+  });
+
+  it("caps the body at 64 KiB and marks the record truncated", async () => {
+    const recordDir = tmp();
+    const plan: SmokePlan = {
+      ...PLAN,
+      smoke: { via: "proxy", steps: [{ name: "big", path: "/big" }] },
+    };
+    const { fetch } = fakeFetch({
+      [`GET ${base}/big`]: [{ status: 200, body: "x".repeat(SMOKE_RECORD_BODY_MAX_BYTES + 500) }],
+    });
+    await runSmokePlan(plan, { fetch, recordDir, ...clock() });
+    const dir = stepDir(recordDir, "big");
+    expect(readFileSync(join(dir, "body.txt")).length).toBe(SMOKE_RECORD_BODY_MAX_BYTES);
+    expect(json(join(dir, "latest.json"))).toMatchObject({
+      truncated: true,
+      bodyBytes: SMOKE_RECORD_BODY_MAX_BYTES,
+    });
+  });
+
+  it("writes a null status and the error code, and no body file, when nothing answers", async () => {
+    const recordDir = tmp();
+    const plan: SmokePlan = {
+      ...PLAN,
+      smoke: { via: "proxy", timeoutSeconds: 1, steps: [{ name: "ping", path: "/ping" }] },
+    };
+    const refused = Object.assign(new Error("connect ECONNREFUSED"), { code: "ECONNREFUSED" });
+    const { fetch } = fakeFetch({ [`GET ${base}/ping`]: [refused] });
+    const result = await runSmokePlan(plan, { fetch, recordDir, ...clock() });
+    expect(result.ok).toBe(false);
+    const dir = stepDir(recordDir, "ping");
+    expect(json(join(dir, "latest.json"))).toMatchObject({ status: null, error: "ECONNREFUSED" });
+    expect(existsSync(join(dir, "body.txt"))).toBe(false);
+  });
+
+  it("keeps a separate record for steps whose names slug the same", async () => {
+    const recordDir = tmp();
+    const plan: SmokePlan = {
+      ...PLAN,
+      smoke: {
+        via: "proxy",
+        steps: [
+          { name: "read back", path: "/a" },
+          { name: "read-back", path: "/b" },
+        ],
+      },
+    };
+    const { fetch } = fakeFetch({
+      [`GET ${base}/a`]: [{ status: 200, body: "first" }],
+      [`GET ${base}/b`]: [{ status: 200, body: "second" }],
+    });
+    await runSmokePlan(plan, { fetch, recordDir, ...clock() });
+    expect(readFileSync(join(stepDir(recordDir, "read-back"), "body.txt"), "utf8")).toBe("first");
+    expect(readFileSync(join(stepDir(recordDir, "read-back-2"), "body.txt"), "utf8")).toBe(
+      "second",
+    );
+  });
+
+  it("writes nothing without a recordDir", async () => {
+    const { fetch } = fakeFetch({
+      [`POST ${base}/records`]: [{ status: 201, body: '{"id":"a1"}' }],
+      [`GET ${base}/records/a1`]: [{ status: 200, body: "smoke" }],
+    });
+    const result = await runSmokePlan(PLAN, { fetch, ...clock() });
+    expect(result.ok).toBe(true);
+    expect(result.recordPath).toBeUndefined();
   });
 });

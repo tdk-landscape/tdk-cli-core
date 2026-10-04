@@ -1,4 +1,5 @@
 import { connect } from "node:net";
+import { join } from "node:path";
 import chalk from "chalk";
 import { Command } from "commander";
 import { ensureProjectRuntimeAssets } from "../generator/template-engine.js";
@@ -210,7 +211,9 @@ export const upCommand = new Command("up")
                 if (!options.quiet) {
                     console.log(chalk.gray(`Smoke check: ${smokePlans.map((p) => p.name).join(", ")}`));
                 }
-                const results = await runSmokePlans(smokePlans);
+                const results = await runSmokePlans(smokePlans, {
+                    recordDir: join(projectRoot, ".tdk", "smoke"),
+                });
                 for (const smokeResult of results) {
                     if (smokeResult.ok) {
                         if (!options.quiet)

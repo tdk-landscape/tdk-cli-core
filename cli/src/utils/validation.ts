@@ -7,30 +7,38 @@ function isKebabCase(value: string): boolean {
   return KEBAB_CASE_REGEX.test(value);
 }
 
+const KEBAB_RULE = "Use lowercase letters, numbers, and hyphens only";
+
+function invalidNameMessage(label: "Resource name" | "Stack name", value: string): string {
+  const example = label === "Resource name" ? "my-service" : "my-stack";
+  return `${label} "${value}" is not valid. ${KEBAB_RULE}, e.g. "${example}".`;
+}
+
 export function validateResourceName(name: string): ValidationResult {
   if (!name.trim()) {
     return { valid: false, error: "Resource name is required" };
   }
   if (!isKebabCase(name)) {
-    return {
-      valid: false,
-      error: "Use lowercase letters, numbers, and hyphens only",
-    };
+    return { valid: false, error: invalidNameMessage("Resource name", name) };
+  }
+  return { valid: true };
+}
+
+export function validateStackName(name: string): ValidationResult {
+  if (!name.trim()) {
+    return { valid: false, error: "Stack name is required" };
+  }
+  if (!isKebabCase(name)) {
+    return { valid: false, error: invalidNameMessage("Stack name", name) };
   }
   return { valid: true };
 }
 
 export function createKebabCaseValidator(context: "resource" | "stack") {
+  const validate = context === "resource" ? validateResourceName : validateStackName;
   return (input: string): true | string => {
-    if (!input.trim()) {
-      return context === "resource" ? "Resource name is required" : "Stack name is required";
-    }
-    if (!isKebabCase(input)) {
-      return context === "resource"
-        ? "Use lowercase letters, numbers, and hyphens only"
-        : "Use kebab-case (lowercase, numbers, hyphens only)";
-    }
-    return true;
+    const result = validate(input);
+    return result.valid ? true : (result.error ?? "Invalid name");
   };
 }
 

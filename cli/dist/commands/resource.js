@@ -18,7 +18,7 @@ import { promptSelect, promptText } from "../utils/prompt.js";
 import { getDefaultFeaturesForResourceType } from "../utils/resource-features.js";
 import { SERVICE_MANIFEST_SCHEMA_URL, SERVICE_MANIFEST_SCHEMA_VERSION, } from "../utils/service-manifest.js";
 import { discoverResources } from "../utils/services.js";
-import { createKebabCaseValidator, isPathSafe, validateResourceName } from "../utils/validation.js";
+import { createKebabCaseValidator, isPathSafe, validateResourceName, validateStackName, } from "../utils/validation.js";
 export const BASE_TEMPLATE = {
     port: 0, // Will be assigned
     // `dependsOn` is the current name; `dependencies` is deprecated and `tdk doctor` warns about it, so a fresh scaffold must not write it.
@@ -400,6 +400,7 @@ export const resourceCommand = new Command("resource")
                 dddEnabled = true;
             }
         }
+        assertValid(validateStackName(options.stack));
         let stackName = options.stack;
         if (stackName === "default") {
             const existingResources = allResources;

@@ -6,6 +6,7 @@ import {
   sanitizeForShell,
   validateOptionalInfraService,
   validateResourceName,
+  validateStackName,
 } from "../validation.js";
 
 describe("validateResourceName", () => {
@@ -62,7 +63,9 @@ describe("createKebabCaseValidator", () => {
 
   it("should return error for invalid resource name", () => {
     const validator = createKebabCaseValidator("resource");
-    expect(validator("MyResource")).toBe("Use lowercase letters, numbers, and hyphens only");
+    expect(validator("MyResource")).toBe(
+      'Resource name "MyResource" is not valid. Use lowercase letters, numbers, and hyphens only, e.g. "my-service".',
+    );
   });
 
   it("should return error for empty stack name", () => {
@@ -72,7 +75,29 @@ describe("createKebabCaseValidator", () => {
 
   it("should return error for invalid stack name", () => {
     const validator = createKebabCaseValidator("stack");
-    expect(validator("MyStack")).toBe("Use kebab-case (lowercase, numbers, hyphens only)");
+    expect(validator("MyStack")).toBe(
+      'Stack name "MyStack" is not valid. Use lowercase letters, numbers, and hyphens only, e.g. "my-stack".',
+    );
+  });
+});
+
+describe("validateStackName", () => {
+  it("accepts kebab-case names", () => {
+    expect(validateStackName("my-stack")).toEqual({ valid: true });
+    expect(validateStackName("shop2")).toEqual({ valid: true });
+  });
+
+  it("rejects spaces and capitals, naming the value and giving an example", () => {
+    expect(validateStackName("Bad Stack")).toEqual({
+      valid: false,
+      error:
+        'Stack name "Bad Stack" is not valid. Use lowercase letters, numbers, and hyphens only, e.g. "my-stack".',
+    });
+    expect(validateStackName("a/b").valid).toBe(false);
+  });
+
+  it("requires a name", () => {
+    expect(validateStackName("  ")).toEqual({ valid: false, error: "Stack name is required" });
   });
 });
 

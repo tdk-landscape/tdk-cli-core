@@ -14,6 +14,8 @@ export const statusCommand = new Command("status")
     .option("--tilt", "Show tilt resource status", false)
     .action(async (options) => {
     const action = async () => {
+        // Discover first: outside a project this fails before any status line is printed.
+        const discovery = createDiscoveryContext();
         let tiltAvailable = false;
         try {
             tiltAvailable = await isTiltAvailable();
@@ -30,7 +32,6 @@ export const statusCommand = new Command("status")
             }
             console.log();
         }
-        const discovery = createDiscoveryContext();
         let tiltResources = null;
         let queryError = null;
         if (options.json && options.tilt && tiltAvailable) {

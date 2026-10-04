@@ -18,11 +18,13 @@ describe("error handling", () => {
       });
       expect(validateResourceName("MyService")).toEqual({
         valid: false,
-        error: "Use lowercase letters, numbers, and hyphens only",
+        error:
+          'Resource name "MyService" is not valid. Use lowercase letters, numbers, and hyphens only, e.g. "my-service".',
       });
       expect(validateResourceName("my_service")).toEqual({
         valid: false,
-        error: "Use lowercase letters, numbers, and hyphens only",
+        error:
+          'Resource name "my_service" is not valid. Use lowercase letters, numbers, and hyphens only, e.g. "my-service".',
       });
     });
 
@@ -33,12 +35,14 @@ describe("error handling", () => {
       expect(resourceValidator("my-resource")).toBe(true);
       expect(resourceValidator("")).toBe("Resource name is required");
       expect(resourceValidator("MyResource")).toBe(
-        "Use lowercase letters, numbers, and hyphens only",
+        'Resource name "MyResource" is not valid. Use lowercase letters, numbers, and hyphens only, e.g. "my-service".',
       );
 
       expect(stackValidator("my-stack")).toBe(true);
       expect(stackValidator("")).toBe("Stack name is required");
-      expect(stackValidator("MyStack")).toBe("Use kebab-case (lowercase, numbers, hyphens only)");
+      expect(stackValidator("MyStack")).toBe(
+        'Stack name "MyStack" is not valid. Use lowercase letters, numbers, and hyphens only, e.g. "my-stack".',
+      );
     });
   });
 

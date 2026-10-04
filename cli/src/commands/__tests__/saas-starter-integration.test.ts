@@ -3,7 +3,10 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+// These spawn `tdk project` per test; the 5s default times out when the whole suite runs in parallel.
+vi.setConfig({ testTimeout: 60_000 });
 
 // Get the CLI bin path dynamically
 const __filename = fileURLToPath(import.meta.url);
