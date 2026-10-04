@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { isValidPort, isValidSince, isValidTail, parseTiltLogLines } from "../tilt-logs.js";
+import {
+  isTiltConnectionFailure,
+  isValidPort,
+  isValidSince,
+  isValidTail,
+  parseTiltLogLines,
+} from "../tilt-logs.js";
 
 const line = (message: string, extra: Record<string, unknown> = {}) =>
   JSON.stringify({
@@ -46,6 +52,20 @@ describe("option validation", () => {
   });
   it("accepts positive integer tails only", () => {
     expect(isValidTail("200")).toBe(true);
-    for (const bad of ["0", "-1", "1.5", "10x", ""]) expect(isValidTail(bad)).toBe(false);
+    for (const bad of ["0", "-1", "1.5", "10x", "", "10001", "9007199254740991"]) {
+      expect(isValidTail(bad)).toBe(false);
+    }
+    expect(isValidTail("10000")).toBe(true);
+  });
+});
+
+describe("isTiltConnectionFailure", () => {
+  it("separates a missing server from rejected arguments", () => {
+    expect(
+      isTiltConnectionFailure(
+        "Error: fetching websocket token: dial tcp [::1]:10398: connect: connection refused",
+      ),
+    ).toBe(true);
+    expect(isTiltConnectionFailure('Error: invalid argument "5x" for "--since" flag')).toBe(false);
   });
 });

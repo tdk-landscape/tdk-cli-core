@@ -7,6 +7,8 @@ export interface LogLine {
 }
 
 export const DEFAULT_LOG_TAIL = 200;
+/** Upper bound for --tail so a snapshot stays small enough for an agent to read. */
+export const MAX_LOG_TAIL = 10_000;
 
 const NANOSECONDS: Record<string, number> = {
   ns: 1,
@@ -20,7 +22,11 @@ const NANOSECONDS: Record<string, number> = {
 // Go's time.Duration is an int64 of nanoseconds, so anything beyond this is rejected by `tilt logs`.
 const MAX_DURATION_NANOSECONDS = 2 ** 63 - 1;
 
-/** Go-style duration such as 30s, 5m, 1h or 1h30m, within the range Go's ParseDuration accepts. */
+/**
+ * Go-style duration such as 30s, 5m, 1h or 1h30m, within roughly the range Go's ParseDuration accepts.
+ * The sum is a JS number, so values within a few nanoseconds of the int64 limit can disagree with Go; this only needs to
+ * reject absurd input, and Tilt remains the final judge (its rejection is reported as TILT_LOGS_FAILED).
+ */
 export function isValidSince(value: string): boolean {
   if (!/^(\d+(\.\d+)?(ns|us|µs|ms|s|m|h))+$/.test(value)) return false;
   let total = 0;
@@ -35,7 +41,7 @@ export function isValidPort(value: string): boolean {
 }
 
 export function isValidTail(value: string): boolean {
-  return /^[1-9]\d*$/.test(value) && Number.isSafeInteger(Number(value));
+  return /^[1-9]\d*$/.test(value) && Number(value) <= MAX_LOG_TAIL;
 }
 
 /** Parse `tilt logs --json` (JSON Lines) into normalized lines, keeping at most the last `limit`. Unparseable lines are skipped. */
@@ -59,4 +65,11 @@ export function parseTiltLogLines(output: string, limit: number): LogLine[] {
     }
   }
   return lines.slice(-limit);
+}
+
+/** True when `tilt logs` failed because no Tilt server answered, as opposed to rejecting its arguments. */
+export function isTiltConnectionFailure(stderr: string): boolean {
+  return /connection refused|connecting to Tilt|no such host|dial tcp|websocket_token/i.test(
+    stderr,
+  );
 }

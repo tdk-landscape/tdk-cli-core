@@ -5,9 +5,11 @@ import { createMachineEnvelope } from "../utils/machine-output.js";
 import { isTiltAvailable, runTilt } from "../utils/tilt.js";
 import {
   DEFAULT_LOG_TAIL,
+  isTiltConnectionFailure,
   isValidPort,
   isValidSince,
   isValidTail,
+  MAX_LOG_TAIL,
   parseTiltLogLines,
 } from "../utils/tilt-logs.js";
 
@@ -43,8 +45,9 @@ export const logsCommand = new Command("logs")
       return showErrorAndExit(message, exitCode);
     };
 
-    if (!isValidTail(options.tail)) fail("USAGE", "--tail must be a positive integer", 2);
-    if (options.since && !isValidSince(options.since)) {
+    if (!isValidTail(options.tail))
+      fail("USAGE", `--tail must be an integer from 1 to ${MAX_LOG_TAIL}`, 2);
+    if (options.since !== undefined && !isValidSince(options.since)) {
       fail("USAGE", "--since must be a duration such as 30s, 5m or 1h", 2);
     }
     const portText = options.port ?? process.env.TILT_PORT ?? String(STANDARD_PORTS.tiltUi);
@@ -68,16 +71,21 @@ export const logsCommand = new Command("logs")
         }
       }
       const args = ["--port", portText, "--tail", String(tail)];
-      if (options.since) args.push("--since", options.since);
+      if (options.since !== undefined) args.push("--since", options.since);
       if (options.json) args.push("--json");
-      args.push(...services);
+      // `--` so a service name that starts with "-" is never read as a Tilt flag.
+      if (services.length > 0) args.push("--", ...services);
 
       const result = await runTilt("logs", args, { inheritStdio: false });
       if (result.exitCode !== 0) {
-        fail(
-          "TILT_NOT_RUNNING",
-          `Could not read logs from Tilt on port ${portText}: ${result.stderr.trim() || "is the stack running? Start it with: tdk up"}`,
-        );
+        const detail = result.stderr.trim();
+        if (!detail || isTiltConnectionFailure(detail)) {
+          fail(
+            "TILT_NOT_RUNNING",
+            `Could not reach Tilt on port ${portText}: ${detail || "is the stack running? Start it with: tdk up"}`,
+          );
+        }
+        fail("TILT_LOGS_FAILED", `tilt logs failed: ${detail}`);
       }
 
       if (!options.json) {
