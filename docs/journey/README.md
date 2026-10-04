@@ -1,6 +1,6 @@
 # The TDK Journey 🗺️
 
-![The TDK Journey map](map.svg)
+![The TDK Journey map](https://raw.githubusercontent.com/tdk-landscape/tdk-cli-core/journey-map/docs/journey/map.svg)
 
 Contributing to TDK is a small adventure. Pick an island, finish quests, and rank up, Codewars style.
 
@@ -41,7 +41,7 @@ Your rank is simply the hardest tier you have had merged. Merge a 7 kyu and you 
 The map is generated from the issue labels (`island: ...`, with `tracking` issues skipped):
 
 ```bash
-node scripts/journey-map.mjs   # needs the gh CLI, rewrites docs/journey/map.svg
+node scripts/journey-map.mjs   # needs the gh CLI, rewrites docs/journey/map.svg (CI publishes it daily to the `journey-map` branch)
 ```
 
 Maintainers: new quests only need an `island: ...` label and a `rank: ...` label to show up as a dot.

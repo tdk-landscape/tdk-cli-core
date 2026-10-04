@@ -16,26 +16,31 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     permissions:
-      contents: write # commit the refreshed SVG back to main
+      contents: write # push the refreshed SVG to the journey-map branch
       issues: read
     steps:
       - uses: actions/checkout@v7
         with:
-          persist-credentials: true # zizmor: ignore[artipacked] needed to push the refreshed SVG
+          persist-credentials: true # zizmor: ignore[artipacked] needed to push the journey-map branch
       - uses: actions/setup-node@v7
         with:
           node-version: 22
       - run: node scripts/journey-map.mjs "$GITHUB_REPOSITORY"
         env:
           GH_TOKEN: ${{ github.token }}
-      - name: Commit refreshed map
+      # `main` is protected (required status checks), and a bot push carries none, so the map is published to
+      # its own unprotected `journey-map` branch instead. docs/journey/README.md embeds it from there.
+      - name: Publish refreshed map to the journey-map branch
         run: |
-          git add docs/journey/map.svg
-          if git diff --cached --quiet; then
+          git fetch origin journey-map || true
+          if git cat-file -e origin/journey-map:docs/journey/map.svg 2>/dev/null \
+            && git diff --quiet origin/journey-map -- docs/journey/map.svg; then
             echo "Map unchanged."
           else
             git config user.name "github-actions[bot]"
             git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+            git checkout -B journey-map
+            git add docs/journey/map.svg
             git commit -m "chore: refresh journey map"
-            git push
+            git push --force origin journey-map
           fi
