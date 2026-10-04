@@ -162,6 +162,10 @@
       "description": "Custom Dockerfile path relative to resource directory. Optional for bring-your-own type.",
       "type": "string"
     },
+    "buildContext": {
+      "description": "Docker build context for a bring-your-own resource, relative to the resource directory. Defaults to the resource directory. When set, dockerfile is relative to this context.",
+      "type": "string"
+    },
     "exposeViaProxy": {
       "description": "Whether this bring-your-own resource receives a Traefik route. Defaults to true.",
       "type": "boolean"

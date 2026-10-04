@@ -233,7 +233,12 @@ def _apply_manifest_defaults(manifest, resource_path):
     # Validate custom dockerfile exists if specified
     if 'dockerfile' in result:
         custom_dockerfile = result['dockerfile']
-        dockerfile_path = resource_path + '/' + custom_dockerfile
+        # With a bring-your-own buildContext the dockerfile is relative to that context.
+        build_context = result.get('buildContext')
+        if build_context and build_context != '.':
+            dockerfile_path = resource_path + '/' + build_context + '/' + custom_dockerfile
+        else:
+            dockerfile_path = resource_path + '/' + custom_dockerfile
         # BUG FIX: Run check from project root since Tilt may run from .tdk/.tdk-out/
         project_root = os.environ.get('TDK_PROJECT_ROOT', '')
         if project_root:
