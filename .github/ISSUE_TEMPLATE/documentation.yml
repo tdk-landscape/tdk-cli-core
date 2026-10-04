@@ -1,0 +1,28 @@
+name: Documentation
+description: Report missing, incorrect, or unclear documentation
+labels: [documentation]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Help readers find accurate instructions. Include the page or file and
+        describe what should change.
+  - type: input
+    id: page
+    attributes:
+      label: Page or file
+      description: Link to the page or give its repository path.
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is wrong or missing?
+      description: Describe the unclear text, missing information, or failing command.
+    validations:
+      required: true
+  - type: textarea
+    id: suggested-fix
+    attributes:
+      label: Suggested fix
+      description: Suggest a correction or describe the information you expected to find.
