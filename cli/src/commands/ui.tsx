@@ -108,7 +108,7 @@ const ErrorScreen: React.FC<ErrorScreenProps> = ({ error, onRetry }) => (
   </Box>
 );
 
-const EmptyState: React.FC = () => (
+const EmptyState: React.FC<{ message?: string }> = ({ message }) => (
   <Box flexDirection="column" padding={2} alignItems="center">
     <Text bold color="yellow">
       No Services Found
@@ -121,6 +121,13 @@ const EmptyState: React.FC = () => (
     <Text> 2. Or create services manually</Text>
     <Box marginY={1} />
     <Text color="cyan">Press [r] to refresh or [q] to quit</Text>
+    {/* The top-level Esc hint has to be visible here too — with no services this is the
+        whole screen, and without this line the hint was set but never drawn. */}
+    {message && (
+      <Box paddingX={1} height={1}>
+        <Text color="cyan">▓▒░ {message} ░▒▓</Text>
+      </Box>
+    )}
   </Box>
 );
 
@@ -575,7 +582,7 @@ const TUIApp: React.FC = () => {
   }
 
   if (services.length === 0) {
-    return <EmptyState />;
+    return <EmptyState message={message} />;
   }
 
   return (
