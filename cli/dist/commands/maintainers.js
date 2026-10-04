@@ -47,7 +47,15 @@ export function parseMaintainers(markdown) {
     return { ok: true, rows };
 }
 export function evaluateMaintainers(rows) {
-    const valid = rows.filter((row) => row.name && row.githubId && !PLACEHOLDER_COMPANIES.has(row.company.toLowerCase()));
+    const seen = new Set();
+    const valid = rows.filter((row) => {
+        const id = row.githubId.toLowerCase();
+        if (!row.name || !id || seen.has(id) || PLACEHOLDER_COMPANIES.has(row.company.toLowerCase())) {
+            return false;
+        }
+        seen.add(id);
+        return true;
+    });
     const companies = new Set(valid.map((row) => row.company.toLowerCase()));
     const missingPeople = Math.max(0, MIN_MAINTAINERS - valid.length);
     const missingCompanies = Math.max(0, MIN_COMPANIES - companies.size);
