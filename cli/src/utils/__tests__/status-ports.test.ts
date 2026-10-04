@@ -32,6 +32,11 @@ describe("buildStackPorts", () => {
       ["postgres", 15432],
     ]);
   });
+  it("ignores an invalid Tilt port", () => {
+    const tilt = (value: number) => buildStackPorts(plan, value).find((p) => p.name === "tilt-ui");
+    expect(tilt(Number.NaN)?.hostPort).toBe(10350);
+    expect(tilt(-1)?.hostPort).toBe(10350);
+  });
   it("falls back to the Tilt UI alone when port planning failed", () => {
     expect(buildStackPorts(null).map((p) => p.name)).toEqual(["tilt-ui"]);
   });
