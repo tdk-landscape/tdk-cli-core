@@ -3,6 +3,10 @@ name: Publish tdk-import
 # tdk-import lives in tdk-landscape/tdk-import but is published with this repo's NPM_TOKEN,
 # the only place the secret is set. Run manually with a tag of that repo (for example v0.1.0).
 # Leave "dry_run" on first to check what would be published.
+#
+# Two jobs on purpose: the tag's install and test scripts run in "build", which never sees the
+# token. "publish" does not check out or run any tdk-import code; it only publishes the tarball
+# "build" produced, so the tag cannot reach NPM_TOKEN (for example through BASH_ENV).
 on:
   workflow_dispatch:
     inputs:
@@ -20,7 +24,7 @@ permissions:
   contents: read
 
 jobs:
-  publish:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -32,7 +36,6 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 24.15.0
-          registry-url: "https://registry.npmjs.org"
           package-manager-cache: false
 
       - name: Tag matches package.json
@@ -50,20 +53,50 @@ jobs:
       - run: npm run lint
       - run: npm run test
 
+      - name: Pack
+        env:
+          PACK_DIR: ${{ runner.temp }}/pack
+        run: |
+          mkdir -p "$PACK_DIR"
+          npm pack --pack-destination "$PACK_DIR"
+          ls -l "$PACK_DIR"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: tdk-import-tarball
+          path: ${{ runner.temp }}/pack/*.tgz
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      # Pinned: this job holds the token. Everything it runs comes from these two actions and npm.
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: tdk-import-tarball
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24.15.0
+          registry-url: "https://registry.npmjs.org"
+          package-manager-cache: false
+
       # No --provenance: the attestation would name this repo's workflow, not tdk-import's source.
       - name: Publish to npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           DRY_RUN: ${{ inputs.dry_run }}
         run: | # zizmor: ignore[use-trusted-publishing] new package: no trusted publisher exists until after the first publish
-          NAME=$(node -p "require('./package.json').name")
-          VERSION=$(node -p "require('./package.json').version")
+          TARBALL=$(ls ./*.tgz)
+          NAME=$(tar -xOzf "$TARBALL" package/package.json | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).name")
+          VERSION=$(tar -xOzf "$TARBALL" package/package.json | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).version")
           if npm view "$NAME@$VERSION" version >/dev/null 2>&1; then
             echo "$NAME@$VERSION is already published, skipping."
             exit 0
           fi
-          # dist/ was built by `npm install` (prepare) above; do not run package scripts again with the token in the environment.
-          FLAGS="--access public --ignore-scripts"
+          FLAGS="--access public"
           if [ "$DRY_RUN" = "true" ]; then FLAGS="$FLAGS --dry-run"; fi
           # shellcheck disable=SC2086
-          npm publish $FLAGS
+          npm publish "$TARBALL" $FLAGS
