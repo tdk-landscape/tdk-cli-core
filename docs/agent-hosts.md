@@ -20,6 +20,20 @@ A server that owns the repo and starts the agent (for example T3 Code) works whe
 
 The agent runs `tdk doctor`, then `tdk up --json` in the background, and polls `tdk status --json` for ports and URLs. Do not point such a server at a WebContainer: `canUp` stays false there.
 
+## MCP server
+
+`tdk mcp` runs a Model Context Protocol server over stdio, for agents that speak MCP instead of shelling out. Add it to the client's MCP config, started from the project directory:
+
+```json
+{ "mcpServers": { "tdk": { "command": "tdk", "args": ["mcp"] } } }
+```
+
+Tools (each runs the matching `--json` command, so they behave exactly like the CLI): `doctor`, `up`, `down`, `status`, `logs`, `resource_list`. Arguments are validated before anything runs: names may contain letters, digits, `.`, `_` and `-` only.
+
+- `up` takes `stack`, `only` (service names), `force` and `waitSeconds`. It starts Tilt detached and returns without waiting for the stack to be ready, since a build can outlast a tool call. It watches only for an early refusal (`UNKNOWN_SERVICE`, `TILT_ALREADY_RUNNING`, an unsupported host) and otherwise returns `started: true` with the process id and a log file. Poll `status` until `data.tilt.readiness.ready` is true.
+- `status` includes `data.tilt.readiness` (`ready`, `pending`, `failures`, `enabled`), which is `null` when no Tilt answers. The same field is on `tdk status --json`.
+- `logs` is a bounded snapshot; there is no streaming tool.
+
 ## WebContainers
 
 Not supported for `tdk up`. A WebContainer has no Docker daemon, Compose, or Tilt. `tdk doctor --json` reports `canUp: false` and `tdk up` exits non-zero without spawning Tilt. Run TDK on a machine with Docker and call it from the agent.

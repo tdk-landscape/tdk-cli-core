@@ -38,6 +38,46 @@ export function checkExpectedResources(jsonText, expected) {
     };
 }
 /**
+ * One look at `tilt get uiresources -o json`. `settled` means polling can stop: everything is ready, or the rest has
+ * finished with a failure (an errored resource, or an expected service Tilt has disabled).
+ */
+export function evaluateTiltReadiness(jsonText, deferred, expected) {
+    const parsed = parseTiltResourceFailures(onlyEnabledResources(jsonText), deferred);
+    let result = {
+        ready: parsed.failures.length === 0 && parsed.pendingCount === 0 && parsed.okCount > 0,
+        failures: parsed.failures.map((failure) => ({
+            name: failure.name,
+            message: failure.error || `${failure.updateStatus}/${failure.runtimeStatus}`,
+        })),
+        pending: parsed.pendingCount,
+        timedOut: false,
+        enabled: enabledNames(jsonText),
+    };
+    if (expected && expected.length > 0) {
+        const { missing, disabled } = checkExpectedResources(jsonText, expected);
+        if (missing.length > 0) {
+            result = { ...result, ready: false, pending: result.pending + missing.length };
+        }
+        if (disabled.length > 0) {
+            return {
+                settled: true,
+                result: {
+                    ...result,
+                    ready: false,
+                    failures: [
+                        ...result.failures,
+                        ...disabled.map((name) => ({ name, message: "disabled in Tilt" })),
+                    ],
+                },
+            };
+        }
+    }
+    return {
+        result,
+        settled: result.ready || (result.failures.length > 0 && result.pending === 0),
+    };
+}
+/**
  * Waits until every non-deferred Tilt resource is built and running. Resolves not-ready as soon as the rest has settled
  * with an errored resource, or at the deadline. Sablier-deferred resources are excluded: they stay idle by design.
  */
@@ -58,38 +98,9 @@ export async function waitForTiltResourcesReady(port, options = {}) {
         const text = await fetchJson(port);
         if (text) {
             try {
-                const parsed = parseTiltResourceFailures(onlyEnabledResources(text), deferred);
-                last = {
-                    ready: parsed.failures.length === 0 && parsed.pendingCount === 0 && parsed.okCount > 0,
-                    failures: parsed.failures.map((failure) => ({
-                        name: failure.name,
-                        message: failure.error || `${failure.updateStatus}/${failure.runtimeStatus}`,
-                    })),
-                    pending: parsed.pendingCount,
-                    timedOut: false,
-                    enabled: enabledNames(text),
-                };
-                if (options.expected && options.expected.length > 0) {
-                    const { missing, disabled } = checkExpectedResources(text, options.expected);
-                    if (missing.length > 0) {
-                        last = { ...last, ready: false, pending: last.pending + missing.length };
-                    }
-                    if (disabled.length > 0) {
-                        return {
-                            ready: false,
-                            pending: last.pending,
-                            timedOut: false,
-                            enabled: last.enabled,
-                            failures: [
-                                ...last.failures,
-                                ...disabled.map((name) => ({ name, message: "disabled in Tilt" })),
-                            ],
-                        };
-                    }
-                }
-                if (last.ready)
-                    return last;
-                if (last.failures.length > 0 && last.pending === 0)
+                const evaluation = evaluateTiltReadiness(text, deferred, options.expected);
+                last = evaluation.result;
+                if (evaluation.settled)
                     return last;
             }
             catch {

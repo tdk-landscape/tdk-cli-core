@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { waitForTiltResourcesReady } from "../up-readiness.js";
+import { evaluateTiltReadiness, waitForTiltResourcesReady } from "../up-readiness.js";
 
 const item = (name: string, updateStatus: string, runtimeStatus: string) => ({
   metadata: { name },
@@ -112,5 +112,19 @@ describe("waitForTiltResourcesReady", () => {
       fetchJson: async () => json(item("api", "pending", "pending")),
     });
     expect(result).toMatchObject({ ready: false, timedOut: true, pending: 1 });
+  });
+});
+
+describe("evaluateTiltReadiness", () => {
+  it("gives a single-shot answer for polling callers", () => {
+    const building = evaluateTiltReadiness(json(item("api", "pending", "pending")), new Set());
+    expect(building.result).toMatchObject({ ready: false, pending: 1 });
+    expect(building.settled).toBe(false);
+    const done = evaluateTiltReadiness(json(item("api", "ok", "ok")), new Set());
+    expect(done.result.ready).toBe(true);
+    expect(done.settled).toBe(true);
+    const failed = evaluateTiltReadiness(json(item("api", "error", "none")), new Set());
+    expect(failed.result.failures.map((f) => f.name)).toEqual(["api"]);
+    expect(failed.settled).toBe(true);
   });
 });

@@ -25,6 +25,14 @@ export declare function checkExpectedResources(jsonText: string, expected: strin
     disabled: string[];
 };
 /**
+ * One look at `tilt get uiresources -o json`. `settled` means polling can stop: everything is ready, or the rest has
+ * finished with a failure (an errored resource, or an expected service Tilt has disabled).
+ */
+export declare function evaluateTiltReadiness(jsonText: string, deferred: Set<string>, expected?: string[]): {
+    result: ReadinessResult;
+    settled: boolean;
+};
+/**
  * Waits until every non-deferred Tilt resource is built and running. Resolves not-ready as soon as the rest has settled
  * with an errored resource, or at the deadline. Sablier-deferred resources are excluded: they stay idle by design.
  */

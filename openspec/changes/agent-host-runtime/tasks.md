@@ -14,7 +14,7 @@
 - [x] 3.1 `--json` on `up`, `down`; new `logs` command with bounded `--json` (`--service`, `--tail`, `--since`)
 - [x] 3.2 `up --only` (spike: `spike-up-only.md`)
 - [x] 3.3 `status --json`: per-service `url`/`containerPort`/nullable `hostPort`, plus stack-level port list
-- [ ] 3.4 `tdk mcp` sharing command implementations; `up` starts detached, callers poll `status`
+- [x] 3.4 `tdk mcp` sharing command implementations; `up` starts detached, callers poll `status`
 - [ ] 3.5 Follow-up PR in tdk-skills to call the JSON/MCP contract
 
 ## 4. Verify

@@ -1,6 +1,7 @@
 import chalk from "chalk";
 import { Command } from "commander";
 import { createDiscoveryContext } from "../utils/discovery-context.js";
+import { getDeferredResourceNames } from "../utils/doctor-runtime.js";
 import { runCommand } from "../utils/errors.js";
 import { formatCount, showDetail, showStep } from "../utils/formatting.js";
 import { getHostPortPlan } from "../utils/host-port-config.js";
@@ -8,6 +9,7 @@ import { createMachineEnvelope, writeMachineError } from "../utils/machine-outpu
 import { findProjectRoot } from "../utils/paths.js";
 import { buildServicePorts, buildStackPorts } from "../utils/status-ports.js";
 import { getTiltfilePath, isTiltAvailable, runTilt } from "../utils/tilt.js";
+import { evaluateTiltReadiness, tiltGetUiResources } from "../utils/up-readiness.js";
 export const statusCommand = new Command("status")
     .description("Show status of resources and stacks")
     .option("--json", "Output a versioned JSON status report", false)
@@ -53,6 +55,21 @@ export const statusCommand = new Command("status")
                 queryError = result.stderr || "Could not retrieve Tilt resource status";
             }
         }
+        // A single look at the running Tilt, so a caller that started `tdk up` detached can poll for readiness. Null when no
+        // Tilt answers or its output cannot be read.
+        let readiness = null;
+        if (options.json && tiltAvailable) {
+            const port = Number.parseInt(process.env.TILT_PORT ?? "", 10);
+            const text = await tiltGetUiResources(Number.isInteger(port) ? port : 10350);
+            if (text) {
+                try {
+                    readiness = evaluateTiltReadiness(text, getDeferredResourceNames()).result;
+                }
+                catch {
+                    readiness = null;
+                }
+            }
+        }
         if (options.json) {
             let portPlan = null;
             try {
@@ -68,6 +85,7 @@ export const statusCommand = new Command("status")
                     available: tiltAvailable,
                     resourcesQueried: options.tilt && tiltAvailable,
                     resources: tiltResources,
+                    readiness,
                 },
                 resources: discovery.resources.map((resource) => ({
                     name: resource.name,
