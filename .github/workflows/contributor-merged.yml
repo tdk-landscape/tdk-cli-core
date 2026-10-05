@@ -10,23 +10,30 @@ name: 💜 Contributor merged
 on:
   pull_request_target: # zizmor: ignore[dangerous-triggers] never checks out or runs PR code; only reads event data and posts comments
     types: [closed]
+  # Re-post for a merged PR whose run failed (for example on a GitHub rate limit).
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Merged PR number to thank
+        required: true
 
 permissions: {}
 
 concurrency:
-  group: contributor-merged-${{ github.event.pull_request.number }}
+  group: contributor-merged-${{ github.event.pull_request.number || inputs.pr_number }}
   cancel-in-progress: false
 
 jobs:
   thank:
     name: Thank the contributor and note the fixed issues
     if: >-
+      github.event_name == 'workflow_dispatch' || (
       github.event.pull_request.merged == true &&
       github.event.pull_request.user.type == 'User' &&
       !contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.pull_request.author_association) &&
-      !contains(fromJSON('["kburym","odykyi"]'), github.event.pull_request.user.login)
+      !contains(fromJSON('["kburym","odykyi"]'), github.event.pull_request.user.login))
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 5
     permissions:
       contents: read
       issues: write
@@ -36,8 +43,21 @@ jobs:
         with:
           script: |
             const { owner, repo } = context.repo;
-            const pr = context.payload.pull_request;
+            const retry = async (fn) => {
+              try { return await fn(); } catch (e) {
+                // Secondary rate limit: wait out the burst once, then try again.
+                if (e.status !== 403 && e.status !== 429) throw e;
+                await new Promise((r) => setTimeout(r, 30000));
+                return fn();
+              }
+            };
+            const pr = context.payload.pull_request || (await github.rest.pulls.get(
+              { owner, repo, pull_number: Number(context.payload.inputs.pr_number) })).data;
             const author = pr.user.login;
+            if (!pr.merged || pr.user.type !== 'User' || ['kburym', 'odykyi'].includes(author)) {
+              core.info(`Skipping #${pr.number}: not a merged community PR.`);
+              return;
+            }
             const MARK_PR = '<!-- tdk:contributor-merged -->';
             const MARK_ISSUE = `<!-- tdk:issue-fixed:${pr.number} -->`;
             const base = `https://github.com/${owner}/${repo}`;
@@ -57,10 +77,10 @@ jobs:
 
             // How many PRs this person has had merged here, counting this one.
             // The search index can lag the merge by a few seconds, so add this PR if it is missing.
-            const found = (await github.rest.search.issuesAndPullRequests({
+            const found = (await retry(() => github.rest.search.issuesAndPullRequests({
               q: `repo:${owner}/${repo} is:pr is:merged author:${author}`,
               sort: 'updated', order: 'desc', per_page: 5,
-            })).data;
+            }))).data;
             const mergedCount = found.total_count + (found.items.some((i) => i.number === pr.number) ? 0 : 1);
 
             // Pick up to three open, unclaimed issues to try next: same area first, then anything at their level.
@@ -79,10 +99,10 @@ jobs:
             const thisRank = bestRank(issues.map((i) => i.labels.nodes.map((l) => l.name)));
             let rankLine = null;
             if (thisRank) {
-              const prior = await github.graphql(
+              const prior = await retry(() => github.graphql(
                 `query($q:String!){search(query:$q,type:ISSUE,first:100){nodes{... on PullRequest{number
                    closingIssuesReferences(first:10){nodes{labels(first:30){nodes{name}}}}}}}}`,
-                { q: `repo:${owner}/${repo} is:pr is:merged author:${author}` });
+                { q: `repo:${owner}/${repo} is:pr is:merged author:${author}` }));
               const before = bestRank(prior.search.nodes.filter((n) => n.number !== pr.number)
                 .flatMap((n) => n.closingIssuesReferences.nodes.map((i) => i.labels.nodes.map((l) => l.name))));
               const island = [...labelNames].find((n) => n.startsWith('island: '));
@@ -95,17 +115,19 @@ jobs:
             // Offer harder work as people merge more: easy -> medium -> hard.
             const level = mergedCount >= 10 ? 'label:"difficulty: hard"'
               : mergedCount >= 3 ? 'label:"difficulty: medium"' : 'label:"good first issue"';
-            const search = async (extra) => (await github.rest.search.issuesAndPullRequests({
-              q: `repo:${owner}/${repo} is:issue is:open no:assignee ${level} ${extra}`,
-              sort: 'created', order: 'desc', per_page: 10,
-            })).data.items;
-            const picked = new Map();
-            for (const a of areas) {
-              for (const i of await search(`label:"${a}"`)) picked.set(i.number, i);
-              if (picked.size >= 3) break;
+            // One search, then pick by area in JS: several searches in a row trip the secondary rate limit.
+            // Suggestions are a nicety, so a failure here must not stop the thank-you.
+            let next = [];
+            try {
+              const items = (await retry(() => github.rest.search.issuesAndPullRequests({
+                q: `repo:${owner}/${repo} is:issue is:open no:assignee ${level}`,
+                sort: 'created', order: 'desc', per_page: 30,
+              }))).data.items;
+              const inArea = (i) => i.labels.some((l) => areas.includes(l.name));
+              next = [...items.filter(inArea), ...items.filter((i) => !inArea(i))].slice(0, 3);
+            } catch (e) {
+              core.warning(`Could not look up next issues: ${e.message}`);
             }
-            if (picked.size < 3) for (const i of await search('')) picked.set(i.number, i);
-            const next = [...picked.values()].slice(0, 3);
 
             const fixed = issues.map((i) => `#${i.number}`).join(', ');
             const lines = [MARK_PR, `Merged, thank you @${author}! 🎉`];
