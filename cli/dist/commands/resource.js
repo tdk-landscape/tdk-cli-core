@@ -174,6 +174,10 @@ export function createResourceTsconfig(resourceType, frameworkId) {
         ...TSCONFIG_TEMPLATE,
         compilerOptions: {
             ...TSCONFIG_TEMPLATE.compilerOptions,
+            // TypeScript 7 does not auto-include @types/*: without this, `tsc` fails with TS2591 on
+            // `process`/`Buffer`. "node" matches the generated Docker tsconfig. Frontends target the
+            // DOM and keep the default.
+            ...(resourceType === "frontend" ? {} : { types: ["node"] }),
             ...(framework?.compilerOptions ?? {}),
             ...(backendFramework?.compilerOptions ?? {}),
         },

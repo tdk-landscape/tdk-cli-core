@@ -184,6 +184,13 @@ describe("resource command", () => {
       expect(createResourceTsconfig("frontend").compilerOptions).toHaveProperty("jsx", "react-jsx");
       expect(createResourceTsconfig("backend").compilerOptions).not.toHaveProperty("jsx");
     });
+
+    it("lists node types for non-frontend resources (TS7 does not auto-include @types)", () => {
+      for (const type of ["backend", "worker", "mcp"] as const) {
+        expect(createResourceTsconfig(type).compilerOptions.types).toEqual(["node"]);
+      }
+      expect(createResourceTsconfig("frontend").compilerOptions).not.toHaveProperty("types");
+    });
   });
 
   describe("frontend framework providers", () => {
