@@ -26,6 +26,7 @@
 - [Layout and ownership](layout.md): one project or one per repo, services in other repos, name clashes, CODEOWNERS, layouts for 5, 20 and 50 services
 - [Pilot scorecard](pilot-scorecard.md): record the same measurements and decision at the end of a pilot
 - [FAQ for agencies and multi-client teams](faq-teams.md): honest answers on stacks, proxies, Windows, licence and exit
+- [Running TDK in CI](ci.md): a GitHub Actions workflow for your repository: `tdk config verify`, then `tdk up` and a health wait
 - [Gradual adoption](gradual-adoption.md): what TDK adds to an existing repository, what to commit, and how to remove it
 - [Local data: reset, seed, snapshot](data.md): where Postgres data lives and how to reset it
 - [Upgrading and version pinning](upgrading.md): `minTdkVersion`, installing a specific version, what is versioned
