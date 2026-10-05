@@ -53,9 +53,18 @@ function ownsRuntimeFiles(resource) {
         Object.hasOwn(BACKEND_LANGUAGES, language) &&
         BACKEND_LANGUAGES[language].createFiles !== undefined);
 }
+/**
+ * A bring-your-own resource is a plain container: the engine builds the image from the resource's own `dockerfile`
+ * (or its `buildContext`), or pulls `image`, and never generates the golden-layer Dockerfile that COPYs a package.json.
+ */
+function isBringYourOwn(resource) {
+    return (resource.config?.appType ?? resource.type) === "bring-your-own";
+}
 export function checkResourcePackageJson(projectRoot = findProjectRoot() ?? process.cwd()) {
     const missing = discoverResourcesFromRoot(projectRoot)
-        .filter((resource) => !ownsRuntimeFiles(resource) && !existsSync(join(resource.path, "package.json")))
+        .filter((resource) => !isBringYourOwn(resource) &&
+        !ownsRuntimeFiles(resource) &&
+        !existsSync(join(resource.path, "package.json")))
         .map((resource) => resource.name);
     if (missing.length === 0) {
         return {

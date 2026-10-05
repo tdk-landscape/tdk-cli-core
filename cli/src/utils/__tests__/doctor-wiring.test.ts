@@ -57,6 +57,47 @@ describe("checkResourcePackageJson", () => {
     expect(checkResourcePackageJson(root).message).toContain("bun-api");
   });
 
+  it("skips go and rust backends, which have no package.json", () => {
+    resource("app", "gosvc", { appType: "backend", port: 4000, language: "go" }, {});
+    resource("app", "rssvc", { appType: "backend", port: 4001, language: "rust" }, {});
+    expect(checkResourcePackageJson(root).didPass).toBe(true);
+  });
+
+  it("does not require a package.json for a bring-your-own resource (image, dockerfile, buildContext)", () => {
+    resource(
+      "shop",
+      "by-image",
+      { appType: "bring-your-own", port: 4000, image: "nginx:1.27" },
+      {},
+    );
+    resource(
+      "shop",
+      "by-dockerfile",
+      { appType: "bring-your-own", port: 4001, dockerfile: "./Dockerfile" },
+      { Dockerfile: "FROM nginx:1.27-alpine\n" },
+    );
+    resource(
+      "shop",
+      "by-context",
+      { appType: "bring-your-own", port: 4002, buildContext: "../../..", dockerfile: "Dockerfile" },
+      {},
+    );
+    const result = checkResourcePackageJson(root);
+    expect(result.didPass).toBe(true);
+    expect(result.message).not.toContain("without");
+  });
+
+  it.each(["backend", "frontend", "worker", "migrator", "mcp", "library", "sdk"])(
+    "still fails a %s without a package.json, even next to a bring-your-own resource",
+    (appType) => {
+      resource("shop", "legacy", { appType: "bring-your-own", port: 4000, image: "nginx" }, {});
+      resource("shop", "needs-pkg", { appType, port: 4100 }, {});
+      const result = checkResourcePackageJson(root);
+      expect(result.didPass).toBe(false);
+      expect(result.message).toContain("1 resource without a package.json: needs-pkg");
+    },
+  );
+
   it("names the resource whose image build would fail", () => {
     resource("app", "api", { appType: "backend", port: 4000 });
     resource("app", "web", { appType: "frontend", port: 3000 }, { "src/main.ts": "" });
