@@ -22,6 +22,7 @@
 ## Guides
 
 - [Pilot TDK on a real repository](adopt-tdk.md): a team lead's guide to trying TDK in an afternoon
+- [Pilot scorecard](pilot-scorecard.md): record the same measurements and decision at the end of a pilot
 - [FAQ for agencies and multi-client teams](faq-teams.md): honest answers on stacks, proxies, Windows, licence and exit
 - [Gradual adoption](gradual-adoption.md): what TDK adds to an existing repository, what to commit, and how to remove it
 - [Local data: reset, seed, snapshot](data.md): where Postgres data lives and how to reset it

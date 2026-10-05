@@ -95,6 +95,8 @@ Measure these two things on your own repository and write down the date, machine
 - **Time to first healthy URL:** from running `tdk up` to the first HTTP 200 on a service health URL. Say whether the images already existed. A cold build takes longer than a warm start.
 - **Setup steps removed:** the steps in your current "get started" page that a new teammate no longer has to do. Count them from the page, not from memory.
 
+`scripts/pilot-scorecard.sh` records the first one, plus memory and CPU, in a repeatable form; see the [pilot scorecard](pilot-scorecard.md).
+
 Only quote numbers you measured, with their conditions. Do not repeat the figures in the [claims registry](claims.md) as your own results, and do not use its wording for anything it does not cover. For example, onboarding time is "not measured on a hiring cohort"; do not write that TDK saves weeks of setup.
 
 ## 6. Tell us
