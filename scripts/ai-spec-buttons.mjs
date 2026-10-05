@@ -42,21 +42,35 @@ export const TAIL_LINES = {
   primitive: "drafts a short spec from this issue",
 };
 
-// Distinctive issue-form field headings. These mark social / license bodies
-// that must not get Write spec buttons.
-const SKIP_BODY_SIGNATURES = [
-  // adoption-question.yml
-  "What would you like to know?",
-  "How do you run your services locally today?",
-  // i-booted-tdk.yml
-  "Minutes until first healthy URL",
-  "Commands you ran",
-  // we-use-tdk.yml
-  "Anything a maintainer should know",
-  "I am allowed to list this organization",
-  // premium_license.yml
-  "Which paid features do you need?",
-  "What are you building with TDK?",
+// GitHub issue-form bodies render labels as `### Heading`. Require two
+// headings from the same template so a bug/feature body that casually
+// mentions one phrase is not classified as social/license skip.
+export const SKIP_TEMPLATE_SIGNATURES = {
+  "adoption-question": [
+    "### What would you like to know?",
+    "### How do you run your services locally today?",
+  ],
+  "i-booted-tdk": [
+    "### Minutes until first healthy URL",
+    "### Commands you ran",
+  ],
+  "we-use-tdk": [
+    "### Anything a maintainer should know",
+    "### I am allowed to list this organization",
+  ],
+  "premium_license": [
+    "### Which paid features do you need?",
+    "### What are you building with TDK?",
+  ],
+};
+
+// Template title prefixes (set by issue forms). Catches a template body if
+// a heading is renamed before signatures are updated.
+export const SKIP_TITLE_PREFIXES = [
+  "adopt: ",
+  "boot: ",
+  "adopter: ",
+  "premium license request: ",
 ];
 
 export function normalizeTitle(raw) {
@@ -72,32 +86,50 @@ export function parseLabels(raw) {
   );
 }
 
+export function matchesSkipTemplate(bodyText) {
+  return Object.values(SKIP_TEMPLATE_SIGNATURES).some(
+    (sigs) => sigs.filter((sig) => bodyText.includes(sig)).length >= 2,
+  );
+}
+
+export function matchesSkipTitle(title) {
+  const t = (title ?? "").trim().toLowerCase();
+  return SKIP_TITLE_PREFIXES.some((prefix) => t.startsWith(prefix));
+}
+
 /**
  * Kind resolution:
- * - skip: `question` label, or body from adoption/boot/adopter/premium templates
- * - openspec: `enhancement` label (wins over other labels), or feature body phrase
- * - primitive: `bug`/`documentation` labels, bug/docs body phrases, or no signal
+ * - skip: `question` label, social/license template title, or two `### `
+ *   form headings from one of those templates
+ * - openspec: `enhancement` label (wins over other labels), or feature form heading
+ * - primitive: `bug`/`documentation` labels, or bug/docs form headings
+ * - skip: anything with no kind signal (blank / unlabeled issues)
  */
-export function resolveKind(body, labelsRaw) {
+export function resolveKind(body, labelsRaw, rawTitle) {
   const labels = parseLabels(labelsRaw);
   const bodyText = body ?? "";
+  const title = normalizeTitle(rawTitle);
 
   if (labels.has("question")) return "skip";
-  if (SKIP_BODY_SIGNATURES.some((sig) => bodyText.includes(sig))) return "skip";
+  if (matchesSkipTitle(title)) return "skip";
+  if (matchesSkipTemplate(bodyText)) return "skip";
 
   // Feature wins when enhancement coexists with another work label.
   if (labels.has("enhancement")) return "openspec";
-  if (bodyText.includes("What problem are you trying to solve?")) return "openspec";
+  if (bodyText.includes("### What problem are you trying to solve?")) {
+    return "openspec";
+  }
 
   if (labels.has("bug") || labels.has("documentation")) return "primitive";
   if (
-    bodyText.includes("What happened?") ||
-    bodyText.includes("What is wrong or missing?")
+    bodyText.includes("### What happened?") ||
+    bodyText.includes("### What is wrong or missing?")
   ) {
     return "primitive";
   }
 
-  return "primitive";
+  // No kind signal: leave blank / unlabeled issues alone.
+  return "skip";
 }
 
 export function buildPrompt(kind, title, issueUrl) {
@@ -155,7 +187,7 @@ export function joinAuthorAndSection(authorBody, section) {
 export function transformBody(body, rawTitle, issueUrl, labelsRaw) {
   const title = normalizeTitle(rawTitle);
   const url = (issueUrl ?? "").trim();
-  const kind = resolveKind(body, labelsRaw);
+  const kind = resolveKind(body, labelsRaw, title);
 
   if (kind === "skip") {
     return { action: "skip", body, reason: "kind is skip", kind };
