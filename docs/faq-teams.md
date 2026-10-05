@@ -52,4 +52,4 @@ The [adoption guide](adopt-tdk.md) is the one-page path: `tdk doctor`, `tdk up -
 
 ## Support and response time
 
-Questions are public issues; we aim to reply within one working day. There is no paid support contract. Premium is a feature key, not an SLA.
+Questions are public issues; we aim to reply within one working day. There is no paid support contract. Premium is a feature key, not an SLA. What the history actually shows, who maintains the project and what premium covers are in [SUPPORT.md](../SUPPORT.md).
