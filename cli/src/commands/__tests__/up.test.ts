@@ -26,6 +26,11 @@ vi.mock("../../utils/tilt.js", async (importOriginal) => ({
 vi.mock("../../utils/errors.js", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../utils/errors.js")>()),
   requireProjectRoot: vi.fn(() => "/project"),
+  withTiltCheck: vi.fn(async (action: () => Promise<unknown>) => action()),
+}));
+vi.mock("../../utils/agent-host.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../utils/agent-host.js")>()),
+  detectHost: vi.fn(() => ({ kind: "local", canUp: true })),
 }));
 vi.mock("../../utils/services.js", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../utils/services.js")>()),
