@@ -71,6 +71,7 @@ curl -fsSL https://tdk-landscape.github.io/install.sh | sh
 - [Working alongside Helm](docs/with-helm.md)
 - [Scope: local development, and what does not carry over to production](docs/scope.md)
 - [Gradual adoption: adding TDK to an existing repository](docs/gradual-adoption.md)
+- [Troubleshooting: tdk and Tilt error messages and their fixes](docs/troubleshooting.md)
 - [Layout and ownership: services in several repositories](docs/layout.md)
 - [Local data: reset, seed, snapshot](docs/data.md)
 - [Upgrading and version pinning](docs/upgrading.md)

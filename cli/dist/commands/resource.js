@@ -367,7 +367,7 @@ export const resourceCommand = new Command("resource")
     .option("-p, --path <path>", "Custom path for resource directory")
     .option("--resource-path <path>", "Alias for --path (for backward compatibility)")
     .option("--register-existing", "Register an existing resource without creating templates")
-    .option("-y, --yes", "Skip confirmation prompt", false)
+    .option("-y, --yes", "Run without prompts; use defaults", false)
     .option("--ddd", "Scaffold DDD (domain-driven design) folders + path aliases (Premium - requires TDK_LICENSE_KEY)")
     .option("--dockerfile <path>", "Path to Dockerfile relative to resource dir (for bring-your-own)")
     .option("--health-path <path>", "HTTP health check path (for bring-your-own)", "/health")
@@ -389,6 +389,11 @@ export const resourceCommand = new Command("resource")
         showCommandHeader("Resource Creation");
         const allResources = discoverResources();
         let resourceName = name;
+        if (!resourceName && options.yes) {
+            throw new TdkError("A resource name is required when using --yes.", [
+                "Pass the name explicitly, for example: tdk resource api --yes.",
+            ]);
+        }
         if (!resourceName) {
             const inputName = await promptText({
                 message: "Resource name (kebab-case):",
@@ -450,26 +455,39 @@ export const resourceCommand = new Command("resource")
             }
             const existingStacks = Array.from(stackSet);
             if (existingStacks.length > 0) {
-                const selectedStack = await promptSelect({
-                    message: "Assign to stack:",
-                    choices: [
-                        ...existingStacks.map((s) => ({ title: s, value: s })),
-                        { title: "Create new stack", value: "__new__" },
-                    ],
-                });
-                if (selectedStack === "__new__") {
-                    const newStack = await promptText({
-                        message: "New stack name:",
-                        validate: (input) => {
-                            const validation = createKebabCaseValidator("stack")(input);
-                            return validation === true || validation;
-                        },
-                    });
-                    stackName = newStack;
+                if (options.yes) {
+                    if (existingStacks.length > 1) {
+                        throw new TdkError("Multiple stacks exist; specify --stack when using --yes.", [
+                            `Available stacks: ${existingStacks.join(", ")}`,
+                        ]);
+                    }
+                    stackName = existingStacks[0] ?? "main";
                 }
                 else {
-                    stackName = selectedStack;
+                    const selectedStack = await promptSelect({
+                        message: "Assign to stack:",
+                        choices: [
+                            ...existingStacks.map((s) => ({ title: s, value: s })),
+                            { title: "Create new stack", value: "__new__" },
+                        ],
+                    });
+                    if (selectedStack === "__new__") {
+                        const newStack = await promptText({
+                            message: "New stack name:",
+                            validate: (input) => {
+                                const validation = createKebabCaseValidator("stack")(input);
+                                return validation === true || validation;
+                            },
+                        });
+                        stackName = newStack;
+                    }
+                    else {
+                        stackName = selectedStack;
+                    }
                 }
+            }
+            else if (options.yes) {
+                stackName = "main";
             }
             else {
                 const newStack = await promptText({
