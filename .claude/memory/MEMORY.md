@@ -24,6 +24,7 @@ Hard-won, repo-specific facts for anyone (human or agent) working here. Keep ent
 - Do not make a service run its own migrations to prove a database path works (2026-10-04, #533): a fixture whose `index.ts` ran `bunx prisma migrate deploy` crashed in CI with `Cannot find module '@prisma/engines'`, then looped until the script timed out. Use a `migrator` resource and check Postgres, migrator, API order through `tdk up`.
 - Say only what a run observed; mark everything else "not run" in docs and PRs.
 - Resource scaffolds must write current keys (`dependsOn`, `healthCheckPath`); `tdk doctor` warns on deprecated and unknown ones.
+- `tdk config verify` validates discovered `service.json` files and generated service snapshots as well as project files; `tdk config regenerate` rewrites project outputs, while service outputs are written on `tdk up` (2026-10-05).
 - Env and secrets: no JWT in generated files; Compose takes `JWT_SECRET` from the project `.env`; `completeEnvFile` appends missing keys and never rotates.
 
 ## Housekeeping

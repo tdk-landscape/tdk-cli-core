@@ -71,7 +71,7 @@ For VS Code, associate both filenames with their schema in workspace settings. T
 }
 ```
 
-The service schema is also in [`engine/schemas/service-schema.json`](../engine/schemas/service-schema.json), and the current project configuration schema is [`engine/schemas/project-schema.json`](../engine/schemas/project-schema.json). Run `tdk config verify` to check that generated project files match `.tdk/project.json`; it does not validate the service manifest or Helm values. `tdk doctor` checks local readiness and service concerns.
+The service schema is also in [`engine/schemas/service-schema.json`](../engine/schemas/service-schema.json), and the current project configuration schema is [`engine/schemas/project-schema.json`](../engine/schemas/project-schema.json). Run `tdk config verify` to check generated project files, validate discovered service manifests, and compare generated service files with their snapshots. It does not validate Helm values. `tdk doctor` checks local readiness and service concerns. See [generated service files](generated-files.md).
 
 ### The service schema and how it is published
 
@@ -86,4 +86,3 @@ deploy artifact for editors. It is only an editor hint. The CLI provider registr
   reports in its run summary whether the live copy matches. It needs a repository secret named `PAGES_SYNC_TOKEN` (a fine-grained
   token with `contents: write` on `tdk-landscape/tdk-landscape.github.io`). Without it the copy is skipped with a warning and the live
   copy falls behind `main`; the summary says so.
-

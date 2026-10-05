@@ -15,7 +15,7 @@ English | [简体中文](README-zh_cn.md) | [繁體中文](README-zh_tw.md) | [�
 
 TDK CLI starts your services on your laptop. It is not a deploy and not a Compose file: define each service in `service.json`, then run `tdk up`. No Kubernetes is needed on the machine.
 
-Stability: 1.x local dev. Generated files are a contract; verify with `tdk config verify`. Core CLI is MIT and needs no key. Premium is optional.
+Stability: 1.x local dev. Write `service.json`; TDK generates the local runtime files. See [what TDK writes](docs/generated-files.md) and how to check for drift. Core CLI is MIT and needs no key. Premium is optional.
 
 Docker runs the containers. Tilt watches services and live-updates containers while you code. TDK CLI writes the configuration Tilt uses. Production deployment stays with Helm, Argo CD, or Kustomize.
 
@@ -79,6 +79,7 @@ curl -fsSL https://tdk-landscape.github.io/install.sh | sh
 - [Pilot scorecard](docs/pilot-scorecard.md)
 - [Bring-your-own resources](docs/byo.md)
 - [Configuration and editor schemas](docs/configuration.md)
+- [Generated service files and drift checks](docs/generated-files.md)
 - [Runnable one-backend example](examples/one-backend/README.md)
 - [Runnable Python backend example](examples/one-backend-python/README.md)
 - [Full multi-service example](examples/tdk-example/README.md)
