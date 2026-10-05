@@ -30,6 +30,8 @@
 - [Local data: reset, seed, snapshot](data.md): where Postgres data lives and how to reset it
 - [Upgrading and version pinning](upgrading.md): `minTdkVersion`, installing a specific version, what is versioned
 - [Security: network calls, secrets and supply chain](security.md): what TDK sends, where secrets live, image tags and release checks
+- [Smoke check](smoke.md): `tdk up` checks a service through the URL it prints
+- [Agent hosts](agent-hosts.md): Dev Containers, Codespaces and WebContainers, and what `tdk doctor` reports for them
 - [Bring-your-own resources](byo.md): wrap an existing service or image, one-shot jobs, `--restart`
 - [Frontend framework providers](frontend-framework-providers.md): add a Vite framework (React, Vue, Svelte, Preact, Lit, Solid, Qwik, plain TypeScript)
 - [MCP resources](mcp.md): `--type mcp` scaffolds a Model Context Protocol server

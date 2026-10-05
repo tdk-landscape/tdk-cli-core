@@ -19,6 +19,7 @@ import { findProjectRoot, getPackageVersion } from "../utils/paths.js";
 import { isApiServiceType } from "../utils/resource-kind.js";
 import { buildHealthTargets, pingHealthTargets } from "../utils/service-urls.js";
 import { discoverResourcesFromRoot } from "../utils/services.js";
+import { evaluateTdkVersionFloor } from "../utils/tdk-version.js";
 import { findOnPath } from "../utils/which.js";
 export { checkIngressPorts, checkPrivateNpmRegistry, checkTiltResourceHealth, summarizeServiceProbes, summarizeTiltBuildError, } from "../utils/doctor-runtime.js";
 // A wedged Docker daemon makes `docker ps` block forever instead of failing,
@@ -431,15 +432,8 @@ export function checkTdkVersion(currentVersion = getPackageVersion()) {
             message: "Not in a project - skipping TDK version check",
         };
     }
-    let minimum;
-    try {
-        const parsed = JSON.parse(readFileSync(join(projectRoot, ".tdk", "project.json"), "utf-8"));
-        minimum = parsed?.minTdkVersion;
-    }
-    catch {
-        minimum = undefined;
-    }
-    if (minimum === undefined) {
+    const floor = evaluateTdkVersionFloor(projectRoot, currentVersion);
+    if (floor.status === "none") {
         return {
             name: "TDK version",
             didPass: true,
@@ -447,27 +441,13 @@ export function checkTdkVersion(currentVersion = getPackageVersion()) {
             message: `tdk ${currentVersion} (no minTdkVersion in .tdk/project.json)`,
         };
     }
-    const required = typeof minimum === "string" ? parseVersion(minimum) : null;
-    if (!required || !/^\d+\.\d+\.\d+$/.test(String(minimum).trim())) {
-        return {
-            name: "TDK version",
-            didPass: false,
-            message: `.tdk/project.json minTdkVersion ${JSON.stringify(minimum)} is not a version like "1.3.80"`,
-            fix: 'Set minTdkVersion to a MAJOR.MINOR.PATCH string, for example "1.3.80".',
-        };
-    }
-    if (!versionMeetsMinimum(currentVersion, required)) {
-        return {
-            name: "TDK version",
-            didPass: false,
-            message: `tdk ${currentVersion} is older than the ${required.join(".")} this project requires (minTdkVersion)`,
-            fix: "Run: tdk upgrade",
-        };
+    if (floor.status === "malformed" || floor.status === "too-old") {
+        return { name: "TDK version", didPass: false, message: floor.message, fix: floor.fix };
     }
     return {
         name: "TDK version",
         didPass: true,
-        message: `tdk ${currentVersion} meets minTdkVersion ${required.join(".")}`,
+        message: `tdk ${currentVersion} meets minTdkVersion ${floor.required}`,
     };
 }
 /**

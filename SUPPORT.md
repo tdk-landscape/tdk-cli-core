@@ -19,7 +19,7 @@ There is no paid support contract, chat channel or phone line.
 The stated aim is a reply within one working day. What the history shows:
 
 - **Issues:** nobody outside the maintainers has opened one yet, so there is no measured response time for issues.
-- **Pull requests from outside contributors:** 16 so far, all merged. The first maintainer response came between about 6 minutes and about 8 hours later for the 14 that got one (the other two were merged within 11 and 3 minutes without a comment). They were all opened within four days (2 to 5 October 2026), so this is a short window, not a track record.
+- **Pull requests from outside contributors:** 16 were measured on 2026-10-05, all merged. The first maintainer response came between about 6 minutes and about 8 hours later for the 14 that got one (the other two were merged within 11 and 3 minutes without a comment). They were all opened within four days (2 to 5 October 2026), so this is a short window, not a track record. A later count of non-maintainer, non-bot authors in `gh pr list` found 18 (17 merged, 1 open); response times were not re-measured for the extra ones.
 
 ## Roadmap
 
@@ -27,11 +27,11 @@ There is no separate roadmap document. The plan is the open issues: [start here]
 
 ## Releases and supported versions
 
-Fixes go into the latest release only. In the last 90 days the repository had 688 commits, and the npm package has 82 published versions, with up to seven in one day (4 to 5 October 2026). Pin the version you tested: see [upgrading](docs/upgrading.md).
+Fixes go into the latest release only. In the last 90 days the repository had 688 commits and the npm package had 82 published versions when this page was written (a later count on `origin/main` gave 699 commits and `npm view` listed 83 versions), with up to seven in one day (4 to 5 October 2026). Pin the version you tested: see [upgrading](docs/upgrading.md).
 
 ## Who maintains it
 
-Two maintainers from two companies ([MAINTAINERS.md](MAINTAINERS.md)). In the last 90 days one of them authored about 59% of the commits and the other about 27%. The GitHub repository itself was created on 2026-09-19 and has a small number of stars. If either maintainer stops, you are on one maintainer; the project says it is below the three it needs for a foundation application.
+Two maintainers from two companies ([MAINTAINERS.md](MAINTAINERS.md)). In the last 90 days one of them authored about 59% of the commits and the other about 27% (re-counted by author name on `origin/main`: about 57% and 27%). The GitHub repository itself was created on 2026-09-19 and has a small number of stars. If either maintainer stops, you are on one maintainer; the project says it is below the three it needs for a foundation application.
 
 If the project goes quiet, core is MIT and you can fork it. A written exit path from your own repositories is still open ([#505](https://github.com/tdk-landscape/tdk-cli-core/issues/505)).
 
