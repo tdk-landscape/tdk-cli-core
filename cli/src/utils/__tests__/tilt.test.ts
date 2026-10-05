@@ -161,6 +161,17 @@ describe("buildTiltDownArgs", () => {
     const args = buildTiltDownArgs({});
     expect(args).not.toContain("--force");
   });
+
+  it("passes every stack to the Tiltfile after -- so tilt down registers stack compose projects", async () => {
+    const { buildTiltDownArgs } = await import("../tilt.js");
+    const args = buildTiltDownArgs({ focusTargets: ["shop", "billing"] });
+    expect(args.slice(-2)).toEqual(["--", "--focus=shop,billing"]);
+  });
+
+  it("adds no Tiltfile arguments when there are no stacks", async () => {
+    const { buildTiltDownArgs } = await import("../tilt.js");
+    expect(buildTiltDownArgs({ focusTargets: [] })).not.toContain("--");
+  });
 });
 
 describe("isTiltAvailable", () => {
