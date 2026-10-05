@@ -139,7 +139,8 @@ export function buildPrompt(kind, title, issueUrl) {
 
 // Pill SVGs live in the repo. Image URLs must use `main` (not the PR branch):
 // the issues workflow checks out the default branch, and a branch raw URL
-// 404s after merge. Shields has no size+round knob; these are 168×36 / 176×36.
+// 404s after merge. Shields has no size+round knob; these are 196×52 / 204×52
+// with canvas padding so feDropShadow is not clipped by rx=18.
 export const BADGE_BASE =
   "https://github.com/tdk-landscape/tdk-cli-core/raw/main/.github/badges";
 export const BADGE_URLS = {
