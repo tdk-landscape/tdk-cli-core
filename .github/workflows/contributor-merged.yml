@@ -55,18 +55,24 @@ jobs:
             const issues = linked.repository.pullRequest.closingIssuesReferences.nodes;
 
             // How many PRs this person has had merged here, counting this one.
-            const mergedCount = (await github.rest.search.issuesAndPullRequests({
-              q: `repo:${owner}/${repo} is:pr is:merged author:${author}`, per_page: 1,
-            })).data.total_count;
+            // The search index can lag the merge by a few seconds, so add this PR if it is missing.
+            const found = (await github.rest.search.issuesAndPullRequests({
+              q: `repo:${owner}/${repo} is:pr is:merged author:${author}`,
+              sort: 'updated', order: 'desc', per_page: 5,
+            })).data;
+            const mergedCount = found.total_count + (found.items.some((i) => i.number === pr.number) ? 0 : 1);
 
-            // Pick up to three open, unclaimed issues to try next: same area first, then anything easy.
+            // Pick up to three open, unclaimed issues to try next: same area first, then anything at their level.
             const labelNames = new Set([
               ...pr.labels.map((l) => l.name),
               ...issues.flatMap((i) => i.labels.nodes.map((l) => l.name)),
             ]);
             const areas = [...labelNames].filter((n) => n.startsWith('area: ') || n.startsWith('island: '));
+            // Offer harder work as people merge more: easy -> medium -> hard.
+            const level = mergedCount >= 10 ? 'label:"difficulty: hard"'
+              : mergedCount >= 3 ? 'label:"difficulty: medium"' : 'label:"good first issue"';
             const search = async (extra) => (await github.rest.search.issuesAndPullRequests({
-              q: `repo:${owner}/${repo} is:issue is:open no:assignee label:"good first issue" ${extra}`,
+              q: `repo:${owner}/${repo} is:issue is:open no:assignee ${level} ${extra}`,
               sort: 'created', order: 'desc', per_page: 10,
             })).data.items;
             const picked = new Map();
@@ -80,9 +86,22 @@ jobs:
             const fixed = issues.map((i) => `#${i.number}`).join(', ');
             const lines = [MARK_PR, `Merged, thank you @${author}! 🎉`];
             if (fixed) lines.push('', `This fixes ${fixed}. It will ship in the next release and appear in the [CHANGELOG](${base}/blob/main/CHANGELOG.md).`);
-            lines.push('', mergedCount > 1
-              ? `That is your ${mergedCount}${['th','st','nd','rd'][(mergedCount % 100 > 10 && mergedCount % 100 < 14) || mergedCount % 10 > 3 ? 0 : mergedCount % 10]} merged PR here. We really appreciate you coming back. 💜`
-              : 'This is your first merged PR here. Welcome to TDK! 💜');
+            const ordinal = (n) => `${n}${['th', 'st', 'nd', 'rd'][(n % 100 > 10 && n % 100 < 14) || n % 10 > 3 ? 0 : n % 10]}`;
+            const MILESTONES = {
+              1: 'This is your first merged PR here. Welcome to TDK! 💜',
+              2: 'Your 2nd merged PR. Coming back for a second one means a lot. 💜',
+              3: 'Your 3rd merged PR. You now know this codebase well enough that we will point you at medium-difficulty issues. 🌱',
+              5: 'Your 5th merged PR. That makes you a regular contributor, and we are glad to have you. 🌟',
+              10: 'Your 10th merged PR! Double digits. You have shaped a real part of TDK, and we would love your view on direction too: open an issue or RFC any time. 🚀',
+              15: 'Your 15th merged PR. At this point you are practically a maintainer. Would you like to help review other contributors\' PRs? Just say so. 🙌',
+              20: 'Your 20th merged PR. Remarkable consistency, thank you for sticking with TDK. 🏔️',
+              30: 'Your 30th merged PR. TDK is measurably better because of you. 💎',
+              50: 'Your 50th merged PR! This is a rare milestone. We would like to invite you to become a maintainer: a maintainer will reach out. 👑',
+              80: 'Your 80th merged PR. Few projects are lucky enough to have a contributor like you. Thank you. 🏆',
+              100: 'Your 100th merged PR! 🎉🎉🎉 An extraordinary contribution to TDK. Thank you, truly. 💯',
+            };
+            lines.push('', MILESTONES[mergedCount]
+              || `That is your ${ordinal(mergedCount)} merged PR here. We really appreciate you coming back. 💜`);
             if (next.length) {
               lines.push('', 'If you want another one, these are open and unclaimed. Comment on one to claim it:');
               for (const i of next) lines.push(`- #${i.number} ${i.title}`);
