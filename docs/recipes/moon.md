@@ -56,4 +56,4 @@ curl http://api.<project>.localhost/api/shop/health
 - Each project creates a handful of Docker networks. When Docker runs out of address pools
   (`all predefined address pools have been fully subnetted`), `tdk up` does not report it and fails later
   with `network ... declared as external, but could not be found`. Free unused networks with
-  `docker network prune`.
+  `tdk down --prune-networks` in projects you no longer use (or `docker network prune` for every unused network).
