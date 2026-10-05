@@ -195,7 +195,7 @@ DEFAULT_SYNCS = {
 
 RUNTIME_CONFIGS = {
     'bun': {
-        'image_base': 'oven/bun:latest',
+        'image_base': 'oven/bun:1.3.11-alpine',
         'package_manager': 'bun',
         'lockfile': 'bun.lock',
     },

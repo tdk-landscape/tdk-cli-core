@@ -178,7 +178,7 @@ FROM l4_backend_bun AS l4_backend_golden
 # =============================================================================
 # L4-FRONTEND: FRONTEND PRODUCTION RUNTIME
 # =============================================================================
-FROM nginx:alpine AS l4_frontend_golden
+FROM nginx:1.27-alpine AS l4_frontend_golden
 
 LABEL layer="l4-frontend"       description="Frontend production runtime with Nginx"       maintainer="tdk-project"
 
