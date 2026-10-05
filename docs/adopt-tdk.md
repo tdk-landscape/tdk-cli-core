@@ -24,7 +24,7 @@ Install the CLI (see the [README](../README.md#installation)), then from the rep
 tdk project --yes
 ```
 
-In an empty directory this wrote `.tdk/project.json`, a `.env` with working defaults, the generated files under `.tdk/.tdk-out/`, and also a root `package.json`, a `.tiltignore` and `shared-platform-engineering/docker-templates/`. It added `.env` and `.tdk/.tdk-out/` to `.gitignore`. In an existing repository, run `git status` after this step and read what changed before you commit.
+In an empty directory this wrote `.tdk/project.json`, a `.env` with working defaults, the generated files under `.tdk/.tdk-out/`, and also a root `package.json`, a `.tiltignore` and `shared-platform-engineering/docker-templates/`. It added `.env`, `.tdk/.tdk-out/`, `.tdk/.project-id` and `.tdk/smoke/` to `.gitignore`, plus `node_modules/` in that empty directory. In an existing repository, run `git status` after this step and read what changed before you commit. In a repository that already had a `package.json`, `.tiltignore`, `Tiltfile` and `docker-compose.yml`, `tdk project --yes` left all of them byte-for-byte unchanged and only appended to `.gitignore`; see [gradual adoption](gradual-adoption.md).
 
 Add each service. To wrap a service you already have, use a [bring-your-own resource](byo.md); it does not generate application code:
 
@@ -38,7 +38,7 @@ To scaffold a new Bun/TypeScript service instead, which is what the output below
 tdk resource orders-api --type backend --stack shop --yes
 ```
 
-The command above was not run for this guide; it is the bring-your-own command from [byo.md](byo.md). Each service gets a `service.json`. Commit it with the service. A bring-your-own service must listen on the port in `service.json`, bind to `0.0.0.0`, and answer HTTP 200 on `healthCheckPath`; [byo.md](byo.md#what-tdk-needs-from-the-container) lists the full contract.
+The bring-your-own command above is the one from [byo.md](byo.md). Run in a scratch project it created the resource (`service.json`, `AGENTS.md`, `health.conf` and a placeholder nginx `Dockerfile`); that resource was not started. Each service gets a `service.json`. Commit it with the service. A bring-your-own service must listen on the port in `service.json`, bind to `0.0.0.0`, and answer HTTP 200 on `healthCheckPath`; [byo.md](byo.md#what-tdk-needs-from-the-container) lists the full contract.
 
 Then check the machine and preview the stack before starting anything:
 
@@ -60,25 +60,26 @@ Would start 1 service from stack "shop"...
 Host ports: HTTP 8080, HTTPS 8443, Postgres 15432
 Override with TDK_HTTP_PORT, TDK_HTTPS_PORT, or TDK_POSTGRES_PORT.
 Dry run - not starting services
-Would run: tilt up -- --focus=shop orders-api
+Would run: tilt up -f /path/to/pilot/.tdk/.tdk-out/Tiltfile -- --focus=shop orders-api
 ```
 
 The hostname starts with the project directory name (`pilot` here). `tdk up shop` then builds the image and starts Traefik, Postgres and your services. On that run the service answered at the URL above with `{"status":"ok","service":"orders-api"}`.
 
 Two things seen on that run that you may also meet:
 
-- `tdk doctor` printed `Unknown service.json field: ... healthCheck: unknown field is preserved` for a freshly scaffolded service. The current key is `healthCheckPath`; renaming it in `service.json` cleared the warning.
-- `tdk down --force` failed with `unknown flag: --force`. Use `tdk down` without it.
+- On TDK 1.3.86 `tdk doctor` printed `Unknown service.json field: ... healthCheck: unknown field is preserved` for a freshly scaffolded service. A backend scaffolded by current `main` already writes `healthCheckPath`, and `tdk doctor --no-ping` printed no such warning.
+- `tdk down --force` failed with `unknown flag: --force`. `tdk down --help` now lists `--force`, but it passes the flag on to `tilt down`, and running `tilt down --force` directly (Tilt 0.37.7) still prints `unknown flag: --force`. `tdk down --force` itself was not run. Use `tdk down` without it.
+- Before the fix in [#600](https://github.com/tdk-landscape/tdk-cli-core/pull/600), `tdk doctor` failed with `N resources without a package.json` for bring-your-own resources created with `tdk resource --type bring-your-own` (both `--dockerfile` and `--image`). That check no longer applies to them; if you still see it, upgrade `tdk` (`tdk upgrade`). It still fails for a backend, frontend or worker that has no `package.json`.
 
 ## 3. Keep your current setup
 
-Do not remove anything during the pilot. TDK does not replace Compose or Helm, and it does not install or take over your charts ([TDK and Helm](with-helm.md)). This guide did not test running it beside an existing Compose file.
+Do not remove anything during the pilot. TDK does not replace Compose or Helm, and it does not install or take over your charts ([TDK and Helm](with-helm.md)). `tdk project` and `tdk resource` did not change a `docker-compose.yml` already in the repository ([gradual adoption](gradual-adoption.md)). Running TDK and that Compose stack at the same time was **not tested**.
 
 - Keep your `docker-compose.yml`, Tiltfile and Helm charts where they are, and use `git status` to see exactly which files TDK added.
 - If a service in your Compose file uses the same host port as a TDK one, change the TDK port with `TDK_HTTP_PORT`, `TDK_HTTPS_PORT` or `TDK_POSTGRES_PORT`.
 - `service.json` is not `values.yaml`, and `.tdk/.tdk-out/` is not a chart. Do not copy it into Helm. See [TDK and Helm](with-helm.md) for what maps to what.
 
-If the pilot does not work out, throw the branch away.
+If the pilot does not work out, run `tdk down` (add `--prune-networks` to also remove this project's Docker networks that no container uses) and throw the branch away. `tdk down` removes the stack's containers and stops this project's `tilt up`; named volumes, including the Postgres data, are kept ([local data](data.md)).
 
 ## 4. Share it with the team
 
@@ -90,7 +91,7 @@ When the pilot services start cleanly:
 
 ## 5. What to measure
 
-Measure these two things on your own repository and write down the date, machine and TDK version:
+Measure these on your own repository and write down the date, machine and TDK version. The [pilot scorecard](pilot-scorecard.md) lists the full set, including the ones a person counts by hand (onboarding questions, CI reliability, the decision); the two below are the minimum:
 
 - **Time to first healthy URL:** from running `tdk up` to the first HTTP 200 on a service health URL. Say whether the images already existed. A cold build takes longer than a warm start.
 - **Setup steps removed:** the steps in your current "get started" page that a new teammate no longer has to do. Count them from the page, not from memory.
