@@ -27,6 +27,7 @@
 - [Pilot scorecard](pilot-scorecard.md): record the same measurements and decision at the end of a pilot
 - [FAQ for agencies and multi-client teams](faq-teams.md): honest answers on stacks, proxies, Windows, licence and exit
 - [Gradual adoption](gradual-adoption.md): what TDK adds to an existing repository, what to commit, and how to remove it
+- [Leaving TDK](leaving-tdk.md): what `tdk eject` really does, what stays usable without TDK, what you lose
 - [Local data: reset, seed, snapshot](data.md): where Postgres data lives and how to reset it
 - [Upgrading and version pinning](upgrading.md): `minTdkVersion`, installing a specific version, what is versioned
 - [Security: network calls, secrets and supply chain](security.md): what TDK sends, where secrets live, image tags and release checks
