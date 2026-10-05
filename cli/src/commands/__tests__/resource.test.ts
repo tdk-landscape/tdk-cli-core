@@ -476,6 +476,14 @@ describe("resource command", () => {
       expect(workerContent).toContain("async function main()");
     });
 
+    it("does not reference CLI-internal types the scaffolded project cannot resolve (#588)", () => {
+      const workerContent = getWorkerIndexTemplate("test-worker");
+
+      // JsonValue exists only inside the CLI (cli/src/types); the generated worker has no import for it.
+      expect(workerContent).not.toContain("JsonValue");
+      expect(workerContent).toContain("payload: Record<string, unknown>;");
+    });
+
     it("should have graceful shutdown handling", () => {
       const name = "test-worker";
       const workerContent = getWorkerIndexTemplate(name);
