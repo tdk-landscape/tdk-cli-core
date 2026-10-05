@@ -128,8 +128,8 @@ Recipes for using TDK next to other tools live in [`recipes/`](recipes/): [moon]
 - **Resource names must be unique across TDK projects that share one Docker daemon.** Traefik watches every container,
   so two projects that both define `orders-api` clash and routes are dropped.
 - **Docker can run out of address pools.** Each project creates several networks. When Docker answers
-  `all predefined address pools have been fully subnetted`, `tdk up` does not report it and fails later with
-  `network ... declared as external, but could not be found`. Free unused networks with `tdk down --prune-networks` in projects you no longer use (or `docker network prune` for every unused network).
+  `all predefined address pools have been fully subnetted`, the `init-networks` resource fails with Docker's message
+  (`Failed to create Docker network <name>: ...`) and the services that need the network do not start. Free unused networks with `tdk down --prune-networks` in projects you no longer use (or `docker network prune` for every unused network).
 - Through `tdk up`, a service is routed at `http://api.<project>.localhost/api/<name without -api>/...` with the prefix
   stripped, so a frontend served under that path needs its `base` set.
 

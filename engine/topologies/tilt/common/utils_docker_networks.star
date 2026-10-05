@@ -7,7 +7,8 @@ def fix_docker_networks(platform_networks):
     """
     Generates a shell command that:
     1. Removes networks with incorrect labels (if they exist and are not in use)
-    2. Creates all platform networks if they don't exist
+    2. Creates all platform networks if they don't exist, and fails with Docker's own
+       error if one that does not exist cannot be created
     """
     commands = []
     commands.append('echo "Initializing Docker networks..."')
@@ -19,7 +20,12 @@ def fix_docker_networks(platform_networks):
         check_and_remove += 'docker network rm ' + network + ' 2>/dev/null) || true'
         commands.append(check_and_remove)
 
-        create_cmd = 'docker network create ' + network + ' 2>/dev/null && echo "Created network ' + network + '" || true'
+        # Create the network. A failed create is an error unless the network exists
+        # afterwards (already there, or another process created it first). Docker's own
+        # message is printed and the command exits non-zero, so Tilt marks init-networks failed.
+        create_cmd = 'if _out=$(docker network create ' + network + ' 2>&1); then echo "Created network ' + network + '"; '
+        create_cmd += 'elif docker network inspect ' + network + ' >/dev/null 2>&1; then :; '
+        create_cmd += 'else echo "Failed to create Docker network ' + network + ': $_out" >&2; exit 1; fi'
         commands.append(create_cmd)
 
     commands.append('echo "Docker networks initialized"')
