@@ -1,4 +1,6 @@
-import { writeSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync, writeSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ProjectConfigNotFoundError,
@@ -11,6 +13,7 @@ import {
   DRIFT_EXIT_CODE,
   driftReport,
   enforceDriftGate,
+  enforceVersionFloor,
   formatUpSuccess,
   nativeWindowsUpRefusal,
   upCommand,
@@ -336,6 +339,65 @@ describe("tdk up drift gate", () => {
     const exit = vi.fn() as unknown as (code: number) => never;
     enforceDriftGate("/project", {}, exit);
     expect(exit).not.toHaveBeenCalled();
+  });
+});
+
+describe("enforceVersionFloor", () => {
+  let dir: string;
+  const exit = () =>
+    vi.fn((code: number) => {
+      throw new Error(`exit ${code}`);
+    }) as unknown as (code: number) => never;
+  const write = (config: object) =>
+    writeFileSync(join(dir, ".tdk", "project.json"), JSON.stringify(config));
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), "tdk-up-version-"));
+    mkdirSync(join(dir, ".tdk"), { recursive: true });
+  });
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
+    vi.restoreAllMocks();
+  });
+
+  it("exits 1 with doctor's message when the CLI is older", () => {
+    write({ minTdkVersion: "1.3.80" });
+    const e = exit();
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    const onFail = vi.fn();
+    expect(() => enforceVersionFloor(dir, { onFail }, "1.3.79", e)).toThrow("exit 1");
+    expect(err).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "tdk 1.3.79 is older than the 1.3.80 this project requires (minTdkVersion)",
+      ),
+    );
+    expect(err).toHaveBeenCalledWith(expect.stringContaining("Run: tdk upgrade"));
+    expect(onFail).toHaveBeenCalledWith(expect.stringContaining("Run: tdk upgrade"));
+  });
+
+  it("exits 1 on a malformed value", () => {
+    write({ minTdkVersion: "latest" });
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(() => enforceVersionFloor(dir, {}, "1.3.80", exit())).toThrow("exit 1");
+  });
+
+  it("passes at or above the floor and when no minTdkVersion is set", () => {
+    const e = exit();
+    write({ minTdkVersion: "1.3.80" });
+    enforceVersionFloor(dir, {}, "1.3.80", e);
+    enforceVersionFloor(dir, {}, "2.0.0", e);
+    write({});
+    enforceVersionFloor(dir, {}, "0.0.1", e);
+    expect(e).not.toHaveBeenCalled();
+  });
+
+  it("--ignore-version warns and does not exit", () => {
+    write({ minTdkVersion: "9.9.9" });
+    const e = exit();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    enforceVersionFloor(dir, { ignoreVersion: true }, "1.0.0", e);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("--ignore-version"));
+    expect(e).not.toHaveBeenCalled();
   });
 });
 

@@ -8,7 +8,7 @@ Add `minTdkVersion` to `.tdk/project.json` and commit it:
 { "minTdkVersion": "1.3.80" }
 ```
 
-`tdk doctor` then fails on any older CLI, locally and in CI, and says what to run:
+`tdk doctor` and `tdk up` then fail on any older CLI, locally and in CI, and say what to run:
 
 ```text
 tdk 1.3.79 is older than the 1.3.80 this project requires (minTdkVersion)
@@ -17,7 +17,9 @@ Run: tdk upgrade
 
 - It is a **floor**: newer versions pass. Nothing pins an exact version.
 - The value must be `MAJOR.MINOR.PATCH`; anything else fails the check.
-- Only `tdk doctor` reads it. `tdk up` does not check it yet, so run `tdk doctor` in CI and in your onboarding steps.
+- `tdk up` checks it first, before the Docker checks and before Tilt starts, and exits 1 with the two lines above. A malformed value stops it too. A project without `minTdkVersion` is not checked.
+- `tdk up --dry-run` runs the same check and exits 1 on a failure, as it does for generated-file drift; nothing is started either way.
+- `tdk up --ignore-version` skips the check and prints a warning. Use it only to get past a pin you know is stale; `tdk doctor` still reports it.
 
 ## Install a specific version
 
