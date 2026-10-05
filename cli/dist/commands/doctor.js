@@ -15,7 +15,7 @@ import { execAsync, isExecTimeout } from "../utils/exec-async.js";
 import { formatCount } from "../utils/formatting.js";
 import { getHostPortPlan } from "../utils/host-port-config.js";
 import { createHostPortPlan } from "../utils/host-port-plan.js";
-import { findProjectRoot } from "../utils/paths.js";
+import { findProjectRoot, getPackageVersion } from "../utils/paths.js";
 import { isApiServiceType } from "../utils/resource-kind.js";
 import { buildHealthTargets, pingHealthTargets } from "../utils/service-urls.js";
 import { discoverResourcesFromRoot } from "../utils/services.js";
@@ -414,6 +414,60 @@ function checkMasterConfigs() {
         didPass: false,
         message: `Master configs missing: ${missing.join(", ")}`,
         fix: "Run: tdk project",
+    };
+}
+/**
+ * A repo can pin the oldest CLI it works with: `"minTdkVersion": "1.3.80"` in
+ * .tdk/project.json. An older `tdk` fails here, so a team sees one clear line
+ * instead of a half-working `tdk up`.
+ */
+export function checkTdkVersion(currentVersion = getPackageVersion()) {
+    const projectRoot = findProjectRoot();
+    if (!projectRoot) {
+        return {
+            name: "TDK version",
+            didPass: true,
+            isSkipped: true,
+            message: "Not in a project - skipping TDK version check",
+        };
+    }
+    let minimum;
+    try {
+        const parsed = JSON.parse(readFileSync(join(projectRoot, ".tdk", "project.json"), "utf-8"));
+        minimum = parsed?.minTdkVersion;
+    }
+    catch {
+        minimum = undefined;
+    }
+    if (minimum === undefined) {
+        return {
+            name: "TDK version",
+            didPass: true,
+            isSkipped: true,
+            message: `tdk ${currentVersion} (no minTdkVersion in .tdk/project.json)`,
+        };
+    }
+    const required = typeof minimum === "string" ? parseVersion(minimum) : null;
+    if (!required || !/^\d+\.\d+\.\d+$/.test(String(minimum).trim())) {
+        return {
+            name: "TDK version",
+            didPass: false,
+            message: `.tdk/project.json minTdkVersion ${JSON.stringify(minimum)} is not a version like "1.3.80"`,
+            fix: 'Set minTdkVersion to a MAJOR.MINOR.PATCH string, for example "1.3.80".',
+        };
+    }
+    if (!versionMeetsMinimum(currentVersion, required)) {
+        return {
+            name: "TDK version",
+            didPass: false,
+            message: `tdk ${currentVersion} is older than the ${required.join(".")} this project requires (minTdkVersion)`,
+            fix: "Run: tdk upgrade",
+        };
+    }
+    return {
+        name: "TDK version",
+        didPass: true,
+        message: `tdk ${currentVersion} meets minTdkVersion ${required.join(".")}`,
     };
 }
 /**
@@ -1092,6 +1146,7 @@ export const doctorCommand = new Command("doctor")
         () => checkDockerNetworkCapacity(),
     ];
     const projectChecks = [
+        () => checkTdkVersion(),
         checkMasterConfigs,
         checkGeneratedProjectRuntimeAssets,
         checkStarlarkLoadExports,
