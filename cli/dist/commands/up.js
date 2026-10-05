@@ -12,12 +12,13 @@ import { formatCount } from "../utils/formatting.js";
 import { exportHostPortPlan, getHostPortPlan, writeSavedHostPortPlan, } from "../utils/host-port-config.js";
 import { formatHostPortPlan } from "../utils/host-port-plan.js";
 import { createJsonEmitter } from "../utils/json-output.js";
-import { findProjectRoot } from "../utils/paths.js";
+import { findProjectRoot, getPackageVersion } from "../utils/paths.js";
 import { findAvailablePort } from "../utils/port-assignment.js";
 import { isApiServiceType } from "../utils/resource-kind.js";
 import { appendHealthPath, resolveSubdomainBases } from "../utils/service-urls.js";
 import { discoverResources, discoverResourcesStrict, discoverStacks, stackExists, } from "../utils/services.js";
 import { buildSmokePlans, formatSmokeFailure, runSmokePlans } from "../utils/smoke.js";
+import { evaluateTdkVersionFloor } from "../utils/tdk-version.js";
 import { buildTiltUpArgs, runTilt } from "../utils/tilt.js";
 import { stopTiltOnPort } from "../utils/tilt-process.js";
 import { parseTiltPort, resolveTiltPort, stopTiltForUp } from "../utils/tilt-startup.js";
@@ -96,6 +97,24 @@ export function enforceDriftGate(projectRoot, options, exit = process.exit) {
         console.error(chalk.red(line));
     exit(DRIFT_EXIT_CODE);
 }
+/**
+ * Runs before anything starts (also under --dry-run, like the drift gate): a project's `minTdkVersion` in
+ * .tdk/project.json that this CLI does not meet, or cannot read, exits with 1 and the same text as `tdk doctor`.
+ * `ignoreVersion` skips the check and says so. No minTdkVersion means no check.
+ */
+export function enforceVersionFloor(projectRoot, options, currentVersion = getPackageVersion(), exit = process.exit) {
+    if (options.ignoreVersion) {
+        console.warn(chalk.yellow("Warning: --ignore-version set; minTdkVersion was not checked."));
+        return;
+    }
+    const floor = evaluateTdkVersionFloor(projectRoot, currentVersion);
+    if (floor.status === "none" || floor.status === "ok")
+        return;
+    options.onFail?.(`${floor.message}\n${floor.fix}`);
+    console.error(chalk.red(floor.message));
+    console.error(chalk.red(floor.fix));
+    exit(1);
+}
 function waitForTiltUi(port, timeoutMs = 30_000) {
     return new Promise((resolve) => {
         const deadline = Date.now() + timeoutMs;
@@ -127,6 +146,7 @@ export const upCommand = new Command("up")
     .option("--dry-run", "Show what would be started without starting", false)
     .option("-f, --force", "Kill existing Tilt process before starting", false)
     .option("--ignore-drift", "Start even if generated files differ from service.json", false)
+    .option("--ignore-version", "Start even if this tdk is older than minTdkVersion in .tdk/project.json", false)
     .option("--only <services...>", "Start only these services plus what the Tiltfile enables for them (their dependsOn services and shared infrastructure). With a stack, names must belong to that stack; dependencies may cross stacks")
     .option("--json", "Print one JSON object on stdout when the stack is ready or the command fails; implies --quiet", false)
     .action(async (stackName, options) => {
@@ -139,6 +159,14 @@ export const upCommand = new Command("up")
         showErrorAndExit(portSetting.message);
     }
     const configuredTiltPort = portSetting.port;
+    // First, before the host/Docker checks below: an old CLI must stop with one clear line, not a half-working stack.
+    const versionRoot = findProjectRoot();
+    if (versionRoot) {
+        enforceVersionFloor(versionRoot, {
+            ignoreVersion: options.ignoreVersion,
+            onFail: (message) => emit?.({ ok: false }, [{ code: "TDK_VERSION_TOO_OLD", message }]),
+        });
+    }
     const hostRefusal = options.dryRun ? null : await hostUpRefusal();
     if (hostRefusal) {
         emit?.({ ok: false }, [{ code: "HOST_UNSUPPORTED", message: hostRefusal }]);
