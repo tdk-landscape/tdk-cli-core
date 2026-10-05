@@ -324,6 +324,7 @@ describe("tdk up drift gate", () => {
     enforceDriftGate("/project", {}, exit);
     expect(exit).not.toHaveBeenCalled();
   });
+});
 
 describe("Tilt startup port selection", () => {
   it("accepts an unset port and valid boundary ports", () => {
