@@ -103,4 +103,4 @@ Only quote numbers you measured, with their conditions. Do not repeat the figure
 ## 6. Tell us
 
 - Run TDK on your repositories? Use the [We use TDK](https://github.com/tdk-landscape/tdk-cli-core/issues/new?template=we-use-tdk.yml) form, or add a row to [ADOPTERS.md](../ADOPTERS.md).
-- It did not fit or something broke? [Open an issue](https://github.com/tdk-landscape/tdk-cli-core/issues/new/choose) and include the output of `tdk doctor`.
+- It did not fit or something broke? Search [Troubleshooting](troubleshooting.md) for the message, then [open an issue](https://github.com/tdk-landscape/tdk-cli-core/issues/new/choose) and include the output of `tdk doctor`.

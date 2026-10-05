@@ -44,7 +44,7 @@ If the default host ports are taken, TDK picks the next free ports from bounded 
 
 ## Onboarding a new developer, and showing it to the client
 
-The [adoption guide](adopt-tdk.md) is the one-page path: `tdk doctor`, `tdk up --dry-run`, `tdk up`. `tdk doctor` is designed to replace a setup wiki; that is a design goal, not a measured result.
+The [adoption guide](adopt-tdk.md) is the one-page path: `tdk doctor`, `tdk up --dry-run`, `tdk up`. `tdk doctor` is designed to replace a setup wiki; that is a design goal, not a measured result. Messages it prints, and others you may meet, are in [Troubleshooting](troubleshooting.md).
 
 ## CI
 
