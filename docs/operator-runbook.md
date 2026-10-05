@@ -39,7 +39,7 @@ The source of truth is `cli/src/commands/doctor.ts` (`MIN_*` constants).
 
 ## Importing an existing repo
 
-`tdk import <dir>` reads Compose, Dockerfile, `package.json` scripts, and Procfile. Helm charts and Kustomize files are named as not imported. If a directory has only those, the command exits 2 and writes nothing. `--dry-run` prints the plan and writes nothing. The importer is the separate `tdk-import` package; the Helm/Kustomize refusal shipped in [tdk-import#8](https://github.com/tdk-landscape/tdk-import/pull/8).
+`tdk import <dir>` is provided by the separate `tdk-import` package. Its Helm/Kustomize refusal behavior is tracked in [tdk-import#8](https://github.com/tdk-landscape/tdk-import/pull/8); verify that change is released before relying on it operationally.
 
 ## Cutting a release
 

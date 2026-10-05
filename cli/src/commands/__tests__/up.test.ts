@@ -49,7 +49,6 @@ vi.mock("../../utils/host-port-config.js", async (importOriginal) => ({
 }));
 
 import { parseTiltPort, resolveTiltPort, stopTiltForUp } from "../../utils/tilt-startup.js";
-import { formatUpSuccess, nativeWindowsUpRefusal } from "../up.js";
 
 describe("tdk up success output", () => {
   it("prints the first-win block with exact UI and networks copy", () => {
@@ -322,6 +321,8 @@ describe("tdk up drift gate", () => {
     const exit = vi.fn() as unknown as (code: number) => never;
     enforceDriftGate("/project", {}, exit);
     expect(exit).not.toHaveBeenCalled();
+  });
+
 describe("Tilt startup port selection", () => {
   it("accepts an unset port and valid boundary ports", () => {
     expect(parseTiltPort(undefined)).toEqual({ ok: true, port: undefined });
