@@ -334,8 +334,9 @@ export interface BaseTooltipProps {
 }
 
 export interface LoadingScreenProps {
-  progress: number;
-  message: string;
+  message?: string;
+  /** Show the spinner; false renders static text (`--no-animations`). */
+  animated?: boolean;
 }
 
 export interface ErrorScreenProps {

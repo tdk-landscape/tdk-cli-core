@@ -75,21 +75,32 @@ const HelpPanel: React.FC<HelpPanelProps> = ({ onClose }) => (
   </Box>
 );
 
-const LoadingScreen: React.FC<LoadingScreenProps> = ({ progress, message }) => (
-  <Box flexDirection="column" padding={2}>
-    <Text bold color="cyan">
-      ▓▒░ TDK NEON EDITION ░▒▓
-    </Text>
-    <Box marginY={1} />
-    <Text>Loading: {message}</Text>
-    <Box marginY={1} borderStyle="single" borderColor="gray" width={50}>
-      <Box width={progress / 2} backgroundColor="cyan">
-        <Text>{" ".repeat(progress / 2)}</Text>
-      </Box>
-      <Text> {progress}%</Text>
+const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+
+export const LoadingScreen: React.FC<LoadingScreenProps> = ({
+  message = "Discovering resources...",
+  animated = true,
+}) => {
+  const [frame, setFrame] = useState(0);
+  useEffect(() => {
+    if (!animated) return;
+    const timer = setInterval(() => setFrame((f) => (f + 1) % SPINNER_FRAMES.length), 80);
+    return () => clearInterval(timer);
+  }, [animated]);
+
+  return (
+    <Box flexDirection="column" padding={2}>
+      <Text bold color="cyan">
+        ▓▒░ TDK NEON EDITION ░▒▓
+      </Text>
+      <Box marginY={1} />
+      <Text>
+        {animated && <Text color="cyan">{SPINNER_FRAMES[frame]} </Text>}
+        {message}
+      </Text>
     </Box>
-  </Box>
-);
+  );
+};
 
 // biome-ignore lint/correctness/noUnusedFunctionParameters: reserved callback prop kept in the component API
 const ErrorScreen: React.FC<ErrorScreenProps> = ({ error, onRetry }) => (
@@ -132,7 +143,7 @@ const EmptyState: React.FC<{ message?: string }> = ({ message }) => (
   </Box>
 );
 
-const TUIApp: React.FC = () => {
+const TUIApp: React.FC<{ animated?: boolean }> = ({ animated = true }) => {
   const { exit } = useApp();
   const { stdout } = useStdout();
   const { stdin, setRawMode } = useStdin();
@@ -569,7 +580,7 @@ const TUIApp: React.FC = () => {
   const compact = terminalWidth < 80;
 
   if (loading) {
-    return <LoadingScreen progress={100} message="Initializing..." />;
+    return <LoadingScreen message="Discovering resources..." animated={animated} />;
   }
 
   if (error) {
@@ -832,12 +843,12 @@ export const uiCommand = new Command("ui")
   .option("-v, --verbose", "Enable verbose output", false)
   .option("--no-animations", "Disable animations")
   .option("--high-contrast", "Enable high contrast mode")
-  .action(async () => {
+  .action(async (options: { animations: boolean }) => {
     const tiltAvailable = await isTiltAvailable();
     if (!tiltAvailable) {
       errorFactories.tiltNotInstalled().exit();
     }
 
     requireProjectRoot();
-    render(<TUIApp />);
+    render(<TUIApp animated={options.animations} />);
   });
