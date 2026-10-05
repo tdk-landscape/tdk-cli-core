@@ -23,6 +23,7 @@
 
 - [Pilot TDK on a real repository](adopt-tdk.md): a team lead's guide to trying TDK in an afternoon
 - [Scope and non-goals](scope.md): local development only, what differs from production, which Dockerfile you ship
+- [Layout and ownership](layout.md): one project or one per repo, services in other repos, name clashes, CODEOWNERS, layouts for 5, 20 and 50 services
 - [Pilot scorecard](pilot-scorecard.md): record the same measurements and decision at the end of a pilot
 - [FAQ for agencies and multi-client teams](faq-teams.md): honest answers on stacks, proxies, Windows, licence and exit
 - [Gradual adoption](gradual-adoption.md): what TDK adds to an existing repository, what to commit, and how to remove it
