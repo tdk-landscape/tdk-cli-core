@@ -169,9 +169,6 @@ export const upCommand = new Command("up")
                 showErrorAndExit(message, 2);
             }
         }
-        const hostPortPlan = await getHostPortPlan(projectRoot, {
-            inspectDocker: !options.dryRun,
-        });
         // Also under --dry-run: the check only reads, and a dry run should show what a real run would refuse.
         if (foundRoot) {
             enforceDriftGate(foundRoot, {
@@ -179,6 +176,9 @@ export const upCommand = new Command("up")
                 onDrift: (message) => emit?.({ ok: false }, [{ code: "DRIFT_DETECTED", message }]),
             });
         }
+        const hostPortPlan = await getHostPortPlan(projectRoot, {
+            inspectDocker: !options.dryRun,
+        });
         if (!options.dryRun) {
             // An older project's .env predates keys such as JWT_SECRET, which Compose now requires. Add what is missing (never
             // changing an existing value) before anything starts. Only inside a real project, so a stray run never writes a .env.
