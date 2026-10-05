@@ -1,5 +1,5 @@
 import { writeSync } from "node:fs";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ProjectConfigNotFoundError,
   verifyMasterConfigs,
@@ -150,6 +150,15 @@ describe("Tilt force cleanup", () => {
 });
 
 describe("tdk up drift gate", () => {
+  beforeEach(() => {
+    vi.stubEnv("TDK_ALLOW_NATIVE_WINDOWS", "1");
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+  });
+
   const verdict = (valid: boolean, errors: string[] = [], handEdited: string[] = []) =>
     vi.mocked(verifyMasterConfigs).mockReturnValue({
       valid,
