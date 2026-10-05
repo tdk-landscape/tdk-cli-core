@@ -10,11 +10,21 @@ import { createStatusMessageController } from "../utils/status-message.js";
 import { isTiltAvailable } from "../utils/tilt.js";
 // biome-ignore lint/correctness/noUnusedFunctionParameters: reserved callback prop kept in the component API
 const HelpPanel = ({ onClose }) => (_jsxs(Box, { borderStyle: "single", borderColor: "cyan", paddingX: 2, paddingY: 1, flexDirection: "column", width: 60, children: [_jsx(Text, { bold: true, color: "cyan", children: "Keyboard Shortcuts" }), _jsxs(Box, { marginY: 1, flexDirection: "column", children: [_jsx(Text, { bold: true, underline: true, children: "Navigation" }), _jsx(Text, { children: " \u2191/\u2193 Navigate list items" }), _jsx(Text, { children: " Enter Select item / Open detail" }), _jsx(Text, { children: " Space Toggle expand (tree view)" }), _jsx(Text, { children: " Tab Next tab" }), _jsx(Text, { children: " 1-5 Direct tab access" }), _jsx(Box, { marginTop: 1, children: _jsx(Text, { bold: true, underline: true, children: "Actions" }) }), _jsx(Text, { children: " m Toggle mouse support" }), _jsx(Text, { children: " t Toggle tooltips" }), _jsx(Text, { children: " e Toggle enabled/disabled services" }), _jsx(Text, { children: " r Refresh data" }), _jsx(Text, { children: " / Search/filter" }), _jsx(Text, { children: " ? Show this help" }), _jsx(Text, { children: " q Quit \u2502 Esc Back" })] }), _jsx(Box, { marginTop: 1, children: _jsx(Text, { color: "gray", dimColor: true, children: "Press any key to close..." }) })] }));
-const LoadingScreen = ({ progress, message }) => (_jsxs(Box, { flexDirection: "column", padding: 2, children: [_jsx(Text, { bold: true, color: "cyan", children: "\u2593\u2592\u2591 TDK NEON EDITION \u2591\u2592\u2593" }), _jsx(Box, { marginY: 1 }), _jsxs(Text, { children: ["Loading: ", message] }), _jsxs(Box, { marginY: 1, borderStyle: "single", borderColor: "gray", width: 50, children: [_jsx(Box, { width: progress / 2, backgroundColor: "cyan", children: _jsx(Text, { children: " ".repeat(progress / 2) }) }), _jsxs(Text, { children: [" ", progress, "%"] })] })] }));
+const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+export const LoadingScreen = ({ message = "Discovering resources...", animated = true, }) => {
+    const [frame, setFrame] = useState(0);
+    useEffect(() => {
+        if (!animated)
+            return;
+        const timer = setInterval(() => setFrame((f) => (f + 1) % SPINNER_FRAMES.length), 80);
+        return () => clearInterval(timer);
+    }, [animated]);
+    return (_jsxs(Box, { flexDirection: "column", padding: 2, children: [_jsx(Text, { bold: true, color: "cyan", children: "\u2593\u2592\u2591 TDK NEON EDITION \u2591\u2592\u2593" }), _jsx(Box, { marginY: 1 }), _jsxs(Text, { children: [animated && _jsxs(Text, { color: "cyan", children: [SPINNER_FRAMES[frame], " "] }), message] })] }));
+};
 // biome-ignore lint/correctness/noUnusedFunctionParameters: reserved callback prop kept in the component API
 const ErrorScreen = ({ error, onRetry }) => (_jsxs(Box, { flexDirection: "column", padding: 2, alignItems: "center", children: [_jsx(Text, { bold: true, color: "red", children: "Could Not Load Services" }), _jsx(Box, { marginY: 1 }), _jsxs(Text, { color: "red", children: ["\u2717 ", error] }), _jsx(Box, { marginY: 1 }), _jsx(Text, { color: "gray", children: "Troubleshooting:" }), _jsx(Text, { color: "gray", children: " 1. Check that every service.json is valid JSON" }), _jsx(Text, { color: "gray", children: " 2. Run tdk from your project (the folder with the Tiltfile)" }), _jsx(Text, { color: "gray", children: " 3. Try: tdk status --verbose" }), _jsx(Box, { marginY: 1 }), _jsx(Text, { color: "cyan", children: "Press [r] to retry or [q] to quit" })] }));
 const EmptyState = ({ message }) => (_jsxs(Box, { flexDirection: "column", padding: 2, alignItems: "center", children: [_jsx(Text, { bold: true, color: "yellow", children: "No Services Found" }), _jsx(Box, { marginY: 1 }), _jsx(Text, { color: "gray", children: "\u25C9 No service.json files found" }), _jsx(Box, { marginY: 1 }), _jsx(Text, { children: "To get started:" }), _jsx(Text, { children: " 1. Run: tdk project" }), _jsx(Text, { children: " 2. Run: tdk resource api --type backend" }), _jsx(Box, { marginY: 1 }), _jsx(Text, { color: "cyan", children: "Press [r] to refresh or [q] to quit" }), message && (_jsx(Box, { paddingX: 1, height: 1, children: _jsxs(Text, { color: "cyan", children: ["\u2593\u2592\u2591 ", message, " \u2591\u2592\u2593"] }) }))] }));
-const TUIApp = () => {
+const TUIApp = ({ animated = true }) => {
     const { exit } = useApp();
     const { stdout } = useStdout();
     const { stdin, setRawMode } = useStdin();
@@ -401,7 +411,7 @@ const TUIApp = () => {
     const compactTabBar = terminalWidth < 100;
     const compact = terminalWidth < 80;
     if (loading) {
-        return _jsx(LoadingScreen, { progress: 100, message: "Initializing..." });
+        return _jsx(LoadingScreen, { message: "Discovering resources...", animated: animated });
     }
     if (error) {
         return _jsx(ErrorScreen, { error: error, onRetry: refresh });
@@ -431,12 +441,12 @@ export const uiCommand = new Command("ui")
     .option("-v, --verbose", "Enable verbose output", false)
     .option("--no-animations", "Disable animations")
     .option("--high-contrast", "Enable high contrast mode")
-    .action(async () => {
+    .action(async (options) => {
     const tiltAvailable = await isTiltAvailable();
     if (!tiltAvailable) {
         errorFactories.tiltNotInstalled().exit();
     }
     requireProjectRoot();
-    render(_jsx(TUIApp, {}));
+    render(_jsx(TUIApp, { animated: options.animations }));
 });
 //# sourceMappingURL=ui.js.map
