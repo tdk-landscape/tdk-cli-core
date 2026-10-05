@@ -158,3 +158,5 @@ For example: a new database usually changes Tilt `.star` files, Docker/Compose `
 ## Evidence
 
 <!-- Paste useful output or add screenshots. Remove secrets, private URLs, and personal paths. -->
+
+<!-- Three AI review links (Grok, Claude, Codex) are added at the bottom when the PR is opened. Do not delete the ai-review-buttons marker. -->
