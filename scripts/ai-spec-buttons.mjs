@@ -137,19 +137,26 @@ export function buildPrompt(kind, title, issueUrl) {
   return `${prefix}\n\n"${title}"\n${issueUrl}`;
 }
 
+// Pill SVGs live in the repo. Image URLs must use `main` (not the PR branch):
+// the issues workflow checks out the default branch, and a branch raw URL
+// 404s after merge. Shields has no size+round knob; these are 168×36 / 176×36.
+export const BADGE_BASE =
+  "https://github.com/tdk-landscape/tdk-cli-core/raw/main/.github/badges";
+export const BADGE_URLS = {
+  grok: `${BADGE_BASE}/write-spec-grok.svg`,
+  claude: `${BADGE_BASE}/write-spec-claude.svg`,
+  codex: `${BADGE_BASE}/write-spec-codex.svg`,
+};
+
 export function buildButtonsHtml(kind, title, issueUrl) {
   const q = encodeURIComponent(buildPrompt(kind, title, issueUrl));
-  // style=social is the rounded pill shields style (for-the-badge is square).
-  // Badge left text is short so the pill stays compact; alt text keeps "in".
-  const badge = (left, right, color, logo) =>
-    `https://img.shields.io/badge/${encodeURIComponent(left)}-${encodeURIComponent(right)}-${color}?style=social&logo=${logo}&logoColor=white`;
   const grok = `https://grok.com/?q=${q}`;
   const claude = `https://claude.ai/new?q=${q}`;
   const codex = `https://chatgpt.com/?q=${q}`;
   return [
-    `[![Write spec in Grok](${badge("Write spec", "Grok", "111111", "x")})](${grok})`,
-    `[![Write spec in Claude](${badge("Write spec", "Claude", "D97757", "anthropic")})](${claude})`,
-    `[![Write spec in Codex](${badge("Write spec", "Codex", "10A37F", "openai")})](${codex})`,
+    `[![Write spec in Grok](${BADGE_URLS.grok})](${grok})`,
+    `[![Write spec in Claude](${BADGE_URLS.claude})](${claude})`,
+    `[![Write spec in Codex](${BADGE_URLS.codex})](${codex})`,
   ].join(" ");
 }
 

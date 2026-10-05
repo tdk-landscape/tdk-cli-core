@@ -144,15 +144,17 @@ describe("resolveKind", () => {
 });
 
 describe("buildButtonsHtml", () => {
-  it("uses rounded social pills with short badge text and keeps ?q= links", () => {
+  it("points at repo pill SVGs on main and keeps ?q= links", () => {
     const html = buildButtonsHtml("openspec", title, url);
-    assert.ok(html.includes("https://img.shields.io/badge/Write%20spec-Grok-111111?style=social&logo=x&logoColor=white"));
-    assert.ok(html.includes("https://img.shields.io/badge/Write%20spec-Claude-D97757?style=social&logo=anthropic&logoColor=white"));
-    assert.ok(html.includes("https://img.shields.io/badge/Write%20spec-Codex-10A37F?style=social&logo=openai&logoColor=white"));
+    assert.ok(html.includes("https://github.com/tdk-landscape/tdk-cli-core/raw/main/.github/badges/write-spec-grok.svg"));
+    assert.ok(html.includes("https://github.com/tdk-landscape/tdk-cli-core/raw/main/.github/badges/write-spec-claude.svg"));
+    assert.ok(html.includes("https://github.com/tdk-landscape/tdk-cli-core/raw/main/.github/badges/write-spec-codex.svg"));
     assert.ok(html.includes("[![Write spec in Grok]("));
     assert.ok(html.includes("https://grok.com/?q="));
     assert.ok(html.includes("https://claude.ai/new?q="));
     assert.ok(html.includes("https://chatgpt.com/?q="));
+    assert.ok(!html.includes("img.shields.io"));
+    assert.ok(!html.includes("style=social"));
     assert.ok(!html.includes("for-the-badge"));
   });
 });

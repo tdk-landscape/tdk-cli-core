@@ -22,20 +22,25 @@ export function buildPrompt(title, prUrl) {
   return `${PROMPT_PREFIX}\n\n"${title}"\n${prUrl}`;
 }
 
+// Pill SVGs live in the repo. Image URLs must use `main` (not the PR branch):
+// a branch raw URL 404s after merge. Matches scripts/ai-spec-buttons.mjs.
+export const BADGE_BASE =
+  "https://github.com/tdk-landscape/tdk-cli-core/raw/main/.github/badges";
+export const BADGE_URLS = {
+  grok: `${BADGE_BASE}/review-pr-grok.svg`,
+  claude: `${BADGE_BASE}/review-pr-claude.svg`,
+  codex: `${BADGE_BASE}/review-pr-codex.svg`,
+};
+
 export function buildButtonsHtml(title, prUrl) {
   const q = encodeURIComponent(buildPrompt(title, prUrl));
-  // style=social is the rounded pill shields style (for-the-badge is square).
-  // Matches scripts/ai-spec-buttons.mjs. Badge left text is short so the pill
-  // stays compact; alt text keeps "in".
-  const badge = (left, right, color, logo) =>
-    `https://img.shields.io/badge/${encodeURIComponent(left)}-${encodeURIComponent(right)}-${color}?style=social&logo=${logo}&logoColor=white`;
   const grok = `https://grok.com/?q=${q}`;
   const claude = `https://claude.ai/new?q=${q}`;
   const codex = `https://chatgpt.com/?q=${q}`;
   return [
-    `[![Review PR in Grok](${badge("Review PR", "Grok", "111111", "x")})](${grok})`,
-    `[![Review PR in Claude](${badge("Review PR", "Claude", "D97757", "anthropic")})](${claude})`,
-    `[![Review PR in Codex](${badge("Review PR", "Codex", "10A37F", "openai")})](${codex})`,
+    `[![Review PR in Grok](${BADGE_URLS.grok})](${grok})`,
+    `[![Review PR in Claude](${BADGE_URLS.claude})](${claude})`,
+    `[![Review PR in Codex](${BADGE_URLS.codex})](${codex})`,
   ].join(" ");
 }
 
