@@ -1,14 +1,58 @@
 import chalk from "chalk";
 import { Command } from "commander";
+import { readProjectConfig } from "../generator/template-engine.js";
 import { handleDryRun } from "../utils/command-helpers.js";
+import {
+  pruneProjectNetworks,
+  stopProjectTiltUp,
+  waitForTiltUpExit,
+} from "../utils/down-cleanup.js";
 import { handleTiltFailure, withTiltCheck } from "../utils/errors.js";
 import { createJsonEmitter } from "../utils/json-output.js";
-import { buildTiltDownArgs, runTilt } from "../utils/tilt.js";
+import { findProjectRoot } from "../utils/paths.js";
+import { discoverResources, discoverStacks } from "../utils/services.js";
+import { buildTiltDownArgs, getTiltfilePath, runTilt } from "../utils/tilt.js";
+
+function allStackNames(): string[] | undefined {
+  try {
+    const names = discoverStacks(discoverResources()).map((stack) => stack.name);
+    return names.length > 0 ? names : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function pruneNetworksOrWarn(json: boolean): ReturnType<typeof pruneProjectNetworks> | undefined {
+  const root = findProjectRoot();
+  if (!root) return undefined;
+  try {
+    const result = pruneProjectNetworks(readProjectConfig(root).project.name);
+    if (!json) {
+      if (result.removed.length > 0) {
+        console.log(chalk.gray(`Removed networks: ${result.removed.join(", ")}`));
+      }
+      for (const kept of result.kept) {
+        console.log(chalk.yellow(`Kept network ${kept.name}: ${kept.reason}`));
+      }
+    }
+    return result;
+  } catch (err) {
+    if (!json) {
+      console.log(chalk.yellow(`Could not remove networks: ${(err as Error).message}`));
+    }
+    return undefined;
+  }
+}
 
 export const downCommand = new Command("down")
   .description("Stop all tilt resources")
   .option("-v, --verbose", "Enable verbose output", false)
   .option("-f, --force", "Skip confirmation", false)
+  .option(
+    "--prune-networks",
+    "Also remove this project's Docker networks (only those no container is attached to)",
+    false,
+  )
   .option("--dry-run", "Show what would be stopped without stopping", false)
   .option("--json", "Print one JSON object on stdout; implies quiet human output", false)
   .action(async (options) => {
@@ -24,7 +68,21 @@ export const downCommand = new Command("down")
 
       const tiltArgs = buildTiltDownArgs({
         force: options.force,
+        focusTargets: allStackNames(),
       });
+
+      // Stop `tilt up` first: `tilt down` does not end it, and a live Tilt re-creates the containers `tilt down` just removed.
+      let stoppedTilt: number[] = [];
+      try {
+        const tiltfile = getTiltfilePath();
+        stoppedTilt = stopProjectTiltUp(tiltfile);
+        if (stoppedTilt.length > 0) await waitForTiltUpExit(tiltfile);
+      } catch {
+        // Not fatal: the containers are already down.
+      }
+      if (stoppedTilt.length > 0 && !options.json) {
+        console.log(chalk.gray(`Stopped tilt up (pid ${stoppedTilt.join(", ")}).`));
+      }
 
       if (!options.json) console.log(chalk.blue("Stopping all tilt resources..."));
 
@@ -40,6 +98,15 @@ export const downCommand = new Command("down")
       if (result.exitCode !== 0) {
         handleTiltFailure("down", result.exitCode);
       }
-      emit?.({ ok: true });
+
+      let networks: ReturnType<typeof pruneProjectNetworks> | undefined;
+      if (options.pruneNetworks) {
+        networks = pruneNetworksOrWarn(options.json);
+      }
+      emit?.({
+        ok: true,
+        stoppedTilt,
+        ...(networks ? { removedNetworks: networks.removed, keptNetworks: networks.kept } : {}),
+      });
     });
   });

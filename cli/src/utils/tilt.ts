@@ -123,12 +123,21 @@ export function buildTiltUpArgs(
   return args;
 }
 
-export function buildTiltDownArgs(options: { force?: boolean } = {}): string[] {
+export function buildTiltDownArgs(
+  options: { force?: boolean; focusTargets?: string[] } = {},
+): string[] {
   const args: string[] = [];
   addTiltfilePath(args);
 
   if (options.force) {
     args.push("--force");
+  }
+
+  // `tilt down` re-evaluates the Tiltfile and removes only the resources that evaluation registers. Without `--focus`
+  // the Tiltfile falls back to its default phase and never registers a stack's own compose project, so `tdk up shop`
+  // containers survived `tdk down`. Pass the same selection `tdk up` used (every stack) after `--`.
+  if (options.focusTargets && options.focusTargets.length > 0) {
+    args.push("--", `--focus=${options.focusTargets.join(",")}`);
   }
 
   return args;

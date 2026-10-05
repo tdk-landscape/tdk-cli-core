@@ -345,7 +345,7 @@ export async function checkDockerNetworkCapacity(exec = execAsync) {
                 name: "Docker networks",
                 didPass: false,
                 message: "Docker cannot create another network: all predefined address pools are in use. Each TDK project needs several",
-                fix: "docker network prune  (removes unused networks), or run tdk down in projects you are not using",
+                fix: "run tdk down --prune-networks in projects you are not using, or docker network prune (removes all unused networks)",
             };
         }
         return {
