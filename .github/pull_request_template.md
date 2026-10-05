@@ -159,4 +159,4 @@ For example: a new database usually changes Tilt `.star` files, Docker/Compose `
 
 <!-- Paste useful output or add screenshots. Remove secrets, private URLs, and personal paths. -->
 
-<!-- Three AI review links (Grok, Claude, Codex) are added at the bottom when the PR is opened. Do not delete the ai-review-buttons marker. -->
+<!-- Three AI review links (Grok, Claude, Codex) are added at the bottom for same-repository PRs when opened, reopened, or edited. Fork pull requests are skipped so the workflow token is never used to write untrusted bodies. Title changes regenerate the prefilled prompt. Do not delete the ai-review-buttons marker. -->

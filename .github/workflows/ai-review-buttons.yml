@@ -1,17 +1,17 @@
 # Appends AI review links (Grok, Claude, Codex) to same-repo pull request bodies.
-# Markdown shields only: no API call, no review comment, no PR-code checkout.
+# Markdown shields only: no API call, no review comment.
 # Fork PRs skip the job so the default token never writes untrusted bodies.
+# Do not switch this job to pull_request_target just to cover forks.
 name: 🤖 AI review buttons
 
 on:
   pull_request:
     types: [opened, reopened, edited]
 
-# One write permission. No secrets. This job does not check out PR code.
 permissions:
   contents: read
 
-# Serialize runs per PR so two `edited` events cannot PATCH in parallel.
+# Serialize writes per PR: two `edited` events cannot PATCH in parallel.
 concurrency:
   group: ai-review-buttons-pr-${{ github.event.pull_request.number }}
   cancel-in-progress: false
@@ -26,6 +26,13 @@ jobs:
     permissions:
       pull-requests: write
     steps:
+      # Check out this repository so CI runs the same scripts/ai-review-buttons.mjs
+      # contributors test locally (single implementation). persist-credentials: false
+      # keeps the job from leaving a write-capable git credential on disk.
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
       # Event fields go through env, never into the script string (template-injection safe).
       # Body is fetched with gh so large/multiline bodies are not interpolated into the workflow.
       - name: Append AI review buttons
@@ -38,15 +45,17 @@ jobs:
           PATCH_FILE: ${{ runner.temp }}/pr-body-patch.json
         run: |
           set -euo pipefail
+          test -f scripts/ai-review-buttons.mjs
+
           # Snapshot the live body (not the event payload).
           gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" \
             --jq '(.body // "") | @base64' > "${OUT_FILE}.b64"
           base64 -d < "${OUT_FILE}.b64" > "${OUT_FILE}.in"
 
-          # Pure transform lives in scripts/ai-review-buttons.mjs (unit-testable).
-          # Keeps author bytes; regenerates the tail when title/url drift; appends when marker missing.
-          BODY_FILE="${OUT_FILE}.in" OUT_FILE="$OUT_FILE" \
-            node scripts/ai-review-buttons.mjs
+          # Single implementation: append when marker missing; regenerate tail when
+          # title/URL drift; skip when the generated prompt already matches.
+          export BODY_FILE="${OUT_FILE}.in"
+          node scripts/ai-review-buttons.mjs
 
           if cmp -s "${OUT_FILE}.in" "$OUT_FILE"; then
             echo "Body unchanged; nothing to PATCH."

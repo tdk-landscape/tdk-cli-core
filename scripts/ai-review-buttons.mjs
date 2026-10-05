@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-// Pure transform for AI review buttons on PR bodies. Used by
-// .github/workflows/ai-review-buttons.yml and runnable locally for tests.
+// Pure transform for AI review buttons on PR bodies. This is the only
+// implementation; .github/workflows/ai-review-buttons.yml checks the repo out
+// (persist-credentials: false) and runs this file.
 //
 // Env: PR_TITLE, PR_URL, BODY_FILE, OUT_FILE
 // Or:  node scripts/ai-review-buttons.mjs --title T --url U --body-file X --out-file Y
@@ -9,8 +10,9 @@ import { readFileSync, writeFileSync } from "node:fs";
 export const MARKER = "<!-- ai-review-buttons -->";
 export const LEGACY_MARKER = "<!-- grok-review-button -->";
 export const MARKERS = [MARKER, LEGACY_MARKER];
+// Softened: the query only carries title + PR URL; it does not embed the diff.
 export const PROMPT_PREFIX =
-  "Review this pull request. Read the description and diff, then give the most important takeaways: intent, risks, missing tests, and concrete review comments. I will ask follow-up questions.";
+  "Review this pull request. Use the linked PR URL to read the description and diff on GitHub, then give the most important takeaways: intent, risks, missing tests, and concrete review comments. I will ask follow-up questions.";
 
 export function normalizeTitle(raw) {
   return (raw ?? "").replace(/\r?\n/g, " ").trim();
@@ -41,7 +43,7 @@ export function buildGeneratedSection(title, prUrl) {
     "",
     "---",
     "",
-    "**AI review** — open an AI chat that reads this PR and returns intent, risks, missing tests, and concrete review comments. Nothing is posted back to GitHub automatically.",
+    "**AI review** — open an AI chat that reviews this PR via the linked URL (intent, risks, missing tests, concrete comments). Nothing is posted back to GitHub automatically.",
     "",
     buildButtonsHtml(title, prUrl),
     "",
@@ -70,6 +72,9 @@ function markerIndex(body) {
 
 /**
  * @returns {{ action: "skip" | "patch", body: string, reason: string }}
+ *   - append when the marker is missing
+ *   - regenerate the generated tail when title/URL (or prompt wording) drift
+ *   - skip when the tail already matches the current title/URL
  */
 export function transformBody(body, rawTitle, prUrl) {
   const title = normalizeTitle(rawTitle);
