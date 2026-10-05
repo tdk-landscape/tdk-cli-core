@@ -5,6 +5,8 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   checkDockerNetworkCapacity,
+  checkDuplicateResourceNames,
+  checkDuplicateResourcePorts,
   checkFrontendBackendUrls,
   checkMigrationsInApi,
   checkNatsBroker,
@@ -327,5 +329,78 @@ describe("checkMigrationsInApi", () => {
       "src/index.test.ts": "prisma migrate deploy",
     });
     expect(checkMigrationsInApi(root).didPass).toBe(true);
+  });
+});
+
+describe("checkDuplicateResourceNames", () => {
+  /** Same appName in two different directories. */
+  function twin(dir: string, appName: string, config: Record<string, unknown> = {}) {
+    const path = join(root, "services", dir);
+    mkdirSync(path, { recursive: true });
+    writeFileSync(
+      join(path, "service.json"),
+      JSON.stringify({ appName, appType: "backend", stack: "app", port: 4000, ...config }),
+    );
+  }
+
+  it("fails when two directories use one appName, naming both paths", () => {
+    twin("app/api", "api");
+    twin("other/api-copy", "api");
+    const result = checkDuplicateResourceNames(root);
+    expect(result.didPass).toBe(false);
+    expect(result.isWarning).toBeUndefined();
+    expect(result.message).toContain('"api"');
+    expect(result.message).toContain(join("services", "app", "api", "service.json"));
+    expect(result.message).toContain(join("services", "other", "api-copy", "service.json"));
+    expect(result.fix).toContain("appName");
+  });
+
+  it("fails across different types, because the name is what collides", () => {
+    twin("app/web", "shop", { appType: "frontend" });
+    twin("app/shop-api", "shop");
+    expect(checkDuplicateResourceNames(root).didPass).toBe(false);
+  });
+
+  it("passes when every appName is unique, and with no resources", () => {
+    expect(checkDuplicateResourceNames(root).didPass).toBe(true);
+    twin("app/api", "api");
+    twin("app/orders", "orders");
+    expect(checkDuplicateResourceNames(root).didPass).toBe(true);
+  });
+});
+
+describe("checkDuplicateResourcePorts", () => {
+  it("warns, not fails, when two backends share a port", () => {
+    resource("app", "api", { appType: "backend", port: 4000 });
+    resource("app", "orders", { appType: "backend", port: 4000 });
+    const result = checkDuplicateResourcePorts(root);
+    expect(result.didPass).toBe(false);
+    expect(result.isWarning).toBe(true);
+    expect(result.message).toContain("port 4000: api, orders");
+  });
+
+  it("warns for a backend and a bring-your-own resource on one port", () => {
+    resource("app", "api", { appType: "backend", port: 4000 });
+    resource("app", "legacy", { appType: "bring-your-own", port: 4000 });
+    expect(checkDuplicateResourcePorts(root).isWarning).toBe(true);
+  });
+
+  it("passes for distinct ports", () => {
+    resource("app", "api", { appType: "backend", port: 4000 });
+    resource("app", "orders", { appType: "backend", port: 4001 });
+    const result = checkDuplicateResourcePorts(root);
+    expect(result.didPass).toBe(true);
+    expect(result.isWarning).toBeUndefined();
+  });
+
+  it("ignores frontends, workers, libraries, unrouted bring-your-own resources and missing ports", () => {
+    resource("app", "api", { appType: "backend", port: 3000 });
+    resource("app", "web", { appType: "frontend", port: 3000 });
+    resource("app", "jobs", { appType: "worker", port: 3000 });
+    resource("app", "lib", { appType: "library", port: 3000 });
+    resource("app", "byo", { appType: "bring-your-own", port: 3000, exposeViaProxy: false });
+    resource("app", "noport", { appType: "backend" });
+    resource("app", "noport2", { appType: "backend" });
+    expect(checkDuplicateResourcePorts(root).didPass).toBe(true);
   });
 });

@@ -29,6 +29,8 @@ import {
 } from "../utils/doctor-runtime.js";
 import {
   checkDockerNetworkCapacity,
+  checkDuplicateResourceNames,
+  checkDuplicateResourcePorts,
   checkFrontendBackendUrls,
   checkMigrationsInApi,
   checkNatsBroker,
@@ -1404,6 +1406,8 @@ export const doctorCommand = new Command("doctor")
       checkResourceDiscovery,
       // Wiring mistakes that otherwise surface minutes into `tdk up`.
       () => checkResourcePackageJson(),
+      () => checkDuplicateResourceNames(),
+      () => checkDuplicateResourcePorts(),
       () => checkServiceUrlPorts(),
       () => checkFrontendBackendUrls(),
       () => checkNatsBroker(),

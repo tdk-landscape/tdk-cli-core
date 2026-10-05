@@ -71,6 +71,73 @@ export function checkResourcePackageJson(projectRoot = findProjectRoot() ?? proc
         fix: "Add a package.json next to each service.json (copy one from a working resource), or delete the folder's service.json if it is not a service",
     };
 }
+/**
+ * Two resources with one appName share a Compose service name and Traefik router and service names
+ * (all built from the name, none from the directory), so one of them is lost or misrouted.
+ */
+export function checkDuplicateResourceNames(projectRoot = findProjectRoot() ?? process.cwd()) {
+    const byName = new Map();
+    for (const resource of discoverResourcesFromRoot(projectRoot)) {
+        const paths = byName.get(resource.name) ?? [];
+        paths.push(relative(projectRoot, resource.configPath) || resource.configPath);
+        byName.set(resource.name, paths);
+    }
+    const duplicates = [...byName].filter(([, paths]) => paths.length > 1);
+    if (duplicates.length === 0) {
+        return {
+            name: "Duplicate resource names",
+            didPass: true,
+            message: "Every resource has a unique appName",
+        };
+    }
+    const lines = duplicates.map(([name, paths]) => `"${name}" in ${paths.join(" and ")}`);
+    return {
+        name: "Duplicate resource names",
+        didPass: false,
+        message: `${formatCount(duplicates.length, "appName")} used by more than one resource:\n    ${lines.join("\n    ")}`,
+        fix: 'Give each resource its own "appName" in its service.json. The name becomes the Compose service and the Traefik router, so two resources with one name collide',
+    };
+}
+/** A resource that gets a Traefik route to its own `port`: a backend, an mcp server, or a bring-your-own resource that is not opted out. */
+function isRoutedToPort(resource) {
+    const appType = resource.config?.appType;
+    if (isApiServiceType(appType))
+        return true;
+    return appType === "bring-your-own" && resource.config?.exposeViaProxy !== false;
+}
+/**
+ * Two routed resources on one `port`. This is a warning, not a failure: the engine publishes no service
+ * port on the host and gives each resource its own container, which Traefik reaches as <container>:<port>,
+ * so two containers can listen on 4000 at once. The pair still confuses the checks and URLs that identify
+ * a backend by its port, and usually means a copied service.json.
+ */
+export function checkDuplicateResourcePorts(projectRoot = findProjectRoot() ?? process.cwd()) {
+    const byPort = new Map();
+    for (const resource of discoverResourcesFromRoot(projectRoot)) {
+        const port = resource.config?.port;
+        if (typeof port !== "number" || !isRoutedToPort(resource))
+            continue;
+        const names = byPort.get(port) ?? [];
+        names.push(resource.name);
+        byPort.set(port, names);
+    }
+    const shared = [...byPort].filter(([, names]) => names.length > 1);
+    if (shared.length === 0) {
+        return {
+            name: "Duplicate resource ports",
+            didPass: true,
+            message: "No two routed resources use the same port",
+        };
+    }
+    const lines = shared.map(([port, names]) => `port ${port}: ${names.join(", ")}`);
+    return {
+        name: "Duplicate resource ports",
+        didPass: false,
+        isWarning: true,
+        message: `${formatCount(shared.length, "port")} used by more than one routed resource:\n    ${lines.join("\n    ")}`,
+        fix: 'Usually a copied service.json. Each container can listen on the same port, but pick distinct "port" values (tdk resource assigns free ones) so URLs like http://<resource>:<port> and localhost checks stay unambiguous',
+    };
+}
 const CONTAINER_URL = /https?:\/\/([a-z][a-z0-9-]*):(\d+)/g;
 export function checkServiceUrlPorts(projectRoot = findProjectRoot() ?? process.cwd()) {
     const resources = discoverResourcesFromRoot(projectRoot);
