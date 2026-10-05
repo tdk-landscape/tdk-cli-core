@@ -8,7 +8,7 @@ TDK has no telemetry or analytics ([project overview](project-overview.md#teleme
 
 | Call | When | Goes to | Sends |
 | --- | --- | --- | --- |
-| `tdk upgrade` version check and download | Only when you run `tdk upgrade` | `api.github.com` releases, GitHub release assets, and on Windows `registry.npmjs.org` | An ordinary unauthenticated request. The binary and the bundled engine are checked against the release `checksums.txt` before the installed copy is replaced. |
+| `tdk upgrade` version check and download | Only when you run `tdk upgrade` | `api.github.com` releases, GitHub release assets, and on Windows `registry.npmjs.org` | An ordinary unauthenticated request. The binary and the bundled engine are checked against the release `checksums.txt` before the installed copy is replaced (`checksum mismatch` error path read in `upgrade.ts`). |
 | Premium extension fetch | Only when `TDK_LICENSE_KEY` is set and a premium feature is used | `TDK_PREMIUM_ENDPOINT`, default a Cloudflare Worker (`tdk-extension-dist.oranguman.workers.dev`) | The licence key as a bearer token, the resource name and a random per-project id stored in `.tdk/`. A bundle is cached under `~/.tdk/cache/`. |
 | `tdk doctor` service ping, `tdk smoke` | When services are running; `tdk doctor --no-ping` skips the ping | `<project>.localhost` (or `TDK_SERVICE_BASE_URL`) | A GET to each service's health endpoint. |
 
@@ -36,11 +36,11 @@ Images defined by the engine, with the tag in the source:
 | `nginx` | `1.27-alpine` | Static frontend runtime |
 | `sablierapp/sablier` | `1.18.0` | Idle stop (premium) |
 
-Tags are version tags, not digests, so a registry could still move them. The golden layer images (`...-l1:latest` and similar) are built locally from these bases and are not pulled. Images for the optional features (monitoring, ELK, Debezium and others) and the generated `FROM` lines for Go, Rust, Python and Java were **not audited** here.
+Tags are version tags, not digests, so a registry could still move them. The golden layer images (`...-l1:latest` and similar) are built locally from these bases and are not pulled. Images for the optional features (monitoring, ELK, Debezium and others) and the generated `FROM` lines for Go, Rust, Python and Java were **not audited** here. Also not in the table: the scaffolded `Dockerfile` that `tdk up` does not build uses `oven/bun:1.2`, the bring-your-own placeholder `Dockerfile` uses `nginx:1.27-alpine`, and `engine/topologies/tilt/manifest/constants.star` names `node:20-alpine`; where that last one is used was not checked.
 
 ## Releases
 
 - The npm package is published from GitHub Actions with `npm publish --provenance` ([release workflow](../.github/workflows/release-binaries.yml)).
-- Release binaries and the engine archive have SHA-256 entries in `checksums.txt`, verified by `install.sh` and `tdk upgrade`. The checksums come from the same release as the binaries, so they detect a bad download but not a compromised release.
+- Release binaries and the engine archive have SHA-256 entries in `checksums.txt`, verified by `tdk upgrade` (read in the source). The `install.sh` in this repository only hands off to the official installer at `tdk-landscape.github.io/install.sh`, which is not in this repository; its header comment says it verifies the release checksums, and that script was **not audited** here. The checksums come from the same release as the binaries, so they detect a bad download but not a compromised release.
 - There is no SBOM and the binaries are not signed.
 - Core is MIT, so you can build from source.

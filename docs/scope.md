@@ -18,13 +18,13 @@ Read from the generated Compose file and `.env` of a scaffolded backend. Check e
 | --- | --- | --- |
 | Runtime mode | The container runs with `NODE_ENV=development` and `TDK_ENV` from `TILT_ENV` (default `development`) | Your own environment flags |
 | Auth | `AUTH_MODE=local-jwt` signed with a `JWT_SECRET` generated per project in `.env`; or an identity service when you add one | Your real identity provider and key management |
-| Database | One shared Postgres 16 container, a database per service, password from `.env`, data in a Docker volume ([local data](data.md)) | Managed database, backups, credentials, migrations |
-| Migrations | Services may migrate at container start (`AUTO_MIGRATE` is an escape hatch); `tdk doctor` warns about it | A migrator that runs once ([#531](https://github.com/tdk-landscape/tdk-cli-core/issues/531)) |
+| Database | One shared Postgres 16 container, a database per stack (`<project>_<stack>`), password from `.env`, data in a Docker volume ([local data](data.md)) | Managed database, backups, credentials, migrations |
+| Migrations | Services may migrate at container start (`AUTO_MIGRATE` is an escape hatch); `tdk doctor` warns about it | A migrator that runs once, for example a [one-shot job](byo.md#one-shot-jobs-migrations-seeders) |
 | URLs and routing | Traefik with `*.localhost` hostnames on host ports 8080 and 8443 by default; hosts and ports are TDK's | Your ingress class, DNS, certificates |
 | Secrets | Read from the git-ignored `.env`, or Infisical when `TDK_SECRET_PROVIDER=infisical` ([environment](environment.md)) | Your secret store |
 | Resources | The generated Compose file sets limits: for the scaffolded backend 512 MB and 0.5 CPU, with 256 MB and 0.2 CPU reserved | Replicas, limits, autoscaling |
-| Restarts and health | `restart: unless-stopped`; a Compose health check that runs `curl` inside the image, so the image must contain `curl` | Readiness and liveness probes |
-| Networks | Per-project Docker networks (`<project>_backend`, `_database`, `_traefik-public`, and others) | Network policy |
+| Restarts and health | `restart: unless-stopped`; for a generated service, a Compose health check that runs `curl` inside the image. A bring-your-own service gets no Compose health check (read in `compose.star`, not run): its image does not need `curl`, and Traefik's own health check applies | Readiness and liveness probes |
+| Networks | Per-project Docker networks (`<project>_backend`, `_database`, `_traefik-public`, and others), kept after `tdk down` unless you pass `--prune-networks` | Network policy |
 
 HTTPS: Traefik has an HTTPS entry point on 8443 by default. How certificates are handled was **not checked**.
 

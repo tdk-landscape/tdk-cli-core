@@ -17,7 +17,7 @@ services/platform/database-management/docker-compose.yml
 shared-platform-engineering/docker-templates/   (5 shell scripts)
 ```
 
-New files that are git-ignored: `.env` (generated defaults) and `.tdk/.tdk-out/` (242 files, about 2 MB: the generated Tiltfile, the vendored engine and the master configs).
+New files that are git-ignored: `.env` (generated defaults) and `.tdk/.tdk-out/` (242 files, about 2 MB when re-checked on current `main`: the generated Tiltfile, the vendored engine and the master configs).
 
 Running `tdk project --yes` a second time changed nothing.
 
@@ -39,7 +39,7 @@ TDK starts from its own `Tiltfile` in `.tdk/.tdk-out/`, so a root `Tiltfile` the
 
 ## Taking it out again
 
-Delete what the list above shows: `.tdk/`, `services/platform/database-management/`, `shared-platform-engineering/docker-templates/`, any `services/<stack>/` you added, `.env`, and the four `.gitignore` lines. See the exit path in [#505](https://github.com/tdk-landscape/tdk-cli-core/issues/505) for what is still undocumented.
+Run `tdk down` first (`--prune-networks` also removes the project's Docker networks that no container uses; Postgres data stays in its volume, see [local data](data.md#does-it-survive-tdk-down)). Then delete what the list above shows: `.tdk/`, `services/platform/database-management/`, `shared-platform-engineering/docker-templates/`, any `services/<stack>/` you added, `.env`, and the four `.gitignore` lines. See the exit path in [#505](https://github.com/tdk-landscape/tdk-cli-core/issues/505) for what is still undocumented.
 
 ## Not covered
 

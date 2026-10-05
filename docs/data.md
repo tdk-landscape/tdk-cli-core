@@ -19,7 +19,7 @@ TDK runs **one** Postgres container for the whole project. The generated `DATABA
 
 ## Does it survive `tdk down`?
 
-Yes. `tdk down` runs `tilt down`, which removes the containers and networks but not named volumes. Checked with a small Compose project run through `tilt down`: the container was removed and the file in the volume was still there afterwards. The next `tdk up` starts Postgres on the same volume.
+Yes. `tdk down` runs `tilt down`, which removes the containers but not named volumes. Checked with a small Compose project run through `tilt down`: the container was removed and the file in the volume was still there afterwards. The next `tdk up` starts Postgres on the same volume. Since [#585](https://github.com/tdk-landscape/tdk-cli-core/pull/585) `tdk down` also stops this project's `tilt up`, and `tdk down --prune-networks` removes the project's Docker networks that no container uses; by the source it touches networks only, not volumes (not run against Docker here). Without that flag the networks are kept.
 
 ## Start from a clean state
 
@@ -70,4 +70,4 @@ Both were run: after a restore, a row inserted after the snapshot was gone. A sh
 
 - Other databases (MySQL, Mongo, Turso): only the shared Postgres was checked.
 - A built-in `tdk db reset` or `tdk db seed` command does not exist.
-- The start-up order between migrator, seed and API (see [#531](https://github.com/tdk-landscape/tdk-cli-core/issues/531)).
+- The start-up order between migrator, seed and API. Related, and still open: [#531](https://github.com/tdk-landscape/tdk-cli-core/issues/531) (an explicit, validated `dependsOn` on Postgres).
