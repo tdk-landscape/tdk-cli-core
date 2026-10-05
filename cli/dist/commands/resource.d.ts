@@ -62,6 +62,8 @@ export declare function createPackageJson(name: string, type: string, frameworkI
     version: string;
     type: string;
     scripts: {
+        predev?: string | undefined;
+        prebuild?: string | undefined;
         dev: string;
         build: string;
         start?: string | undefined;
