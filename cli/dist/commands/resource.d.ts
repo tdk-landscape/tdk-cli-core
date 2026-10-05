@@ -83,6 +83,7 @@ export declare function createPackageJson(name: string, type: string, frameworkI
 };
 export declare function createResourceTsconfig(resourceType: CreatableResourceType, frameworkId?: string): {
     compilerOptions: {
+        types?: string[] | undefined;
         target: string;
         module: string;
         moduleResolution: string;

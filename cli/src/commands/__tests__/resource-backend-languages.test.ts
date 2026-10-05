@@ -40,7 +40,7 @@ const BUN_BASELINE: Record<string, string> = {
   "service.json": "bc6598c626865ea3350e5204bbdb14aefd0eb0c36e64b6db6b8c6fe01ae76e6f",
   "src/index.ts": "f50139530382e929db7128be7cb55f3bbc5f2fae03264979d675d3be4d0f4ef3",
   "tests/orders-api.test.ts": "a4946ac3123eb4bee78d7b84304cad8b7c36d4268688e3c878da2aaa11ef98ab",
-  "tsconfig.json": "6982db23a5ea4c059e7404031b33634884bf69395ed0b8c143c7079045942804",
+  "tsconfig.json": "c0503e8c2d9e7cb0b77a1e0eaea674f4ee03f3182ff9f5429b9bb7ba0fabee41",
 };
 
 describe("backend language registry", () => {
