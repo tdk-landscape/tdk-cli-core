@@ -2,6 +2,7 @@ import { execFileSync, execSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   accessSync,
+  chmodSync,
   constants,
   existsSync,
   mkdirSync,
@@ -192,6 +193,11 @@ async function getLatestBinaryRelease(): Promise<BinaryRelease | null> {
   }
 }
 
+function isPermissionError(err: unknown): boolean {
+  const code = (err as NodeJS.ErrnoException | undefined)?.code;
+  return code === "EACCES" || code === "EPERM";
+}
+
 export function isWritable(path: string): boolean {
   try {
     accessSync(path, constants.W_OK);
@@ -262,6 +268,10 @@ export async function upgradeViaBinary(tdkPath: string, release: BinaryRelease):
     const sums = parseChecksums(await checksumResponse.text());
     verifyChecksum(tmpPath, release.assetName, sums, true);
     verifyChecksum(engineTmpPath, ENGINE_ASSET_NAME, sums, false);
+
+    // writeFileSync creates the file 0644; without this the swapped-in binary
+    // is not executable and the shell reports "Permission denied".
+    if (!isWindows()) chmodSync(tmpPath, 0o755);
 
     mkdirSync(engineStageDir, { recursive: true });
     extractTarball(engineBuffer, engineStageDir);
@@ -735,11 +745,17 @@ export const upgradeCommand = new Command("upgrade")
       console.log();
       console.log(chalk.yellow("⚠️  Upgrade status unknown - verification failed"));
       console.log();
-      console.log(chalk.yellow("💡 Verify manually:"));
-      console.log(chalk.white("   1. Restart your terminal"));
-      console.log(chalk.white("   2. Run: tdk version"));
-      if (installInfo.path) {
-        console.log(chalk.white(`   3. Compare with: git -C ${installInfo.path} rev-parse HEAD`));
+      if (isPermissionError(err) && installInfo.method !== "git" && installInfo.path) {
+        console.log(chalk.yellow("💡 The installed binary isn't executable. Fix it with:"));
+        console.log(chalk.cyan(`   chmod +x ${installInfo.path}`));
+        console.log(chalk.white("   then run: tdk version"));
+      } else {
+        console.log(chalk.yellow("💡 Verify manually:"));
+        console.log(chalk.white("   1. Restart your terminal"));
+        console.log(chalk.white("   2. Run: tdk version"));
+        if (installInfo.method === "git" && installInfo.path) {
+          console.log(chalk.white(`   3. Compare with: git -C ${installInfo.path} rev-parse HEAD`));
+        }
       }
     }
   });

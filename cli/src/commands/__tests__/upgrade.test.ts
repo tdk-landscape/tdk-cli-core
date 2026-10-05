@@ -6,6 +6,7 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
+  statSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -93,6 +94,15 @@ describe("upgradeViaBinary", () => {
     expect(readFileSync(tdkPath, "utf-8")).toBe(BINARY_BYTES);
     expect(readFileSync(join(engineDir, "engine-marker"), "utf-8")).toBe("extracted");
   });
+
+  it.skipIf(process.platform === "win32")(
+    "installs the binary with the executable bit set",
+    async () => {
+      const ok = await upgradeViaBinary(tdkPath, release);
+      expect(ok).toBe(true);
+      expect(statSync(tdkPath).mode & 0o111).toBe(0o111);
+    },
+  );
 
   it("downloads both the binary and the engine tarball before installing either", async () => {
     await upgradeViaBinary(tdkPath, release);
