@@ -139,15 +139,17 @@ export function buildPrompt(kind, title, issueUrl) {
 
 export function buildButtonsHtml(kind, title, issueUrl) {
   const q = encodeURIComponent(buildPrompt(kind, title, issueUrl));
+  // style=social is the rounded pill shields style (for-the-badge is square).
+  // Badge left text is short so the pill stays compact; alt text keeps "in".
   const badge = (left, right, color, logo) =>
-    `https://img.shields.io/badge/${encodeURIComponent(left)}-${encodeURIComponent(right)}-${color}?style=for-the-badge&logo=${logo}&logoColor=white`;
+    `https://img.shields.io/badge/${encodeURIComponent(left)}-${encodeURIComponent(right)}-${color}?style=social&logo=${logo}&logoColor=white`;
   const grok = `https://grok.com/?q=${q}`;
   const claude = `https://claude.ai/new?q=${q}`;
   const codex = `https://chatgpt.com/?q=${q}`;
   return [
-    `[![Write spec in Grok](${badge("Write spec in", "Grok", "111111", "x")})](${grok})`,
-    `[![Write spec in Claude](${badge("Write spec in", "Claude", "D97757", "anthropic")})](${claude})`,
-    `[![Write spec in Codex](${badge("Write spec in", "Codex", "10A37F", "openai")})](${codex})`,
+    `[![Write spec in Grok](${badge("Write spec", "Grok", "111111", "x")})](${grok})`,
+    `[![Write spec in Claude](${badge("Write spec", "Claude", "D97757", "anthropic")})](${claude})`,
+    `[![Write spec in Codex](${badge("Write spec", "Codex", "10A37F", "openai")})](${codex})`,
   ].join(" ");
 }
 
