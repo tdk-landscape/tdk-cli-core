@@ -69,6 +69,7 @@ curl -fsSL https://tdk-landscape.github.io/install.sh | sh
 - [Pilot TDK on a real repository](docs/adopt-tdk.md)
 - [FAQ for agencies and multi-client teams](docs/faq-teams.md)
 - [Working alongside Helm](docs/with-helm.md)
+- [Scope: local development, and what does not carry over to production](docs/scope.md)
 - [Configuration and editor schemas](docs/configuration.md)
 - [Runnable one-backend example](examples/one-backend/README.md)
 - [Runnable Python backend example](examples/one-backend-python/README.md)
