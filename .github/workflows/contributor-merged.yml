@@ -68,6 +68,29 @@ jobs:
               ...issues.flatMap((i) => i.labels.nodes.map((l) => l.name)),
             ]);
             const areas = [...labelNames].filter((n) => n.startsWith('area: ') || n.startsWith('island: '));
+            // Kyu/dan ranks: 8 kyu is the easiest, then 7..1 kyu, then 1 dan and up.
+            const rankOf = (name) => {
+              const m = /^rank: (\d+) (kyu|dan)$/.exec(name);
+              return m ? { name: `${m[1]} ${m[2]}`, value: m[2] === 'dan' ? 100 + Number(m[1]) : 100 - Number(m[1]) } : null;
+            };
+            const bestRank = (labelLists) => labelLists.flat().map(rankOf).filter(Boolean)
+              .reduce((best, r) => (!best || r.value > best.value ? r : best), null);
+            const thisRank = bestRank(issues.map((i) => i.labels.nodes.map((l) => l.name)));
+            let rankLine = null;
+            if (thisRank) {
+              const prior = await github.graphql(
+                `query($q:String!){search(query:$q,type:ISSUE,first:100){nodes{... on PullRequest{number
+                   closingIssuesReferences(first:10){nodes{labels(first:30){nodes{name}}}}}}}}`,
+                { q: `repo:${owner}/${repo} is:pr is:merged author:${author}` });
+              const before = bestRank(prior.search.nodes.filter((n) => n.number !== pr.number)
+                .flatMap((n) => n.closingIssuesReferences.nodes.map((i) => i.labels.nodes.map((l) => l.name))));
+              const island = [...labelNames].find((n) => n.startsWith('island: '));
+              rankLine = `You cleared a **${thisRank.name}** issue${island ? ` on ${island.replace('island: ', '')}` : ''}.`;
+              if (!before) rankLine += ` That sets your starting rank: **${thisRank.name}**. 🥋`;
+              else if (thisRank.value > before.value) rankLine += ` **Rank up!** Your highest rank goes from ${before.name} to **${thisRank.name}**. 🥋🎊`;
+              else rankLine += ` Your highest rank is still **${before.name}**. Take a harder one to rank up.`;
+            }
+
             // Offer harder work as people merge more: easy -> medium -> hard.
             const level = mergedCount >= 10 ? 'label:"difficulty: hard"'
               : mergedCount >= 3 ? 'label:"difficulty: medium"' : 'label:"good first issue"';
@@ -102,6 +125,7 @@ jobs:
             };
             lines.push('', MILESTONES[mergedCount]
               || `That is your ${ordinal(mergedCount)} merged PR here. We really appreciate you coming back. 💜`);
+            if (rankLine) lines.push('', rankLine);
             if (next.length) {
               lines.push('', 'If you want another one, these are open and unclaimed. Comment on one to claim it:');
               for (const i of next) lines.push(`- #${i.number} ${i.title}`);
