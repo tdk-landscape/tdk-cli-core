@@ -1,0 +1,103 @@
+name: 💜 Contributor merged
+
+# Posts one thank-you on a community PR when it is merged, and one closing note on
+# each issue that PR fixed. Maintainer and bot PRs are skipped.
+#
+# pull_request_target runs from the base branch with a write token, so this job never
+# checks out or runs PR code. Everything it reads (title, labels, author) is used only
+# as data inside github-script, never interpolated into a shell command.
+
+on:
+  pull_request_target:
+    types: [closed]
+
+permissions: {}
+
+concurrency:
+  group: contributor-merged-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  thank:
+    name: Thank the contributor and note the fixed issues
+    if: >-
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.user.type == 'User' &&
+      !contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.pull_request.author_association)
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/github-script@v8
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const pr = context.payload.pull_request;
+            const author = pr.user.login;
+            const MARK_PR = '<!-- tdk:contributor-merged -->';
+            const MARK_ISSUE = `<!-- tdk:issue-fixed:${pr.number} -->`;
+            const base = `https://github.com/${owner}/${repo}`;
+
+            const hasMark = async (number, mark) => {
+              const comments = await github.paginate(github.rest.issues.listComments,
+                { owner, repo, issue_number: number, per_page: 100 });
+              return comments.some((c) => c.body && c.body.includes(mark));
+            };
+
+            // Issues this PR closed (GitHub's own linking, so "Fixes #N" and the sidebar both count).
+            const linked = await github.graphql(
+              `query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){pullRequest(number:$n){
+                 closingIssuesReferences(first:20){nodes{number title state labels(first:30){nodes{name}}}}}}}`,
+              { o: owner, r: repo, n: pr.number });
+            const issues = linked.repository.pullRequest.closingIssuesReferences.nodes;
+
+            // How many PRs this person has had merged here, counting this one.
+            const mergedCount = (await github.rest.search.issuesAndPullRequests({
+              q: `repo:${owner}/${repo} is:pr is:merged author:${author}`, per_page: 1,
+            })).data.total_count;
+
+            // Pick up to three open, unclaimed issues to try next: same area first, then anything easy.
+            const labelNames = new Set([
+              ...pr.labels.map((l) => l.name),
+              ...issues.flatMap((i) => i.labels.nodes.map((l) => l.name)),
+            ]);
+            const areas = [...labelNames].filter((n) => n.startsWith('area: ') || n.startsWith('island: '));
+            const search = async (extra) => (await github.rest.search.issuesAndPullRequests({
+              q: `repo:${owner}/${repo} is:issue is:open no:assignee label:"good first issue" ${extra}`,
+              sort: 'created', order: 'desc', per_page: 10,
+            })).data.items;
+            const picked = new Map();
+            for (const a of areas) {
+              for (const i of await search(`label:"${a}"`)) picked.set(i.number, i);
+              if (picked.size >= 3) break;
+            }
+            if (picked.size < 3) for (const i of await search('')) picked.set(i.number, i);
+            const next = [...picked.values()].slice(0, 3);
+
+            const fixed = issues.map((i) => `#${i.number}`).join(', ');
+            const lines = [MARK_PR, `Merged, thank you @${author}! 🎉`];
+            if (fixed) lines.push('', `This fixes ${fixed}. It will ship in the next release and appear in the [CHANGELOG](${base}/blob/main/CHANGELOG.md).`);
+            lines.push('', mergedCount > 1
+              ? `That is your ${mergedCount}${['th','st','nd','rd'][(mergedCount % 100 > 10 && mergedCount % 100 < 14) || mergedCount % 10 > 3 ? 0 : mergedCount % 10]} merged PR here. We really appreciate you coming back. 💜`
+              : 'This is your first merged PR here. Welcome to TDK! 💜');
+            if (next.length) {
+              lines.push('', 'If you want another one, these are open and unclaimed. Comment on one to claim it:');
+              for (const i of next) lines.push(`- #${i.number} ${i.title}`);
+            }
+            lines.push('', 'If you hit anything unclear while working on this, tell us in a comment. That is how the contributor guide gets better.');
+
+            if (!(await hasMark(pr.number, MARK_PR))) {
+              await github.rest.issues.createComment({ owner, repo, issue_number: pr.number, body: lines.join('\n') });
+            }
+
+            // One short note on each fixed issue, so the issue thread explains why it closed.
+            for (const i of issues) {
+              if (await hasMark(i.number, MARK_ISSUE)) continue;
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: i.number,
+                body: `${MARK_ISSUE}\nFixed by #${pr.number} from @${author}, merged into \`${pr.base.ref}\` as ${pr.merge_commit_sha.slice(0, 7)}. It ships in the next release. Thanks @${author}! 💜`,
+              });
+            }
