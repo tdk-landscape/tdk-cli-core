@@ -69,7 +69,7 @@ Two things seen on that run that you may also meet:
 
 - On TDK 1.3.86 `tdk doctor` printed `Unknown service.json field: ... healthCheck: unknown field is preserved` for a freshly scaffolded service. A backend scaffolded by current `main` already writes `healthCheckPath`, and `tdk doctor --no-ping` printed no such warning.
 - `tdk down --force` failed with `unknown flag: --force`. `tdk down --help` now lists `--force`, but it passes the flag on to `tilt down`, and running `tilt down --force` directly (Tilt 0.37.7) still prints `unknown flag: --force`. `tdk down --force` itself was not run. Use `tdk down` without it.
-- On current `main`, `tdk doctor` failed with `N resources without a package.json` for bring-your-own resources created with `tdk resource --type bring-your-own` (both `--dockerfile` and `--image`), in scratch projects. `tdk up --dry-run` was not affected. This looks like a bug, not something your repository did wrong; the check was not investigated further.
+- Before the fix in [#600](https://github.com/tdk-landscape/tdk-cli-core/pull/600), `tdk doctor` failed with `N resources without a package.json` for bring-your-own resources created with `tdk resource --type bring-your-own` (both `--dockerfile` and `--image`). That check no longer applies to them; if you still see it, upgrade `tdk` (`tdk upgrade`). It still fails for a backend, frontend or worker that has no `package.json`.
 
 ## 3. Keep your current setup
 
