@@ -23,7 +23,8 @@ jobs:
     if: >-
       github.event.pull_request.merged == true &&
       github.event.pull_request.user.type == 'User' &&
-      !contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.pull_request.author_association)
+      !contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.pull_request.author_association) &&
+      !contains(fromJSON('["kburym","odykyi"]'), github.event.pull_request.user.login)
     runs-on: ubuntu-latest
     timeout-minutes: 3
     permissions:

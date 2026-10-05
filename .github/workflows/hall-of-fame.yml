@@ -30,6 +30,7 @@ jobs:
           script: |
             const { owner, repo } = context.repo;
             const MARK = '<!-- tdk:hall-of-fame -->';
+            const MAINTAINERS = ['kburym', 'odykyi'];
             const TITLE = 'Hall of fame: community contributors';
 
             const rankOf = (name) => {
@@ -48,6 +49,8 @@ jobs:
                 { q: `repo:${owner}/${repo} is:pr is:merged`, after });
               for (const pr of res.search.nodes) {
                 if (!pr.author || pr.author.__typename !== 'User') continue;
+                // The Actions token often reports maintainers as CONTRIBUTOR, so list them by name too.
+                if (MAINTAINERS.includes(pr.author.login)) continue;
                 if (['OWNER', 'MEMBER', 'COLLABORATOR'].includes(pr.authorAssociation)) continue;
                 const p = people.get(pr.author.login) || { prs: 0, issues: 0, best: null };
                 p.prs += 1;
@@ -79,9 +82,10 @@ jobs:
               `Last updated for the ${rows.length} contributors above. Want to be on this list? Start with a [good first issue](https://github.com/${owner}/${repo}/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).`,
             ].join('\n');
 
-            const found = (await github.rest.search.issuesAndPullRequests({
-              q: `repo:${owner}/${repo} is:issue in:body "tdk:hall-of-fame"`, per_page: 5,
-            })).data.items.find((i) => i.body && i.body.includes(MARK));
+            // Not search: its index lags, and two runs in a row would each create the issue.
+            const open = await github.paginate(github.rest.issues.listForRepo,
+              { owner, repo, state: 'open', labels: 'community', per_page: 100 });
+            const found = open.find((i) => !i.pull_request && i.body && i.body.includes(MARK));
             if (found) {
               if (found.body !== body) await github.rest.issues.update({ owner, repo, issue_number: found.number, body });
             } else {
