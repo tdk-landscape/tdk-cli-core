@@ -8,8 +8,8 @@ import {
   createPackageJson,
   createResourceTsconfig,
   createServiceJson,
-  DOCKERFILE_TEMPLATE,
   getBackendIndexTemplate,
+  getDockerfileTemplate,
   getWorkerIndexTemplate,
   parseResourceType,
   TSCONFIG_TEMPLATE,
@@ -425,12 +425,28 @@ describe("resource command", () => {
   });
 
   describe("dockerfile template", () => {
-    it("should have correct DOCKERFILE_TEMPLATE content", () => {
-      expect(DOCKERFILE_TEMPLATE).toContain("FROM oven/bun:1.2");
-      expect(DOCKERFILE_TEMPLATE).toContain("WORKDIR /app");
-      expect(DOCKERFILE_TEMPLATE).toContain("HEALTHCHECK");
-      expect(DOCKERFILE_TEMPLATE).toContain("EXPOSE 3000");
-      expect(DOCKERFILE_TEMPLATE).toContain("bun install --frozen-lockfile");
+    it("follows the service port and health path", () => {
+      const dockerfile = getDockerfileTemplate(4123, "/health");
+      expect(dockerfile).toContain("FROM oven/bun:1.2");
+      expect(dockerfile).toContain("WORKDIR /app");
+      expect(dockerfile).toContain("EXPOSE 4123");
+      expect(dockerfile).toContain("ENV PORT=4123");
+      expect(dockerfile).toContain("HEALTHCHECK");
+      expect(dockerfile).toContain("http://localhost:4123/health");
+      expect(dockerfile).not.toContain("3000");
+      expect(dockerfile).not.toContain("curl");
+    });
+
+    it("does not require a per-service bun.lock", () => {
+      expect(getDockerfileTemplate(4000)).toContain("COPY package.json bun.lock* ./");
+    });
+
+    it("omits the health check when the service declares no health path", () => {
+      expect(getDockerfileTemplate(6000)).not.toContain("HEALTHCHECK");
+    });
+
+    it("says that tdk up does not use it", () => {
+      expect(getDockerfileTemplate(4000)).toMatch(/tdk up. does NOT build this file/);
     });
   });
 
