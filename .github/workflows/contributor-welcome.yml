@@ -5,7 +5,7 @@ name: 👋 Contributor welcome
 # never checks out PR code and only reads event data inside github-script.
 
 on:
-  pull_request_target:
+  pull_request_target: # zizmor: ignore[dangerous-triggers] never checks out or runs PR code; only reads event data and posts comments
     types: [opened]
   issues:
     types: [closed]
