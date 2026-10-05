@@ -6,6 +6,7 @@ import { DetailPanel, FileTree, ResourceSelectInput, ResourceTable, TabBar, } fr
 import { errorFactories, requireProjectRoot } from "../utils/errors.js";
 import { findProjectRoot } from "../utils/paths.js";
 import { clearMetadataCache, discoverResources, discoverStacks, getResourceMetadata, getStackMetadata, } from "../utils/services.js";
+import { createStatusMessageController } from "../utils/status-message.js";
 import { isTiltAvailable } from "../utils/tilt.js";
 // biome-ignore lint/correctness/noUnusedFunctionParameters: reserved callback prop kept in the component API
 const HelpPanel = ({ onClose }) => (_jsxs(Box, { borderStyle: "single", borderColor: "cyan", paddingX: 2, paddingY: 1, flexDirection: "column", width: 60, children: [_jsx(Text, { bold: true, color: "cyan", children: "Keyboard Shortcuts" }), _jsxs(Box, { marginY: 1, flexDirection: "column", children: [_jsx(Text, { bold: true, underline: true, children: "Navigation" }), _jsx(Text, { children: " \u2191/\u2193 Navigate list items" }), _jsx(Text, { children: " Enter Select item / Open detail" }), _jsx(Text, { children: " Space Toggle expand (tree view)" }), _jsx(Text, { children: " Tab Next tab" }), _jsx(Text, { children: " 1-5 Direct tab access" }), _jsx(Box, { marginTop: 1, children: _jsx(Text, { bold: true, underline: true, children: "Actions" }) }), _jsx(Text, { children: " m Toggle mouse support" }), _jsx(Text, { children: " t Toggle tooltips" }), _jsx(Text, { children: " e Toggle enabled/disabled services" }), _jsx(Text, { children: " r Refresh data" }), _jsx(Text, { children: " / Search/filter" }), _jsx(Text, { children: " ? Show this help" }), _jsx(Text, { children: " q Quit \u2502 Esc Back" })] }), _jsx(Box, { marginTop: 1, children: _jsx(Text, { color: "gray", dimColor: true, children: "Press any key to close..." }) })] }));
@@ -32,6 +33,8 @@ const TUIApp = () => {
     const [error, setError] = useState(null);
     const [showTooltips, setShowTooltips] = useState(true);
     const [showEnabledOnly, setShowEnabledOnly] = useState(true);
+    const statusMessage = useMemo(() => createStatusMessageController(setMessage), []);
+    useEffect(() => () => statusMessage.dispose(), [statusMessage]);
     const projectRoot = findProjectRoot() || "unknown";
     const [{ stacks, services }, setDiscovered] = useState({ stacks: [], services: [] });
     // Re-read service.json files from disk. An empty project is not an error:
@@ -158,14 +161,12 @@ const TUIApp = () => {
         if (activeTab === "overview") {
             setSelectedStack(item.value);
             setSelectedService(null);
-            setMessage(`Selected stack: ${item.value}`);
-            setTimeout(() => setMessage(""), 2000);
+            statusMessage.show(`Selected stack: ${item.value}`, 2000);
         }
         else if (activeTab === "resources") {
             if (selectedStack && !selectedService) {
                 setSelectedService(item.value);
-                setMessage(`Selected service: ${item.value}`);
-                setTimeout(() => setMessage(""), 2000);
+                statusMessage.show(`Selected service: ${item.value}`, 2000);
             }
             else {
                 setSelectedStack(item.value);
@@ -175,21 +176,18 @@ const TUIApp = () => {
         else if (activeTab === "files") {
             if (selectedService) {
                 setSelectedFile(item.value);
-                setMessage(`Selected file: ${item.label}`);
-                setTimeout(() => setMessage(""), 2000);
+                statusMessage.show(`Selected file: ${item.label}`, 2000);
             }
             else {
                 setSelectedService(item.value);
-                setMessage(`Selected service: ${item.value}`);
-                setTimeout(() => setMessage(""), 2000);
+                statusMessage.show(`Selected service: ${item.value}`, 2000);
             }
         }
         else if (activeTab === "config") {
             setSelectedService(item.value);
-            setMessage(`Viewing config for: ${item.value}`);
-            setTimeout(() => setMessage(""), 2000);
+            statusMessage.show(`Viewing config for: ${item.value}`, 2000);
         }
-    }, [activeTab, selectedStack, selectedService]);
+    }, [activeTab, selectedStack, selectedService, statusMessage]);
     useEffect(() => {
         setRawMode(true);
         stdout.write("\x1b[?1000h");
@@ -297,8 +295,7 @@ const TUIApp = () => {
                 setSelectedStack(null);
                 return;
             }
-            setMessage("Press q to quit");
-            setTimeout(() => setMessage(""), 2000);
+            statusMessage.show("Press q to quit", 2000);
             return;
         }
         if (input === "?") {
@@ -307,8 +304,7 @@ const TUIApp = () => {
         }
         if (input === "r") {
             if (refresh()) {
-                setMessage("Data refreshed");
-                setTimeout(() => setMessage(""), 1500);
+                statusMessage.show("Data refreshed", 1500);
             }
             return;
         }
@@ -321,28 +317,25 @@ const TUIApp = () => {
         if (input === "m") {
             setMouseEnabled((prev) => {
                 const newState = !prev;
-                setMessage(newState ? "Mouse support enabled" : "Mouse support disabled");
+                statusMessage.show(newState ? "Mouse support enabled" : "Mouse support disabled");
                 return newState;
             });
-            setTimeout(() => setMessage(""), 1500);
             return;
         }
         if (input === "t") {
             setShowTooltips((prev) => {
                 const newState = !prev;
-                setMessage(newState ? "Tooltips enabled" : "Tooltips disabled");
+                statusMessage.show(newState ? "Tooltips enabled" : "Tooltips disabled");
                 return newState;
             });
-            setTimeout(() => setMessage(""), 1500);
             return;
         }
         if (input === "e") {
             setShowEnabledOnly((prev) => {
                 const newState = !prev;
-                setMessage(newState ? "Showing enabled services only" : "Showing all services (including disabled)");
+                statusMessage.show(newState ? "Showing enabled services only" : "Showing all services (including disabled)", 1500);
                 return newState;
             });
-            setTimeout(() => setMessage(""), 1500);
             return;
         }
         if (key.tab) {

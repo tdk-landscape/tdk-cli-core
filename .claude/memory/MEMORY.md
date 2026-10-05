@@ -5,6 +5,7 @@ Hard-won, repo-specific facts for anyone (human or agent) working here. Keep ent
 ## Verify before you push
 - Lint and typecheck from `cli/` by exit code, not by `| tail`: `./node_modules/.bin/biome check . ; echo $?` and `./node_modules/.bin/tsc --noEmit ; echo $?`. `npx biome` runs an unrelated v0.3.3 package that exits 0 without checking.
 - Run `npm run build` before vitest when `src/` changed: the e2e tests spawn `cli/bin/tdk.js`, which imports `dist/`.
+- On Windows, TypeScript preserves CRLF inside multiline template literals in generated `cli/dist` even with `--newLine lf`; normalize emitted files to LF before staging.
 - BSD sed (macOS) has no `\b`; use python `re.sub` or perl for renames and confirm with `grep -c`.
 - A red test must be red for the right reason: temporarily remove the fix and read the failure. Common ways a test is red wrongly: a JS template literal evaluating `${...}`, JSON `true`/`null` pasted into Starlark (`True`/`None`), a too-narrow regex.
 - Do not leave `.skip` on a failing test; fix the code or the setup.

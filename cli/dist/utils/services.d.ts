@@ -19,7 +19,7 @@ export declare function discoverStackNames(projectRoot: string): string[];
 export declare function getAllStacks(resources?: DiscoveredResource[]): string[];
 export declare function discoverStacks(resources?: DiscoveredResource[]): DiscoveredStack[];
 export declare function getResourcesForStack(stackName: string): DiscoveredResource[];
-export declare function stackExists(stackName: string): boolean;
+export declare function stackExists(stackName: string, resources?: DiscoveredResource[]): boolean;
 export declare function clearMetadataCache(): void;
 export declare function getResourceMetadata(resource: DiscoveredResource): ResourceMetadata;
 export declare function getStackMetadata(stack: DiscoveredStack): StackMetadata;

@@ -1,7 +1,7 @@
 import chalk from "chalk";
 import { Command } from "commander";
 import { createDiscoveryContext } from "../utils/discovery-context.js";
-import { requireProjectRoot, runCommand } from "../utils/errors.js";
+import { errorFactories, requireProjectRoot, runCommand } from "../utils/errors.js";
 import {
   formatCount,
   showAllSatisfyCondition,
@@ -11,6 +11,7 @@ import {
 } from "../utils/formatting.js";
 import { createMachineEnvelope, writeMachineError } from "../utils/machine-output.js";
 import { findProjectRoot } from "../utils/paths.js";
+import { stackExists } from "../utils/services.js";
 
 export const resourcesCommand = new Command("resources")
   .description("List all resources (services) in the project")
@@ -30,6 +31,11 @@ export const resourcesCommand = new Command("resources")
       }
 
       const discovery = createDiscoveryContext();
+      if (options.stack && !stackExists(options.stack, discovery.resources)) {
+        const error = errorFactories.stackNotFound(options.stack);
+        if (options.json) writeMachineError(error);
+        error.exit();
+      }
       const withoutStackFilter = options.noStack || options.stack === false;
 
       let resources = discovery.resources;

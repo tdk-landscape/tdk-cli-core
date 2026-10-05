@@ -204,9 +204,9 @@ export function getResourcesForStack(stackName) {
     const allResources = discoverResources();
     return allResources.filter((r) => r.stack === stackName);
 }
-export function stackExists(stackName) {
-    const resources = getResourcesForStack(stackName);
-    return resources.length > 0;
+export function stackExists(stackName, resources) {
+    const resourcesToSearch = resources ?? discoverResources();
+    return resourcesToSearch.some((resource) => resource.stack === stackName);
 }
 /**
  * Cache TTL in milliseconds

@@ -32,13 +32,13 @@ describe("ui escape key", () => {
   });
 
   it("points at q instead of exiting", () => {
-    expect(escapeBranch()).toContain('setMessage("Press q to quit")');
+    expect(escapeBranch()).toContain('statusMessage.show("Press q to quit", 2000)');
   });
 
-  // The message line is the app's existing transient status slot, so the hint has to be
-  // cleared again or it would sit on top of the tooltips forever.
-  it("clears the hint so it does not linger over the tooltips", () => {
-    expect(escapeBranch()).toContain('setTimeout(() => setMessage(""), 2000)');
+  // A pending clear timer must be cancelled when the TUI exits so it cannot update
+  // state after the component has unmounted.
+  it("clears a pending hint timer when the UI unmounts", () => {
+    expect(ui).toContain("useEffect(() => () => statusMessage.dispose(), [statusMessage])");
   });
 
   // Back must keep working at every level it used to: the three selections are still

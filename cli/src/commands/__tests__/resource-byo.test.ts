@@ -146,6 +146,42 @@ describe("bring-your-own resource type", () => {
     }
   }, 15_000);
 
+  it("fails missing stack filters in text commands", async () => {
+    await createByo();
+    const output: string[] = [];
+    const errors: string[] = [];
+    const log = vi.spyOn(console, "log").mockImplementation((...parts: unknown[]) => {
+      output.push(parts.map(String).join(" "));
+    });
+    const error = vi.spyOn(console, "error").mockImplementation((...parts: unknown[]) => {
+      errors.push(parts.map(String).join(" "));
+    });
+    const exit = vi.spyOn(process, "exit").mockImplementation((() => {
+      throw new Error("process.exit");
+    }) as never);
+
+    try {
+      for (const command of [resourcesCommand, networksCommand]) {
+        output.length = 0;
+        errors.length = 0;
+        exit.mockClear();
+        clearDiscoveryCache();
+        await command
+          .parseAsync(["node", "tdk", "--stack", "missing"], { from: "node" })
+          .catch(() => {});
+
+        expect(exit).toHaveBeenCalledWith(1);
+        const combined = [...output, ...errors].join("\n");
+        expect(combined).toContain('Stack "missing" not found');
+        expect(combined).toContain("tdk stacks");
+      }
+    } finally {
+      log.mockRestore();
+      error.mockRestore();
+      exit.mockRestore();
+      clearDiscoveryCache();
+    }
+  });
   it("keeps --dry-run side-effect free even when --force is also set", async () => {
     await createByo();
     const before = snapshotTree(tempDir);

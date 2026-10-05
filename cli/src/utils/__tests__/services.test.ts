@@ -335,8 +335,10 @@ describe("stackExists with real temp dir", () => {
       JSON.stringify({ appName: "svc-a", runtime: "bun", stack: "alpha" }),
     );
 
-    const { stackExists } = await import("../services.js");
+    const { discoverResources, stackExists } = await import("../services.js");
     expect(stackExists("alpha")).toBe(true);
+    expect(stackExists("alpha", discoverResources())).toBe(true);
+    expect(stackExists("alpha", [])).toBe(false);
   });
 });
 

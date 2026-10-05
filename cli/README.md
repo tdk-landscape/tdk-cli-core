@@ -132,6 +132,9 @@ The frontend provider owns root `index.html` and starter source. After TDK gener
 | `tdk version` | ℹ️  Show version |
 | `tdk --help` | ❓ Show help |
 
+`-v` is context-specific: `tdk -v` prints the version, while `tdk up -v` and `tdk down -v`
+enable verbose output. Use `--version` and `--verbose` when clarity matters.
+
 If `tdk ui` finds no services, its empty state points to `tdk project` to create a
 project and `tdk resource api --type backend` to add a service. Press `q` to leave
 the UI before running these commands, then reopen it or press `r` to refresh

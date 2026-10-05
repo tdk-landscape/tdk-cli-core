@@ -28,6 +28,7 @@ import {
   getResourceMetadata,
   getStackMetadata,
 } from "../utils/services.js";
+import { createStatusMessageController } from "../utils/status-message.js";
 import { isTiltAvailable } from "../utils/tilt.js";
 
 // biome-ignore lint/correctness/noUnusedFunctionParameters: reserved callback prop kept in the component API
@@ -151,6 +152,9 @@ const TUIApp: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showTooltips, setShowTooltips] = useState(true);
   const [showEnabledOnly, setShowEnabledOnly] = useState(true);
+
+  const statusMessage = useMemo(() => createStatusMessageController(setMessage), []);
+  useEffect(() => () => statusMessage.dispose(), [statusMessage]);
 
   const projectRoot = findProjectRoot() || "unknown";
 
@@ -297,13 +301,11 @@ const TUIApp: React.FC = () => {
       if (activeTab === "overview") {
         setSelectedStack(item.value);
         setSelectedService(null);
-        setMessage(`Selected stack: ${item.value}`);
-        setTimeout(() => setMessage(""), 2000);
+        statusMessage.show(`Selected stack: ${item.value}`, 2000);
       } else if (activeTab === "resources") {
         if (selectedStack && !selectedService) {
           setSelectedService(item.value);
-          setMessage(`Selected service: ${item.value}`);
-          setTimeout(() => setMessage(""), 2000);
+          statusMessage.show(`Selected service: ${item.value}`, 2000);
         } else {
           setSelectedStack(item.value);
           setSelectedService(null);
@@ -311,20 +313,17 @@ const TUIApp: React.FC = () => {
       } else if (activeTab === "files") {
         if (selectedService) {
           setSelectedFile(item.value);
-          setMessage(`Selected file: ${item.label}`);
-          setTimeout(() => setMessage(""), 2000);
+          statusMessage.show(`Selected file: ${item.label}`, 2000);
         } else {
           setSelectedService(item.value);
-          setMessage(`Selected service: ${item.value}`);
-          setTimeout(() => setMessage(""), 2000);
+          statusMessage.show(`Selected service: ${item.value}`, 2000);
         }
       } else if (activeTab === "config") {
         setSelectedService(item.value);
-        setMessage(`Viewing config for: ${item.value}`);
-        setTimeout(() => setMessage(""), 2000);
+        statusMessage.show(`Viewing config for: ${item.value}`, 2000);
       }
     },
-    [activeTab, selectedStack, selectedService],
+    [activeTab, selectedStack, selectedService, statusMessage],
   );
 
   useEffect(() => {
@@ -449,8 +448,7 @@ const TUIApp: React.FC = () => {
         setSelectedStack(null);
         return;
       }
-      setMessage("Press q to quit");
-      setTimeout(() => setMessage(""), 2000);
+      statusMessage.show("Press q to quit", 2000);
       return;
     }
 
@@ -461,8 +459,7 @@ const TUIApp: React.FC = () => {
 
     if (input === "r") {
       if (refresh()) {
-        setMessage("Data refreshed");
-        setTimeout(() => setMessage(""), 1500);
+        statusMessage.show("Data refreshed", 1500);
       }
       return;
     }
@@ -477,32 +474,30 @@ const TUIApp: React.FC = () => {
     if (input === "m") {
       setMouseEnabled((prev) => {
         const newState = !prev;
-        setMessage(newState ? "Mouse support enabled" : "Mouse support disabled");
+        statusMessage.show(newState ? "Mouse support enabled" : "Mouse support disabled");
         return newState;
       });
-      setTimeout(() => setMessage(""), 1500);
       return;
     }
 
     if (input === "t") {
       setShowTooltips((prev) => {
         const newState = !prev;
-        setMessage(newState ? "Tooltips enabled" : "Tooltips disabled");
+        statusMessage.show(newState ? "Tooltips enabled" : "Tooltips disabled");
         return newState;
       });
-      setTimeout(() => setMessage(""), 1500);
       return;
     }
 
     if (input === "e") {
       setShowEnabledOnly((prev) => {
         const newState = !prev;
-        setMessage(
+        statusMessage.show(
           newState ? "Showing enabled services only" : "Showing all services (including disabled)",
+          1500,
         );
         return newState;
       });
-      setTimeout(() => setMessage(""), 1500);
       return;
     }
 

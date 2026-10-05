@@ -12,7 +12,7 @@ _tdk_completions() {
     prev="\${COMP_WORDS[COMP_CWORD-1]}"
     
     # Main commands
-    local commands="project projects stack stacks resource resources up down status ui doctor runtime version completion help upgrade"
+    local commands="project projects stack stacks resource resources up down status ui doctor runtime version completion help upgrade mcp logs eject import config maintainers networks traefik"
     
     # Options for specific commands
     case "\${prev}" in
@@ -144,6 +144,14 @@ _tdk_commands() {
         'version:Show version'
         'upgrade:Upgrade TDK CLI'
         'completion:Generate shell completions'
+        'mcp:Run a Model Context Protocol server over stdio for coding agents'
+        'logs:Print a bounded snapshot of recent logs from the running stack'
+        'eject:Take ownership of the generated Tilt and Docker files'
+        'import:Import the services a directory describes (runs tdk-import)'
+        'config:Manage project configuration and regenerate master files'
+        'maintainers:Maintainer file checks'
+        'networks:Show Traefik-routed URLs for all services'
+        'traefik:Show Traefik-routed URLs for all services'
         'help:Show help'
     )
     _describe -t commands 'tdk command' commands
@@ -190,6 +198,14 @@ complete -c tdk -n '__fish_use_subcommand' -a 'runtime' -d 'Inspect packaged run
 complete -c tdk -n '__fish_use_subcommand' -a 'version' -d 'Show version'
 complete -c tdk -n '__fish_use_subcommand' -a 'upgrade' -d 'Upgrade TDK CLI'
 complete -c tdk -n '__fish_use_subcommand' -a 'completion' -d 'Generate shell completions'
+complete -c tdk -n '__fish_use_subcommand' -a 'mcp' -d 'Run a Model Context Protocol server over stdio for coding agents'
+complete -c tdk -n '__fish_use_subcommand' -a 'logs' -d 'Print a bounded snapshot of recent logs from the running stack'
+complete -c tdk -n '__fish_use_subcommand' -a 'eject' -d 'Take ownership of the generated Tilt and Docker files'
+complete -c tdk -n '__fish_use_subcommand' -a 'import' -d 'Import the services a directory describes (runs tdk-import)'
+complete -c tdk -n '__fish_use_subcommand' -a 'config' -d 'Manage project configuration and regenerate master files'
+complete -c tdk -n '__fish_use_subcommand' -a 'maintainers' -d 'Maintainer file checks'
+complete -c tdk -n '__fish_use_subcommand' -a 'networks' -d 'Show Traefik-routed URLs for all services'
+complete -c tdk -n '__fish_use_subcommand' -a 'traefik' -d 'Show Traefik-routed URLs for all services'
 complete -c tdk -n '__fish_use_subcommand' -a 'help' -d 'Show help'
 
 # Global options

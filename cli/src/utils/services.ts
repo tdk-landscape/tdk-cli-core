@@ -263,9 +263,9 @@ export function getResourcesForStack(stackName: string): DiscoveredResource[] {
   return allResources.filter((r) => r.stack === stackName);
 }
 
-export function stackExists(stackName: string): boolean {
-  const resources = getResourcesForStack(stackName);
-  return resources.length > 0;
+export function stackExists(stackName: string, resources?: DiscoveredResource[]): boolean {
+  const resourcesToSearch = resources ?? discoverResources();
+  return resourcesToSearch.some((resource) => resource.stack === stackName);
 }
 
 /**

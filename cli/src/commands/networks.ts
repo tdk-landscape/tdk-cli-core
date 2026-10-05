@@ -5,7 +5,7 @@ import { readProjectConfig } from "../generator/template-engine.js";
 import type { ServiceUrl } from "../types/index.js";
 import { getStackEmoji } from "../utils/constants.js";
 import { createDiscoveryContext } from "../utils/discovery-context.js";
-import { logVerbose, requireProjectRoot } from "../utils/errors.js";
+import { errorFactories, logVerbose, requireProjectRoot } from "../utils/errors.js";
 import {
   colorizeByStatus,
   DEFAULT_BOX_WIDTH,
@@ -20,6 +20,7 @@ import { createMachineEnvelope, writeMachineError } from "../utils/machine-outpu
 import { findProjectRoot } from "../utils/paths.js";
 import { checkPortStatus } from "../utils/port-assignment.js";
 import { isApiServiceType } from "../utils/resource-kind.js";
+import { stackExists } from "../utils/services.js";
 import { isValidPort, sanitizeForShell } from "../utils/validation.js";
 import { findOnPath } from "../utils/which.js";
 
@@ -225,10 +226,15 @@ export const networksCommand = new Command("networks")
       if (!projectRoot) {
         throw new Error("Could not find project root (no .tdk/project.json found)");
       }
+      const discovery = createDiscoveryContext();
+      if (options.stack && !stackExists(options.stack, discovery.resources)) {
+        const error = errorFactories.stackNotFound(options.stack);
+        if (options.json || options.jsonLegacy) throw error;
+        error.exit();
+      }
       const savedPlan = readSavedHostPortPlan(projectRoot);
       const hostPortPlan = savedPlan ?? (await createHostPortPlan());
       const httpPort = hostPortPlan.ingressHttp;
-      const discovery = createDiscoveryContext();
 
       const baseDomain = determineDefaultDomain();
       const bareDomain = baseDomain.replace(/^(app|api)\./, "");
