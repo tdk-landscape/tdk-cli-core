@@ -1,12 +1,15 @@
 # Appends AI "Write spec" links (Grok, Claude, Codex) to same-repo issue bodies.
-# Markdown shields only: no model call, no issue comment, no OpenSpec files from CI.
+# Markdown shields only: no model call, no issue comment, no files from CI.
+# Kind (openspec / primitive / skip) is resolved in the script from labels + body.
 # Separate from the PR review buttons (.github/workflows/ai-review-buttons.yml).
 # Do not switch this job to pull_request_target; issues events are same-repo by definition.
 name: 📝 AI spec buttons
 
 on:
   issues:
-    types: [opened, reopened, edited]
+    # labeled/unlabeled: issues.edited does not fire on label changes, and kind
+    # depends on labels (enhancement → OpenSpec, bug/docs → short spec, etc.).
+    types: [opened, reopened, edited, labeled, unlabeled]
 
 permissions:
   contents: read
@@ -41,6 +44,7 @@ jobs:
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           ISSUE_TITLE: ${{ github.event.issue.title }}
           ISSUE_URL: ${{ github.event.issue.html_url }}
+          ISSUE_LABELS: ${{ join(github.event.issue.labels.*.name, ',') }}
           OUT_FILE: ${{ runner.temp }}/issue-body-new.md
           PATCH_FILE: ${{ runner.temp }}/issue-body-patch.json
         run: |
@@ -53,7 +57,8 @@ jobs:
           base64 -d < "${OUT_FILE}.b64" > "${OUT_FILE}.in"
 
           # Single implementation: append when marker missing; regenerate tail when
-          # title/URL drift; skip when the generated prompt already matches.
+          # title/URL/kind drift; skip when the generated prompt already matches.
+          # Kind skip (question / social / license) leaves any existing marker alone.
           export BODY_FILE="${OUT_FILE}.in"
           node scripts/ai-spec-buttons.mjs
 
