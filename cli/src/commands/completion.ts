@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import chalk from "chalk";
 import { Command } from "commander";
 
@@ -255,12 +255,23 @@ const POWERSHELL_START = "# TDK-CLI-COMPLETION-START";
 const POWERSHELL_END = "# TDK-CLI-COMPLETION-END";
 
 export const completionCommand = new Command("completion")
+  .argument("[shell]", "Target shell (bash, zsh, fish, powershell)")
   .description("Generate shell completion scripts")
-  .option("-s, --shell <shell>", "Target shell (bash, zsh, fish, powershell)", "bash")
+  .option("-s, --shell <shell>", "Target shell (bash, zsh, fish, powershell)")
   .option("-o, --output <path>", "Output file path (default: stdout)")
   .option("--install", "Install to shell config automatically")
-  .action((options) => {
-    const shell = options.shell.toLowerCase();
+  .action((shellArgument, options) => {
+    const requestedShell = options.shell ?? shellArgument;
+    const environmentShell = basename(process.env.SHELL ?? "")
+      .replace(/\.exe$/i, "")
+      .toLowerCase();
+    const supportedShells = ["bash", "zsh", "fish", "powershell"];
+    const defaultShell = supportedShells.includes(environmentShell) ? environmentShell : "bash";
+    const shell = (requestedShell ?? defaultShell).toLowerCase();
+
+    if (requestedShell === undefined) {
+      console.error(chalk.gray(`Using ${shell} completion`));
+    }
 
     let completionScript: string;
     let filename: string;
