@@ -21,6 +21,7 @@ import type {
 } from "../types/index.js";
 import { errorFactories, requireProjectRoot } from "../utils/errors.js";
 import { findProjectRoot } from "../utils/paths.js";
+import { describeSearch } from "../utils/search-status.js";
 import {
   clearMetadataCache,
   discoverResources,
@@ -298,6 +299,17 @@ const TUIApp: React.FC<{ animated?: boolean }> = ({ animated = true }) => {
   }, [activeTab, filteredStacks, filteredServices, selectedStackData, selectedServiceData]);
 
   const items = getItems();
+
+  // Only the stack and service lists are filtered by the query; drilled-in views are not.
+  const searchList =
+    activeTab === "overview" || (activeTab === "resources" && !selectedStackData)
+      ? { total: stacks.length }
+      : (activeTab === "files" && !selectedServiceData) || activeTab === "config"
+        ? { total: services.length }
+        : null;
+  const searchStatus = searchList
+    ? describeSearch(searchQuery, items.length, searchList.total)
+    : null;
 
   useEffect(() => {
     if (highlightedIndex >= items.length && items.length > 0) {
@@ -612,6 +624,13 @@ const TUIApp: React.FC<{ animated?: boolean }> = ({ animated = true }) => {
       {isSearching && (
         <Box paddingX={1} height={1}>
           <Text color="yellow">Search: {searchQuery}_</Text>
+          {searchStatus && <Text color="gray" dimColor>{`   ${searchStatus.summary}`}</Text>}
+        </Box>
+      )}
+
+      {searchStatus?.emptyMessage && (
+        <Box paddingX={1} height={1}>
+          <Text color="gray">{searchStatus.emptyMessage}</Text>
         </Box>
       )}
 

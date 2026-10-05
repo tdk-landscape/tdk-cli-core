@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { DetailPanel, FileTree, ResourceSelectInput, ResourceTable, TabBar, } from "../components/index.js";
 import { errorFactories, requireProjectRoot } from "../utils/errors.js";
 import { findProjectRoot } from "../utils/paths.js";
+import { describeSearch } from "../utils/search-status.js";
 import { clearMetadataCache, discoverResources, discoverStacks, getResourceMetadata, getStackMetadata, } from "../utils/services.js";
 import { createStatusMessageController } from "../utils/status-message.js";
 import { isTiltAvailable } from "../utils/tilt.js";
@@ -159,6 +160,15 @@ const TUIApp = ({ animated = true }) => {
         return [];
     }, [activeTab, filteredStacks, filteredServices, selectedStackData, selectedServiceData]);
     const items = getItems();
+    // Only the stack and service lists are filtered by the query; drilled-in views are not.
+    const searchList = activeTab === "overview" || (activeTab === "resources" && !selectedStackData)
+        ? { total: stacks.length }
+        : (activeTab === "files" && !selectedServiceData) || activeTab === "config"
+            ? { total: services.length }
+            : null;
+    const searchStatus = searchList
+        ? describeSearch(searchQuery, items.length, searchList.total)
+        : null;
     useEffect(() => {
         if (highlightedIndex >= items.length && items.length > 0) {
             setHighlightedIndex(items.length - 1);
@@ -419,7 +429,7 @@ const TUIApp = ({ animated = true }) => {
     if (services.length === 0) {
         return _jsx(EmptyState, { message: message });
     }
-    return (_jsxs(Box, { flexDirection: "column", height: stdout.rows || 24, children: [_jsx(Box, { paddingX: 1, paddingY: 0, children: _jsxs(Text, { children: [_jsx(Text, { color: "cyan", bold: true, children: "\u2593\u2592\u2591 TDK NEON EDITION \u2591\u2592\u2593" }), _jsx(Text, { color: "gray", children: " \u2502 " }), _jsx(Text, { color: "white", children: projectRoot }), _jsx(Text, { color: "gray", children: " \u2502 " }), _jsxs(Text, { color: "green", children: [services.length, " services ready"] })] }) }), _jsx(Box, { paddingX: 1, children: _jsx(Text, { color: "gray", children: "─".repeat(compact ? 60 : Math.min(terminalWidth - 4, 100)) }) }), isSearching && (_jsx(Box, { paddingX: 1, height: 1, children: _jsxs(Text, { color: "yellow", children: ["Search: ", searchQuery, "_"] }) })), !isSearching && message && (_jsx(Box, { paddingX: 1, height: 1, children: _jsxs(Text, { color: "cyan", children: ["\u2593\u2592\u2591 ", message, " \u2591\u2592\u2593"] }) })), !isSearching && !message && showTooltips && !showHelp && (_jsx(Box, { paddingX: 1, height: 1, children: _jsx(Text, { color: "gray", dimColor: true, children: activeTab === "overview" && selectedStack
+    return (_jsxs(Box, { flexDirection: "column", height: stdout.rows || 24, children: [_jsx(Box, { paddingX: 1, paddingY: 0, children: _jsxs(Text, { children: [_jsx(Text, { color: "cyan", bold: true, children: "\u2593\u2592\u2591 TDK NEON EDITION \u2591\u2592\u2593" }), _jsx(Text, { color: "gray", children: " \u2502 " }), _jsx(Text, { color: "white", children: projectRoot }), _jsx(Text, { color: "gray", children: " \u2502 " }), _jsxs(Text, { color: "green", children: [services.length, " services ready"] })] }) }), _jsx(Box, { paddingX: 1, children: _jsx(Text, { color: "gray", children: "─".repeat(compact ? 60 : Math.min(terminalWidth - 4, 100)) }) }), isSearching && (_jsxs(Box, { paddingX: 1, height: 1, children: [_jsxs(Text, { color: "yellow", children: ["Search: ", searchQuery, "_"] }), searchStatus && _jsx(Text, { color: "gray", dimColor: true, children: `   ${searchStatus.summary}` })] })), searchStatus?.emptyMessage && (_jsx(Box, { paddingX: 1, height: 1, children: _jsx(Text, { color: "gray", children: searchStatus.emptyMessage }) })), !isSearching && message && (_jsx(Box, { paddingX: 1, height: 1, children: _jsxs(Text, { color: "cyan", children: ["\u2593\u2592\u2591 ", message, " \u2591\u2592\u2593"] }) })), !isSearching && !message && showTooltips && !showHelp && (_jsx(Box, { paddingX: 1, height: 1, children: _jsx(Text, { color: "gray", dimColor: true, children: activeTab === "overview" && selectedStack
                         ? `Stack "${selectedStack}" selected. [Enter] view │ [Esc] back │ [e] ${showEnabledOnly ? "show all" : "enabled only"} │ [?] help`
                         : activeTab === "overview" && !selectedStack
                             ? `[↑/↓] Navigate │ [Enter] Select │ [e] ${showEnabledOnly ? "show all" : "enabled only"} │ [?] help`
