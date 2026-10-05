@@ -326,7 +326,7 @@ export function getWorkerIndexTemplate(name: string) {
 interface Job {
   id: string;
   type: string;
-  payload: Record<string, JsonValue>;
+  payload: Record<string, unknown>;
   priority?: number;
   timestamp?: string;
 }
