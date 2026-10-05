@@ -16,7 +16,7 @@ Questions a team lead usually asks before moving client projects onto a new tool
 
 - There are two maintainers from two companies ([MAINTAINERS.md](../MAINTAINERS.md)); the project has no foundation or funding commitment. Governance is in [GOVERNANCE.md](../GOVERNANCE.md).
 - Core is MIT, so you can fork it.
-- **Gap, partly answered:** [gradual adoption](gradual-adoption.md#taking-it-out-again) lists the files TDK adds, so you know what to delete. There is still no guide for moving to Compose or Helm. Your `service.json` files are TDK-specific, and the generated Compose and Tilt files live under the gitignored `.tdk/.tdk-out/` ([#505](https://github.com/tdk-landscape/tdk-cli-core/issues/505)).
+- **Answered in part:** [Leaving TDK](leaving-tdk.md) says what `tdk eject` does (it only writes an `EJECTED.md` note), which generated files exist and what they need from TDK, and what you lose. [Gradual adoption](gradual-adoption.md#taking-it-out-again) lists what to delete. There is still no command that produces plain Compose; moving to Compose or Helm is manual, and your `service.json` files are TDK-specific.
 
 ## Licence: can we use it on client projects?
 
