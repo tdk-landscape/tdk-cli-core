@@ -225,6 +225,8 @@ TILT_CONTEXT = {
     'project_root': PROJECT_ROOT,
     'all_services': _app_resources_list,
     'golden_image_resource': GOLDEN_IMAGE_RESOURCE,
+    'focus_mode': FOCUS_MODE,
+    'focus_enabled_resources': FOCUS_ENABLED_RESOURCES,
 }
 
 print("🚀 Creating Tilt resources for {} services...".format(len(_app_resources_list)))
@@ -314,7 +316,9 @@ if FOCUS_MODE and FOCUS_ENABLED_RESOURCES:
     # local mail catcher standing in for a managed email provider. Every
     # service it declares is loaded via docker_compose() in infra-loader.star,
     # so it must be enabled here too, or it is silently disabled the same way.
-    _ALWAYS_ENABLED_INFRA_RESOURCES = ['init-networks', 'postgres', 'traefik', 'golden-layers-build']
+    _ALWAYS_ENABLED_INFRA_RESOURCES = ['init-networks', 'traefik', 'golden-layers-build']
+    if should_enable('database-management') or TILT_CONTEXT.get('_shared_platform_postgres_force_started', False):
+        _ALWAYS_ENABLED_INFRA_RESOURCES.append('postgres')
     _messaging_compose_path = PROJECT_ROOT + '/services/platform/messaging/docker-compose.yml'
     if str(local("test -f '" + _messaging_compose_path + "' && echo yes || echo no", quiet=True, echo_off=True)).strip() == 'yes':
         # infra-loader.star only creates these Tilt resources when this file

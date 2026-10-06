@@ -12,8 +12,66 @@ load('../../../platform/docker/constants.star', 'PlatformDockerConstants')
 load('../../../tilt/manifest/constants.star', 'BASE_PORT_FRONTEND', 'BASE_PORT_BACKEND')
 load('../../../platform/docker/networking/traefik_static_routes.star', 'generate_static_wake_route', 'normalize_abs_path')
 load('../../../platform/docker/networking/sablier_container_cycle.star', 'sablier_middleware_suffix')
+# Shared platform Postgres force-start path. infra-loader.star must not load
+# apply_compose (no circular load): it only loads platform/docker + registries.
+load('../infra-loader.star', 'Infra')
+load('../shared-platform-postgres.star',
+     _shared_postgres_names = 'SHARED_POSTGRES_DEPENDENCY_NAMES',
+     _is_shared_platform_postgres_dependency = 'is_shared_platform_postgres_dependency',
+     _manifest_needs_shared_platform_postgres = 'manifest_needs_shared_platform_postgres')
 
 load('./builders/typescript.star', 'TypescriptBuilders')
+
+
+# Public wrappers for shared platform Postgres helpers. Starlark `load` does not
+# re-export loaded names. Canonical list + predicates live in
+# shared-platform-postgres.star — do not hardcode a second copy of the names here.
+
+def is_shared_platform_postgres_dependency(name):
+    """True when a dependsOn name is one of the shared platform Postgres aliases."""
+    return _is_shared_platform_postgres_dependency(name)
+
+
+def manifest_needs_shared_platform_postgres(manifest):
+    """True when a manifest's dependsOn lists postgres or database-management."""
+    return _manifest_needs_shared_platform_postgres(manifest)
+
+
+def selected_for_shared_platform_postgres(name, ctx):
+    """Use the same focus selection later passed to set_enabled_resources."""
+    if not ctx.get('focus_mode', False):
+        return True
+    return name in (ctx.get('focus_enabled_resources') or [])
+
+
+def force_start_shared_platform_postgres_once(ctx, should_enable, resource_name=""):
+    """Force-start shared platform Postgres at most once per Tiltfile evaluation.
+
+    `register_compose_resources` runs per stack and can see unselected nested
+    services; two selected services that both `dependsOn` Postgres would otherwise call
+    `Infra.force_start_postgres` twice (docker_compose + dc_resource each time).
+    Module-level mutable flags are unusable — Tilt freezes Starlark globals — so
+    the guard lives on `ctx`, a dict the Tiltfile already owns for this run.
+
+    Returns True when this call performed the force-start, False when it skipped
+    (already started this run, or database-management is already on).
+    """
+    if ctx.get('_shared_platform_postgres_force_started', False):
+        print("DEBUG COMPOSE: shared platform Postgres already force-started this run; skip for '{}'".format(resource_name))
+        return False
+    if should_enable('database-management'):
+        return False
+    project_root_for_env = ctx.get('project_root', '')
+    root_prefix = (project_root_for_env + '/') if project_root_for_env else ''
+    env_candidate = (project_root_for_env + '/.env') if project_root_for_env else '.env'
+    env_file = _env_file_if_exists(env_candidate)
+    write_fn = ctx.get('write_file', None)
+    if write_fn == None:
+        fail("dependsOn postgres/database-management on selected resource '{}' requires ctx.write_file to materialize services/platform/database-management/docker-compose.yml".format(resource_name))
+    print("DEBUG COMPOSE: force-starting shared platform Postgres once (selected '{}' dependsOn)".format(resource_name))
+    Infra.force_start_postgres(should_enable, root_prefix=root_prefix, env_file=env_file, write_fn=write_fn)
+    ctx['_shared_platform_postgres_force_started'] = True
+    return True
 
 
 def _env_file_if_exists(env_file):
@@ -51,22 +109,30 @@ def _build_infra_dependencies(resource_name, should_enable, ctx, has_backend=Fal
 def _resolve_dependency_to_resource(dep_name, all_services_map):
     """
     Resolve a short dependency name (e.g., 'identity') to the full YAML resource name.
-    
+
     The discovery registry creates YAML resources with names like:
     - 'identity-management-backend-yaml' for identity backend
     - 'api-gateway-yaml' for api-gateway
-    
+
     But manifests reference them as short names like 'identity' or 'api-gateway'.
+
+    Shared platform Postgres aliases (`postgres`, `database-management`) resolve
+    to the literal Tilt resource `postgres` in BOTH feature states — they must
+    NOT fall through to `postgres-yaml` or any other name.
     """
+    # Shared platform Postgres: exact names only (typos stay on the normal path).
+    if is_shared_platform_postgres_dependency(dep_name):
+        return 'postgres'
+
     # Check if already a full YAML resource name
     if dep_name in all_services_map:
         return dep_name
-    
+
     # Try with -yaml suffix (for resources already resolved)
     yaml_name = dep_name + '-yaml'
     if yaml_name in all_services_map:
         return yaml_name
-    
+
     # Try to find matching service by stack/short name
     for resource_name, resource_info in all_services_map.items():
         # Check if this service's stack matches the dependency
@@ -81,14 +147,49 @@ def _resolve_dependency_to_resource(dep_name, all_services_map):
                         return res['name'] + '-yaml'
                 # Fallback to first resource
                 return resources[0]['name'] + '-yaml'
-    
+
     # Try pattern matching: identity -> identity-*-yaml
     for resource_name in all_services_map.keys():
         if resource_name.startswith(dep_name + '-') and resource_name.endswith('-yaml'):
             return resource_name
-    
+
     # Return original with -yaml suffix as last resort
     return dep_name + '-yaml'
+
+
+def resolve_dependency_to_resource(dep_name, all_services_map):
+    """Public wrapper over `_resolve_dependency_to_resource` (exported for tests)."""
+    return _resolve_dependency_to_resource(dep_name, all_services_map)
+
+
+def build_infra_dependencies(resource_name, should_enable, ctx=None, has_backend=False):
+    """Public wrapper over `_build_infra_dependencies` (exported for tests).
+
+    feature off → no postgres; feature on → has postgres (plus backend
+    provision-db edge when has_backend is true).
+    """
+    return _build_infra_dependencies(resource_name, should_enable, ctx if ctx != None else {}, has_backend)
+
+
+def build_resource_deps(res, res_name, manifest, resource_config, infra_deps, config_gen_resources=None, resource_manifests=None, runtime_flags=None, all_services_map=None):
+    """Public wrapper over `_build_resource_deps` (exported for tests).
+
+    Ensures the dependsOn→resource_deps edge is exercised by tests: feature off
+    + dependsOn postgres → postgres edge present; feature on + dependsOn →
+    exactly one postgres edge (infra_deps already carries it).
+    """
+    default_runtime_flags = {
+        'enforce_migrator_deps': False,
+        'auto_init_apps': True,
+        'disable_app_replicas': False,
+    }
+    return _build_resource_deps(
+        res, res_name, manifest, resource_config, infra_deps,
+        config_gen_resources if config_gen_resources != None else {},
+        resource_manifests if resource_manifests != None else {},
+        runtime_flags if runtime_flags != None else default_runtime_flags,
+        all_services_map,
+    )
 
 
 def _build_resource_deps(res, res_name, manifest, resource_config, infra_deps, config_gen_resources, resource_manifests, runtime_flags, all_services_map=None):
@@ -572,6 +673,26 @@ def register_compose_resources(resource_config, ctx, runtime_flags, manifest_sta
             if res_name:
                 all_services_map[res_name] = svc
 
+    # Selection-bound shared platform Postgres start signal.
+    # Only enabled resources in THIS stack are evaluated. Registration sees
+    # unselected siblings before Tilt's enabled-resource filter runs.
+    # When database-management is off and any selected resource's
+    # manifest depends on postgres/database-management, force-start the shared
+    # platform Postgres via the existing infra loader (materializes
+    # services/platform/database-management/docker-compose.yml + registers the
+    # existing `postgres` Tilt resource). Does NOT open migrators/provision-db/Prisma.
+    # Idempotent across services: force_start_shared_platform_postgres_once
+    # guards on ctx so two selected dependents do not register postgres twice.
+    if not should_enable('database-management'):
+        for res in resource_config.get('resources', []):
+            if not selected_for_shared_platform_postgres(res.get('name', ''), ctx):
+                continue
+            res_manifest = resource_manifests.get(res['name'], {})
+            if manifest_needs_shared_platform_postgres(res_manifest):
+                print("DEBUG COMPOSE: selected '{}' dependsOn shared platform Postgres; force-starting postgres".format(res.get('name', '')))
+                force_start_shared_platform_postgres_once(ctx, should_enable, res.get('name', ''))
+                break
+
     resource_entries = []
     resource_configs = []
 
@@ -627,11 +748,17 @@ def register_compose_resources(resource_config, ctx, runtime_flags, manifest_sta
                 ))
 
         resource_entries.append(entry)
-        resource_configs.append(_build_resource_config(
+        built_config = _build_resource_config(
             res, manifest, resource_config, full_res_path, infra_deps,
             config_gen_resources, resource_manifests, runtime_flags, all_services_map,
             ctx.get('project_root', ''),
-        ))
+        )
+        # A focused run still registers disabled siblings before Tilt applies
+        # set_enabled_resources. Do not leave their edge pointing at a Postgres
+        # resource that this evaluation did not register.
+        if not should_enable('database-management') and not ctx.get('_shared_platform_postgres_force_started', False):
+            built_config['res_deps'] = [dep for dep in built_config['res_deps'] if dep != 'postgres']
+        resource_configs.append(built_config)
 
     print("DEBUG COMPOSE: Calling Docker.app_compose for '{}' with write_fn={}".format(resource_name, write_file))
     Docker.app_compose(resource_path, resource_entries, write_file)

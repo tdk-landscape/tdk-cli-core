@@ -24,6 +24,7 @@ Validators Architecture:
 load("../common/utils.star", "Utils")
 load("../../platform/docker/constants.star", "PlatformDockerConstants")
 load("../manifest/constants.star", "GENERATED_CONFIG_FILENAMES")
+load("../resources/shared-platform-postgres.star", "is_shared_platform_postgres_dependency")
 
 load("../common/utils.star", "LIBRARY_ROOTS")
 
@@ -182,6 +183,10 @@ def validate_dependency_graph(resource_path, manifest, all_services):
     # Check manifest dependsOn
     internal_deps = manifest.get("dependsOn", [])
     for dep in internal_deps:
+        # Shared platform Postgres aliases are not app services; they resolve to
+        # the Tilt resource `postgres` and must not be reported as missing.
+        if is_shared_platform_postgres_dependency(dep):
+            continue
         dep_exists = False
         for svc in all_services:
             # Check service name/stack match (supports legacy 'stack' field)
@@ -196,7 +201,7 @@ def validate_dependency_graph(resource_path, manifest, all_services):
                     break
             if dep_exists:
                 break
-        
+
         if not dep_exists:
             missing_deps.append({
                 "name": dep,

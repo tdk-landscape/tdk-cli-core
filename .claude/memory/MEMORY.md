@@ -25,6 +25,8 @@ Hard-won, repo-specific facts for anyone (human or agent) working here. Keep ent
 - Say only what a run observed; mark everything else "not run" in docs and PRs.
 - Resource scaffolds must write current keys (`dependsOn`, `healthCheckPath`); `tdk doctor` warns on deprecated and unknown ones.
 - `tdk config verify` validates discovered `service.json` files and generated service snapshots as well as project files; `tdk config regenerate` rewrites project outputs, while service outputs are written on `tdk up` (2026-10-05).
+- A feature-off Postgres `dependsOn` needs `services/platform/database-management/docker-compose.yml` in both CLI and Tilt generated-file allowlists; test from a missing Compose, since a pre-existing file hides a denied write. Tilt registers all siblings before applying `--focus`, so force-start checks must use the focus resource list, not `should_enable` (2026-10-06, #646).
+- Doctor's default-focus Postgres warning must inspect the generated Tiltfile, spec, and vendored `CORE_INFRA` mapping; `project.json` alone cannot prove the feature path, and a project-scope `dependsOn` result must not hide that warning (2026-10-06, #646).
 - Env and secrets: no JWT in generated files; Compose takes `JWT_SECRET` from the project `.env`; `completeEnvFile` appends missing keys and never rotates.
 
 ## Housekeeping

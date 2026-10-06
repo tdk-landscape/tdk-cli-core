@@ -36,6 +36,7 @@ import {
   checkNatsBroker,
   checkResourcePackageJson,
   checkServiceUrlPorts,
+  checkSharedPlatformPostgres,
   checkTiltInstances,
 } from "../utils/doctor-wiring.js";
 import { validateEnvFile } from "../utils/env-validator.js";
@@ -1411,6 +1412,8 @@ export const doctorCommand = new Command("doctor")
       () => checkServiceUrlPorts(),
       () => checkFrontendBackendUrls(),
       () => checkNatsBroker(),
+      // Shared platform Postgres: will-start report + unknown dependsOn names stay errors.
+      () => checkSharedPlatformPostgres(),
       () => checkMigrationsInApi(),
       () => checkTiltInstances(),
       checkEnvironmentVariables,

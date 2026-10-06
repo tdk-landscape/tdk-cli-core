@@ -6,6 +6,7 @@ import { PLATFORM_STANDARDS } from "../config/platform-standards.js";
 import type { JsonValue, ProjectConfig } from "../types/index.js";
 import { writeTextFile } from "../utils/file-helpers.js";
 import { assertTdkGeneratedPath } from "../utils/generated-paths.js";
+import { DEFAULT_ALWAYS_ENABLED_INFRA } from "../utils/project-config-defaults.js";
 import { validateServiceManifestFile } from "../utils/service-manifest.js";
 import { discoverResourcesFromRoot, discoverServiceManifestPaths } from "../utils/services.js";
 import { isStackFeatureEnabledInStacks } from "../utils/stack-features.js";
@@ -191,7 +192,7 @@ export class TemplateEngine {
       runtime: PLATFORM_STANDARDS.runtime,
       project: projectConfig.project,
       phases: dedupePhaseEnabledStacks(projectConfig.phases),
-      alwaysEnabledInfra: projectConfig.always_enabled_infra ?? ["database-management", "proxy"],
+      alwaysEnabledInfra: projectConfig.always_enabled_infra ?? [...DEFAULT_ALWAYS_ENABLED_INFRA],
       optionalInfra: projectConfig.optional_infra,
       serviceDescriptions: RESOURCE_DESCRIPTIONS,
       infraDescriptions: INFRA_DESCRIPTIONS,
