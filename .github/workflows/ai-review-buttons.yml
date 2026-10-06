@@ -3,22 +3,30 @@
 # pull_request_target is allowed only because checkout is the default branch
 # and the only write is the PR body. Do not checkout the PR head and do not
 # run PR code in this job.
+#
+# New PRs get buttons on opened/reopened/edited. Merging does not rerun those
+# events on already-open PRs. Run workflow_dispatch once after merge to
+# backfill open PRs (forks and empty bodies included). Closed PRs do not need
+# a backfill; the next reopen runs the normal trigger. No synchronize.
 name: 🤖 AI review buttons
 
 on:
   pull_request_target: # zizmor: ignore[dangerous-triggers] never checks out or runs PR code; only writes the PR body
     types: [opened, reopened, edited]
+  workflow_dispatch:
 
 permissions: {}
 
 # Serialize writes per PR: two `edited` events cannot PATCH in parallel.
+# Backfill is a separate group so a manual run cannot block event runs.
 concurrency:
-  group: ai-review-buttons-pr-${{ github.event.pull_request.number }}
+  group: ai-review-buttons-${{ github.event.pull_request.number || 'backfill' }}
   cancel-in-progress: false
 
 jobs:
   append:
     name: Append AI review buttons
+    if: github.event_name == 'pull_request_target'
     runs-on: ubuntu-latest
     timeout-minutes: 2
     # No same-repo if. Forks are covered because this event runs the workflow
@@ -82,3 +90,61 @@ jobs:
           gh api --method PATCH \
             "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" \
             --input - < "$PATCH_FILE"
+
+  backfill:
+    name: Backfill open PRs
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    # 100 open PRs at a few seconds each; stay under a hard cap.
+    timeout-minutes: 15
+    # Same rules as append: checkout main only, never a PR head, only write the body.
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      - name: Backfill open PRs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test -f scripts/ai-review-buttons.mjs
+
+          gh pr list --repo "${GITHUB_REPOSITORY}" --state open --limit 100 \
+            --json number,title,url \
+            --jq '.[] | [.number, .title, .url] | @tsv' |
+          while IFS=$'\t' read -r number title url; do
+            export PR_NUMBER="$number" PR_TITLE="$title" PR_URL="$url"
+            export BODY_FILE="${RUNNER_TEMP}/in-${number}.md"
+            export OUT_FILE="${RUNNER_TEMP}/out-${number}.md"
+            export PATCH_FILE="${RUNNER_TEMP}/patch-${number}.json"
+
+            gh api "repos/${GITHUB_REPOSITORY}/pulls/${number}" \
+              --jq '(.body // "") | @base64' > "${BODY_FILE}.b64"
+            base64 -d < "${BODY_FILE}.b64" > "$BODY_FILE"
+            node scripts/ai-review-buttons.mjs
+
+            if cmp -s "$BODY_FILE" "$OUT_FILE"; then
+              continue
+            fi
+
+            # Lost-update guard: skip if the live body moved since the snapshot.
+            gh api "repos/${GITHUB_REPOSITORY}/pulls/${number}" \
+              --jq '(.body // "") | @base64' > "${BODY_FILE}.now.b64"
+            base64 -d < "${BODY_FILE}.now.b64" > "${BODY_FILE}.now"
+            if ! cmp -s "$BODY_FILE" "${BODY_FILE}.now"; then
+              echo "PR #${number} body changed since snapshot; skipping."
+              continue
+            fi
+
+            jq -n --rawfile body "$OUT_FILE" '{body: $body}' > "$PATCH_FILE"
+            jq -e 'has("body") and (.body | type == "string")' "$PATCH_FILE" > /dev/null
+            gh api --method PATCH \
+              "repos/${GITHUB_REPOSITORY}/pulls/${number}" \
+              --input - < "$PATCH_FILE"
+            echo "Patched PR #${number}"
+          done
