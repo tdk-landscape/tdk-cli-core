@@ -22,10 +22,20 @@ export function buildButtonsHtml(prUrl) {
   // &nbsp; keeps the row together on one line.
   const badge = (name, color, logo) =>
     `https://img.shields.io/badge/${encodeURIComponent(name)}-${color}?style=for-the-badge&logo=${logo}&logoColor=white`;
+
+  // OpenAI/Codex slug was removed from Shields. Embed a white mark.
+  // logoColor does not recolor data-URI logos; the SVG fill must be white.
+  const codexLogo = encodeURIComponent(
+    "data:image/svg+xml;base64," +
+      Buffer.from(
+        `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="#fff" d="M22.28 9.82a6 6 0 0 0-.52-4.91 6.05 6.05 0 0 0-6.51-2.9A6.07 6.07 0 0 0 4.98 4.18a6 6 0 0 0-4 2.9 6.05 6.05 0 0 0 .74 7.1 6 6 0 0 0 .51 4.91 6.05 6.05 0 0 0 6.52 2.9A6 6 0 0 0 13.26 24a6.06 6.06 0 0 0 5.77-4.21 6 6 0 0 0 4-2.9 6.06 6.06 0 0 0-.75-7.07z"/></svg>`,
+      ).toString("base64"),
+  );
+
   return [
     `[![Grok](${badge("Grok", "111111", "x")})](https://grok.com/?q=${q})`,
     `[![Claude](${badge("Claude", "D97757", "anthropic")})](https://claude.ai/new?q=${q})`,
-    `[![Codex](${badge("Codex", "10A37F", "openai")})](https://chatgpt.com/?q=${q})`,
+    `[![Codex](${badge("Codex", "10A37F", codexLogo)})](https://chatgpt.com/?q=${q})`,
   ].join("&nbsp;");
 }
 

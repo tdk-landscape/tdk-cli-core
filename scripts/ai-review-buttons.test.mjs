@@ -31,7 +31,14 @@ describe("buildButtonsHtml", () => {
     assert.ok(html.includes("img.shields.io/badge/Codex-10A37F"));
     assert.ok(html.includes("style=for-the-badge&logo=x"));
     assert.ok(html.includes("style=for-the-badge&logo=anthropic"));
-    assert.ok(html.includes("style=for-the-badge&logo=openai"));
+    // Shields dropped the openai slug; Codex uses an embedded white mark.
+    assert.ok(!html.includes("logo=openai"));
+    assert.ok(html.includes("logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2C"));
+    const codexSrc = html.match(/\[!\[Codex\]\(([^)]+)\)/)?.[1] ?? "";
+    const logoParam = new URL(codexSrc).searchParams.get("logo") ?? "";
+    const decoded = Buffer.from(logoParam.split("base64,")[1] ?? "", "base64").toString("utf8");
+    assert.ok(decoded.includes('fill="#fff"'));
+    assert.ok(decoded.includes('viewBox="0 0 24 24"'));
     assert.ok(!html.includes("Review PR in"));
     assert.ok(!html.includes("grok.svg"));
     const q = encodeURIComponent(buildPrompt(url));
