@@ -1,11 +1,12 @@
-# Appends AI review links (Grok, Claude, Codex) to same-repo pull request bodies.
+# Appends AI review links (Grok, Claude, Codex) to pull request bodies.
 # Markdown shields only: no API call, no review comment.
-# Fork PRs skip the job so the default token never writes untrusted bodies.
-# Do not switch this job to pull_request_target just to cover forks.
+# pull_request_target is allowed only because checkout is the default branch
+# and the only write is the PR body. Do not checkout the PR head and do not
+# run PR code in this job.
 name: 🤖 AI review buttons
 
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, reopened, edited]
 
 permissions:
@@ -21,16 +22,18 @@ jobs:
     name: Append AI review buttons
     runs-on: ubuntu-latest
     timeout-minutes: 2
-    # Only same-repo PRs can be body-written with GITHUB_TOKEN. Fork PRs skip cleanly.
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    # No same-repo if. Forks are covered because this event runs the workflow
+    # from the base branch. Do not checkout the PR head and do not run PR code.
     permissions:
       pull-requests: write
     steps:
-      # Check out this repository so CI runs the same scripts/ai-review-buttons.mjs
-      # contributors test locally (single implementation). persist-credentials: false
-      # keeps the job from leaving a write-capable git credential on disk.
+      # Run the same scripts/ai-review-buttons.mjs contributors test locally
+      # (single implementation). Default branch only — never the PR head.
+      # persist-credentials: false keeps the job from leaving a write-capable
+      # git credential on disk.
       - uses: actions/checkout@v7
         with:
+          ref: ${{ github.event.repository.default_branch }}
           persist-credentials: false
 
       # Event fields go through env, never into the script string (template-injection safe).
