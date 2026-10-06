@@ -16,38 +16,29 @@ export function buildPrompt(prUrl) {
   return `Review this pull request. Read the title and diff at ${prUrl}.`;
 }
 
-// Circle SVGs live in the repo. Image URLs must use `main` (not the PR branch):
-// a branch raw URL 404s after merge. Shared with scripts/ai-spec-buttons.mjs.
-export const BADGE_BASE =
-  "https://github.com/tdk-landscape/tdk-cli-core/raw/main/.github/badges";
-export const BADGE_URLS = {
-  grok: `${BADGE_BASE}/grok.svg`,
-  claude: `${BADGE_BASE}/claude.svg`,
-  codex: `${BADGE_BASE}/codex.svg`,
-};
-
 export function buildButtonsHtml(prUrl) {
   const q = encodeURIComponent(buildPrompt(prUrl));
-  const grok = `https://grok.com/?q=${q}`;
-  const claude = `https://claude.ai/new?q=${q}`;
-  const codex = `https://chatgpt.com/?q=${q}`;
+  // Product name only + logo. A blank line between badges stacks them;
+  // &nbsp; keeps the row together on one line.
+  const badge = (name, color, logo) =>
+    `https://img.shields.io/badge/${encodeURIComponent(name)}-${color}?style=for-the-badge&logo=${logo}&logoColor=white`;
   return [
-    `[![Grok](${BADGE_URLS.grok})](${grok})`,
-    `[![Claude](${BADGE_URLS.claude})](${claude})`,
-    `[![Codex](${BADGE_URLS.codex})](${codex})`,
-  ].join("\n");
+    `[![Grok](${badge("Grok", "111111", "x")})](https://grok.com/?q=${q})`,
+    `[![Claude](${badge("Claude", "D97757", "anthropic")})](https://claude.ai/new?q=${q})`,
+    `[![Codex](${badge("Codex", "10A37F", "openai")})](https://chatgpt.com/?q=${q})`,
+  ].join("&nbsp;");
 }
 
 /** Generated section only (marker through buttons). Does not include author text. */
 export function buildGeneratedSection(prUrl) {
+  // # is a real heading on GitHub; ** is only bold body text.
+  // No blank line between the heading and the badges — that stacks them.
   return [
     MARKER,
     "",
     "---",
     "",
-    "**Review this PR in**",
-    "",
-    buildButtonsHtml(prUrl),
+    `# Review this PR in&nbsp;${buildButtonsHtml(prUrl)}`,
     "",
   ].join("\n");
 }
