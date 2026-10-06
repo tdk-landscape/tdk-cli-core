@@ -11,7 +11,7 @@ import { createStatusMessageController } from "../utils/status-message.js";
 import { getListRowFromMouseY, getTerminalRuleWidth } from "../utils/terminal-layout.js";
 import { isTiltAvailable } from "../utils/tilt.js";
 // biome-ignore lint/correctness/noUnusedFunctionParameters: reserved callback prop kept in the component API
-const HelpPanel = ({ onClose }) => (_jsxs(Box, { borderStyle: "single", borderColor: "cyan", paddingX: 2, paddingY: 1, flexDirection: "column", width: 60, children: [_jsx(Text, { bold: true, color: "cyan", children: "Keyboard Shortcuts" }), _jsxs(Box, { marginY: 1, flexDirection: "column", children: [_jsx(Text, { bold: true, underline: true, children: "Navigation" }), _jsx(Text, { children: " \u2191/\u2193 Navigate list items" }), _jsx(Text, { children: " Enter Select item / Open detail" }), _jsx(Text, { children: " Space Toggle expand (tree view)" }), _jsx(Text, { children: " Tab Next tab" }), _jsx(Text, { children: " 1-5 Direct tab access" }), _jsx(Box, { marginTop: 1, children: _jsx(Text, { bold: true, underline: true, children: "Actions" }) }), _jsx(Text, { children: " m Toggle mouse support" }), _jsx(Text, { children: " t Toggle tooltips" }), _jsx(Text, { children: " e Toggle enabled/disabled services" }), _jsx(Text, { children: " r Refresh data" }), _jsx(Text, { children: " / Search/filter" }), _jsx(Text, { children: " ? Show this help" }), _jsx(Text, { children: " q Quit \u2502 Esc Back" })] }), _jsx(Box, { marginTop: 1, children: _jsx(Text, { color: "gray", dimColor: true, children: "Press any key to close..." }) })] }));
+const HelpPanel = ({ onClose }) => (_jsxs(Box, { borderStyle: "single", borderColor: "cyan", paddingX: 2, paddingY: 1, flexDirection: "column", width: 60, children: [_jsx(Text, { bold: true, color: "cyan", children: "Keyboard Shortcuts" }), _jsxs(Box, { marginY: 1, flexDirection: "column", children: [_jsx(Text, { bold: true, underline: true, children: "Navigation" }), _jsx(Text, { children: " \u2191/\u2193 or j/k Navigate list items" }), _jsx(Text, { children: " g/G or Home/End First/last item" }), _jsx(Text, { children: " PgUp/PgDn Move one page" }), _jsx(Text, { children: " Enter Select item / Open detail" }), _jsx(Text, { children: " Space Toggle expand (tree view)" }), _jsx(Text, { children: " Tab Next tab" }), _jsx(Text, { children: " 1-5 Direct tab access" }), _jsx(Box, { marginTop: 1, children: _jsx(Text, { bold: true, underline: true, children: "Actions" }) }), _jsx(Text, { children: " m Toggle mouse support" }), _jsx(Text, { children: " t Toggle tooltips" }), _jsx(Text, { children: " e Toggle enabled/disabled services" }), _jsx(Text, { children: " r Refresh data" }), _jsx(Text, { children: " / Search/filter" }), _jsx(Text, { children: " ? Show this help" }), _jsx(Text, { children: " q Quit \u2502 Esc Back" })] }), _jsx(Box, { marginTop: 1, children: _jsx(Text, { color: "gray", dimColor: true, children: "Press any key to close..." }) })] }));
 const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 export const LoadingScreen = ({ message = "Discovering resources...", animated = true, }) => {
     const [frame, setFrame] = useState(0);
@@ -26,7 +26,7 @@ export const LoadingScreen = ({ message = "Discovering resources...", animated =
 // biome-ignore lint/correctness/noUnusedFunctionParameters: reserved callback prop kept in the component API
 const ErrorScreen = ({ error, onRetry }) => (_jsxs(Box, { flexDirection: "column", padding: 2, alignItems: "center", children: [_jsx(Text, { bold: true, color: "red", children: "Could Not Load Services" }), _jsx(Box, { marginY: 1 }), _jsxs(Text, { color: "red", children: ["\u2717 ", error] }), _jsx(Box, { marginY: 1 }), _jsx(Text, { color: "gray", children: "Troubleshooting:" }), _jsx(Text, { color: "gray", children: " 1. Check that every service.json is valid JSON" }), _jsx(Text, { color: "gray", children: " 2. Run tdk from your project (the folder with the Tiltfile)" }), _jsx(Text, { color: "gray", children: " 3. Try: tdk status --verbose" }), _jsx(Box, { marginY: 1 }), _jsx(Text, { color: "cyan", children: "Press [r] to retry or [q] to quit" })] }));
 const EmptyState = ({ message }) => (_jsxs(Box, { flexDirection: "column", padding: 2, alignItems: "center", children: [_jsx(Text, { bold: true, color: "yellow", children: "No Services Found" }), _jsx(Box, { marginY: 1 }), _jsx(Text, { color: "gray", children: "\u25C9 No service.json files found" }), _jsx(Box, { marginY: 1 }), _jsx(Text, { children: "To get started:" }), _jsx(Text, { children: " 1. Run: tdk project" }), _jsx(Text, { children: " 2. Run: tdk resource api --type backend" }), _jsx(Box, { marginY: 1 }), _jsx(Text, { color: "cyan", children: "Press [r] to refresh or [q] to quit" }), message && (_jsx(Box, { paddingX: 1, height: 1, children: _jsxs(Text, { color: "cyan", children: ["\u2593\u2592\u2591 ", message, " \u2591\u2592\u2593"] }) }))] }));
-const TUIApp = ({ animated = true }) => {
+export const TUIApp = ({ animated = true }) => {
     const { exit } = useApp();
     const { stdout } = useStdout();
     const { stdin, setRawMode } = useStdin();
@@ -39,9 +39,17 @@ const TUIApp = ({ animated = true }) => {
     const [searchQuery, setSearchQuery] = useState("");
     const [isSearching, setIsSearching] = useState(false);
     const [terminalWidth, setTerminalWidth] = useState(stdout.columns || 120);
+    const [terminalRows, setTerminalRows] = useState(stdout.rows || 24);
     const [selectedFile, setSelectedFile] = useState(null);
     const [mouseEnabled, setMouseEnabled] = useState(true);
     const [listTop, setListTop] = useState(null);
+    const [listStart, setListStart] = useState(0);
+    // Reserve the header, tab bar, hints and footer; keep the cursor visible.
+    const pageSize = Math.max(1, terminalRows - 14);
+    const handleListLayout = useCallback((top, firstVisible = 0) => {
+        setListTop(top);
+        setListStart(firstVisible);
+    }, []);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [showTooltips, setShowTooltips] = useState(true);
@@ -244,9 +252,10 @@ const TUIApp = ({ animated = true }) => {
                 const isLeftClick = (btn & 0b11) === 0;
                 if (isLeftClick && !release) {
                     const listRow = selectableListVisible && listTop !== null ? getListRowFromMouseY(y, listTop) : -1;
-                    if (listRow >= 0 && listRow < items.length) {
-                        setHighlightedIndex(listRow);
-                        const item = items[listRow];
+                    const itemIndex = listStart + listRow;
+                    if (listRow >= 0 && listRow < pageSize && itemIndex < items.length) {
+                        setHighlightedIndex(itemIndex);
+                        const item = items[itemIndex];
                         if (item) {
                             handleSelect(item);
                         }
@@ -260,10 +269,20 @@ const TUIApp = ({ animated = true }) => {
             stdin.off("data", handleMouseData);
             stdin.removeAllListeners("data");
         };
-    }, [stdin, items, listTop, selectableListVisible, mouseEnabled, handleSelect]);
+    }, [
+        stdin,
+        items,
+        listTop,
+        listStart,
+        pageSize,
+        selectableListVisible,
+        mouseEnabled,
+        handleSelect,
+    ]);
     const handleResize = useCallback(() => {
         setTerminalWidth(stdout.columns || 120);
-    }, [stdout.columns]);
+        setTerminalRows(stdout.rows || 24);
+    }, [stdout]);
     useEffect(() => {
         stdout.on("resize", handleResize);
         return () => {
@@ -386,12 +405,21 @@ const TUIApp = ({ animated = true }) => {
             setActiveTab(tabMap[input]);
             return;
         }
-        if (key.upArrow) {
+        const plainKey = !key.ctrl && !key.meta;
+        if (items.length > 0 && (key.upArrow || (plainKey && input === "k"))) {
             setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : items.length - 1));
         }
-        if (key.downArrow) {
+        if (items.length > 0 && (key.downArrow || (plainKey && input === "j"))) {
             setHighlightedIndex((prev) => (prev < items.length - 1 ? prev + 1 : 0));
         }
+        if (key.home || (plainKey && input === "g"))
+            setHighlightedIndex(0);
+        if (key.end || (plainKey && input === "G"))
+            setHighlightedIndex(Math.max(0, items.length - 1));
+        if (key.pageUp)
+            setHighlightedIndex((prev) => Math.max(0, prev - pageSize));
+        if (key.pageDown)
+            setHighlightedIndex((prev) => Math.min(Math.max(0, items.length - 1), prev + pageSize));
         if (key.return || input === " ") {
             const currentItem = items[highlightedIndex];
             if (currentItem) {
@@ -450,7 +478,7 @@ const TUIApp = ({ animated = true }) => {
                                             ? `Select service to view files │ [e] ${showEnabledOnly ? "show all" : "enabled only"} │ [?] help`
                                             : activeTab === "config"
                                                 ? `View configurations │ [e] ${showEnabledOnly ? "show all" : "enabled only"} │ [?] help`
-                                                : `[Tab] Next │ [1-5] Tabs │ [e] ${showEnabledOnly ? "show all" : "enabled only"} │ [?] help │ [q] Quit` }) })), showHelp && (_jsx(Box, { paddingX: 1, flexGrow: 1, children: _jsx(HelpPanel, { onClose: () => setShowHelp(false) }) })), !showHelp && (_jsxs(_Fragment, { children: [_jsx(Box, { marginTop: 1, children: _jsx(TabBar, { activeTab: activeTab, onTabChange: setActiveTab, terminalWidth: terminalWidth }) }), _jsxs(Box, { flexDirection: "row", paddingX: 1, flexGrow: 1, children: [_jsxs(Box, { flexDirection: "column", flexGrow: 1, width: mainPanelWidth, children: [activeTab === "overview" && (_jsxs(_Fragment, { children: [_jsx(Box, { marginBottom: 1, children: _jsx(Text, { bold: true, color: "gray", children: "\u250C\u2500 Stacks \u2500" }) }), _jsx(Box, { marginTop: 1, flexGrow: 1, children: _jsx(ResourceSelectInput, { items: items, onSelect: handleSelect, highlightedIndex: highlightedIndex, width: mainPanelWidth, onLayout: setListTop }) })] })), activeTab === "resources" && (_jsxs(_Fragment, { children: [_jsx(Box, { marginBottom: 1, children: _jsx(Text, { bold: true, color: "gray", children: "\u250C\u2500 Resources \u2500" }) }), selectedStackData ? (_jsxs(_Fragment, { children: [_jsxs(Text, { color: "gray", children: ["Stack: ", selectedStackData.stack.name] }), _jsx(Box, { marginTop: 1, children: _jsx(ResourceTable, { resources: selectedStackData.metadata.resources, maxWidth: terminalWidth - (showSidebar ? 50 : 10) }) })] })) : (_jsxs(_Fragment, { children: [_jsx(Text, { color: "gray", children: "Select a stack to view resources" }), _jsx(Box, { marginTop: 1, children: _jsx(ResourceSelectInput, { items: items, onSelect: handleSelect, highlightedIndex: highlightedIndex, width: mainPanelWidth, onLayout: setListTop }) })] }))] })), activeTab === "events" && (_jsxs(_Fragment, { children: [_jsx(Box, { marginBottom: 1, children: _jsx(Text, { bold: true, color: "gray", children: "\u250C\u2500 Events \u2500" }) }), _jsx(Box, { marginTop: 1, children: _jsx(Text, { color: "gray", children: "Events tab not yet implemented" }) })] })), activeTab === "files" && (_jsxs(_Fragment, { children: [_jsx(Box, { marginBottom: 1, children: _jsx(Text, { bold: true, color: "gray", children: "\u250C\u2500 Autogenerated Files \u2500" }) }), selectedServiceData ? (_jsxs(_Fragment, { children: [_jsxs(Text, { color: "gray", children: ["Service: ", selectedServiceData.service.name] }), _jsx(Box, { marginTop: 1, children: _jsx(FileTree, { nodes: fileTreeNodes, selectedPath: selectedFile || undefined }) })] })) : (_jsxs(_Fragment, { children: [_jsx(Text, { color: "gray", children: "Select a service to view files" }), _jsx(Box, { marginTop: 1, children: _jsx(ResourceSelectInput, { items: items, onSelect: handleSelect, highlightedIndex: highlightedIndex, width: mainPanelWidth, onLayout: setListTop }) })] }))] })), activeTab === "config" && (_jsxs(_Fragment, { children: [_jsx(Box, { marginBottom: 1, children: _jsx(Text, { bold: true, color: "gray", children: "\u250C\u2500 Configuration \u2500" }) }), selectedServiceData ? (_jsxs(Box, { marginTop: 1, flexDirection: "column", children: [_jsx(Text, { color: "cyan", children: selectedServiceData.service.configPath }), _jsx(Box, { marginTop: 1, borderStyle: "single", borderColor: "gray", paddingX: 1, children: _jsx(Text, { color: "gray", wrap: "wrap", children: JSON.stringify(selectedServiceData.service.config, null, 2).slice(0, 1000) }) })] })) : (_jsxs(_Fragment, { children: [_jsx(Text, { color: "gray", children: "Select a service to view configuration" }), _jsx(Box, { marginTop: 1, children: _jsx(ResourceSelectInput, { items: items, onSelect: handleSelect, highlightedIndex: highlightedIndex, width: mainPanelWidth, onLayout: setListTop }) })] }))] }))] }), showSidebar && (_jsx(Box, { marginLeft: 2, children: _jsx(DetailPanel, { stack: selectedStackData?.stack || null, service: selectedServiceData?.service || null, stackMetadata: selectedStackData?.metadata || null, visible: !!selectedStack || !!selectedService }) }))] }), _jsxs(Box, { borderStyle: "single", borderColor: "gray", paddingX: 1, height: 3, flexDirection: "column", marginTop: 1, children: [_jsxs(Box, { justifyContent: "space-between", children: [_jsxs(Text, { color: "cyan", bold: true, children: ["\u2593\u2592\u2591 ", activeTab] }), _jsxs(Text, { color: "green", children: ["\u25CF ", services.filter((s) => s.stack).length, " in stack"] }), _jsxs(Text, { color: "yellow", children: ["\u25CB ", services.filter((s) => !s.stack).length, " no stack"] })] }), _jsxs(Box, { justifyContent: "space-between", children: [_jsxs(Text, { color: "gray", children: ["Stacks: ", stacks.length] }), _jsxs(Text, { color: "gray", children: ["Services: ", services.length] }), _jsxs(Text, { color: "gray", children: ["\uD83D\uDDB1\uFE0F ", mouseEnabled ? "ON" : "OFF", " \u2502 \u2139\uFE0F ", showTooltips ? "ON" : "OFF", " \u2502", _jsx(Text, { color: showEnabledOnly ? "green" : "yellow", children: showEnabledOnly ? "✓ enabled" : "✓ all" }), " │ ", "[?] Help \u2502 [q] Quit"] })] })] })] }))] }));
+                                                : `[Tab] Next │ [1-5] Tabs │ [e] ${showEnabledOnly ? "show all" : "enabled only"} │ [?] help │ [q] Quit` }) })), showHelp && (_jsx(Box, { paddingX: 1, flexGrow: 1, children: _jsx(HelpPanel, { onClose: () => setShowHelp(false) }) })), !showHelp && (_jsxs(_Fragment, { children: [_jsx(Box, { marginTop: 1, children: _jsx(TabBar, { activeTab: activeTab, onTabChange: setActiveTab, terminalWidth: terminalWidth }) }), _jsxs(Box, { flexDirection: "row", paddingX: 1, flexGrow: 1, children: [_jsxs(Box, { flexDirection: "column", flexGrow: 1, width: mainPanelWidth, children: [activeTab === "overview" && (_jsxs(_Fragment, { children: [_jsx(Box, { marginBottom: 1, children: _jsx(Text, { bold: true, color: "gray", children: "\u250C\u2500 Stacks \u2500" }) }), _jsx(Box, { marginTop: 1, flexGrow: 1, children: _jsx(ResourceSelectInput, { items: items, onSelect: handleSelect, highlightedIndex: highlightedIndex, isActive: !isSearching, maxVisibleItems: pageSize, width: mainPanelWidth, onLayout: handleListLayout }) })] })), activeTab === "resources" && (_jsxs(_Fragment, { children: [_jsx(Box, { marginBottom: 1, children: _jsx(Text, { bold: true, color: "gray", children: "\u250C\u2500 Resources \u2500" }) }), selectedStackData ? (_jsxs(_Fragment, { children: [_jsxs(Text, { color: "gray", children: ["Stack: ", selectedStackData.stack.name] }), _jsx(Box, { marginTop: 1, children: _jsx(ResourceTable, { resources: selectedStackData.metadata.resources, maxWidth: terminalWidth - (showSidebar ? 50 : 10) }) })] })) : (_jsxs(_Fragment, { children: [_jsx(Text, { color: "gray", children: "Select a stack to view resources" }), _jsx(Box, { marginTop: 1, children: _jsx(ResourceSelectInput, { items: items, onSelect: handleSelect, highlightedIndex: highlightedIndex, isActive: !isSearching, maxVisibleItems: pageSize, width: mainPanelWidth, onLayout: handleListLayout }) })] }))] })), activeTab === "events" && (_jsxs(_Fragment, { children: [_jsx(Box, { marginBottom: 1, children: _jsx(Text, { bold: true, color: "gray", children: "\u250C\u2500 Events \u2500" }) }), _jsx(Box, { marginTop: 1, children: _jsx(Text, { color: "gray", children: "Events tab not yet implemented" }) })] })), activeTab === "files" && (_jsxs(_Fragment, { children: [_jsx(Box, { marginBottom: 1, children: _jsx(Text, { bold: true, color: "gray", children: "\u250C\u2500 Autogenerated Files \u2500" }) }), selectedServiceData ? (_jsxs(_Fragment, { children: [_jsxs(Text, { color: "gray", children: ["Service: ", selectedServiceData.service.name] }), _jsx(Box, { marginTop: 1, children: _jsx(FileTree, { nodes: fileTreeNodes, selectedPath: selectedFile || undefined }) })] })) : (_jsxs(_Fragment, { children: [_jsx(Text, { color: "gray", children: "Select a service to view files" }), _jsx(Box, { marginTop: 1, children: _jsx(ResourceSelectInput, { items: items, onSelect: handleSelect, highlightedIndex: highlightedIndex, isActive: !isSearching, maxVisibleItems: pageSize, width: mainPanelWidth, onLayout: handleListLayout }) })] }))] })), activeTab === "config" && (_jsxs(_Fragment, { children: [_jsx(Box, { marginBottom: 1, children: _jsx(Text, { bold: true, color: "gray", children: "\u250C\u2500 Configuration \u2500" }) }), selectedServiceData ? (_jsxs(Box, { marginTop: 1, flexDirection: "column", children: [_jsx(Text, { color: "cyan", children: selectedServiceData.service.configPath }), _jsx(Box, { marginTop: 1, borderStyle: "single", borderColor: "gray", paddingX: 1, children: _jsx(Text, { color: "gray", wrap: "wrap", children: JSON.stringify(selectedServiceData.service.config, null, 2).slice(0, 1000) }) })] })) : (_jsxs(_Fragment, { children: [_jsx(Text, { color: "gray", children: "Select a service to view configuration" }), _jsx(Box, { marginTop: 1, children: _jsx(ResourceSelectInput, { items: items, onSelect: handleSelect, highlightedIndex: highlightedIndex, isActive: !isSearching, maxVisibleItems: pageSize, width: mainPanelWidth, onLayout: handleListLayout }) })] }))] }))] }), showSidebar && (_jsx(Box, { marginLeft: 2, children: _jsx(DetailPanel, { stack: selectedStackData?.stack || null, service: selectedServiceData?.service || null, stackMetadata: selectedStackData?.metadata || null, visible: !!selectedStack || !!selectedService }) }))] }), _jsxs(Box, { borderStyle: "single", borderColor: "gray", paddingX: 1, height: 3, flexDirection: "column", marginTop: 1, children: [_jsxs(Box, { justifyContent: "space-between", children: [_jsxs(Text, { color: "cyan", bold: true, children: ["\u2593\u2592\u2591 ", activeTab] }), _jsxs(Text, { color: "green", children: ["\u25CF ", services.filter((s) => s.stack).length, " in stack"] }), _jsxs(Text, { color: "yellow", children: ["\u25CB ", services.filter((s) => !s.stack).length, " no stack"] })] }), _jsxs(Box, { justifyContent: "space-between", children: [_jsxs(Text, { color: "gray", children: ["Stacks: ", stacks.length] }), _jsxs(Text, { color: "gray", children: ["Services: ", services.length] }), _jsxs(Text, { color: "gray", children: ["\uD83D\uDDB1\uFE0F ", mouseEnabled ? "ON" : "OFF", " \u2502 \u2139\uFE0F ", showTooltips ? "ON" : "OFF", " \u2502", _jsx(Text, { color: showEnabledOnly ? "green" : "yellow", children: showEnabledOnly ? "✓ enabled" : "✓ all" }), " │ ", "[?] Help \u2502 [q] Quit"] })] })] })] }))] }));
 };
 export const uiCommand = new Command("ui")
     .description("Interactive TUI for managing stacks and services (Neon Edition)")

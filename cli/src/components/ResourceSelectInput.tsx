@@ -10,6 +10,8 @@ export const ResourceSelectInput: React.FC<ResourceSelectInputProps> = ({
   highlightedIndex,
   width,
   onLayout,
+  isActive = true,
+  maxVisibleItems = items.length,
 }) => {
   const listRef = useRef<Parameters<typeof measureElement>[0] | null>(null);
   const [selected, setSelected] = useState(() =>
@@ -17,28 +19,41 @@ export const ResourceSelectInput: React.FC<ResourceSelectInputProps> = ({
   );
   const itemKeys = items.map((item) => item.value).join("\0");
 
+  const visibleCount = Math.max(1, maxVisibleItems);
+  const firstVisible = Math.min(
+    Math.max(0, selected - visibleCount + 1),
+    Math.max(0, items.length - visibleCount),
+  );
+
   useLayoutEffect(() => {
-    if (listRef.current) onLayout?.(measureElement(listRef.current).y);
+    if (listRef.current) onLayout?.(measureElement(listRef.current).y, firstVisible);
   });
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: reset only when the item list changes
-  useEffect(() => setSelected(0), [itemKeys]);
+  useEffect(() => {
+    setSelected(Math.max(0, Math.min(highlightedIndex, items.length - 1)));
+  }, [highlightedIndex, items.length, itemKeys]);
 
-  useInput((input, key) => {
-    if (items.length === 0) return;
-    if (input === "k" || key.upArrow) setSelected((i) => (i === 0 ? items.length - 1 : i - 1));
-    if (input === "j" || key.downArrow) setSelected((i) => (i === items.length - 1 ? 0 : i + 1));
-    if (/^[1-9]$/.test(input)) {
-      const item = items[Number(input) - 1];
-      if (item) onSelect(item);
-    }
-    if (key.return) onSelect(items[selected]);
-  });
+  useInput(
+    (input, key) => {
+      if (items.length === 0) return;
+      const plainKey = !key.ctrl && !key.meta;
+      if ((plainKey && input === "k") || key.upArrow)
+        setSelected((i) => (i === 0 ? items.length - 1 : i - 1));
+      if ((plainKey && input === "j") || key.downArrow)
+        setSelected((i) => (i === items.length - 1 ? 0 : i + 1));
+      if (/^[1-9]$/.test(input)) {
+        const item = items[Number(input) - 1];
+        if (item) onSelect(item);
+      }
+      if (key.return) onSelect(items[selected]);
+    },
+    { isActive },
+  );
 
   return (
     <Box ref={listRef} flexDirection="column" width={width}>
-      {items.map((item, index) => {
-        const isSelected = index === selected;
+      {items.slice(firstVisible, firstVisible + visibleCount).map((item, index) => {
+        const isSelected = firstVisible + index === selected;
         return (
           <Box key={item.value} width={width}>
             <Text wrap="truncate-end">

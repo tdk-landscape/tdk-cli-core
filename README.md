@@ -142,3 +142,8 @@ Contributions are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md) and the
 TDK is MIT-licensed; see [LICENSE](LICENSE). The [license boundary](GOVERNANCE.md#license-boundary-and-donation-scope) says which code is MIT and which is downloaded with a key.
 
 Project governance: [GOVERNANCE.md](GOVERNANCE.md), [MAINTAINERS.md](MAINTAINERS.md), [ADOPTERS.md](ADOPTERS.md).
+
+Use `tdk ui` to inspect stacks and resources. Arrow keys or `j`/`k` move the
+selection; `g`/`G` or Home/End jump to the first/last item, and PageUp/PageDown
+move one visible page. `/` searches; navigation letters remain search text
+while searching. The selected row stays visible when the terminal is resized.

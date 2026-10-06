@@ -81,3 +81,42 @@ describe("ResourceSelectInput layout measurement", () => {
     expect(rows.every((line) => Array.from(line).length <= width)).toBe(true);
   });
 });
+
+it("keeps controlled selection after a same-length list refresh", async () => {
+  const streams = createStreams(80);
+  Object.assign(streams.stdin, { ref: () => {}, unref: () => {} });
+  const selected: string[] = [];
+  const items = (prefix: string) =>
+    [0, 1, 2].map((i) => ({ value: `${prefix}-${i}`, label: `${prefix}-${i}` }));
+  const onSelect = (item: { value: string }) => selected.push(item.value);
+  const app = render(
+    <ResourceSelectInput
+      items={items("old")}
+      onSelect={onSelect}
+      highlightedIndex={2}
+      width={80}
+    />,
+    { ...streams, exitOnCtrlC: false, patchConsole: false },
+  );
+  try {
+    await app.waitUntilRenderFlush();
+    app.rerender(
+      <ResourceSelectInput
+        items={items("new")}
+        onSelect={onSelect}
+        highlightedIndex={2}
+        width={80}
+      />,
+    );
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    await app.waitUntilRenderFlush();
+    streams.stdin.write("\r");
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(selected).toEqual(["new-2"]);
+  } finally {
+    app.unmount();
+    streams.stdin.destroy();
+    streams.stdout.destroy();
+    streams.stderr.destroy();
+  }
+});

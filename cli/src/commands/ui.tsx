@@ -50,7 +50,9 @@ const HelpPanel: React.FC<HelpPanelProps> = ({ onClose }) => (
       <Text bold underline>
         Navigation
       </Text>
-      <Text> ↑/↓ Navigate list items</Text>
+      <Text> ↑/↓ or j/k Navigate list items</Text>
+      <Text> g/G or Home/End First/last item</Text>
+      <Text> PgUp/PgDn Move one page</Text>
       <Text> Enter Select item / Open detail</Text>
       <Text> Space Toggle expand (tree view)</Text>
       <Text> Tab Next tab</Text>
@@ -145,7 +147,7 @@ const EmptyState: React.FC<{ message?: string }> = ({ message }) => (
   </Box>
 );
 
-const TUIApp: React.FC<{ animated?: boolean }> = ({ animated = true }) => {
+export const TUIApp: React.FC<{ animated?: boolean }> = ({ animated = true }) => {
   const { exit } = useApp();
   const { stdout } = useStdout();
   const { stdin, setRawMode } = useStdin();
@@ -159,9 +161,17 @@ const TUIApp: React.FC<{ animated?: boolean }> = ({ animated = true }) => {
   const [isSearching, setIsSearching] = useState(false);
 
   const [terminalWidth, setTerminalWidth] = useState(stdout.columns || 120);
+  const [terminalRows, setTerminalRows] = useState(stdout.rows || 24);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [mouseEnabled, setMouseEnabled] = useState(true);
   const [listTop, setListTop] = useState<number | null>(null);
+  const [listStart, setListStart] = useState(0);
+  // Reserve the header, tab bar, hints and footer; keep the cursor visible.
+  const pageSize = Math.max(1, terminalRows - 14);
+  const handleListLayout = useCallback((top: number, firstVisible = 0): void => {
+    setListTop(top);
+    setListStart(firstVisible);
+  }, []);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showTooltips, setShowTooltips] = useState(true);
@@ -394,9 +404,10 @@ const TUIApp: React.FC<{ animated?: boolean }> = ({ animated = true }) => {
           const listRow =
             selectableListVisible && listTop !== null ? getListRowFromMouseY(y, listTop) : -1;
 
-          if (listRow >= 0 && listRow < items.length) {
-            setHighlightedIndex(listRow);
-            const item = items[listRow];
+          const itemIndex = listStart + listRow;
+          if (listRow >= 0 && listRow < pageSize && itemIndex < items.length) {
+            setHighlightedIndex(itemIndex);
+            const item = items[itemIndex];
             if (item) {
               handleSelect(item);
             }
@@ -411,11 +422,21 @@ const TUIApp: React.FC<{ animated?: boolean }> = ({ animated = true }) => {
       stdin.off("data", handleMouseData);
       stdin.removeAllListeners("data");
     };
-  }, [stdin, items, listTop, selectableListVisible, mouseEnabled, handleSelect]);
+  }, [
+    stdin,
+    items,
+    listTop,
+    listStart,
+    pageSize,
+    selectableListVisible,
+    mouseEnabled,
+    handleSelect,
+  ]);
 
   const handleResize = useCallback(() => {
     setTerminalWidth(stdout.columns || 120);
-  }, [stdout.columns]);
+    setTerminalRows(stdout.rows || 24);
+  }, [stdout]);
 
   useEffect(() => {
     stdout.on("resize", handleResize);
@@ -556,12 +577,18 @@ const TUIApp: React.FC<{ animated?: boolean }> = ({ animated = true }) => {
       return;
     }
 
-    if (key.upArrow) {
+    const plainKey = !key.ctrl && !key.meta;
+    if (items.length > 0 && (key.upArrow || (plainKey && input === "k"))) {
       setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : items.length - 1));
     }
-    if (key.downArrow) {
+    if (items.length > 0 && (key.downArrow || (plainKey && input === "j"))) {
       setHighlightedIndex((prev) => (prev < items.length - 1 ? prev + 1 : 0));
     }
+    if (key.home || (plainKey && input === "g")) setHighlightedIndex(0);
+    if (key.end || (plainKey && input === "G")) setHighlightedIndex(Math.max(0, items.length - 1));
+    if (key.pageUp) setHighlightedIndex((prev) => Math.max(0, prev - pageSize));
+    if (key.pageDown)
+      setHighlightedIndex((prev) => Math.min(Math.max(0, items.length - 1), prev + pageSize));
     if (key.return || input === " ") {
       const currentItem = items[highlightedIndex];
       if (currentItem) {
@@ -701,8 +728,10 @@ const TUIApp: React.FC<{ animated?: boolean }> = ({ animated = true }) => {
                       items={items}
                       onSelect={handleSelect}
                       highlightedIndex={highlightedIndex}
+                      isActive={!isSearching}
+                      maxVisibleItems={pageSize}
                       width={mainPanelWidth}
-                      onLayout={setListTop}
+                      onLayout={handleListLayout}
                     />
                   </Box>
                 </>
@@ -733,8 +762,10 @@ const TUIApp: React.FC<{ animated?: boolean }> = ({ animated = true }) => {
                           items={items}
                           onSelect={handleSelect}
                           highlightedIndex={highlightedIndex}
+                          isActive={!isSearching}
+                          maxVisibleItems={pageSize}
                           width={mainPanelWidth}
-                          onLayout={setListTop}
+                          onLayout={handleListLayout}
                         />
                       </Box>
                     </>
@@ -777,8 +808,10 @@ const TUIApp: React.FC<{ animated?: boolean }> = ({ animated = true }) => {
                           items={items}
                           onSelect={handleSelect}
                           highlightedIndex={highlightedIndex}
+                          isActive={!isSearching}
+                          maxVisibleItems={pageSize}
                           width={mainPanelWidth}
-                          onLayout={setListTop}
+                          onLayout={handleListLayout}
                         />
                       </Box>
                     </>
@@ -813,8 +846,10 @@ const TUIApp: React.FC<{ animated?: boolean }> = ({ animated = true }) => {
                           items={items}
                           onSelect={handleSelect}
                           highlightedIndex={highlightedIndex}
+                          isActive={!isSearching}
+                          maxVisibleItems={pageSize}
                           width={mainPanelWidth}
-                          onLayout={setListTop}
+                          onLayout={handleListLayout}
                         />
                       </Box>
                     </>
