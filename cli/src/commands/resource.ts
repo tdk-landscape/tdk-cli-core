@@ -207,7 +207,12 @@ function requireGeneratedViteConfig(configPath: string): string {
   return `bun -e 'if(!require("fs").existsSync(${JSON.stringify(configPath)})){console.error(${JSON.stringify(message)});process.exit(1)}'`;
 }
 
-export function createPackageJson(name: string, type: string, frameworkId?: string) {
+export function createPackageJson(
+  name: string,
+  type: string,
+  frameworkId?: string,
+  prismaEnabled = false,
+) {
   const isFrontend = type === "frontend";
   const framework = resolveFrontendFramework(type, frameworkId);
   const backendFramework = resolveBackendFramework(type, frameworkId);
@@ -242,6 +247,14 @@ export function createPackageJson(name: string, type: string, frameworkId?: stri
     dependencies: {
       ...(isFrontend ? {} : (backendFramework?.dependencies ?? { hono: "^4.0.0" })),
       ...(framework?.dependencies ?? {}),
+      ...(prismaEnabled
+        ? {
+            prisma: "^7.5.0",
+            "@prisma/client": "^7.5.0",
+            "@prisma/adapter-pg": "^7.5.0",
+            pg: "^8.13.0",
+          }
+        : {}),
     },
     devDependencies: {
       "@types/bun": "^1.4.2",
@@ -258,6 +271,24 @@ export function createPackageJson(name: string, type: string, frameworkId?: stri
     },
   };
 }
+
+export const PRISMA_SCHEMA_TEMPLATE = `generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+`;
+
+export const PRISMA_CONFIG_TEMPLATE = `export default {
+  schema: "prisma/schema.prisma",
+  datasource: {
+    url: process.env.DATABASE_URL,
+  },
+};
+`;
 
 export function createResourceTsconfig(resourceType: CreatableResourceType, frameworkId?: string) {
   const framework = resolveFrontendFramework(resourceType, frameworkId);
@@ -475,6 +506,7 @@ export const resourceCommand = new Command("resource")
     "Docker image name instead of building from Dockerfile (for bring-your-own)",
   )
   .option("--port <port>", "Port number (default: next free in 4000-5999)")
+  .option("--feature <feature...>", "Enable a resource feature (for example: prisma)")
   .action(async (name, options) => {
     if (options.frameworks) {
       for (const f of listFrontendFrameworks()) {
@@ -851,16 +883,26 @@ This file contains the resource configuration for TDK.
       }
 
       // Prepare file generation tasks
+      const requestedFeatures = Array.isArray(options.feature) ? options.feature : [];
+      const prismaEnabled = requestedFeatures.includes("prisma");
       const serviceJson = createServiceJson(
         resourceName,
         resourceType as CreatableResourceType,
         stackName,
         assignedPort,
-        dddEnabled ? ["ddd"] : [],
+        [...(dddEnabled ? ["ddd"] : []), ...requestedFeatures],
         scaffoldFrameworkId,
         options.language === undefined ? undefined : backendLanguage?.id,
       );
-      const packageJson = createPackageJson(resourceName, resourceType, scaffoldFrameworkId);
+      const packageJson = createPackageJson(
+        resourceName,
+        resourceType,
+        scaffoldFrameworkId,
+        prismaEnabled,
+      );
+      if (prismaEnabled && resourceType === "backend") {
+        serviceJson.dependsOn = [`${resourceName}-migrator`];
+      }
 
       const tasks: FileGenerationTask[] = [
         {
@@ -974,6 +1016,77 @@ This file contains the resource configuration for TDK.
       // Execute all file writes with progress
       console.log(chalk.blue("💻 Generating source files..."));
       writeFilesWithProgress(fullPath, tasks);
+
+      if (prismaEnabled && resourceType === "backend") {
+        const migratorName = `${resourceName}-migrator`;
+        const migratorPath = resolve(projectRoot, `services/${stackName}/${migratorName}`);
+        mkdirSync(migratorPath, { recursive: true });
+        const migratorConfig = {
+          ...JSON.parse(JSON.stringify(BASE_TEMPLATE)),
+          $schema: SERVICE_MANIFEST_SCHEMA_URL,
+          schemaVersion: SERVICE_MANIFEST_SCHEMA_VERSION,
+          appName: migratorName,
+          appType: "migrator",
+          name: migratorName,
+          type: "migrator",
+          stack: stackName,
+          port: 0,
+          featuresEnabled: ["prisma"],
+        };
+        migratorConfig.dependsOn = ["postgres"];
+        migratorConfig.port = 0;
+        const migratorPackage = createPackageJson(migratorName, "migrator", undefined, true);
+        migratorPackage.scripts = {
+          ...migratorPackage.scripts,
+          start: "prisma migrate deploy",
+        };
+        writeFilesWithProgress(migratorPath, [
+          {
+            type: "json",
+            filename: "service.json",
+            content: migratorConfig,
+            description: "Generating Prisma migrator manifest",
+            emoji: "🗃️",
+          },
+          {
+            type: "json",
+            filename: "package.json",
+            content: migratorPackage,
+            description: "Generating Prisma migrator package",
+            emoji: "📦",
+          },
+          {
+            type: "text",
+            filename: "prisma/schema.prisma",
+            content: PRISMA_SCHEMA_TEMPLATE,
+            description: "Generating Prisma schema",
+            emoji: "🧬",
+          },
+          {
+            type: "text",
+            filename: "prisma.config.ts",
+            content: PRISMA_CONFIG_TEMPLATE,
+            description: "Generating Prisma config",
+            emoji: "⚙️",
+          },
+        ]);
+        writeFilesWithProgress(fullPath, [
+          {
+            type: "text",
+            filename: "prisma/schema.prisma",
+            content: PRISMA_SCHEMA_TEMPLATE,
+            description: "Generating Prisma schema",
+            emoji: "🧬",
+          },
+          {
+            type: "text",
+            filename: "prisma.config.ts",
+            content: PRISMA_CONFIG_TEMPLATE,
+            description: "Generating Prisma config",
+            emoji: "⚙️",
+          },
+        ]);
+      }
 
       console.log(chalk.green("\n✅ Resource created successfully!"));
       console.log(chalk.gray(`\nLocation: ${fullPath}`));

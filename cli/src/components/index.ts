@@ -5,3 +5,4 @@ export { ResourceSelectInput } from "./ResourceSelectInput.js";
 export { ResourceTable } from "./ResourceTable.js";
 export { TabBar } from "./TabBar.js";
 export { TOOLTIPS } from "./Tooltip.js";
+export { TUIHeader } from "./TUIHeader.js";

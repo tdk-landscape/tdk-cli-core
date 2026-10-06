@@ -8,6 +8,7 @@ import {
   ResourceSelectInput,
   ResourceTable,
   TabBar,
+  TUIHeader,
 } from "../components/index.js";
 import type {
   DiscoveredResource,
@@ -20,7 +21,7 @@ import type {
   TabId,
 } from "../types/index.js";
 import { errorFactories, requireProjectRoot } from "../utils/errors.js";
-import { findProjectRoot } from "../utils/paths.js";
+import { findProjectRoot, getPackageVersion } from "../utils/paths.js";
 import { describeSearch } from "../utils/search-status.js";
 import {
   clearMetadataCache,
@@ -635,27 +636,33 @@ export const TUIApp: React.FC<{ animated?: boolean }> = ({ animated = true }) =>
     return <ErrorScreen error={error} onRetry={refresh} />;
   }
 
-  if (services.length === 0) {
-    return <EmptyState message={message} />;
-  }
-
-  return (
-    <Box flexDirection="column" height={stdout.rows || 24}>
-      <Box paddingX={1} paddingY={0}>
-        <Text>
-          <Text color="cyan" bold>
-            ▓▒░ TDK NEON EDITION ░▒▓
-          </Text>
-          <Text color="gray"> │ </Text>
-          <Text color="white">{projectRoot}</Text>
-          <Text color="gray"> │ </Text>
-          <Text color="green">{services.length} services ready</Text>
-        </Text>
-      </Box>
+  const header = (
+    <>
+      <TUIHeader
+        projectRoot={projectRoot}
+        resourceCount={services.length}
+        terminalWidth={terminalWidth}
+        version={getPackageVersion()}
+      />
 
       <Box paddingX={1}>
         <Text color="gray">{"─".repeat(getTerminalRuleWidth(terminalWidth))}</Text>
       </Box>
+    </>
+  );
+
+  if (services.length === 0) {
+    return (
+      <Box flexDirection="column" height={stdout.rows || 24}>
+        {header}
+        <EmptyState message={message} />
+      </Box>
+    );
+  }
+
+  return (
+    <Box flexDirection="column" height={stdout.rows || 24}>
+      {header}
 
       {isSearching && (
         <Box paddingX={1} height={1}>
