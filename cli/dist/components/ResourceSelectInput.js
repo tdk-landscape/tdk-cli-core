@@ -5,7 +5,6 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 export const ResourceSelectInput = ({ items, onSelect, highlightedIndex, width, onLayout, isActive = true, maxVisibleItems = items.length, }) => {
     const listRef = useRef(null);
     const [selected, setSelected] = useState(() => Math.max(0, Math.min(highlightedIndex, items.length - 1)));
-    const itemKeys = items.map((item) => item.value).join("\0");
     const visibleCount = Math.max(1, maxVisibleItems);
     const firstVisible = Math.min(Math.max(0, selected - visibleCount + 1), Math.max(0, items.length - visibleCount));
     useLayoutEffect(() => {
@@ -14,7 +13,7 @@ export const ResourceSelectInput = ({ items, onSelect, highlightedIndex, width, 
     });
     useEffect(() => {
         setSelected(Math.max(0, Math.min(highlightedIndex, items.length - 1)));
-    }, [highlightedIndex, items.length, itemKeys]);
+    }, [highlightedIndex, items]);
     useInput((input, key) => {
         if (items.length === 0)
             return;

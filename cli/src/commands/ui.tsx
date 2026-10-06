@@ -310,7 +310,7 @@ export const TUIApp: React.FC<{ animated?: boolean }> = ({ animated = true }) =>
     return [];
   }, [activeTab, filteredStacks, filteredServices, selectedStackData, selectedServiceData]);
 
-  const items = getItems();
+  const items = useMemo(getItems, [getItems]);
   const selectableListVisible =
     !loading &&
     !error &&

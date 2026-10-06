@@ -45,6 +45,7 @@ it("navigates with vim keys and terminal page/home/end sequences while search re
     stdin: io.stdin,
     stdout: io.stdout,
     stderr: io.stderr,
+    interactive: true,
     exitOnCtrlC: false,
     patchConsole: false,
   });

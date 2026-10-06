@@ -17,7 +17,6 @@ export const ResourceSelectInput: React.FC<ResourceSelectInputProps> = ({
   const [selected, setSelected] = useState(() =>
     Math.max(0, Math.min(highlightedIndex, items.length - 1)),
   );
-  const itemKeys = items.map((item) => item.value).join("\0");
 
   const visibleCount = Math.max(1, maxVisibleItems);
   const firstVisible = Math.min(
@@ -31,7 +30,7 @@ export const ResourceSelectInput: React.FC<ResourceSelectInputProps> = ({
 
   useEffect(() => {
     setSelected(Math.max(0, Math.min(highlightedIndex, items.length - 1)));
-  }, [highlightedIndex, items.length, itemKeys]);
+  }, [highlightedIndex, items]);
 
   useInput(
     (input, key) => {
