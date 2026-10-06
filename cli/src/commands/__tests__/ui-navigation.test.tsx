@@ -17,7 +17,10 @@ vi.mock("../../utils/services.js", () => ({
   getResourceMetadata: vi.fn(),
   getStackMetadata: vi.fn(),
 }));
-vi.mock("../../utils/paths.js", () => ({ findProjectRoot: () => "/tmp/test" }));
+vi.mock("../../utils/paths.js", () => ({
+  findProjectRoot: () => "/tmp/test",
+  getPackageVersion: () => "1.1.0",
+}));
 
 function streams() {
   const stdin = new PassThrough() as unknown as NodeJS.ReadStream;
