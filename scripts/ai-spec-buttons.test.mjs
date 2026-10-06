@@ -175,6 +175,10 @@ describe("buildButtonsHtml", () => {
     assert.ok(html.includes(`https://chatgpt.com/?q=${q}`));
     assert.ok(!html.includes("%0A"));
     assert.ok(!html.includes("img.shields.io"));
+    // One row: badges separated by &nbsp;, never by newlines.
+    assert.ok(html.includes(")&nbsp;[![Claude]"));
+    assert.ok(html.includes(")&nbsp;[![Codex]"));
+    assert.ok(!html.includes("\n"));
   });
 });
 
@@ -183,6 +187,12 @@ describe("buildGeneratedSection", () => {
     const section = buildGeneratedSection("openspec", url);
     assert.ok(section.startsWith(MARKER));
     assert.ok(section.includes("**Write a spec in**"));
+    const lines = section.split("\n");
+    const heading = lines.indexOf("**Write a spec in**");
+    assert.ok(heading !== -1);
+    assert.ok(lines[heading + 1].startsWith("[![Grok]("));
+    assert.ok(lines[heading + 1].includes("&nbsp;[![Claude]"));
+    assert.ok(lines[heading + 1].includes("&nbsp;[![Codex]"));
     assert.ok(section.includes("grok.svg") && section.includes("claude.svg") && section.includes("codex.svg"));
     assert.ok(!section.includes("drafts an OpenSpec"));
     assert.ok(!section.includes("Nothing is posted back"));

@@ -127,22 +127,23 @@ export function buildButtonsHtml(kind, issueUrl) {
   const grok = `https://grok.com/?q=${q}`;
   const claude = `https://claude.ai/new?q=${q}`;
   const codex = `https://chatgpt.com/?q=${q}`;
+  // &nbsp; keeps the row on one line. A newline makes GitHub stack each badge.
   return [
     `[![Grok](${BADGE_URLS.grok})](${grok})`,
     `[![Claude](${BADGE_URLS.claude})](${claude})`,
     `[![Codex](${BADGE_URLS.codex})](${codex})`,
-  ].join("\n");
+  ].join("&nbsp;");
 }
 
 /** Generated section only (marker through buttons). Does not include author text. */
 export function buildGeneratedSection(kind, issueUrl) {
+  // No blank line between the label and the badges: a blank line stacks them.
   return [
     MARKER,
     "",
     "---",
     "",
     "**Write a spec in**",
-    "",
     buildButtonsHtml(kind, issueUrl),
     "",
   ].join("\n");
