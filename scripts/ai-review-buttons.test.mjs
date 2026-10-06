@@ -46,15 +46,18 @@ describe("buildButtonsHtml", () => {
 });
 
 describe("buildGeneratedSection", () => {
-  it("heading and three badges share one line, no prompt paragraph", () => {
+  it("heading then badges on the next line, no blank line between them", () => {
     const section = buildGeneratedSection(url);
     assert.ok(section.startsWith(MARKER));
-    const line = section.split("\n").find((l) => l.startsWith("# Review this PR in"));
-    assert.ok(line, "expected a single heading line");
-    assert.ok(line.includes("&nbsp;[![Grok]("));
-    assert.ok(line.includes("&nbsp;[![Claude]("));
-    assert.ok(line.includes("&nbsp;[![Codex]("));
+    const lines = section.split("\n");
+    const heading = lines.indexOf("# Review this PR in");
+    assert.ok(heading !== -1);
+    assert.ok(lines[heading + 1].startsWith("[![Grok]("));
+    assert.ok(lines[heading + 1].includes("&nbsp;[![Claude]"));
+    assert.ok(lines[heading + 1].includes("&nbsp;[![Codex]"));
+    assert.equal(lines[heading + 1].includes("\n"), false);
     assert.ok(!section.includes("**Review this PR in**"));
+    assert.ok(!section.includes("# Review this PR in&nbsp;"));
     assert.ok(!section.includes("AI review**"));
     assert.ok(!section.includes("Nothing is posted back"));
   });
@@ -65,7 +68,7 @@ describe("transformBody", () => {
     const r = transformBody("Author\n", url);
     assert.equal(r.action, "patch");
     assert.ok(r.body.includes(MARKER));
-    assert.ok(r.body.includes("# Review this PR in&nbsp;"));
+    assert.ok(r.body.includes("# Review this PR in\n[![Grok]("));
     assert.ok(r.body.startsWith("Author"));
     assert.ok(r.body.includes(encodeURIComponent(buildPrompt(url))));
   });

@@ -31,14 +31,16 @@ export function buildButtonsHtml(prUrl) {
 
 /** Generated section only (marker through buttons). Does not include author text. */
 export function buildGeneratedSection(prUrl) {
-  // # is a real heading on GitHub; ** is only bold body text.
-  // No blank line between the heading and the badges — that stacks them.
+  // Heading, then badges on the next line. No blank line: a blank line
+  // makes GitHub treat each shield as its own block and stack them.
+  // Badges stay out of the heading so they are not dropped below it.
   return [
     MARKER,
     "",
     "---",
     "",
-    `# Review this PR in&nbsp;${buildButtonsHtml(prUrl)}`,
+    "# Review this PR in",
+    buildButtonsHtml(prUrl),
     "",
   ].join("\n");
 }
