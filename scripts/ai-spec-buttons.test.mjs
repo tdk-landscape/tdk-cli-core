@@ -2,16 +2,15 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  BADGE_URLS,
   MARKER,
-  PRIMITIVE_PROMPT_PREFIX,
-  OPENSPEC_PROMPT_PREFIX,
   buildButtonsHtml,
   buildGeneratedSection,
+  buildPrompt,
   resolveKind,
   transformBody,
 } from "./ai-spec-buttons.mjs";
 
-const title = "Add doctor --json output";
 const url = "https://github.com/tdk-landscape/tdk-cli-core/issues/123";
 
 const featureBody = [
@@ -80,6 +79,22 @@ const premiumBody = [
   "Internal platform.",
 ].join("\n");
 
+describe("buildPrompt", () => {
+  it("openspec is one line with the issue URL", () => {
+    assert.equal(
+      buildPrompt("openspec", url),
+      `Write an OpenSpec change for this issue. Read it at ${url}.`,
+    );
+  });
+
+  it("primitive is one line, forbids OpenSpec, uses the issue URL", () => {
+    assert.equal(
+      buildPrompt("primitive", url),
+      `Write a short spec for this issue. Read it at ${url}. Do not use OpenSpec.`,
+    );
+  });
+});
+
 describe("resolveKind", () => {
   it("classifies openspec from enhancement label", () => {
     assert.equal(resolveKind("anything", "enhancement", "T"), "openspec");
@@ -144,67 +159,79 @@ describe("resolveKind", () => {
 });
 
 describe("buildButtonsHtml", () => {
-  it("points at repo pill SVGs on main and keeps ?q= links", () => {
-    const html = buildButtonsHtml("openspec", title, url);
-    assert.ok(html.includes("https://github.com/tdk-landscape/tdk-cli-core/raw/main/.github/badges/write-spec-grok.svg"));
-    assert.ok(html.includes("https://github.com/tdk-landscape/tdk-cli-core/raw/main/.github/badges/write-spec-claude.svg"));
-    assert.ok(html.includes("https://github.com/tdk-landscape/tdk-cli-core/raw/main/.github/badges/write-spec-codex.svg"));
-    assert.ok(html.includes("[![Write spec in Grok]("));
-    assert.ok(html.includes("https://grok.com/?q="));
-    assert.ok(html.includes("https://claude.ai/new?q="));
-    assert.ok(html.includes("https://chatgpt.com/?q="));
+  it("uses shared circle SVGs on main, tool-name alt text, one-line query", () => {
+    const html = buildButtonsHtml("openspec", url);
+    assert.equal(BADGE_URLS.grok, "https://github.com/tdk-landscape/tdk-cli-core/raw/main/.github/badges/grok.svg");
+    assert.equal(BADGE_URLS.claude, "https://github.com/tdk-landscape/tdk-cli-core/raw/main/.github/badges/claude.svg");
+    assert.equal(BADGE_URLS.codex, "https://github.com/tdk-landscape/tdk-cli-core/raw/main/.github/badges/codex.svg");
+    assert.ok(html.includes("[![Grok]("));
+    assert.ok(html.includes("[![Claude]("));
+    assert.ok(html.includes("[![Codex]("));
+    assert.ok(!html.includes("Write spec in Grok"));
+    assert.ok(!html.includes("Review PR in"));
+    const q = encodeURIComponent(buildPrompt("openspec", url));
+    assert.ok(html.includes(`https://grok.com/?q=${q}`));
+    assert.ok(html.includes(`https://claude.ai/new?q=${q}`));
+    assert.ok(html.includes(`https://chatgpt.com/?q=${q}`));
+    assert.ok(!html.includes("%0A"));
     assert.ok(!html.includes("img.shields.io"));
-    assert.ok(!html.includes("style=social"));
-    assert.ok(!html.includes("for-the-badge"));
+  });
+});
+
+describe("buildGeneratedSection", () => {
+  it("issue tail is label + three circles, no prompt paragraph", () => {
+    const section = buildGeneratedSection("openspec", url);
+    assert.ok(section.startsWith(MARKER));
+    assert.ok(section.includes("**Write a spec in**"));
+    assert.ok(section.includes("grok.svg") && section.includes("claude.svg") && section.includes("codex.svg"));
+    assert.ok(!section.includes("drafts an OpenSpec"));
+    assert.ok(!section.includes("Nothing is posted back"));
   });
 });
 
 describe("transformBody", () => {
   it("appends OpenSpec buttons for enhancement issues", () => {
-    const r = transformBody("Author\n", title, url, "enhancement");
+    const r = transformBody("Author\n", "T", url, "enhancement");
     assert.equal(r.action, "patch");
     assert.equal(r.kind, "openspec");
     assert.ok(r.body.includes(MARKER));
-    assert.ok(r.body.includes("drafts an OpenSpec change from this issue"));
+    assert.ok(r.body.includes("**Write a spec in**"));
     assert.ok(r.body.startsWith("Author"));
-    assert.ok(OPENSPEC_PROMPT_PREFIX.includes("openspec/changes/<issue-slug>/"));
+    assert.ok(r.body.includes(encodeURIComponent(buildPrompt("openspec", url))));
   });
 
   it("appends short-spec buttons for bug issues", () => {
-    const r = transformBody(bugBody, title, url, "bug");
+    const r = transformBody(bugBody, "T", url, "bug");
     assert.equal(r.action, "patch");
     assert.equal(r.kind, "primitive");
-    assert.ok(r.body.includes("drafts a short spec from this issue"));
+    assert.ok(r.body.includes(encodeURIComponent(buildPrompt("primitive", url))));
     assert.ok(!r.body.includes("openspec/changes"));
-    assert.ok(!buildGeneratedSection("primitive", title, url).includes("SHALL"));
-    assert.ok(PRIMITIVE_PROMPT_PREFIX.includes("# Spec"));
   });
 
   it("skips blank issues and leaves any existing marker alone", () => {
-    const withMarker = `Notes\n\n${buildGeneratedSection("openspec", title, url)}`;
+    const withMarker = `Notes\n\n${buildGeneratedSection("openspec", url)}`;
     const r = transformBody(withMarker, "Renamed", url, "");
     assert.equal(r.action, "skip");
     assert.equal(r.body, withMarker);
   });
 
   it("regenerates tail when kind changes via labels", () => {
-    const rOpen = transformBody("Author\n", title, url, "enhancement");
-    const rBug = transformBody(rOpen.body, title, url, "bug");
+    const rOpen = transformBody("Author\n", "T", url, "enhancement");
+    const rBug = transformBody(rOpen.body, "T", url, "bug");
     assert.equal(rBug.action, "patch");
     assert.ok(rBug.body.startsWith("Author"));
-    assert.ok(rBug.body.includes("drafts a short spec from this issue"));
-    assert.ok(!rBug.body.includes("drafts an OpenSpec change"));
+    assert.ok(rBug.body.includes(encodeURIComponent(buildPrompt("primitive", url))));
+    assert.ok(!rBug.body.includes(encodeURIComponent(buildPrompt("openspec", url))));
   });
 
   it("skips when tail already matches", () => {
-    const r1 = transformBody("Author\n", title, url, "bug");
-    const r2 = transformBody(r1.body, title, url, "bug");
+    const r1 = transformBody("Author\n", "T", url, "bug");
+    const r2 = transformBody(r1.body, "T", url, "bug");
     assert.equal(r2.action, "skip");
     assert.equal(r2.body, r1.body);
   });
 
-  it("skips when title or url is missing", () => {
-    assert.equal(transformBody("x\n", "", url, "bug").action, "skip");
-    assert.equal(transformBody("x\n", title, "", "bug").action, "skip");
+  it("skips when url is missing", () => {
+    assert.equal(transformBody("x\n", "T", "", "bug").action, "skip");
   });
 });

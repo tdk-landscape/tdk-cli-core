@@ -1,59 +1,53 @@
 #!/usr/bin/env node
 // Pure transform for AI review buttons on PR bodies. This is the only
-// implementation; .github/workflows/ai-review-buttons.yml checks the repo out
-// (persist-credentials: false) and runs this file.
+// implementation; .github/workflows/ai-review-buttons.yml checks the default
+// branch out (persist-credentials: false) and runs this file.
 //
-// Env: PR_TITLE, PR_URL, BODY_FILE, OUT_FILE
-// Or:  node scripts/ai-review-buttons.mjs --title T --url U --body-file X --out-file Y
+// Env: PR_URL, BODY_FILE, OUT_FILE
+// Or:  node scripts/ai-review-buttons.mjs --url U --body-file X --out-file Y
 import { readFileSync, writeFileSync } from "node:fs";
 
 export const MARKER = "<!-- ai-review-buttons -->";
 export const LEGACY_MARKER = "<!-- grok-review-button -->";
 export const MARKERS = [MARKER, LEGACY_MARKER];
-// Softened: the query only carries title + PR URL; it does not embed the diff.
-export const PROMPT_PREFIX =
-  "Review this pull request. Use the linked PR URL to read the description and diff on GitHub, then give the most important takeaways: intent, risks, missing tests, and concrete review comments. I will ask follow-up questions.";
 
-export function normalizeTitle(raw) {
-  return (raw ?? "").replace(/\r?\n/g, " ").trim();
+// One line, reused for all three chat links. Chat reads the PR from the URL.
+export function buildPrompt(prUrl) {
+  return `Review this pull request. Read the title and diff at ${prUrl}.`;
 }
 
-export function buildPrompt(title, prUrl) {
-  return `${PROMPT_PREFIX}\n\n"${title}"\n${prUrl}`;
-}
-
-// Pill SVGs live in the repo. Image URLs must use `main` (not the PR branch):
-// a branch raw URL 404s after merge. Matches scripts/ai-spec-buttons.mjs.
+// Circle SVGs live in the repo. Image URLs must use `main` (not the PR branch):
+// a branch raw URL 404s after merge. Shared with scripts/ai-spec-buttons.mjs.
 export const BADGE_BASE =
   "https://github.com/tdk-landscape/tdk-cli-core/raw/main/.github/badges";
 export const BADGE_URLS = {
-  grok: `${BADGE_BASE}/review-pr-grok.svg`,
-  claude: `${BADGE_BASE}/review-pr-claude.svg`,
-  codex: `${BADGE_BASE}/review-pr-codex.svg`,
+  grok: `${BADGE_BASE}/grok.svg`,
+  claude: `${BADGE_BASE}/claude.svg`,
+  codex: `${BADGE_BASE}/codex.svg`,
 };
 
-export function buildButtonsHtml(title, prUrl) {
-  const q = encodeURIComponent(buildPrompt(title, prUrl));
+export function buildButtonsHtml(prUrl) {
+  const q = encodeURIComponent(buildPrompt(prUrl));
   const grok = `https://grok.com/?q=${q}`;
   const claude = `https://claude.ai/new?q=${q}`;
   const codex = `https://chatgpt.com/?q=${q}`;
   return [
-    `[![Review PR in Grok](${BADGE_URLS.grok})](${grok})`,
-    `[![Review PR in Claude](${BADGE_URLS.claude})](${claude})`,
-    `[![Review PR in Codex](${BADGE_URLS.codex})](${codex})`,
-  ].join(" ");
+    `[![Grok](${BADGE_URLS.grok})](${grok})`,
+    `[![Claude](${BADGE_URLS.claude})](${claude})`,
+    `[![Codex](${BADGE_URLS.codex})](${codex})`,
+  ].join("\n");
 }
 
 /** Generated section only (marker through buttons). Does not include author text. */
-export function buildGeneratedSection(title, prUrl) {
+export function buildGeneratedSection(prUrl) {
   return [
     MARKER,
     "",
     "---",
     "",
-    "**AI review** — open an AI chat that reviews this PR via the linked URL (intent, risks, missing tests, concrete comments). Nothing is posted back to GitHub automatically.",
+    "**Review this PR in**",
     "",
-    buildButtonsHtml(title, prUrl),
+    buildButtonsHtml(prUrl),
     "",
   ].join("\n");
 }
@@ -81,18 +75,17 @@ function markerIndex(body) {
 /**
  * @returns {{ action: "skip" | "patch", body: string, reason: string }}
  *   - append when the marker is missing
- *   - regenerate the generated tail when title/URL (or prompt wording) drift
- *   - skip when the tail already matches the current title/URL
+ *   - regenerate the generated tail when URL (or prompt wording) drift
+ *   - skip when the tail already matches the current URL
  */
-export function transformBody(body, rawTitle, prUrl) {
-  const title = normalizeTitle(rawTitle);
+export function transformBody(body, prUrl) {
   const url = (prUrl ?? "").trim();
 
-  if (!title || !url) {
-    return { action: "skip", body, reason: "missing title or pr url" };
+  if (!url) {
+    return { action: "skip", body, reason: "missing pr url" };
   }
 
-  const section = buildGeneratedSection(title, url);
+  const section = buildGeneratedSection(url);
   const idx = markerIndex(body);
 
   if (idx === -1) {
@@ -113,21 +106,19 @@ export function transformBody(body, rawTitle, prUrl) {
   return {
     action: "patch",
     body: joinAuthorAndSection(authorPart, section),
-    reason: "regenerate review buttons for current title/url",
+    reason: "regenerate review buttons for current url",
   };
 }
 
 function parseArgs(argv) {
   const out = {
-    title: process.env.PR_TITLE,
     url: process.env.PR_URL,
     bodyFile: process.env.BODY_FILE,
     outFile: process.env.OUT_FILE,
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a === "--title") out.title = argv[++i];
-    else if (a === "--url") out.url = argv[++i];
+    if (a === "--url") out.url = argv[++i];
     else if (a === "--body-file") out.bodyFile = argv[++i];
     else if (a === "--out-file") out.outFile = argv[++i];
   }
@@ -137,7 +128,7 @@ function parseArgs(argv) {
 const opts = parseArgs(process.argv.slice(2));
 if (opts.bodyFile && opts.outFile) {
   const body = readFileSync(opts.bodyFile, "utf8");
-  const result = transformBody(body, opts.title ?? "", opts.url ?? "");
+  const result = transformBody(body, opts.url ?? "");
   writeFileSync(opts.outFile, result.body, "utf8");
   console.log(`${result.action}: ${result.reason}`);
 }

@@ -6,11 +6,10 @@
 name: 🤖 AI review buttons
 
 on:
-  pull_request_target:
+  pull_request_target: # zizmor: ignore[dangerous-triggers] never checks out or runs PR code; only writes the PR body
     types: [opened, reopened, edited]
 
-permissions:
-  contents: read
+permissions: {}
 
 # Serialize writes per PR: two `edited` events cannot PATCH in parallel.
 concurrency:
@@ -25,6 +24,7 @@ jobs:
     # No same-repo if. Forks are covered because this event runs the workflow
     # from the base branch. Do not checkout the PR head and do not run PR code.
     permissions:
+      contents: read
       pull-requests: write
     steps:
       # Run the same scripts/ai-review-buttons.mjs contributors test locally
@@ -56,7 +56,7 @@ jobs:
           base64 -d < "${OUT_FILE}.b64" > "${OUT_FILE}.in"
 
           # Single implementation: append when marker missing; regenerate tail when
-          # title/URL drift; skip when the generated prompt already matches.
+          # URL drift; skip when the generated prompt already matches.
           export BODY_FILE="${OUT_FILE}.in"
           node scripts/ai-review-buttons.mjs
 
