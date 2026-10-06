@@ -8,6 +8,7 @@ import { generateMasterConfigs, readProjectConfig, TemplateEngine, verifyMasterC
 import { isMasterConfigFileName } from "../types/index.js";
 import { assertValid } from "../utils/command-helpers.js";
 import { MASTER_CONFIG_FILES } from "../utils/constants.js";
+import { checkPrismaConsistency } from "../utils/doctor-wiring.js";
 import { errorFactories, requireProjectRoot, runCommand } from "../utils/errors.js";
 import { writeJsonFile } from "../utils/file-helpers.js";
 import { createMachineEnvelope, writeMachineError } from "../utils/machine-output.js";
@@ -185,16 +186,21 @@ export const configCommand = new Command("config")
         const result = verifyMasterConfigs(projectRoot);
         // Same predicate as tdk doctor's Shared platform Postgres check.
         const sharedPostgres = evaluateSharedPlatformPostgres(projectRoot);
+        const prismaConsistency = checkPrismaConsistency(projectRoot);
         const sharedPostgresErrors = sharedPostgres.unknownDependsOnNames.map(({ resource, name }) => `dependsOn "${name}" on ${resource} is not a known service or stack (shared platform Postgres names are postgres and database-management)`);
         if (options.json) {
             console.log(JSON.stringify(createMachineEnvelope({
-                valid: result.valid && sharedPostgresErrors.length === 0,
-                errors: [...result.errors, ...sharedPostgresErrors],
+                valid: result.valid && sharedPostgresErrors.length === 0 && prismaConsistency.didPass,
+                errors: [
+                    ...result.errors,
+                    ...sharedPostgresErrors,
+                    ...(prismaConsistency.didPass ? [] : [prismaConsistency.message]),
+                ],
                 warnings: result.warnings,
                 diffs: result.diffs,
                 sharedPlatformPostgres: sharedPostgres,
             })));
-            if (!result.valid || sharedPostgresErrors.length > 0)
+            if (!result.valid || sharedPostgresErrors.length > 0 || !prismaConsistency.didPass)
                 process.exit(1);
             return;
         }
@@ -205,6 +211,8 @@ export const configCommand = new Command("config")
         for (const error of sharedPostgresErrors) {
             console.log(chalk.red(`❌ ${error}`));
         }
+        if (!prismaConsistency.didPass)
+            console.log(chalk.red(`❌ ${prismaConsistency.message}`));
         if (sharedPostgres.willStart) {
             // Project resource set (discoverResourcesFromRoot), not a tdk up --only filter.
             // Feature-on alone is not new behavior — print gray so default projects are not noisy.
@@ -225,7 +233,7 @@ export const configCommand = new Command("config")
         else if (sharedPostgres.focusWouldEnableDatabaseManagement) {
             console.log(chalk.yellow("ℹ️  Postgres will not start from project.json/generated Tiltfile, but default focus/CORE_INFRA expansion would enable database-management on a typical tdk up"));
         }
-        if (result.valid && sharedPostgresErrors.length === 0) {
+        if (result.valid && sharedPostgresErrors.length === 0 && prismaConsistency.didPass) {
             console.log(chalk.green("✅ All files are in sync!"));
             return;
         }

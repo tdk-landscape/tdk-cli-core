@@ -1,6 +1,8 @@
 import { execSync } from "node:child_process";
 import type { CheckResult } from "../types/index.js";
 import { type ExecAsync } from "./exec-async.js";
+/** Enforces the Prisma 7 project contract before `tdk up` can run. */
+export declare function checkPrismaConsistency(projectRoot?: string): CheckResult;
 export declare function checkResourcePackageJson(projectRoot?: string): CheckResult;
 /**
  * Two resources with one appName share a Compose service name and Traefik router and service names
