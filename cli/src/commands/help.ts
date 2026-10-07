@@ -16,6 +16,16 @@ const COMMAND_GROUPS = [
         alias: "",
       },
       { name: "projects, info", desc: "Show project information and config status", alias: "" },
+      {
+        name: "import",
+        desc: "Import the services a directory describes",
+        alias: "[dir] --dry-run --yes",
+      },
+      {
+        name: "eject",
+        desc: "Write EJECTED.md describing the generated Tilt files",
+        alias: "--dry-run --yes",
+      },
     ],
   },
   {
@@ -41,6 +51,7 @@ const COMMAND_GROUPS = [
       { name: "up, deploy", desc: "Start services (optionally by stack)", alias: "[stack-name]" },
       { name: "down", desc: "Stop all tilt resources", alias: "" },
       { name: "status", desc: "Show status of services and stacks", alias: "" },
+      { name: "logs", desc: "Print recent logs from the running stack", alias: "--json" },
     ],
   },
   {
@@ -65,6 +76,7 @@ const COMMAND_GROUPS = [
         alias: "regenerate, verify, edit",
       },
       { name: "doctor", desc: "Check environment readiness", alias: "" },
+      { name: "mcp", desc: "Run an MCP server over stdio for coding agents", alias: "" },
       {
         name: "runtime",
         desc: "Inspect packaged engine and template assets",
@@ -77,6 +89,13 @@ const COMMAND_GROUPS = [
     ],
   },
 ];
+
+/** Every command name and alias that the help table lists. */
+export function listedCommandNames(): string[] {
+  return COMMAND_GROUPS.flatMap((group) =>
+    group.commands.flatMap((command) => command.name.split(",").map((name) => name.trim())),
+  );
+}
 
 function formatCommand(
   name: string,

@@ -157,6 +157,7 @@ The frontend provider owns root `index.html` and starter source. After TDK gener
 | `tdk up --dry-run` | 👀 Preview the services and URLs without Docker, Tilt, or file changes | `tdk up api --dry-run` |
 | `tdk down` | ⏹️ Stop all services | `tdk down` |
 | `tdk status` | 📊 Show resource status | `tdk status` |
+| `tdk logs` | 📜 Print a bounded snapshot of recent logs from the running stack (`--json`) | `tdk logs` |
 
 ---
 
@@ -166,6 +167,9 @@ The frontend provider owns root `index.html` and starter source. After TDK gener
 |---------|-------------|
 | `tdk ui [--high-contrast] [--no-animations]` | 🎨 Interactive terminal UI |
 | `tdk networks` | 🌐 Show Traefik-routed URLs (`--stack`, `--json`, `--raw`) |
+| `tdk import [dir]` | 📥 Import the services a directory describes (`--dry-run`, `--yes`, `--force`) |
+| `tdk eject` | 🚪 Write `EJECTED.md` describing the generated Tilt files; copies nothing (`--dry-run`, `--yes`) |
+| `tdk mcp` | 🤖 Run a Model Context Protocol server over stdio for coding agents |
 | `tdk config regenerate` | ♻️ Regenerate master config files from `.tdk/project.json` |
 | `tdk config verify` | ✅ Check generated files match `.tdk/project.json` |
 | `tdk config enable-infra <service>` | ➕ Enable an optional infrastructure service (`disable-infra` to turn it off) |
