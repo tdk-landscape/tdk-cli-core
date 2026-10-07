@@ -21,7 +21,7 @@ mkdir shop && cd shop
 tdk project --yes
 tdk resource orders-api --type backend --stack shop --yes
 tdk up shop
-curl http://api.shop.localhost/api/orders-api/health
+curl http://api.shop.localhost:8080/api/orders-api/health
 ```
 
 ![TDK 搭建后端和前端，然后列出 stack](docs/assets/demo.svg)
@@ -82,7 +82,7 @@ TDK 比本仓库及其 npm 包所显示的更早。开发始于 2026 年 4 月 2
 
 ## 环境要求与支持
 
-本地运行需要安装 Docker（Desktop、OrbStack 或 Colima；Engine 25+、Compose 2.20+）和 [Tilt](https://docs.tilt.dev/install.html)。默认生成的服务使用 Bun 1.2+。TDK 会从有界的回退范围中为 HTTP、HTTPS 和 Postgres 选择主机端口；可设置 `TDK_HTTP_PORT`、`TDK_HTTPS_PORT` 或 `TDK_POSTGRES_PORT` 来覆盖。TDK 支持 macOS、Linux，以及通过 WSL2 Ubuntu 的 Windows；原生 Windows 仅支持 CLI 检查。运行 `tdk doctor` 检查本地就绪情况。参见 [WSL2 设置](docs/wsl2.md)。
+本地运行需要安装 Docker（Desktop、OrbStack 或 Colima；Engine 25+、Compose 2.20.2+）和 [Tilt](https://docs.tilt.dev/install.html)。默认生成的服务使用 Bun 1.2+。TDK 会从有界的回退范围中为 HTTP、HTTPS 和 Postgres 选择主机端口；可设置 `TDK_HTTP_PORT`、`TDK_HTTPS_PORT` 或 `TDK_POSTGRES_PORT` 来覆盖。TDK 支持 macOS、Linux，以及通过 WSL2 Ubuntu 的 Windows；原生 Windows 仅支持 CLI 检查。运行 `tdk doctor` 检查本地就绪情况。参见 [WSL2 设置](docs/wsl2.md)。
 
 在原生 Windows 上，`tdk --version`、`tdk doctor` 和 `tdk up --dry-run` 是仅检查命令。`tdk up` 会以退出码 2 退出，并提示 “Landscape startup needs Ubuntu on WSL2. Native Windows is inspect-only.”
 
