@@ -17,6 +17,7 @@ import { findProjectRoot, getPackageVersion } from "../utils/paths.js";
 import { findAvailablePort } from "../utils/port-assignment.js";
 import { formatPortFallbackNotice } from "../utils/port-fallback-notice.js";
 import { isApiServiceType } from "../utils/resource-kind.js";
+import { enforceServiceConfigGate } from "../utils/service-config-checks.js";
 import { appendHealthPath, resolveSubdomainBases } from "../utils/service-urls.js";
 import { discoverResources, discoverResourcesStrict, discoverStacks, stackExists, } from "../utils/services.js";
 import { buildSmokePlans, formatSmokeFailure, runSmokePlans } from "../utils/smoke.js";
@@ -221,6 +222,12 @@ export const upCommand = new Command("up")
             enforceDriftGate(foundRoot, {
                 ignoreDrift: options.ignoreDrift,
                 onDrift: (message) => emit?.({ ok: false }, [{ code: "DRIFT_DETECTED", message }]),
+            });
+        }
+        // Duplicate names, circular dependsOn and invalid ports are refused before anything starts, dry run included.
+        if (foundRoot) {
+            enforceServiceConfigGate(foundRoot, {
+                onInvalid: (message) => emit?.({ ok: false }, [{ code: "INVALID_SERVICE_CONFIG", message }]),
             });
         }
         const hostPortPlan = await getHostPortPlan(projectRoot, {
