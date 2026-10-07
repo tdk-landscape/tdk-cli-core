@@ -14,6 +14,7 @@ import { formatHostPortPlan } from "../utils/host-port-plan.js";
 import { createJsonEmitter } from "../utils/json-output.js";
 import { findProjectRoot, getPackageVersion } from "../utils/paths.js";
 import { findAvailablePort } from "../utils/port-assignment.js";
+import { formatPortFallbackNotice } from "../utils/port-fallback-notice.js";
 import { isApiServiceType } from "../utils/resource-kind.js";
 import { appendHealthPath, resolveSubdomainBases } from "../utils/service-urls.js";
 import { discoverResources, discoverResourcesStrict, discoverStacks, stackExists, } from "../utils/services.js";
@@ -292,6 +293,8 @@ export const upCommand = new Command("up")
         const dryRunCommand = focusTargets ? `tilt up ${tiltArgs.join(" ")}` : "tilt up";
         if (!options.quiet) {
             console.log(chalk.blue(formatHostPortPlan(hostPortPlan)));
+            for (const line of formatPortFallbackNotice(hostPortPlan))
+                console.log(chalk.yellow(line));
             console.log(chalk.gray("Override with TDK_HTTP_PORT, TDK_HTTPS_PORT, or TDK_POSTGRES_PORT."));
         }
         if (emit && options.dryRun) {
