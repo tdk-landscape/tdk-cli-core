@@ -44,6 +44,11 @@ import {
   stackExists,
 } from "../utils/services.js";
 import { buildSmokePlans, formatSmokeFailure, runSmokePlans } from "../utils/smoke.js";
+import {
+  buildStartupReport,
+  formatStartupReport,
+  isStartupStalled,
+} from "../utils/startup-report.js";
 import { evaluateTdkVersionFloor } from "../utils/tdk-version.js";
 import { buildTiltUpArgs, runTilt } from "../utils/tilt.js";
 import { stopTiltOnPort } from "../utils/tilt-process.js";
@@ -479,6 +484,7 @@ export const upCommand = new Command("up")
       let smokeFailed = false;
 
       let printedSuccess = false;
+      let startupFailed = false;
       const successOutput = (async () => {
         const uiReady = await waitForTiltUi(port);
         // JSON consumers get success only after every non-deferred resource is built and running, not when the UI port opens.
@@ -513,11 +519,37 @@ export const upCommand = new Command("up")
             ]);
           }
         }
-        if (uiReady && !options.quiet) {
+        // The UI port opening only means Tilt started. Say "up" once every resource is built and running, and otherwise name
+        // what failed and what it blocks.
+        if (uiReady && !emit) {
+          const deferred = getDeferredResourceNames();
+          const dependsOn = Object.fromEntries(
+            discoverResources().map((r) => [r.name, r.config?.dependsOn ?? []]),
+          );
+          const readiness = await waitForTiltResourcesReady(port, {
+            deferred,
+            isStalled: (text) => isStartupStalled(text, dependsOn, deferred),
+          });
+          if (!readiness.ready) {
+            startupFailed = true;
+            const resourcesJson = await tiltGetUiResources(port);
+            const report = resourcesJson
+              ? buildStartupReport(resourcesJson, dependsOn, deferred)
+              : {
+                  failed: readiness.failures,
+                  blocked: [],
+                  starting: [],
+                };
+            for (const line of formatStartupReport(report, readiness.timedOut)) {
+              console.error(chalk.red(line));
+            }
+          }
+        }
+        if (uiReady && !options.quiet && !startupFailed) {
           for (const line of formatUpSuccess(port)) console.log(chalk.blue(line));
           printedSuccess = true;
         }
-        if (uiReady && smokePlans.length > 0 && (!emit || jsonReady)) {
+        if (uiReady && smokePlans.length > 0 && (emit ? jsonReady : !startupFailed)) {
           if (!options.quiet) {
             console.log(chalk.gray(`Smoke check: ${smokePlans.map((p) => p.name).join(", ")}`));
           }
@@ -559,6 +591,10 @@ export const upCommand = new Command("up")
 
       if (result.exitCode !== 0) {
         handleTiltFailure("up", result.exitCode);
+      }
+
+      if (startupFailed && result.exitCode === 0) {
+        process.exit(1);
       }
 
       if (!options.quiet && result.exitCode === 0 && !printedSuccess) {

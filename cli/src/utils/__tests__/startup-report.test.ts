@@ -1,0 +1,152 @@
+import { describe, expect, it } from "vitest";
+import { parseTiltResourceFailures } from "../doctor-runtime.js";
+import { buildStartupReport, formatStartupReport, isStartupStalled } from "../startup-report.js";
+
+function item(name: string, update: string, runtime: string, extra: object = {}) {
+  return { metadata: { name }, status: { updateStatus: update, runtimeStatus: runtime, ...extra } };
+}
+const json = (...items: object[]) => JSON.stringify({ items });
+const failedBuild = (message: string) => ({ buildHistory: [{ error: message }] });
+
+describe("buildStartupReport", () => {
+  it("names the failed database and the api that is not ready because of it", () => {
+    const report = buildStartupReport(
+      json(
+        item(
+          "postgres",
+          "error",
+          "none",
+          failedBuild("Bind for 0.0.0.0:5432 failed: port is already allocated"),
+        ),
+        item("api", "pending", "pending"),
+        item("frontend", "ok", "ok"),
+      ),
+      { api: ["postgres"], frontend: ["api"] },
+    );
+    expect(report.failed).toEqual([
+      { name: "postgres", message: "host port 5432 is already allocated" },
+    ]);
+    expect(report.blocked).toEqual([{ name: "api", because: ["postgres"] }]);
+    expect(report.starting).toEqual([]);
+  });
+
+  it("blocks services that depend on the failure through another service", () => {
+    const report = buildStartupReport(
+      json(
+        item("postgres", "error", "none"),
+        item("api", "pending", "pending"),
+        item("web", "pending", "pending"),
+      ),
+      { api: ["postgres"], web: ["api"] },
+    );
+    expect(report.blocked).toEqual([
+      { name: "api", because: ["postgres"] },
+      { name: "web", because: ["postgres"] },
+    ]);
+  });
+
+  it("does not blame a failure for a service that does not depend on it", () => {
+    const report = buildStartupReport(
+      json(item("postgres", "error", "none"), item("worker", "pending", "pending")),
+      { worker: [] },
+    );
+    expect(report.blocked).toEqual([]);
+    expect(report.starting).toEqual(["worker"]);
+  });
+
+  it("lists every failed dependency, sorted", () => {
+    const report = buildStartupReport(
+      json(
+        item("redis", "error", "none"),
+        item("postgres", "error", "none"),
+        item("api", "pending", "pending"),
+      ),
+      { api: ["redis", "postgres"] },
+    );
+    expect(report.blocked).toEqual([{ name: "api", because: ["postgres", "redis"] }]);
+  });
+
+  it("falls back to the raw statuses when Tilt gave no error text", () => {
+    const report = buildStartupReport(json(item("postgres", "ok", "error")), {});
+    expect(report.failed).toEqual([{ name: "postgres", message: "ok/error" }]);
+  });
+
+  it("ignores deferred, disabled and Tiltfile entries", () => {
+    const report = buildStartupReport(
+      json(
+        item("idle", "none", "none"),
+        item("other-phase", "none", "none", { disableStatus: { state: "Disabled" } }),
+        item("(Tiltfile)", "pending", "none"),
+      ),
+      {},
+      new Set(["idle"]),
+    );
+    expect(report).toEqual({ failed: [], blocked: [], starting: [] });
+  });
+
+  it("counts exactly the resources parseTiltResourceFailures counts as pending", () => {
+    const mixed = json(
+      item("postgres", "error", "none"),
+      item("a", "pending", "pending"),
+      item("b", "ok", "pending"),
+      item("c", "none", "none"),
+      item("d", "ok", "ok"),
+      item("e", "ok", "not_applicable"),
+      item("(Tiltfile)", "pending", "none"),
+    );
+    const deps = { a: ["postgres"] };
+    const report = buildStartupReport(mixed, deps);
+    const parsed = parseTiltResourceFailures(mixed);
+    expect(report.blocked.length + report.starting.length).toBe(parsed.pendingCount);
+    expect(report.failed.length).toBe(parsed.failures.length);
+  });
+});
+
+describe("formatStartupReport", () => {
+  it("prints the failed service, what it blocks and the way out", () => {
+    const lines = formatStartupReport(
+      {
+        failed: [{ name: "postgres", message: "host port 5432 is already allocated" }],
+        blocked: [{ name: "api", because: ["postgres"] }],
+        starting: [],
+      },
+      false,
+    );
+    expect(lines).toEqual([
+      "✗ postgres failed: host port 5432 is already allocated",
+      "✗ api is not ready because postgres failed",
+      "The environment is not ready. Tilt is still running; inspect it or run: tdk down",
+    ]);
+  });
+
+  it("says timed out for services that never finished", () => {
+    const lines = formatStartupReport({ failed: [], blocked: [], starting: ["api", "web"] }, true);
+    expect(lines[0]).toBe("Timed out waiting for api, web");
+  });
+
+  it("prints nothing when nothing is wrong", () => {
+    expect(formatStartupReport({ failed: [], blocked: [], starting: [] }, false)).toEqual([]);
+  });
+});
+
+describe("isStartupStalled", () => {
+  const deps = { api: ["postgres"], web: ["api"] };
+
+  it("is true when a failure blocks everything still pending", () => {
+    const text = json(
+      item("postgres", "error", "none"),
+      item("api", "pending", "pending"),
+      item("web", "pending", "pending"),
+    );
+    expect(isStartupStalled(text, deps)).toBe(true);
+  });
+
+  it("is false while something unrelated to the failure is still starting", () => {
+    const text = json(item("postgres", "error", "none"), item("worker", "pending", "pending"));
+    expect(isStartupStalled(text, deps)).toBe(false);
+  });
+
+  it("is false when nothing has failed", () => {
+    expect(isStartupStalled(json(item("api", "pending", "pending")), deps)).toBe(false);
+  });
+});

@@ -127,6 +127,8 @@ export async function waitForTiltResourcesReady(
     deferred?: Set<string>;
     /** Resource names that must be present, enabled, and ready (a `--only` selection). */
     expected?: string[];
+    /** Called with Tilt's JSON while something has failed: true means nothing left pending can still progress. */
+    isStalled?: (jsonText: string) => boolean;
   } = {},
 ): Promise<ReadinessResult> {
   const timeoutMs = options.timeoutMs ?? Number(process.env.TDK_UP_READY_TIMEOUT_MS ?? 900_000);
@@ -148,6 +150,7 @@ export async function waitForTiltResourcesReady(
         const evaluation = evaluateTiltReadiness(text, deferred, options.expected);
         last = evaluation.result;
         if (evaluation.settled) return last;
+        if (last.failures.length > 0 && options.isStalled?.(text)) return last;
       } catch {
         /* Tilt may emit partial output while starting; retry. */
       }

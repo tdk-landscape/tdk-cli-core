@@ -102,6 +102,8 @@ export async function waitForTiltResourcesReady(port, options = {}) {
                 last = evaluation.result;
                 if (evaluation.settled)
                     return last;
+                if (last.failures.length > 0 && options.isStalled?.(text))
+                    return last;
             }
             catch {
                 /* Tilt may emit partial output while starting; retry. */

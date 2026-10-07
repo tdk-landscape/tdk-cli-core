@@ -43,5 +43,7 @@ export declare function waitForTiltResourcesReady(port: number, options?: {
     deferred?: Set<string>;
     /** Resource names that must be present, enabled, and ready (a `--only` selection). */
     expected?: string[];
+    /** Called with Tilt's JSON while something has failed: true means nothing left pending can still progress. */
+    isStalled?: (jsonText: string) => boolean;
 }): Promise<ReadinessResult>;
 //# sourceMappingURL=up-readiness.d.ts.map
