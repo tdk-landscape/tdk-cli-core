@@ -105,6 +105,14 @@ describe("doctor environment contract", () => {
     expect(wildcardStrict.didPass).toBe(false);
   });
 
+  it("treats every IPv6 unspecified spelling as a wildcard bind", () => {
+    for (const address of ["::", "[::]", "0:0:0:0:0:0:0:0", "[0:0::0]"]) {
+      const result = checkPublishedBindAddress({ TDK_BIND_ADDRESS: address }, true);
+      expect(result.didPass, address).toBe(false);
+    }
+    expect(checkPublishedBindAddress({ TDK_BIND_ADDRESS: "::1" }).isWarning).toBeFalsy();
+  });
+
   it("warns about /mnt/c and fails there only in strict WSL mode", () => {
     const warning = checkWslProjectLocation("/mnt/c/Users/dev/tdk", false, true);
     const strict = checkWslProjectLocation("/mnt/c/Users/dev/tdk", true, true);

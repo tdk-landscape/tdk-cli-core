@@ -134,7 +134,12 @@ export function checkWslProjectLocation(
   };
 }
 
-const WILDCARD_BIND_ADDRESSES = new Set(["0.0.0.0", "::", "[::]"]);
+/** True for IPv4 0.0.0.0 and any IPv6 unspecified form (::, 0:0::0, [::], ...). */
+function isWildcardBindAddress(value: string): boolean {
+  const host = value.replace(/^\[(.*)\]$/, "$1");
+  if (host === "0.0.0.0") return true;
+  return host.includes(":") && /^[0:]+$/.test(host);
+}
 
 /**
  * Dev ports (Traefik, Postgres) bind to 127.0.0.1 by default. TDK_BIND_ADDRESS
@@ -146,7 +151,7 @@ export function checkPublishedBindAddress(
   strict = false,
 ): CheckResult {
   const bindAddress = (env.TDK_BIND_ADDRESS ?? "").trim();
-  if (!WILDCARD_BIND_ADDRESSES.has(bindAddress)) {
+  if (!isWildcardBindAddress(bindAddress)) {
     return {
       name: "Dev Port Bind Address",
       didPass: true,

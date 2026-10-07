@@ -72,7 +72,13 @@ export function checkWslProjectLocation(projectPath, strict, isWsl = process.pla
         fix: "Move the repository under your WSL home directory (for example, ~/projects) and retry tdk doctor.",
     };
 }
-const WILDCARD_BIND_ADDRESSES = new Set(["0.0.0.0", "::", "[::]"]);
+/** True for IPv4 0.0.0.0 and any IPv6 unspecified form (::, 0:0::0, [::], ...). */
+function isWildcardBindAddress(value) {
+    const host = value.replace(/^\[(.*)\]$/, "$1");
+    if (host === "0.0.0.0")
+        return true;
+    return host.includes(":") && /^[0:]+$/.test(host);
+}
 /**
  * Dev ports (Traefik, Postgres) bind to 127.0.0.1 by default. TDK_BIND_ADDRESS
  * opts in to another address; a wildcard exposes them to every machine on the
@@ -80,7 +86,7 @@ const WILDCARD_BIND_ADDRESSES = new Set(["0.0.0.0", "::", "[::]"]);
  */
 export function checkPublishedBindAddress(env = process.env, strict = false) {
     const bindAddress = (env.TDK_BIND_ADDRESS ?? "").trim();
-    if (!WILDCARD_BIND_ADDRESSES.has(bindAddress)) {
+    if (!isWildcardBindAddress(bindAddress)) {
         return {
             name: "Dev Port Bind Address",
             didPass: true,
