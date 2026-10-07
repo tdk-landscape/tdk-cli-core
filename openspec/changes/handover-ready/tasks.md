@@ -22,4 +22,6 @@
 
 ## 5. Acceptance
 
-- [ ] 5.1 `openspec validate handover-ready --strict` passes.
+- [x] 5.1 `openspec validate handover-ready --strict` passes.
+
+All tasks complete. Ready for merge to main.
