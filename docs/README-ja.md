@@ -1,6 +1,6 @@
 # TDK CLI — ノートPCでサービスを起動する
 
-[English](README.md) | [简体中文](README-zh_cn.md) | [繁體中文](README-zh_tw.md) | 日本語 | [한국어](README-ko.md)
+[English](../README.md) | [简体中文](README-zh_cn.md) | [繁體中文](README-zh_tw.md) | 日本語 | [한국어](README-ko.md)
 
 TDK CLI は、ノートPC上でサービスを起動します。デプロイツールでも Compose ファイルでもありません。各サービスを `service.json` で定義し、`tdk up` を実行するだけです。マシンに Kubernetes は不要です。
 
@@ -12,7 +12,7 @@ TDK CLI は、ノートPC上でサービスを起動します。デプロイツ�
 
 ## TDK を使っているチーム
 
-まだ掲載されているチームはありません。最初の一組になりませんか。[TDK を使っていることを知らせる](https://github.com/tdk-landscape/tdk-cli-core/issues/new?template=we-use-tdk.yml)か、[ADOPTERS.md](ADOPTERS.md) に行を追加してください。
+まだ掲載されているチームはありません。最初の一組になりませんか。[TDK を使っていることを知らせる](https://github.com/tdk-landscape/tdk-cli-core/issues/new?template=we-use-tdk.yml)か、[ADOPTERS.md](../ADOPTERS.md) に行を追加してください。
 
 ## クイックスタート
 
@@ -24,15 +24,15 @@ tdk up shop
 curl http://api.shop.localhost:8080/api/orders/health
 ```
 
-![TDK がバックエンドとフロントエンドをスキャフォールドし、スタックを一覧表示する様子](docs/assets/demo.svg)
+![TDK がバックエンドとフロントエンドをスキャフォールドし、スタックを一覧表示する様子](assets/demo.svg)
 
 *バックエンドとフロントエンドをスキャフォールドし、スタックを一覧表示します。*
 
-![TDK CLI の活用場面トップ9: サービスのスキャフォールド、スタック起動、ホットリロード、ポート管理、自動検出、起動順序、プロキシルーティング、インフラの組み込み、設定検証](docs/assets/tdk-cli-top-9-uses.jpg)
+![TDK CLI の活用場面トップ9: サービスのスキャフォールド、スタック起動、ホットリロード、ポート管理、自動検出、起動順序、プロキシルーティング、インフラの組み込み、設定検証](assets/tdk-cli-top-9-uses.jpg)
 
 Helm、Compose、既存の Tilt 構成でローカル環境がすでに問題なく動いているなら、そのまま使い続けてください。TDK CLI は、複数のサービスを扱い、明確なローカルサービス契約と、スタックを起動する1つのコマンドを求めるエンジニア向けです。
 
-[Helm との併用方法](https://tdk-landscape.github.io/tdk-website/docs/with-helm/)、[サービススキーマ](engine/schemas/service-schema.json)、[プロジェクト設定スキーマ](engine/schemas/project-schema.json)も参照してください。
+[Helm との併用方法](https://tdk-landscape.github.io/tdk-website/docs/with-helm/)、[サービススキーマ](../engine/schemas/service-schema.json)、[プロジェクト設定スキーマ](../engine/schemas/project-schema.json)も参照してください。
 
 [![npm version](https://img.shields.io/npm/v/@tdk-landscape/tdk-cli-core.svg?style=flat&color=blue)](https://www.npmjs.com/package/@tdk-landscape/tdk-cli-core)
 [![CI](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/ci.yml/badge.svg)](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/ci.yml)
@@ -41,7 +41,7 @@ Helm、Compose、既存の Tilt 構成でローカル環境がすでに問題な
 [![Example apps E2E](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/examples-e2e.yml/badge.svg?branch=main)](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/examples-e2e.yml)
 [![Known Vulnerabilities](https://snyk.io/test/github/tdk-landscape/tdk-cli-core/badge.svg)](https://snyk.io/test/github/tdk-landscape/tdk-cli-core)
 [![Socket Badge](https://badge.socket.dev/npm/package/@tdk-landscape/tdk-cli-core/latest)](https://socket.dev/npm/package/@tdk-landscape/tdk-cli-core/overview)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](../LICENSE)
 
 ## インストール
 
@@ -53,7 +53,7 @@ npm install -g @tdk-landscape/tdk-cli-core
 curl -fsSL https://tdk-landscape.github.io/install.sh | sh
 ```
 
-`tdk up shop --dry-run` は、コンテナを起動する前に、選択されたローカルサービスと URL をプレビューします。デフォルトのスターターは Bun/TypeScript です。TDK の中核的な役割は Docker + Tilt でローカルコンテナを実行することであり、Node.js アプリケーションフレームワークを提供することではありません。[単一バックエンドのサンプル](examples/one-backend/README.md)を参照してください。
+`tdk up shop --dry-run` は、コンテナを起動する前に、選択されたローカルサービスと URL をプレビューします。デフォルトのスターターは Bun/TypeScript です。TDK の中核的な役割は Docker + Tilt でローカルコンテナを実行することであり、Node.js アプリケーションフレームワークを提供することではありません。[単一バックエンドのサンプル](../examples/one-backend/README.md)を参照してください。
 
 ## TDK を使わないほうがよい場合
 
@@ -63,18 +63,18 @@ curl -fsSL https://tdk-landscape.github.io/install.sh | sh
 
 ## ドキュメント
 
-- [ドキュメント索引](docs/README.md)
-- [Helm との併用](docs/with-helm.md)
-- [設定とエディタ用スキーマ](docs/configuration.md)
-- [実行可能な単一バックエンドのサンプル](examples/one-backend/README.md)
-- [実行可能な Python バックエンドのサンプル](examples/one-backend-python/README.md)
-- [マルチサービスの完全なサンプル](examples/tdk-example/README.md)
-- [機能とライセンス上の制限](docs/FEATURES.md)
-- [率直な比較と既知の制限](docs/compare-honest.md)
-- [公開している主張の一覧](docs/claims.md)
-- [Show HN の下書き](docs/drafts/show-hn.md)
-- [アーキテクチャとリポジトリマップ](docs/project-overview.md)
-- [スケールフィクスチャの計測結果と注意点](docs/benchmarks/scale-bench.md)
+- [ドキュメント索引](README.md)
+- [Helm との併用](with-helm.md)
+- [設定とエディタ用スキーマ](configuration.md)
+- [実行可能な単一バックエンドのサンプル](../examples/one-backend/README.md)
+- [実行可能な Python バックエンドのサンプル](../examples/one-backend-python/README.md)
+- [マルチサービスの完全なサンプル](../examples/tdk-example/README.md)
+- [機能とライセンス上の制限](FEATURES.md)
+- [率直な比較と既知の制限](compare-honest.md)
+- [公開している主張の一覧](claims.md)
+- [Show HN の下書き](drafts/show-hn.md)
+- [アーキテクチャとリポジトリマップ](project-overview.md)
+- [スケールフィクスチャの計測結果と注意点](benchmarks/scale-bench.md)
 
 ## 経緯
 
@@ -82,7 +82,7 @@ TDK は、このリポジトリや npm パッケージの日付から想像さ�
 
 ## 要件とサポート
 
-ローカルランタイムには、Docker（Desktop、OrbStack、または Colima。Engine 25+、Compose 2.20.2+）と [Tilt](https://docs.tilt.dev/install.html) をインストールしてください。デフォルトで生成されるサービスは Bun 1.2+ を使用します。TDK は HTTP、HTTPS、Postgres のホストポートを、範囲が限られたフォールバック範囲から選びます。上書きするには `TDK_HTTP_PORT`、`TDK_HTTPS_PORT`、`TDK_POSTGRES_PORT` を設定してください。TDK は macOS、Linux、および WSL2 Ubuntu 経由の Windows をサポートします。ネイティブ Windows では CLI の確認のみ可能です。`tdk doctor` を実行してローカルの準備状況を確認してください。[WSL2 のセットアップ](docs/wsl2.md)を参照してください。
+ローカルランタイムには、Docker（Desktop、OrbStack、または Colima。Engine 25+、Compose 2.20.2+）と [Tilt](https://docs.tilt.dev/install.html) をインストールしてください。デフォルトで生成されるサービスは Bun 1.2+ を使用します。TDK は HTTP、HTTPS、Postgres のホストポートを、範囲が限られたフォールバック範囲から選びます。上書きするには `TDK_HTTP_PORT`、`TDK_HTTPS_PORT`、`TDK_POSTGRES_PORT` を設定してください。TDK は macOS、Linux、および WSL2 Ubuntu 経由の Windows をサポートします。ネイティブ Windows では CLI の確認のみ可能です。`tdk doctor` を実行してローカルの準備状況を確認してください。[WSL2 のセットアップ](wsl2.md)を参照してください。
 
 ネイティブ Windows では、`tdk --version`、`tdk doctor`、`tdk up --dry-run` は確認専用のコマンドです。`tdk up` は終了コード 2 で終了し、「Landscape startup needs Ubuntu on WSL2. Native Windows is inspect-only.」と表示します。
 
@@ -100,6 +100,6 @@ TDK は、このリポジトリや npm パッケージの日付から想像さ�
 
 ## コントリビューションとライセンス
 
-コントリビューションを歓迎します。まず [CONTRIBUTING.md](CONTRIBUTING.md) と[コントリビューターガイド](docs/contributing/README.md)をご覧ください。セキュリティ上の問題は [SECURITY.md](SECURITY.md) に従って報告してください。
+コントリビューションを歓迎します。まず [CONTRIBUTING.md](../CONTRIBUTING.md) と[コントリビューターガイド](contributing/README.md)をご覧ください。セキュリティ上の問題は [SECURITY.md](../SECURITY.md) に従って報告してください。
 
-TDK は MIT ライセンスです。[LICENSE](LICENSE) を参照してください。
+TDK は MIT ライセンスです。[LICENSE](../LICENSE) を参照してください。

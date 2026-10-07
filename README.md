@@ -11,7 +11,7 @@
 [![Socket Badge](https://badge.socket.dev/npm/package/@tdk-landscape/tdk-cli-core/latest)](https://socket.dev/npm/package/@tdk-landscape/tdk-cli-core/overview)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-English | [简体中文](README-zh_cn.md) | [繁體中文](README-zh_tw.md) | [日本語](README-ja.md) | [한국어](README-ko.md)
+English | [简体中文](docs/README-zh_cn.md) | [繁體中文](docs/README-zh_tw.md) | [日本語](docs/README-ja.md) | [한국어](docs/README-ko.md)
 
 TDK CLI — start services on your laptop. It is not a deploy and not a Compose file: define each service in `service.json`, then run `tdk up`. No Kubernetes is needed on the machine.
 

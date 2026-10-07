@@ -1,6 +1,6 @@
 # TDK CLI — 노트북에서 서비스 시작하기
 
-[English](README.md) | [简体中文](README-zh_cn.md) | [繁體中文](README-zh_tw.md) | [日本語](README-ja.md) | 한국어
+[English](../README.md) | [简体中文](README-zh_cn.md) | [繁體中文](README-zh_tw.md) | [日本語](README-ja.md) | 한국어
 
 TDK CLI는 노트북에서 서비스를 시작합니다. 배포 도구도, Compose 파일도 아닙니다. 각 서비스를 `service.json`에 정의한 뒤 `tdk up`을 실행하면 됩니다. 머신에 Kubernetes는 필요하지 않습니다.
 
@@ -12,7 +12,7 @@ TDK CLI는 노트북에서 서비스를 시작합니다. 배포 도구도, Compo
 
 ## TDK를 사용하는 팀
 
-아직 등록된 팀이 없습니다. 첫 번째가 되어 주세요. [TDK를 사용한다고 알려 주세요](https://github.com/tdk-landscape/tdk-cli-core/issues/new?template=we-use-tdk.yml) 또는 [ADOPTERS.md](ADOPTERS.md)에 행을 추가하세요.
+아직 등록된 팀이 없습니다. 첫 번째가 되어 주세요. [TDK를 사용한다고 알려 주세요](https://github.com/tdk-landscape/tdk-cli-core/issues/new?template=we-use-tdk.yml) 또는 [ADOPTERS.md](../ADOPTERS.md)에 행을 추가하세요.
 
 ## 빠른 시작
 
@@ -24,15 +24,15 @@ tdk up shop
 curl http://api.shop.localhost:8080/api/orders/health
 ```
 
-![TDK가 백엔드와 프런트엔드를 스캐폴딩하고 스택을 나열하는 모습](docs/assets/demo.svg)
+![TDK가 백엔드와 프런트엔드를 스캐폴딩하고 스택을 나열하는 모습](assets/demo.svg)
 
 *백엔드와 프런트엔드를 스캐폴딩한 뒤 스택을 나열합니다.*
 
-![TDK CLI 활용 사례 Top 9: 서비스 스캐폴딩, 스택 시작, 핫 리로드, 포트 관리, 자동 검색, 부팅 순서, 프록시 라우팅, 인프라 포함, 설정 검증](docs/assets/tdk-cli-top-9-uses.jpg)
+![TDK CLI 활용 사례 Top 9: 서비스 스캐폴딩, 스택 시작, 핫 리로드, 포트 관리, 자동 검색, 부팅 순서, 프록시 라우팅, 인프라 포함, 설정 검증](assets/tdk-cli-top-9-uses.jpg)
 
 Helm, Compose 또는 기존 Tilt 설정으로 이미 로컬 환경이 잘 동작한다면 계속 사용하세요. TDK CLI는 여러 서비스를 관리하면서 명확한 로컬 서비스 계약과 스택을 시작하는 명령 하나를 원하는 엔지니어를 위한 도구입니다.
 
-[Helm과 함께 사용하는 방법](https://tdk-landscape.github.io/tdk-website/docs/with-helm/), [서비스 스키마](engine/schemas/service-schema.json), [프로젝트 설정 스키마](engine/schemas/project-schema.json)도 참고하세요.
+[Helm과 함께 사용하는 방법](https://tdk-landscape.github.io/tdk-website/docs/with-helm/), [서비스 스키마](../engine/schemas/service-schema.json), [프로젝트 설정 스키마](../engine/schemas/project-schema.json)도 참고하세요.
 
 [![npm version](https://img.shields.io/npm/v/@tdk-landscape/tdk-cli-core.svg?style=flat&color=blue)](https://www.npmjs.com/package/@tdk-landscape/tdk-cli-core)
 [![CI](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/ci.yml/badge.svg)](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/ci.yml)
@@ -41,7 +41,7 @@ Helm, Compose 또는 기존 Tilt 설정으로 이미 로컬 환경이 잘 동작
 [![Example apps E2E](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/examples-e2e.yml/badge.svg?branch=main)](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/examples-e2e.yml)
 [![Known Vulnerabilities](https://snyk.io/test/github/tdk-landscape/tdk-cli-core/badge.svg)](https://snyk.io/test/github/tdk-landscape/tdk-cli-core)
 [![Socket Badge](https://badge.socket.dev/npm/package/@tdk-landscape/tdk-cli-core/latest)](https://socket.dev/npm/package/@tdk-landscape/tdk-cli-core/overview)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](../LICENSE)
 
 ## 설치
 
@@ -53,7 +53,7 @@ npm install -g @tdk-landscape/tdk-cli-core
 curl -fsSL https://tdk-landscape.github.io/install.sh | sh
 ```
 
-`tdk up shop --dry-run`은 컨테이너를 시작하기 전에 선택된 로컬 서비스와 URL을 미리 보여줍니다. 기본 스타터는 Bun/TypeScript이며, TDK의 핵심 역할은 Docker + Tilt로 로컬 컨테이너를 실행하는 것이지 Node.js 애플리케이션 프레임워크를 제공하는 것이 아닙니다. [단일 백엔드 예제](examples/one-backend/README.md)를 참고하세요.
+`tdk up shop --dry-run`은 컨테이너를 시작하기 전에 선택된 로컬 서비스와 URL을 미리 보여줍니다. 기본 스타터는 Bun/TypeScript이며, TDK의 핵심 역할은 Docker + Tilt로 로컬 컨테이너를 실행하는 것이지 Node.js 애플리케이션 프레임워크를 제공하는 것이 아닙니다. [단일 백엔드 예제](../examples/one-backend/README.md)를 참고하세요.
 
 ## TDK를 사용하지 말아야 할 때
 
@@ -63,18 +63,18 @@ curl -fsSL https://tdk-landscape.github.io/install.sh | sh
 
 ## 문서
 
-- [문서 색인](docs/README.md)
-- [Helm과 함께 사용하기](docs/with-helm.md)
-- [설정 및 에디터 스키마](docs/configuration.md)
-- [실행 가능한 단일 백엔드 예제](examples/one-backend/README.md)
-- [실행 가능한 Python 백엔드 예제](examples/one-backend-python/README.md)
-- [전체 멀티 서비스 예제](examples/tdk-example/README.md)
-- [기능 및 라이선스 제한](docs/FEATURES.md)
-- [솔직한 비교와 알려진 한계](docs/compare-honest.md)
-- [공개 주장 레지스트리](docs/claims.md)
-- [Show HN 초안](docs/drafts/show-hn.md)
-- [아키텍처 및 저장소 맵](docs/project-overview.md)
-- [스케일 픽스처 측정 결과와 주의 사항](docs/benchmarks/scale-bench.md)
+- [문서 색인](README.md)
+- [Helm과 함께 사용하기](with-helm.md)
+- [설정 및 에디터 스키마](configuration.md)
+- [실행 가능한 단일 백엔드 예제](../examples/one-backend/README.md)
+- [실행 가능한 Python 백엔드 예제](../examples/one-backend-python/README.md)
+- [전체 멀티 서비스 예제](../examples/tdk-example/README.md)
+- [기능 및 라이선스 제한](FEATURES.md)
+- [솔직한 비교와 알려진 한계](compare-honest.md)
+- [공개 주장 레지스트리](claims.md)
+- [Show HN 초안](drafts/show-hn.md)
+- [아키텍처 및 저장소 맵](project-overview.md)
+- [스케일 픽스처 측정 결과와 주의 사항](benchmarks/scale-bench.md)
 
 ## 역사
 
@@ -82,7 +82,7 @@ TDK는 이 저장소와 npm 패키지 날짜가 시사하는 것보다 오래되
 
 ## 요구 사항 및 지원
 
-로컬 런타임에는 Docker(Desktop, OrbStack 또는 Colima, Engine 25+, Compose 2.20.2+)와 [Tilt](https://docs.tilt.dev/install.html)를 설치하세요. 기본으로 생성되는 서비스는 Bun 1.2+를 사용합니다. TDK는 HTTP, HTTPS, Postgres용 호스트 포트를 범위가 제한된 대체 범위에서 선택합니다. 재정의하려면 `TDK_HTTP_PORT`, `TDK_HTTPS_PORT`, `TDK_POSTGRES_PORT`를 설정하세요. TDK는 macOS, Linux, 그리고 WSL2 Ubuntu를 통한 Windows를 지원하며, 네이티브 Windows에서는 CLI 확인만 가능합니다. `tdk doctor`를 실행해 로컬 준비 상태를 확인하세요. [WSL2 설정](docs/wsl2.md)을 참고하세요.
+로컬 런타임에는 Docker(Desktop, OrbStack 또는 Colima, Engine 25+, Compose 2.20.2+)와 [Tilt](https://docs.tilt.dev/install.html)를 설치하세요. 기본으로 생성되는 서비스는 Bun 1.2+를 사용합니다. TDK는 HTTP, HTTPS, Postgres용 호스트 포트를 범위가 제한된 대체 범위에서 선택합니다. 재정의하려면 `TDK_HTTP_PORT`, `TDK_HTTPS_PORT`, `TDK_POSTGRES_PORT`를 설정하세요. TDK는 macOS, Linux, 그리고 WSL2 Ubuntu를 통한 Windows를 지원하며, 네이티브 Windows에서는 CLI 확인만 가능합니다. `tdk doctor`를 실행해 로컬 준비 상태를 확인하세요. [WSL2 설정](wsl2.md)을 참고하세요.
 
 네이티브 Windows에서 `tdk --version`, `tdk doctor`, `tdk up --dry-run`은 확인 전용 명령입니다. `tdk up`은 종료 코드 2로 종료되며 "Landscape startup needs Ubuntu on WSL2. Native Windows is inspect-only."라고 표시합니다.
 
@@ -100,6 +100,6 @@ TDK는 이 저장소와 npm 패키지 날짜가 시사하는 것보다 오래되
 
 ## 기여 및 라이선스
 
-기여를 환영합니다. [CONTRIBUTING.md](CONTRIBUTING.md)와 [기여자 가이드](docs/contributing/README.md)부터 시작하세요. 보안 문제는 [SECURITY.md](SECURITY.md)에 따라 신고해 주세요.
+기여를 환영합니다. [CONTRIBUTING.md](../CONTRIBUTING.md)와 [기여자 가이드](contributing/README.md)부터 시작하세요. 보안 문제는 [SECURITY.md](../SECURITY.md)에 따라 신고해 주세요.
 
-TDK는 MIT 라이선스입니다. [LICENSE](LICENSE)를 참고하세요.
+TDK는 MIT 라이선스입니다. [LICENSE](../LICENSE)를 참고하세요.
