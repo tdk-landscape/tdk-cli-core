@@ -7,7 +7,7 @@ The existing regenerate and verify commands produce stable bytes.
 ## ADDED Requirements
 
 ### Requirement: Generation is deterministic
-Given the same `service.json`, TDK version, and generator inputs, `tdk config regenerate` SHALL produce byte-identical output. Generated files SHALL NOT contain timestamps, random identifiers, machine-specific absolute paths, or ordering that depends on filesystem or environment iteration order.
+Given the same `.tdk/project.json`, TDK version, and generator inputs, `tdk config regenerate` SHALL produce byte-identical generated files. It SHALL NOT write `service.json`. Generated files SHALL NOT contain timestamps, random identifiers, machine-specific absolute paths, or ordering that depends on filesystem or environment iteration order.
 
 #### Scenario: Two regenerations match
 - **WHEN** `tdk config regenerate` runs twice without input changes

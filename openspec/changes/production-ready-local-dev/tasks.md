@@ -13,11 +13,14 @@
 - [ ] 2.3 Keep `Doctor passed. Next: tdk up` and `Doctor failed. Fix the items above, then run: tdk doctor`
 - [ ] 2.4 Doctor and `tdk config verify` name the same generated drift
 
-## 3. Generation
+## 3. Regenerate, migrate, and import
 
-- [ ] 3.1 Remove timestamps, random ids, and machine-absolute paths from generated output
-- [ ] 3.2 A second `tdk config regenerate` on unchanged inputs is byte-identical
-- [ ] 3.3 `tdk config verify` exits 0 only when that output matches
+- [ ] 3.1 `tdk config regenerate` rewrites generated files and leaves every `service.json` byte-identical
+- [ ] 3.2 `tdk config regenerate --dry-run` writes nothing
+- [ ] 3.3 `tdk config migrate` sets a missing `schemaVersion` and does not rewrite generated files
+- [ ] 3.4 An unsupported `schemaVersion` fails migrate with no write
+- [ ] 3.5 `tdk import` does not call regenerate or migrate
+- [ ] 3.6 A second regenerate on unchanged inputs is byte-identical, and verify exits 0
 
 ## 4. Up, status, ui, logs
 

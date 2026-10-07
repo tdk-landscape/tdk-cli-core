@@ -14,11 +14,11 @@ The existing commands behave the same on the supported platforms, and upgrades d
 - **THEN** `tdk doctor` and `tdk up` both refuse with the required and detected versions and exit non-zero
 
 ### Requirement: Upgrades do not rewrite config silently
-A breaking schema change SHALL warn with the current schema, the target schema, and the existing `tdk config migrate` command or a documented guide. TDK SHALL NOT modify `service.json` unless the user runs migrate. Deprecated fields SHALL warn and keep working for that compatible release.
+A missing `schemaVersion` SHALL be fixed only by `tdk config migrate`. That command SHALL NOT rewrite generated files. `tdk config regenerate` SHALL NOT add `schemaVersion`. An unsupported `schemaVersion` SHALL fail migrate and leave `service.json` byte-identical. Deprecated fields SHALL warn and keep working for that compatible release.
 
-#### Scenario: Schema is behind
-- **WHEN** the project schema is older than the CLI target and migration is required
-- **THEN** TDK prints the migration warning and leaves `service.json` byte-identical
+#### Scenario: Schema version is missing
+- **WHEN** `service.json` has no `schemaVersion` and the user runs `tdk up`
+- **THEN** TDK does not write `schemaVersion` and tells the user to run `tdk config migrate`
 
 ### Requirement: Native Windows stays inspection-only
 Native Windows SHALL remain documented as inspection-only. This change SHALL NOT start Docker or Tilt on native Windows except the existing unsupported `TDK_ALLOW_NATIVE_WINDOWS=1` escape hatch.
