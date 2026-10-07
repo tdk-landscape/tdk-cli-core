@@ -50,6 +50,7 @@ import { isApiServiceType } from "../utils/resource-kind.js";
 import {
   checkCircularDependencies,
   checkDependsOnShape,
+  checkSchemaVersions,
   checkServicePorts,
 } from "../utils/service-config-checks.js";
 import { buildHealthTargets, pingHealthTargets } from "../utils/service-urls.js";
@@ -1417,6 +1418,7 @@ export const doctorCommand = new Command("doctor")
       () => checkDependsOnShape(),
       () => checkCircularDependencies(),
       () => checkServicePorts(),
+      () => checkSchemaVersions(),
       () => checkDuplicateResourcePorts(),
       () => checkServiceUrlPorts(),
       () => checkFrontendBackendUrls(),

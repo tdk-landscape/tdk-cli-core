@@ -4,6 +4,7 @@ import type { CheckResult, DiscoveredResource } from "../types/index.js";
 import { checkDuplicateResourceNames } from "./doctor-wiring.js";
 import { formatCount } from "./formatting.js";
 import { findProjectRoot } from "./paths.js";
+import { SERVICE_MANIFEST_SCHEMA_VERSION } from "./service-manifest.js";
 import { discoverResourcesFromRoot } from "./services.js";
 
 function filePath(projectRoot: string, resource: DiscoveredResource): string {
@@ -123,6 +124,56 @@ export function checkServicePorts(projectRoot = findProjectRoot() ?? process.cwd
     message: `${formatCount(problems.length, "invalid port")}:\n    ${problems.join("\n    ")}`,
     fix: 'Set "port" to the port the service listens on, an integer from 1 to 65535',
   };
+}
+
+/**
+ * A service.json with no schemaVersion is how every project began, so this is a warning: it keeps working, and only
+ * `tdk config migrate` writes the field. A version this tdk does not know is reported the same way, with a different fix.
+ */
+export function checkSchemaVersions(projectRoot = findProjectRoot() ?? process.cwd()): CheckResult {
+  const missing: string[] = [];
+  const unsupported: string[] = [];
+  for (const resource of discoverResourcesFromRoot(projectRoot)) {
+    const version: unknown = resource.config?.schemaVersion;
+    if (version === SERVICE_MANIFEST_SCHEMA_VERSION) continue;
+    const file = filePath(projectRoot, resource);
+    if (version === undefined) missing.push(`${file} schemaVersion: missing`);
+    else
+      unsupported.push(
+        `${file} schemaVersion ${JSON.stringify(version)}: this tdk supports ${SERVICE_MANIFEST_SCHEMA_VERSION}`,
+      );
+  }
+
+  if (missing.length === 0 && unsupported.length === 0) {
+    return {
+      name: "schemaVersion",
+      didPass: true,
+      message: "Every service.json has a supported schemaVersion",
+    };
+  }
+  const fixes = [
+    ...(missing.length > 0 ? ["Run `tdk config migrate` to add the missing schemaVersion"] : []),
+    ...(unsupported.length > 0
+      ? [
+          `A version this tdk does not support cannot be migrated: upgrade tdk, or set schemaVersion to ${SERVICE_MANIFEST_SCHEMA_VERSION}`,
+        ]
+      : []),
+  ];
+  return {
+    name: "schemaVersion",
+    didPass: false,
+    isWarning: true,
+    message: `${formatCount(missing.length + unsupported.length, "service.json file")} without a supported schemaVersion:\n    ${[...missing, ...unsupported].join("\n    ")}`,
+    fix: fixes.join(". "),
+  };
+}
+
+/** Prints the schemaVersion warning once. It never stops anything: the project keeps working as it is. */
+export function warnSchemaVersions(projectRoot: string): void {
+  const check = checkSchemaVersions(projectRoot);
+  if (check.didPass) return;
+  console.warn(chalk.yellow(`⚠ ${check.message}`));
+  if (check.fix) console.warn(chalk.gray(`  ${check.fix}`));
 }
 
 /**

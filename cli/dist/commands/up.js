@@ -17,7 +17,7 @@ import { findProjectRoot, getPackageVersion } from "../utils/paths.js";
 import { findAvailablePort } from "../utils/port-assignment.js";
 import { formatPortFallbackNotice } from "../utils/port-fallback-notice.js";
 import { isApiServiceType } from "../utils/resource-kind.js";
-import { enforceServiceConfigGate } from "../utils/service-config-checks.js";
+import { enforceServiceConfigGate, warnSchemaVersions } from "../utils/service-config-checks.js";
 import { appendHealthPath, resolveSubdomainBases } from "../utils/service-urls.js";
 import { discoverResources, discoverResourcesStrict, discoverStacks, stackExists, } from "../utils/services.js";
 import { buildSmokePlans, formatSmokeFailure, runSmokePlans } from "../utils/smoke.js";
@@ -230,6 +230,9 @@ export const upCommand = new Command("up")
                 onInvalid: (message) => emit?.({ ok: false }, [{ code: "INVALID_SERVICE_CONFIG", message }]),
             });
         }
+        // A project without schemaVersion keeps working; say how to add it, but only where a person is reading.
+        if (foundRoot && !emit && !options.quiet)
+            warnSchemaVersions(foundRoot);
         const hostPortPlan = await getHostPortPlan(projectRoot, {
             inspectDocker: !options.dryRun,
         });

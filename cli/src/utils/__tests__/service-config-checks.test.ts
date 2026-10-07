@@ -1,12 +1,14 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   checkCircularDependencies,
   checkDependsOnShape,
+  checkSchemaVersions,
   checkServicePorts,
   enforceServiceConfigGate,
+  warnSchemaVersions,
 } from "../service-config-checks.js";
 
 let root: string;
@@ -200,5 +202,79 @@ describe("a dependsOn that is not an array of service names", () => {
     expect(err.mock.calls.map((call) => String(call[0])).join("\n")).toContain(
       "expected an array of service names",
     );
+  });
+});
+
+describe("schemaVersion", () => {
+  it("passes when every service.json has the supported version", () => {
+    service("api", { schemaVersion: 1 });
+    service("worker", { port: 4001, schemaVersion: 1 });
+    expect(checkSchemaVersions(root).didPass).toBe(true);
+  });
+
+  it("warns, rather than fails, when schemaVersion is missing, and points at migrate", () => {
+    service("api");
+    const result = checkSchemaVersions(root);
+    expect(result.didPass).toBe(false);
+    expect(result.isWarning).toBe(true);
+    expect(result.message).toContain(join("services", "app", "api", "service.json"));
+    expect(result.message).toContain("schemaVersion: missing");
+    expect(result.fix).toContain("tdk config migrate");
+  });
+
+  it.each([
+    [99, "99"],
+    ["1", '"1"'],
+    [0, "0"],
+  ])(
+    "warns about an unsupported schemaVersion %j without sending people to migrate",
+    (version, shown) => {
+      service("api", { schemaVersion: version });
+      const result = checkSchemaVersions(root);
+      expect(result.isWarning).toBe(true);
+      expect(result.message).toContain(`schemaVersion ${shown}`);
+      expect(result.fix).toContain("upgrade tdk");
+      expect(result.fix).not.toContain("tdk config migrate");
+    },
+  );
+
+  it("gives both fixes when some files are missing it and others are unsupported", () => {
+    service("api");
+    service("worker", { port: 4001, schemaVersion: 99 });
+    const result = checkSchemaVersions(root);
+    expect(result.message).toContain("2 service.json files");
+    expect(result.fix).toContain("tdk config migrate");
+    expect(result.fix).toContain("upgrade tdk");
+  });
+
+  it("never writes to service.json", () => {
+    service("api");
+    const file = join(root, "services", "app", "api", "service.json");
+    const before = readFileSync(file, "utf-8");
+    checkSchemaVersions(root);
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    warnSchemaVersions(root);
+    expect(readFileSync(file, "utf-8")).toBe(before);
+  });
+
+  it("warnSchemaVersions prints once for a problem and nothing when all is well", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    service("api", { schemaVersion: 1 });
+    warnSchemaVersions(root);
+    expect(warn).not.toHaveBeenCalled();
+
+    service("worker", { port: 4001 });
+    warnSchemaVersions(root);
+    const printed = warn.mock.calls.map((call) => String(call[0])).join("\n");
+    expect(printed).toContain("worker");
+    expect(printed).toContain("tdk config migrate");
+  });
+
+  it("is not part of the up gate, so a project without it still starts", () => {
+    service("api");
+    const exit = (code: number): never => {
+      throw new Error(`exit ${code}`);
+    };
+    expect(() => enforceServiceConfigGate(root, {}, exit)).not.toThrow();
   });
 });
