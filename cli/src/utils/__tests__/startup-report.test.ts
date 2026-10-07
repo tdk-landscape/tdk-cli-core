@@ -114,7 +114,7 @@ describe("formatStartupReport", () => {
     );
     expect(lines).toEqual([
       "✗ postgres failed: host port 5432 is already allocated",
-      '  Fix: stop the process using port 5432 (find it with: lsof -nP -iTCP:5432 -sTCP:LISTEN), or change "port" in the service\'s service.json and run tdk up',
+      "  Fix: stop the process using port 5432 (find it with: lsof -nP -iTCP:5432 -sTCP:LISTEN), or set TDK_POSTGRES_PORT to a free port and run tdk up",
       "✗ api is not ready because postgres failed",
       "The environment is not ready. Tilt is still running; inspect it or run: tdk down",
     ]);
