@@ -8,7 +8,7 @@ import {
 } from "../../generator/template-engine.js";
 import { runTilt } from "../../utils/tilt.js";
 import { findTiltProcessIdsOnPort, stopTiltOnPort } from "../../utils/tilt-process.js";
-import { parseTiltPort, resolveTiltPort, stopTiltForUp } from "../../utils/tilt-startup.js";
+import { parseTiltPort, resolveTiltPort, secondUpAction, stopTiltForUp } from "../../utils/tilt-startup.js";
 import {
   DRIFT_EXIT_CODE,
   driftReport,
@@ -398,6 +398,31 @@ describe("enforceVersionFloor", () => {
     enforceVersionFloor(dir, { ignoreVersion: true }, "1.0.0", e);
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("--ignore-version"));
     expect(e).not.toHaveBeenCalled();
+  });
+});
+
+describe("second tdk up", () => {
+  it("reports the environment already running instead of starting another Tilt", () => {
+    expect(secondUpAction({ runningPorts: [10350], force: false, only: false })).toEqual({
+      action: "already-running",
+      ports: [10350],
+    });
+  });
+
+  it("still blocks --only against a running Tilt", () => {
+    expect(secondUpAction({ runningPorts: [10350], force: false, only: true })).toEqual({
+      action: "only-blocked",
+      ports: [10350],
+    });
+  });
+
+  it("starts when nothing is running or --force is set", () => {
+    expect(secondUpAction({ runningPorts: [], force: false, only: false })).toEqual({
+      action: "start",
+    });
+    expect(secondUpAction({ runningPorts: [10350], force: true, only: false })).toEqual({
+      action: "start",
+    });
   });
 });
 
