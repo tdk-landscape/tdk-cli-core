@@ -37,8 +37,8 @@ describe("generated file headers", () => {
     expect(head).toContain("tdk config regenerate");
   });
 
-  it.each(Object.keys(files))("%s does not send people to `tdk project`", (name) => {
-    expect(files[name]).not.toContain("Run 'tdk project'");
+  it.each(Object.keys(files))("%s never tells people to run `tdk project`", (name) => {
+    expect(files[name]).not.toContain("tdk project");
   });
 
   it("leaves no empty `Generated:` label in .tiltignore", () => {
