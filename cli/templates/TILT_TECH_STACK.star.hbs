@@ -69,15 +69,15 @@ def validate_tech_stack(config, strict=False):
                     ))
                 elif strict:
                     errors.append(
-                        "❌ Tech Stack Error: {}: '{}' is not supported. " +
-                        "Platform standard is '{}'. Use _override_reason to document exceptions.".format(
+                        ("❌ Tech Stack Error: {}: '{}' is not supported. " +
+                        "Platform standard is '{}'. Use _override_reason to document exceptions.").format(
                             key, value, standard
                         )
                     )
                 else:
                     warnings.append(
-                        "⚠️ Tech Stack Warning: {}: '{}' is not standard. " +
-                        "Platform standard is '{}'.".format(key, value, standard)
+                        ("⚠️ Tech Stack Warning: {}: '{}' is not standard. " +
+                        "Platform standard is '{}'.").format(key, value, standard)
                     )
     
     # Optional validations (warnings if missing or different)
