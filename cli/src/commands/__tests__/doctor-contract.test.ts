@@ -106,7 +106,14 @@ describe("doctor environment contract", () => {
   });
 
   it("treats every IPv6 unspecified spelling as a wildcard bind", () => {
-    for (const address of ["::", "[::]", "0:0:0:0:0:0:0:0", "[0:0::0]"]) {
+    for (const address of [
+      "::",
+      "[::]",
+      "0:0:0:0:0:0:0:0",
+      "[0:0::0]",
+      "::0.0.0.0",
+      "[::0.0.0.0]",
+    ]) {
       const result = checkPublishedBindAddress({ TDK_BIND_ADDRESS: address }, true);
       expect(result.didPass, address).toBe(false);
     }

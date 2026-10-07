@@ -77,6 +77,9 @@ function isWildcardBindAddress(value) {
     const host = value.replace(/^\[(.*)\]$/, "$1");
     if (host === "0.0.0.0")
         return true;
+    // IPv4-embedded unspecified address, e.g. ::0.0.0.0
+    if (/^[0:]*:0\.0\.0\.0$/.test(host))
+        return true;
     return host.includes(":") && /^[0:]+$/.test(host);
 }
 /**
