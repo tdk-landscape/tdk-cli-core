@@ -24,6 +24,7 @@ import type {
   TabId,
 } from "../types/index.js";
 import { errorFactories, requireProjectRoot } from "../utils/errors.js";
+import { latestOnly } from "../utils/latest-only.js";
 import { findProjectRoot, getPackageVersion } from "../utils/paths.js";
 import { describeSearch } from "../utils/search-status.js";
 import {
@@ -225,16 +226,15 @@ export const TUIApp: React.FC<{ animated?: boolean }> = ({ animated = true }) =>
   useEffect(() => {
     let cancelled = false;
     const tiltPort = Number.parseInt(process.env.TILT_PORT ?? "", 10);
-    const poll = async (): Promise<void> => {
-      const next = await fetchServiceStates(
-        services,
-        Number.isInteger(tiltPort) ? tiltPort : 10350,
-      );
+    // A Tilt call can outlast the 5 s interval; only the newest poll may update the screen.
+    const run = latestOnly<ServiceStates>((next) => {
       if (cancelled) return;
       setServiceStates((previous) =>
         JSON.stringify(previous) === JSON.stringify(next) ? previous : next,
       );
-    };
+    });
+    const poll = (): Promise<void> =>
+      run(() => fetchServiceStates(services, Number.isInteger(tiltPort) ? tiltPort : 10350));
     void poll();
     const timer = setInterval(() => void poll(), 5000);
     return () => {

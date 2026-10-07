@@ -6,6 +6,7 @@ import { DetailPanel, FileTree, ResourceSelectInput, ResourceTable, ServiceIssue
 import { TABS } from "../components/TabBar.js";
 import { createTUITheme, TUIThemeContext, useTUITheme } from "../components/ui-theme.js";
 import { errorFactories, requireProjectRoot } from "../utils/errors.js";
+import { latestOnly } from "../utils/latest-only.js";
 import { findProjectRoot, getPackageVersion } from "../utils/paths.js";
 import { describeSearch } from "../utils/search-status.js";
 import { clearMetadataCache, discoverResources, discoverStacks, getResourceMetadata, getStackMetadata, } from "../utils/services.js";
@@ -81,12 +82,13 @@ export const TUIApp = ({ animated = true }) => {
     useEffect(() => {
         let cancelled = false;
         const tiltPort = Number.parseInt(process.env.TILT_PORT ?? "", 10);
-        const poll = async () => {
-            const next = await fetchServiceStates(services, Number.isInteger(tiltPort) ? tiltPort : 10350);
+        // A Tilt call can outlast the 5 s interval; only the newest poll may update the screen.
+        const run = latestOnly((next) => {
             if (cancelled)
                 return;
             setServiceStates((previous) => JSON.stringify(previous) === JSON.stringify(next) ? previous : next);
-        };
+        });
+        const poll = () => run(() => fetchServiceStates(services, Number.isInteger(tiltPort) ? tiltPort : 10350));
         void poll();
         const timer = setInterval(() => void poll(), 5000);
         return () => {
