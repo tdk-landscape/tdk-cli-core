@@ -288,9 +288,6 @@ describe("readiness gate", () => {
   it("sends no write until a GET to the health path is answered, and never repeats the write", async () => {
     const reset = Object.assign(new Error("read ECONNRESET"), { code: "ECONNRESET" });
     const { fetch, calls } = fakeFetch({
-<<<<<<< HEAD
-      [`GET ${base}/health`]: [reset, { status: 404 }, { status: 503 }, { status: 200 }],
-=======
       [`GET ${base}/health`]: [
         reset,
         { status: 404 },
@@ -298,24 +295,17 @@ describe("readiness gate", () => {
         { status: 500 },
         { status: 200 },
       ],
->>>>>>> origin/main
       [`POST ${base}/records`]: [{ status: 201, body: '{"id":"a1"}' }],
       [`GET ${base}/records/a1`]: [{ status: 200, body: "smoke" }],
     });
     expect((await runSmokePlan(gated, { fetch, ...clock() })).ok).toBe(true);
     const firstPost = calls.findIndex((c) => c.method === "POST");
     expect(calls.slice(0, firstPost).map((c) => `${c.method} ${c.url}`)).toEqual(
-<<<<<<< HEAD
-      Array(4).fill(`GET ${base}/health`),
-=======
       Array(5).fill(`GET ${base}/health`),
->>>>>>> origin/main
     );
     expect(calls.filter((c) => c.method === "POST")).toHaveLength(1);
   });
 
-<<<<<<< HEAD
-=======
   it("gives the steps their own timeout after a slow readiness wait", async () => {
     const plan: SmokePlan = {
       ...gated,
@@ -331,7 +321,6 @@ describe("readiness gate", () => {
     expect(calls.filter((c) => c.url.endsWith("/ping"))).toHaveLength(2);
   });
 
->>>>>>> origin/main
   it("falls through to the first step when the service never answers, so that step reports it", async () => {
     const down = Object.assign(new Error("connect ECONNREFUSED"), { code: "ECONNREFUSED" });
     const { fetch, calls } = fakeFetch({
@@ -452,8 +441,6 @@ describe("smoke records", () => {
     expect(existsSync(join(dir, "body.txt"))).toBe(false);
   });
 
-<<<<<<< HEAD
-=======
   it("keeps a separate record for steps whose names slug the same", async () => {
     const recordDir = tmp();
     const plan: SmokePlan = {
@@ -477,7 +464,6 @@ describe("smoke records", () => {
     );
   });
 
->>>>>>> origin/main
   it("writes nothing without a recordDir", async () => {
     const { fetch } = fakeFetch({
       [`POST ${base}/records`]: [{ status: 201, body: '{"id":"a1"}' }],

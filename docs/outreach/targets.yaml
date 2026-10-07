@@ -25,11 +25,6 @@ targets:
       stars; tdk-cli-core is created 2026-09-19 with 15 stars. Earliest 2026-12-19,
       and only if stars >= 20. It also says AI-generated PRs are not welcome and
       wants one PR per app with human reasoning, so a human writes it.
-<<<<<<< HEAD
-# Rejected after checking:
-# - abhishek-ch/awesome-k8s-resources: lists Tilt, but last push 2020-09-13 (stale).
-# - vilaca/awesome-k8s-tools: ranked automatically by stars, no manual submissions.
-=======
   - url: https://github.com/mfornos/awesome-microservices
     list_path: README.md
     why: >-
@@ -60,4 +55,3 @@ targets:
 # - shospodarets/awesome-platform-engineering: no section that fits local orchestration.
 # - prokopsimek/awesome-developer-experience: "Local development" is AI assistants and
 #   emulators; last push 2025-05-07.
->>>>>>> origin/main

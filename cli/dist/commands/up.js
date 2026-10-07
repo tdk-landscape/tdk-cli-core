@@ -6,7 +6,6 @@ import { ensureProjectRuntimeAssets, ProjectConfigNotFoundError, verifyMasterCon
 import { DEVCONTAINER_DOCKER_FIX, detectHost, isContainerHost, WEBCONTAINER_UP_MESSAGE, } from "../utils/agent-host.js";
 import { handleDryRun } from "../utils/command-helpers.js";
 import { getDeferredResourceNames } from "../utils/doctor-runtime.js";
-import { checkDriftGate } from "../utils/drift-gate.js";
 import { completeEnvFile } from "../utils/env-validator.js";
 import { errorFactories, handleTiltFailure, requireProjectRoot, runCommand, showErrorAndExit, withTiltCheck, } from "../utils/errors.js";
 import { formatCount } from "../utils/formatting.js";
@@ -362,12 +361,6 @@ export const upCommand = new Command("up")
             stop: stopTiltOnPort,
             log: (message) => console.log(chalk.yellow(message)),
             wait: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
-        });
-        // Verify generated files before starting Tilt
-        checkDriftGate({
-            projectRoot,
-            ignoreDrift: options.ignoreDrift,
-            quiet: options.quiet,
         });
         if (!options.quiet) {
             console.log(chalk.gray("\nRunning tilt up..."));

@@ -14,8 +14,4 @@
 ## 3. Review gate
 
 - [x] 3.1 PR checklist: public list_path, affiliation, no endorsement claim, no second open issue
-<<<<<<< HEAD
-- [ ] 3.2 Pick five candidate public lists and leave them unsent until the packet PR merges (2 of 5 found, 1 of them blocked; see `docs/outreach/targets.yaml`)
-=======
 - [ ] 3.2 Pick five candidate public lists and leave them unsent until the packet PR merges (four listed in `docs/outreach/targets.yaml`, one of them blocked; none sent)
->>>>>>> origin/main
