@@ -19,7 +19,7 @@ Hard-won, repo-specific facts for anyone (human or agent) working here. Keep ent
 - Never commit a `cli/node_modules` symlink (`.gitignore` does not match a symlink). It stalls `bun install` and makes Lint/Test/Typecheck look cancelled.
 - Open every PR against `main`; no stacked PRs (a stacked PR merged into a squash-merged base never reaches `main`). After a merge, check the files exist on `origin/main`.
 - A PR can be squash-merged before your last commit lands: check `gh pr view N --json state` before pushing a follow-up, and open a new PR from `main` if it merged.
-- Test job limit was 1 minute until #407; a job "cancelled" at exactly the limit is a timeout, read the step log before rerunning. `wsl2-smoke` can fail inside `setup-wsl` (wsl.exe 403): rerun.
+- Test job limit was 1 minute until #407; a job "cancelled" at exactly the limit is a timeout, read the step log before rerunning. `wsl2-smoke` is manual-only since 2026-10-07 (workflow_dispatch; its job is skipped on PRs and pushes, which still satisfies the required check). It was flaky on `setup-wsl`'s hard-coded `wsl --update` 403 on windows-2022 and on apt/Docker mirrors (#716, #717).
 - Pinned hashes in `resource-backend-languages.test.ts` change when scaffold output changes; re-capture them on purpose and say why in the test comment.
 
 ## Engine and generators

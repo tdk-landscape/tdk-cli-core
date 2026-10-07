@@ -58,7 +58,7 @@ Stop the stack from the first terminal with `Ctrl+C`, then run `tdk down` from t
 
 With TDK and Docker Desktop WSL integration already available, run `bash scripts/wsl2-smoke.sh` from the TDK repository checkout inside Ubuntu. It copies the bundled example into a temporary directory, checks doctor and generated configuration, boots the stack, exercises the same routed write and worker observation, and tears the stack down. Pass a directory path to keep the copied example for inspection.
 
-The required [WSL2 smoke workflow history](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/wsl2-smoke.yml) runs on `windows-2022`, provisions Ubuntu 24.04 under WSL2, and installs Docker Engine inside that distro. [The successful run on merge commit `ad7c5c0`](https://github.com/tdk-landscape/tdk-cli-core/actions/runs/36903887190) records HTTP 200 responses for the routed API, worker-readiness, and app checks, followed by a successful NATS worker observation. This CI path tests Docker Engine inside WSL2; it does not test Docker Desktop WSL integration.
+The [WSL2 smoke workflow](https://github.com/tdk-landscape/tdk-cli-core/actions/workflows/wsl2-smoke.yml) no longer runs on pull requests or pushes; it is started by hand and runs on `windows-2022`, provisions Ubuntu 24.04 under WSL2, and installs Docker Engine inside that distro. [The successful run on merge commit `ad7c5c0`](https://github.com/tdk-landscape/tdk-cli-core/actions/runs/36903887190) records HTTP 200 responses for the routed API, worker-readiness, and app checks, followed by a successful NATS worker observation. This CI path tests Docker Engine inside WSL2; it does not test Docker Desktop WSL integration.
 
 ## Troubleshooting
 

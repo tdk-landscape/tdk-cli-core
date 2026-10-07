@@ -16,19 +16,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  docs:
-    uses: ./.github/workflows/docs-only.yml # zizmor: ignore[self-repository] reusable workflow resolves from this commit, not the job filesystem
-    permissions:
-      contents: read
-      pull-requests: read
-
   wsl2-smoke:
     runs-on: windows-2022
-    needs: docs
-    # Windows runner minutes are the costly ones, so pull requests skip this job while they are drafts and when only
-    # docs, bring-your-own examples, tests, build output or TUI-only code changed. A skipped job still satisfies required
-    # checks. Pushes to the default branch and manual runs always run it (docs-only.yml fails closed for them).
-    if: ${{ !cancelled() && (github.event_name != 'pull_request' || !github.event.pull_request.draft) && needs.docs.outputs.docs_only != 'true' && needs.docs.outputs.examples_only != 'true' && needs.docs.outputs.wsl2_irrelevant != 'true' }}
+    # Manual runs only (Actions -> Run workflow). On pull requests and pushes the job is skipped, and a skipped job still
+    # satisfies the required `wsl2-smoke` check, so branch protection needs no change. It was flaky on setup-wsl's
+    # `wsl --update` 403 and on the Ubuntu and Docker mirrors (#716, #717) and cost a Windows runner on every PR.
+    if: ${{ !cancelled() && github.event_name == 'workflow_dispatch' }}
     timeout-minutes: 30
     steps:
       - run: git config --global core.autocrlf false
