@@ -1,0 +1,3 @@
+[mcp_servers.tdk]
+command = "tdk"
+args = ["mcp"]
