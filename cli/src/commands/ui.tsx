@@ -7,6 +7,7 @@ import {
   FileTree,
   ResourceSelectInput,
   ResourceTable,
+  ServiceIssues,
   TabBar,
   TUIHeader,
 } from "../components/index.js";
@@ -35,6 +36,11 @@ import {
 import { createStatusMessageController } from "../utils/status-message.js";
 import { getListRowFromMouseY, getTerminalRuleWidth } from "../utils/terminal-layout.js";
 import { isTiltAvailable } from "../utils/tilt.js";
+import {
+  applyServiceStates,
+  fetchServiceStates,
+  type ServiceStates,
+} from "../utils/ui-service-state.js";
 
 // biome-ignore lint/correctness/noUnusedFunctionParameters: reserved callback prop kept in the component API
 const HelpPanel: React.FC<HelpPanelProps> = ({ onClose }) => {
@@ -214,6 +220,29 @@ export const TUIApp: React.FC<{ animated?: boolean }> = ({ animated = true }) =>
     services: DiscoveredResource[];
   }>({ stacks: [], services: [] });
 
+  // What the running Tilt says about each service: the same answer `tdk status` gives. Empty while no Tilt answers.
+  const [serviceStates, setServiceStates] = useState<ServiceStates>({});
+  useEffect(() => {
+    let cancelled = false;
+    const tiltPort = Number.parseInt(process.env.TILT_PORT ?? "", 10);
+    const poll = async (): Promise<void> => {
+      const next = await fetchServiceStates(
+        services,
+        Number.isInteger(tiltPort) ? tiltPort : 10350,
+      );
+      if (cancelled) return;
+      setServiceStates((previous) =>
+        JSON.stringify(previous) === JSON.stringify(next) ? previous : next,
+      );
+    };
+    void poll();
+    const timer = setInterval(() => void poll(), 5000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [services]);
+
   // Re-read service.json files from disk. An empty project is not an error:
   // it renders EmptyState. Only a failed discovery shows ErrorScreen.
   const refresh = useCallback((): boolean => {
@@ -240,9 +269,9 @@ export const TUIApp: React.FC<{ animated?: boolean }> = ({ animated = true }) =>
     if (!stack) return null;
     return {
       stack,
-      metadata: getStackMetadata(stack),
+      metadata: applyServiceStates(getStackMetadata(stack), serviceStates),
     };
-  }, [selectedStack, stacks]);
+  }, [selectedStack, stacks, serviceStates]);
 
   const selectedServiceData = useMemo(() => {
     if (!selectedService) return null;
@@ -775,11 +804,12 @@ export const TUIApp: React.FC<{ animated?: boolean }> = ({ animated = true }) =>
                   {selectedStackData ? (
                     <>
                       <Text color={theme.muted}>Stack: {selectedStackData.stack.name}</Text>
-                      <Box marginTop={1}>
+                      <Box marginTop={1} flexDirection="column">
                         <ResourceTable
                           resources={selectedStackData.metadata.resources}
                           maxWidth={terminalWidth - (showSidebar ? 50 : 10)}
                         />
+                        <ServiceIssues resources={selectedStackData.metadata.resources} />
                       </Box>
                     </>
                   ) : (

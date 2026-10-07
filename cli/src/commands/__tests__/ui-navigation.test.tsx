@@ -15,7 +15,18 @@ vi.mock("../../utils/services.js", () => ({
     })),
   discoverResources: () => [{ name: "api", path: "/tmp/test/api", stack: "stack-00" }],
   getResourceMetadata: vi.fn(),
-  getStackMetadata: vi.fn(),
+  getStackMetadata: (stack: { name: string }) => ({
+    name: stack.name,
+    resourceCount: 0,
+    createdAt: "2026-10-07T00:00:00.000Z",
+    lastModified: "2026-10-07T00:00:00.000Z",
+    resources: [],
+    overallStatus: "unknown",
+  }),
+}));
+vi.mock("../../utils/up-readiness.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../utils/up-readiness.js")>()),
+  tiltGetUiResources: async () => null,
 }));
 vi.mock("../../utils/paths.js", () => ({
   findProjectRoot: () => "/tmp/test",
