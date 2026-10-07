@@ -1,4 +1,5 @@
 import { parseTiltResourceFailures, summarizeTiltBuildError } from "./doctor-runtime.js";
+import { portConflictFix } from "./port-conflict-fix.js";
 import { isTiltResourcePending } from "./tilt-resource-state.js";
 import { onlyEnabledResources } from "./up-readiness.js";
 export function transitiveDependencies(name, dependsOn) {
@@ -52,8 +53,12 @@ export function isStartupStalled(jsonText, dependsOn, deferred = new Set()) {
 }
 export function formatStartupReport(report, timedOut) {
     const lines = [];
-    for (const { name, message } of report.failed)
+    for (const { name, message } of report.failed) {
         lines.push(`✗ ${name} failed: ${message}`);
+        const fix = portConflictFix(message);
+        if (fix)
+            lines.push(`  ${fix}`);
+    }
     for (const { name, because } of report.blocked) {
         lines.push(`✗ ${name} is not ready because ${because.join(", ")} failed`);
     }

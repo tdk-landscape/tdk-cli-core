@@ -1,0 +1,1 @@
+{"version":3,"file":"port-conflict-fix.js","sourceRoot":"","sources":["../../src/utils/port-conflict-fix.ts"],"names":[],"mappings":"AAAA;;;GAGG;AACH,MAAM,UAAU,eAAe,CAAC,OAAe;IAC7C,MAAM,KAAK,GAAG,OAAO,CAAC,KAAK,CAAC,wCAAwC,CAAC,CAAC;IACtE,IAAI,CAAC,KAAK;QAAE,OAAO,IAAI,CAAC;IACxB,MAAM,IAAI,GAAG,KAAK,CAAC,CAAC,CAAC,CAAC;IACtB,OAAO,oCAAoC,IAAI,kCAAkC,IAAI,+EAA+E,CAAC;AACvK,CAAC"}
