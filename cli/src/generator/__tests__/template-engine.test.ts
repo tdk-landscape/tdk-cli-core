@@ -301,6 +301,8 @@ describe("template-engine", () => {
       const tiltfile = loadTemplate("Tiltfile.hbs");
       expect(tiltfile).toMatch(/GOLDEN_IMAGE_RESOURCE\s*=\s*Infra\.load_all\(/);
       expect(tiltfile).toMatch(/'golden_image_resource':\s*GOLDEN_IMAGE_RESOURCE/);
+      expect(tiltfile).toMatch(/'focus_mode':\s*FOCUS_MODE/);
+      expect(tiltfile).toMatch(/'focus_enabled_resources':\s*FOCUS_ENABLED_RESOURCES/);
     });
 
     it("standalone Traefik only starts sablier and wake-gateway when Sablier is licensed", () => {
@@ -349,7 +351,12 @@ describe("template-engine", () => {
       );
 
       expect(focusBlock).toMatch(
-        /_ALWAYS_ENABLED_INFRA_RESOURCES\s*=\s*\[\s*'init-networks',\s*'postgres',\s*'traefik',\s*'golden-layers-build',?\s*\]/,
+        /_ALWAYS_ENABLED_INFRA_RESOURCES\s*=\s*\[\s*'init-networks',\s*'traefik',\s*'golden-layers-build',?\s*\]/,
+      );
+      // A filtered feature-off run can have no Postgres resource. Passing an
+      // unregistered name to set_enabled_resources makes Tiltfile evaluation fail.
+      expect(focusBlock).toMatch(
+        /if should_enable\('database-management'\) or TILT_CONTEXT\.get\('_shared_platform_postgres_force_started', False\):\s*\n\s*_ALWAYS_ENABLED_INFRA_RESOURCES\.append\('postgres'\)/,
       );
       // Read from the messaging compose file, not a second hardcoded list, so a
       // service added to that file later (mailpit, a mail catcher, ...) is

@@ -96,6 +96,7 @@ export const statusCommand = new Command("status")
             resources: tiltResources,
             readiness,
           },
+          resourceCount: discovery.resources.length,
           resources: discovery.resources.map((resource) => ({
             name: resource.name,
             stack: resource.stack ?? null,
@@ -110,7 +111,9 @@ export const statusCommand = new Command("status")
           stacks: discovery.stacks.map((stack) => ({
             name: stack.name,
             resourceCount: stack.resourceCount,
+            resources: stack.resources.map((resource) => resource.name),
           })),
+          unassignedResources: discovery.unassignedResources.map((resource) => resource.name),
         };
         console.log(JSON.stringify(createMachineEnvelope(data, errors)));
         if (errors.length > 0) {
@@ -168,7 +171,7 @@ export const statusCommand = new Command("status")
       }
 
       console.log();
-      showDetail('Run "tdk list-stacks" to see all stacks.');
+      showDetail('Run "tdk stacks" to see all stacks.');
       showDetail('Run "tdk up <stack-name>" to start a stack.');
     };
 

@@ -12,6 +12,8 @@ import {
   getBackendIndexTemplate,
   getDockerfileTemplate,
   getWorkerIndexTemplate,
+  PRISMA_CONFIG_TEMPLATE,
+  PRISMA_SCHEMA_TEMPLATE,
   parseResourceType,
   TSCONFIG_TEMPLATE,
   TYPE_SPECIFIC,
@@ -73,6 +75,12 @@ describe("resource command", () => {
       expect(serviceJson.$schema).toBe("https://tdk-landscape.github.io/schema.service.json");
     });
 
+    it("adds the Prisma feature to the service manifest when requested", () => {
+      const serviceJson = createServiceJson("orders-api", "backend", "main", 3001, ["prisma"]);
+      expect(serviceJson.featuresEnabled).toContain("prisma");
+      expect(serviceJson.dependsOn).toEqual([]);
+    });
+
     it("should create valid frontend service.json using createServiceJson", () => {
       const name = "test-frontend";
       const type = "frontend";
@@ -121,6 +129,23 @@ describe("resource command", () => {
   });
 
   describe("package.json template", () => {
+    it("pins Prisma 7 packages when Prisma is enabled", () => {
+      const service = createPackageJson("orders-api", "backend", undefined, true);
+      expect(service.dependencies).toMatchObject({
+        prisma: "^7.5.0",
+        "@prisma/client": "^7.5.0",
+        "@prisma/adapter-pg": "^7.5.0",
+        pg: "^8.13.0",
+      });
+      expect(service.scripts.start).toBe("bun run dist/index.js");
+    });
+
+    it("uses the Prisma 7 client generator and generated config shape", () => {
+      expect(PRISMA_SCHEMA_TEMPLATE).toContain('provider = "prisma-client"');
+      expect(PRISMA_SCHEMA_TEMPLATE).toContain('output   = "../generated/prisma"');
+      expect(PRISMA_SCHEMA_TEMPLATE).not.toContain("url");
+      expect(PRISMA_CONFIG_TEMPLATE).toContain("process.env.DATABASE_URL");
+    });
     it("should create backend package.json with Hono using createPackageJson", () => {
       const name = "test-backend";
       const type = "backend";

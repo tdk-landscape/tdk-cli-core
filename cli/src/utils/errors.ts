@@ -2,6 +2,7 @@ import chalk from "chalk";
 import { QUICKSTART_DOCS_URL } from "./constants.js";
 import { getContainerRuntimeStatus } from "./docker.js";
 import { findProjectRoot } from "./paths.js";
+import { suggestClosest } from "./suggestions.js";
 import { isTiltAvailable } from "./tilt.js";
 
 export function getErrorMessage(err: unknown): string {
@@ -37,6 +38,23 @@ export class TdkError extends Error {
   }
 }
 
+function closestNameSuggestions(
+  names: readonly string[],
+  candidates: readonly string[],
+  includeInput = false,
+): string[] {
+  const suggestions = new Set<string>();
+  for (const name of names) {
+    const closest = suggestClosest(name, candidates);
+    if (closest) {
+      suggestions.add(
+        includeInput ? `Did you mean "${closest}" for "${name}"?` : `Did you mean "${closest}"?`,
+      );
+    }
+  }
+  return [...suggestions];
+}
+
 export const errorFactories = {
   tiltNotInstalled: () =>
     new TdkError("Tilt CLI is not installed", [
@@ -57,16 +75,27 @@ export const errorFactories = {
       "Quit and reopen Docker Desktop, or run `colima restart`",
       "Then verify with: `docker ps`",
     ]),
-  stackNotFound: (name: string) =>
+  stackNotFound: (name: string, stackNames: readonly string[] = []) =>
     new TdkError(`Stack "${name}" not found`, [
+      ...closestNameSuggestions([name], stackNames),
       "Run `tdk stacks` to see available stacks",
       "Run `tdk stack` to assign resources to a stack",
     ]),
-  resourceNotFound: (name: string) =>
+  resourceNotFound: (name: string, resourceNames: readonly string[] = []) =>
     new TdkError(`Resource "${name}" not found`, [
+      ...closestNameSuggestions([name], resourceNames),
       "Run `tdk resources` to list all resources",
       "Check the resource name spelling",
     ]),
+  unknownServices: (names: readonly string[], validNames: readonly string[]) => {
+    // Service selectors are Tilt resource names, so share the resource suggestion path.
+    const suggestions = closestNameSuggestions(names, validNames, names.length > 1);
+    return new TdkError(
+      `Unknown service ${names.join(", ")}. Valid names: ${validNames.join(", ")}`,
+      suggestions,
+      2,
+    );
+  },
   directoryExists: (path: string) =>
     new TdkError(`Directory already exists: ${path}`, [
       "Use `--path` to specify a different location",
@@ -87,9 +116,7 @@ export const errorFactories = {
 export function requireProjectRoot(): string {
   const projectRoot = findProjectRoot();
   if (!projectRoot) {
-    console.error(chalk.red("Error: Could not find project root (no .tdk/project.json found)."));
-    console.error(chalk.gray("Run `tdk project --yes` to initialize a new project."));
-    process.exit(1);
+    return errorFactories.notInProject().exit();
   }
   return projectRoot;
 }

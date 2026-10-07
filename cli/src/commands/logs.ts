@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import { STANDARD_PORTS } from "../utils/constants.js";
-import { runCommand, showErrorAndExit } from "../utils/errors.js";
+import { errorFactories, runCommand, showErrorAndExit, TdkError } from "../utils/errors.js";
 import { createMachineEnvelope } from "../utils/machine-output.js";
 import { isTiltAvailable, runTilt } from "../utils/tilt.js";
 import {
@@ -36,12 +36,24 @@ export const logsCommand = new Command("logs")
   .option("--port <n>", "Tilt UI port (default: TILT_PORT or 10350)")
   .option("--json", "Output one JSON object and exit", false)
   .action(async (options) => {
-    const fail = (code: string, message: string, exitCode = 1): never => {
+    const fail = (
+      code: string,
+      message: string,
+      exitCode = 1,
+      suggestions: string[] = [],
+    ): never => {
       if (options.json) {
-        console.log(JSON.stringify(createMachineEnvelope(null, [{ code, message }])));
+        console.log(
+          JSON.stringify(
+            createMachineEnvelope(null, [
+              { code, message, ...(suggestions.length > 0 ? { suggestions } : {}) },
+            ]),
+          ),
+        );
         console.error(message);
         process.exit(exitCode);
       }
+      if (suggestions.length > 0) return new TdkError(message, suggestions, exitCode).exit();
       return showErrorAndExit(message, exitCode);
     };
 
@@ -63,11 +75,9 @@ export const logsCommand = new Command("logs")
         const known = await tiltResourceNames(portText);
         const unknown = services.filter((name) => known && !known.includes(name));
         if (unknown.length > 0) {
-          fail(
-            "UNKNOWN_SERVICE",
-            `Unknown service ${unknown.join(", ")}. Valid names: ${(known ?? []).join(", ")}`,
-            2,
-          );
+          const error = errorFactories.unknownServices(unknown, known ?? []);
+          const suggestions = error.suggestions;
+          fail("UNKNOWN_SERVICE", error.message, error.exitCode, suggestions);
         }
       }
       const args = ["--port", portText, "--tail", String(tail)];

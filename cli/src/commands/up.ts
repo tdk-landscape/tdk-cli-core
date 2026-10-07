@@ -32,8 +32,10 @@ import {
 } from "../utils/host-port-config.js";
 import { formatHostPortPlan } from "../utils/host-port-plan.js";
 import { createJsonEmitter } from "../utils/json-output.js";
+import { toMachineError } from "../utils/machine-output.js";
 import { findProjectRoot, getPackageVersion } from "../utils/paths.js";
 import { findAvailablePort } from "../utils/port-assignment.js";
+import { formatPortFallbackNotice } from "../utils/port-fallback-notice.js";
 import { isApiServiceType } from "../utils/resource-kind.js";
 import { appendHealthPath, resolveSubdomainBases } from "../utils/service-urls.js";
 import {
@@ -43,10 +45,20 @@ import {
   stackExists,
 } from "../utils/services.js";
 import { buildSmokePlans, formatSmokeFailure, runSmokePlans } from "../utils/smoke.js";
+import {
+  buildStartupReport,
+  formatStartupReport,
+  isStartupStalled,
+} from "../utils/startup-report.js";
 import { evaluateTdkVersionFloor } from "../utils/tdk-version.js";
 import { buildTiltUpArgs, runTilt } from "../utils/tilt.js";
 import { stopTiltOnPort } from "../utils/tilt-process.js";
-import { parseTiltPort, resolveTiltPort, stopTiltForUp } from "../utils/tilt-startup.js";
+import {
+  parseTiltPort,
+  resolveTiltPort,
+  secondUpAction,
+  stopTiltForUp,
+} from "../utils/tilt-startup.js";
 import { findUnknownServices, resolveOnlySelection } from "../utils/up-only.js";
 import { tiltGetUiResources, waitForTiltResourcesReady } from "../utils/up-readiness.js";
 import { enableDiscoveredStacks } from "./project.js";
@@ -234,17 +246,34 @@ export const upCommand = new Command("up")
       const foundRoot = options.dryRun ? requireProjectRoot() : findProjectRoot();
       const projectRoot = foundRoot ?? process.cwd();
       const discoveredResources = discoverResourcesStrict();
+      let discoveredStacks: ReturnType<typeof discoverStacks> | undefined;
+      let discoveredStackNames: string[] = [];
+      if (!options.only || stackName) {
+        discoveredStacks = discoverStacks(discoveredResources);
+        discoveredStackNames = discoveredStacks.map((stack) => stack.name);
+      }
       // Reject a bad request before anything below can write to the project (.env, runtime assets, .tdk/project.json).
       if (options.only) {
-        if (stackName && !stackExists(stackName)) errorFactories.stackNotFound(stackName).exit();
+        if (stackName && !stackExists(stackName)) {
+          const error = errorFactories.stackNotFound(stackName, discoveredStackNames);
+          emit?.({ ok: false }, [toMachineError(error).error]);
+          error.exit();
+        }
         const candidates = stackName
           ? discoveredResources.filter((resource) => resource.stack === stackName)
           : discoveredResources;
         const unknown = findUnknownServices(options.only, candidates);
         if (unknown.length > 0) {
-          const message = `Unknown service ${unknown.join(", ")}. Valid names: ${candidates.map((s) => s.name).join(", ")}`;
-          emit?.({ ok: false }, [{ code: "UNKNOWN_SERVICE", message }]);
-          showErrorAndExit(message, 2);
+          const validNames = candidates.map((service) => service.name);
+          const error = errorFactories.unknownServices(unknown, validNames);
+          emit?.({ ok: false }, [
+            {
+              code: "UNKNOWN_SERVICE",
+              message: error.message,
+              ...(error.suggestions.length > 0 ? { suggestions: error.suggestions } : {}),
+            },
+          ]);
+          error.exit();
         }
       }
       // Also under --dry-run: the check only reads, and a dry run should show what a real run would refuse.
@@ -293,14 +322,16 @@ export const upCommand = new Command("up")
       if (stackName) {
         servicesToStart = discoveredResources.filter((resource) => resource.stack === stackName);
         if (servicesToStart.length === 0) {
-          errorFactories.stackNotFound(stackName).exit();
+          const error = errorFactories.stackNotFound(stackName, discoveredStackNames);
+          emit?.({ ok: false }, [toMachineError(error).error]);
+          error.exit();
         }
 
         focusServiceNames = servicesToStart.map((s) => s.name);
         stackDescription = `stack "${stackName}"`;
       } else {
         servicesToStart = discoveredResources;
-        const allStacks = discoverStacks(discoveredResources);
+        const allStacks = discoveredStacks ?? discoverStacks(discoveredResources);
         stackDescription = `all stacks (${formatCount(allStacks.length, "stack")}, ${formatCount(servicesToStart.length, "service")})`;
       }
 
@@ -377,6 +408,7 @@ export const upCommand = new Command("up")
       const dryRunCommand = focusTargets ? `tilt up ${tiltArgs.join(" ")}` : "tilt up";
       if (!options.quiet) {
         console.log(chalk.blue(formatHostPortPlan(hostPortPlan)));
+        for (const line of formatPortFallbackNotice(hostPortPlan)) console.log(chalk.yellow(line));
         console.log(
           chalk.gray("Override with TDK_HTTP_PORT, TDK_HTTPS_PORT, or TDK_POSTGRES_PORT."),
         );
@@ -402,23 +434,33 @@ export const upCommand = new Command("up")
       writeSavedHostPortPlan(projectRoot, hostPortPlan);
 
       const basePort = 10350;
-
-      // A second Tilt would apply a different selection to the same containers, whatever port it listens on, so `--only`
-      // looks for a Tilt that answers on the default port and on TILT_PORT before it chooses one. A listener that is not
-      // Tilt does not count: the port is then picked below as usual.
+      const watchedPort = configuredTiltPort ?? basePort;
+      const candidatePorts = options.only ? [...new Set([basePort, watchedPort])] : [watchedPort];
+      const running: number[] = [];
+      for (const candidate of candidatePorts) {
+        if ((await tiltGetUiResources(candidate)) !== null) running.push(candidate);
+      }
+      const decision = secondUpAction({
+        runningPorts: running,
+        force: options.force,
+        only: Boolean(options.only),
+      });
+      if (decision.action === "already-running") {
+        const message = `Environment is already running on port ${decision.ports.join(", ")}.`;
+        emit?.({
+          ok: true,
+          alreadyRunning: true,
+          tiltUrl: `http://localhost:${decision.ports[0]}`,
+        });
+        if (!options.quiet) console.log(chalk.green(message));
+        return;
+      }
+      if (decision.action === "only-blocked") {
+        const message = `A Tilt is already running on port ${decision.ports.join(", ")}. --only cannot change a running stack's services: run \`tdk down\` first, or pass --force to replace it.`;
+        emit?.({ ok: false }, [{ code: "TILT_ALREADY_RUNNING", message }]);
+        showErrorAndExit(message);
+      }
       if (options.only) {
-        const candidatePorts = [
-          ...new Set([basePort, ...(configuredTiltPort === undefined ? [] : [configuredTiltPort])]),
-        ];
-        const running: number[] = [];
-        for (const candidate of candidatePorts) {
-          if ((await tiltGetUiResources(candidate)) !== null) running.push(candidate);
-        }
-        if (running.length > 0 && !options.force) {
-          const message = `A Tilt is already running on port ${running.join(", ")}. --only cannot change a running stack's services: run \`tdk down\` first, or pass --force to replace it.`;
-          emit?.({ ok: false }, [{ code: "TILT_ALREADY_RUNNING", message }]);
-          showErrorAndExit(message);
-        }
         for (const runningPort of running) stopTiltOnPort(runningPort);
       }
 
@@ -462,6 +504,7 @@ export const upCommand = new Command("up")
       let smokeFailed = false;
 
       let printedSuccess = false;
+      let startupFailed = false;
       const successOutput = (async () => {
         const uiReady = await waitForTiltUi(port);
         // JSON consumers get success only after every non-deferred resource is built and running, not when the UI port opens.
@@ -496,11 +539,37 @@ export const upCommand = new Command("up")
             ]);
           }
         }
-        if (uiReady && !options.quiet) {
+        // The UI port opening only means Tilt started. Say "up" once every resource is built and running, and otherwise name
+        // what failed and what it blocks.
+        if (uiReady && !emit) {
+          const deferred = getDeferredResourceNames();
+          const dependsOn = Object.fromEntries(
+            discoverResources().map((r) => [r.name, r.config?.dependsOn ?? []]),
+          );
+          const readiness = await waitForTiltResourcesReady(port, {
+            deferred,
+            isStalled: (text) => isStartupStalled(text, dependsOn, deferred),
+          });
+          if (!readiness.ready) {
+            startupFailed = true;
+            const resourcesJson = await tiltGetUiResources(port);
+            const report = resourcesJson
+              ? buildStartupReport(resourcesJson, dependsOn, deferred)
+              : {
+                  failed: readiness.failures,
+                  blocked: [],
+                  starting: [],
+                };
+            for (const line of formatStartupReport(report, readiness.timedOut)) {
+              console.error(chalk.red(line));
+            }
+          }
+        }
+        if (uiReady && !options.quiet && !startupFailed) {
           for (const line of formatUpSuccess(port)) console.log(chalk.blue(line));
           printedSuccess = true;
         }
-        if (uiReady && smokePlans.length > 0 && (!emit || jsonReady)) {
+        if (uiReady && smokePlans.length > 0 && (emit ? jsonReady : !startupFailed)) {
           if (!options.quiet) {
             console.log(chalk.gray(`Smoke check: ${smokePlans.map((p) => p.name).join(", ")}`));
           }
@@ -542,6 +611,10 @@ export const upCommand = new Command("up")
 
       if (result.exitCode !== 0) {
         handleTiltFailure("up", result.exitCode);
+      }
+
+      if (startupFailed && result.exitCode === 0) {
+        process.exit(1);
       }
 
       if (!options.quiet && result.exitCode === 0 && !printedSuccess) {

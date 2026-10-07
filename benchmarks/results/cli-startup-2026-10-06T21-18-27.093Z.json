@@ -1,0 +1,391 @@
+{
+  "date": "2026-10-06T21:18:27.093Z",
+  "runtime": {
+    "platform": "win32",
+    "release": "10.0.26100",
+    "arch": "x64",
+    "node": "v24.19.0",
+    "logicalCpus": 16,
+    "cpuModel": "12th Gen Intel(R) Core(TM) i5-12600KF",
+    "hostMemGiB": 31.835
+  },
+  "environment": {
+    "inheritedHostEnvironment": true,
+    "isolatedFromUserTdkConfigAndPath": false,
+    "childOverrides": ["TMP", "TEMP", "TMPDIR", "NO_COLOR"],
+    "tiltExecutableOnPath": false
+  },
+  "options": {
+    "sizes": [
+      10,
+      100,
+      500
+    ],
+    "runs": 10,
+    "warmupCount": 1,
+    "timeoutMs": 60000,
+    "skipStatus": false,
+    "commands": [
+      "tdk version",
+      "tdk --help",
+      "tdk resources",
+      "tdk stacks",
+      "tdk status"
+    ]
+  },
+  "notes": [
+    "Each sample starts a fresh Node process and measures wall time through command exit; fixture generation and cleanup are outside the timed interval.",
+    "Service manifests contain only schemaVersion, appName, appType, and stack; this measures count-based discovery, not rich validation or generated runtime files.",
+    "Child processes inherit host environment except TMP, TEMP, TMPDIR, and NO_COLOR; user TDK config and PATH are not isolated.",
+    "Tilt was not on PATH for this Windows sample. tdk status includes the read-only Tilt probe and is not discovery-only; it may wait up to the 10-second timeout.",
+    "The 100-service tdk stacks median is a non-monotonic outlier and should be treated as measurement noise, not a scaling result.",
+    "No containers or Tilt services are started. Compare only like-for-like hardware, operating system, and Node runtime; this is not a CI performance gate."
+  ],
+  "results": [
+    {
+      "services": 10,
+      "command": "tdk version",
+      "runs": 10,
+      "warmupSamplesMs": [
+        471.942
+      ],
+      "medianMs": 481.458,
+      "minMs": 469.373,
+      "maxMs": 495.407,
+      "samplesMs": [
+        490.659,
+        487.125,
+        469.373,
+        489.918,
+        479.739,
+        495.407,
+        472.832,
+        474.257,
+        480.008,
+        482.908
+      ]
+    },
+    {
+      "services": 10,
+      "command": "tdk --help",
+      "runs": 10,
+      "warmupSamplesMs": [
+        484.337
+      ],
+      "medianMs": 478.71,
+      "minMs": 462.537,
+      "maxMs": 516.695,
+      "samplesMs": [
+        490.978,
+        512.257,
+        516.695,
+        462.537,
+        468.495,
+        471.203,
+        468.249,
+        479.176,
+        478.244,
+        486.995
+      ]
+    },
+    {
+      "services": 10,
+      "command": "tdk resources",
+      "runs": 10,
+      "warmupSamplesMs": [
+        518.686
+      ],
+      "medianMs": 494.025,
+      "minMs": 478.572,
+      "maxMs": 512.993,
+      "samplesMs": [
+        505.416,
+        496.504,
+        482.688,
+        495.264,
+        481.04,
+        512.993,
+        478.572,
+        503.231,
+        488.433,
+        492.785
+      ]
+    },
+    {
+      "services": 10,
+      "command": "tdk stacks",
+      "runs": 10,
+      "warmupSamplesMs": [
+        517.32
+      ],
+      "medianMs": 486.921,
+      "minMs": 470.724,
+      "maxMs": 512.821,
+      "samplesMs": [
+        488.128,
+        512.821,
+        478.09,
+        483.15,
+        478.368,
+        470.724,
+        485.713,
+        490.293,
+        493.813,
+        489.786
+      ]
+    },
+    {
+      "services": 10,
+      "command": "tdk status",
+      "runs": 10,
+      "warmupSamplesMs": [
+        10507.641
+      ],
+      "medianMs": 10512.98,
+      "minMs": 10503.767,
+      "maxMs": 10997.612,
+      "samplesMs": [
+        10512.845,
+        10507.686,
+        10512.544,
+        10508.428,
+        10522.124,
+        10503.767,
+        10514.69,
+        10997.612,
+        10513.114,
+        10533.034
+      ]
+    },
+    {
+      "services": 100,
+      "command": "tdk version",
+      "runs": 10,
+      "warmupSamplesMs": [
+        500.96
+      ],
+      "medianMs": 482.063,
+      "minMs": 468.9,
+      "maxMs": 495.012,
+      "samplesMs": [
+        480.976,
+        473.884,
+        479.442,
+        468.9,
+        483.149,
+        485.37,
+        480.817,
+        487.651,
+        487.473,
+        495.012
+      ]
+    },
+    {
+      "services": 100,
+      "command": "tdk --help",
+      "runs": 10,
+      "warmupSamplesMs": [
+        513.459
+      ],
+      "medianMs": 503.879,
+      "minMs": 481.052,
+      "maxMs": 539.808,
+      "samplesMs": [
+        489.798,
+        481.052,
+        503.643,
+        509.326,
+        516.264,
+        494.886,
+        510.731,
+        504.115,
+        539.808,
+        499.77
+      ]
+    },
+    {
+      "services": 100,
+      "command": "tdk resources",
+      "runs": 10,
+      "warmupSamplesMs": [
+        495.372
+      ],
+      "medianMs": 504.375,
+      "minMs": 488.391,
+      "maxMs": 529.654,
+      "samplesMs": [
+        488.391,
+        529.654,
+        515.403,
+        492.701,
+        508.768,
+        495.728,
+        502.96,
+        517.506,
+        505.184,
+        503.566
+      ]
+    },
+    {
+      "services": 100,
+      "command": "tdk stacks",
+      "runs": 10,
+      "warmupSamplesMs": [
+        568.42
+      ],
+      "medianMs": 818.209,
+      "minMs": 517.807,
+      "maxMs": 967.747,
+      "samplesMs": [
+        576.469,
+        944.784,
+        915.302,
+        638.488,
+        938.648,
+        967.747,
+        956.035,
+        721.116,
+        534.235,
+        517.807
+      ]
+    },
+    {
+      "services": 100,
+      "command": "tdk status",
+      "runs": 10,
+      "warmupSamplesMs": [
+        10504.125
+      ],
+      "medianMs": 10538.394,
+      "minMs": 10508.846,
+      "maxMs": 10800.295,
+      "samplesMs": [
+        10538.521,
+        10538.267,
+        10536.168,
+        10525.062,
+        10717.034,
+        10734.701,
+        10800.295,
+        10519.737,
+        10784.316,
+        10508.846
+      ]
+    },
+    {
+      "services": 500,
+      "command": "tdk version",
+      "runs": 10,
+      "warmupSamplesMs": [
+        484.575
+      ],
+      "medianMs": 498.554,
+      "minMs": 477.399,
+      "maxMs": 526.191,
+      "samplesMs": [
+        477.399,
+        500.071,
+        497.037,
+        526.191,
+        490.205,
+        506.781,
+        496.62,
+        512.024,
+        480.751,
+        517.767
+      ]
+    },
+    {
+      "services": 500,
+      "command": "tdk --help",
+      "runs": 10,
+      "warmupSamplesMs": [
+        476.219
+      ],
+      "medianMs": 546.29,
+      "minMs": 500.447,
+      "maxMs": 624.246,
+      "samplesMs": [
+        526.727,
+        500.447,
+        548.349,
+        544.231,
+        515.073,
+        571.942,
+        624.246,
+        525.068,
+        560.335,
+        555.295
+      ]
+    },
+    {
+      "services": 500,
+      "command": "tdk resources",
+      "runs": 10,
+      "warmupSamplesMs": [
+        641.233
+      ],
+      "medianMs": 942.211,
+      "minMs": 731.907,
+      "maxMs": 1032.189,
+      "samplesMs": [
+        890.916,
+        955.659,
+        956.459,
+        938.894,
+        893.932,
+        731.907,
+        1032.189,
+        927.932,
+        956.56,
+        945.528
+      ]
+    },
+    {
+      "services": 500,
+      "command": "tdk stacks",
+      "runs": 10,
+      "warmupSamplesMs": [
+        699.592
+      ],
+      "medianMs": 524.217,
+      "minMs": 499.06,
+      "maxMs": 561.853,
+      "samplesMs": [
+        518.837,
+        534.872,
+        522.009,
+        515.135,
+        499.06,
+        516.143,
+        536.056,
+        551.873,
+        561.853,
+        526.425
+      ]
+    },
+    {
+      "services": 500,
+      "command": "tdk status",
+      "runs": 10,
+      "warmupSamplesMs": [
+        10546.866
+      ],
+      "medianMs": 10592.171,
+      "minMs": 10547.402,
+      "maxMs": 11075.058,
+      "samplesMs": [
+        10559.3,
+        10553.246,
+        10547.402,
+        10558.336,
+        10765.058,
+        10614.349,
+        10569.992,
+        11075.058,
+        10879.426,
+        10910.37
+      ]
+    }
+  ]
+}

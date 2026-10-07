@@ -9,7 +9,7 @@ import { MASTER_CONFIG_FILES, REQUIRED_PACKAGE_SCRIPTS } from "../utils/constant
 import { isPathDiscovered, readDiscoveryPaths } from "../utils/discovery-paths.js";
 import { collectDoctorChecks, createDoctorReport, getDoctorExitCode, } from "../utils/doctor-report.js";
 import { checkHealthRoutes, checkIngressPorts, checkPrivateNpmRegistry, checkTiltResourceHealth, projectConfigEnablesVerdaccio, summarizeServiceProbes, } from "../utils/doctor-runtime.js";
-import { checkDockerNetworkCapacity, checkDuplicateResourceNames, checkDuplicateResourcePorts, checkFrontendBackendUrls, checkMigrationsInApi, checkNatsBroker, checkResourcePackageJson, checkServiceUrlPorts, checkTiltInstances, } from "../utils/doctor-wiring.js";
+import { checkDockerNetworkCapacity, checkDuplicateResourceNames, checkDuplicateResourcePorts, checkFrontendBackendUrls, checkMigrationsInApi, checkNatsBroker, checkPrismaConsistency, checkResourcePackageJson, checkServiceUrlPorts, checkSharedPlatformPostgres, checkTiltInstances, } from "../utils/doctor-wiring.js";
 import { validateEnvFile } from "../utils/env-validator.js";
 import { execAsync, isExecTimeout } from "../utils/exec-async.js";
 import { formatCount } from "../utils/formatting.js";
@@ -1143,6 +1143,9 @@ export const doctorCommand = new Command("doctor")
         () => checkServiceUrlPorts(),
         () => checkFrontendBackendUrls(),
         () => checkNatsBroker(),
+        () => checkPrismaConsistency(),
+        // Shared platform Postgres: will-start report + unknown dependsOn names stay errors.
+        () => checkSharedPlatformPostgres(),
         () => checkMigrationsInApi(),
         () => checkTiltInstances(),
         checkEnvironmentVariables,

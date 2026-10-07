@@ -4,7 +4,14 @@ export function createMachineEnvelope(data, errors = []) {
 }
 export function toMachineError(error) {
     if (error instanceof TdkError) {
-        return { error: { code: "COMMAND_FAILED", message: error.message }, exitCode: 1 };
+        return {
+            error: {
+                code: "COMMAND_FAILED",
+                message: error.message,
+                ...(error.suggestions.length > 0 ? { suggestions: error.suggestions } : {}),
+            },
+            exitCode: error.exitCode,
+        };
     }
     return {
         error: {

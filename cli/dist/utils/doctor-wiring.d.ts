@@ -1,6 +1,8 @@
 import { execSync } from "node:child_process";
 import type { CheckResult } from "../types/index.js";
 import { type ExecAsync } from "./exec-async.js";
+/** Enforces the Prisma 7 project contract before `tdk up` can run. */
+export declare function checkPrismaConsistency(projectRoot?: string): CheckResult;
 export declare function checkResourcePackageJson(projectRoot?: string): CheckResult;
 /**
  * Two resources with one appName share a Compose service name and Traefik router and service names
@@ -24,6 +26,23 @@ export declare function checkFrontendBackendUrls(projectRoot?: string): CheckRes
  */
 export declare function checkMigrationsInApi(projectRoot?: string): CheckResult;
 export declare function checkNatsBroker(projectRoot?: string): CheckResult;
+/**
+ * Shared platform Postgres will-start reporting.
+ *
+ * Uses the same evaluateSharedPlatformPostgres predicate as `tdk config verify`,
+ * which reads project.json **and** the generated Tiltfile/spec.master when present.
+ * Resource set is the project discovery set those commands already inspect —
+ * not a `tdk up` filter. A resource that depends on Postgres while you bring up
+ * a different one still makes this report will-start; the engine start path is
+ * selection-bounded and may not start Postgres for that run. Unknown dependsOn
+ * names (typos like `postgress`) stay errors. Does NOT report
+ * postgres/database-management as missing services and does NOT claim Prisma
+ * will start.
+ *
+ * Preflight loop: edit service.json → `tdk config regenerate` → `tdk doctor`.
+ * Doctor is the gate; one real `tdk up` after doctor is green confirms the run.
+ */
+export declare function checkSharedPlatformPostgres(projectRoot?: string): CheckResult;
 interface TiltProcess {
     pid: number;
     root: string;

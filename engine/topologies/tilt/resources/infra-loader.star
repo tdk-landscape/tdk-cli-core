@@ -92,32 +92,83 @@ volumes:
 
 
 def _ensure_database_management_compose(root_prefix, write_fn):
-    """Ensure the database-management stack feature has its compose file."""
+    """Ensure the database-management stack feature has its compose file.
+
+    write_fn is expected to be Utils.write_file_if_changed, which prepends
+    TDK_PROJECT_ROOT to relative paths — the same base as root_prefix when
+    the Tiltfile sets TDK_PROJECT_ROOT = PROJECT_ROOT. A custom write_fn that
+    does not prepend may write a different file; if the path we return is
+    absolute and still missing after the relative write, write that exact
+    path once so the exists-check and the write cannot diverge.
+    """
     compose_rel = "services/platform/database-management/docker-compose.yml"
     compose_file = root_prefix + compose_rel if root_prefix else compose_rel
     if _file_exists(compose_file):
         return compose_file
     if write_fn:
         write_fn(compose_rel, _generate_database_management_compose())
+        if not _file_exists(compose_file) and compose_file.startswith('/'):
+            write_fn(compose_file, _generate_database_management_compose())
     return compose_file
+
+# No module-level mutable registration flag: Tilt freezes Starlark globals after
+# module load, so writing a key on a global dict raises "cannot insert into
+# frozen hash table". Feature-on (`_load_database_management`) and force-start
+# (`force_start_platform_postgres`) are mutually exclusive via should_enable —
+# the orchestrator only force-starts when database-management is off — so each
+# Tiltfile evaluation registers `postgres` at most once on its own path.
+
+
+def _register_platform_postgres(should_enable, root_prefix="", env_file=None, write_fn=None, required=False):
+    """Materialize the platform compose and register the shared `postgres` Tilt resource.
+
+    Does NOT load messaging, kafka, redis, nats, provision-db, or Prisma.
+
+    When `required` is true (dependsOn force-start path), a missing compose after
+    ensure is a hard failure — not a silent skip — so Tilt never waits on a
+    `postgres` resource that has no compose definition.
+    """
+    postgres_compose = _ensure_database_management_compose(root_prefix, write_fn)
+    if _file_exists(postgres_compose):
+        print("DEBUG INFRA: Loading postgres compose from {}".format(postgres_compose))
+        _docker_compose(postgres_compose, env_file)
+        dc_resource('postgres', labels=['infra.tools'], resource_deps=['init-networks'], auto_init=True)
+        return
+    message = "Shared platform Postgres compose was not materialized at {}".format(postgres_compose)
+    if required:
+        fail(message + " (write_fn present: {}). Refusing to register a postgres Tilt resource with no compose.".format(write_fn != None))
+    print("DEBUG INFRA: Skipping postgres (compose file not found): {}".format(message))
+
+
+def force_start_platform_postgres(should_enable, root_prefix="", env_file=None, write_fn=None):
+    """Force-start the shared platform Postgres for a run whose selected resources
+    depend on `postgres` / `database-management` while `database-management` is off.
+
+    Reuses the existing platform compose path and the existing `postgres` Tilt
+    resource — no second image, port, migrator, or Prisma resource.
+
+    The orchestrator MUST pass the same `write_fn` the feature path uses
+    (`ctx['write_file']`) so `services/platform/database-management/docker-compose.yml`
+    is materialized when missing. A failed materialize fails the run.
+    """
+    if env_file == None:
+        candidate_env_file = root_prefix + '.env' if root_prefix else '.env'
+        env_file = candidate_env_file if _file_exists(candidate_env_file) else None
+    print("🗃️  Force-starting shared platform Postgres (selected dependsOn postgres/database-management)")
+    _register_platform_postgres(should_enable, root_prefix, env_file, write_fn, required=True)
+
 
 def _load_database_management(should_enable, root_prefix="", env_file=None, write_fn=None):
     """Load database and messaging infrastructure."""
     if not should_enable('database-management'):
         print("DEBUG INFRA: database-management not enabled")
         return
-    
+
     print("🗃️  Loading database management services...")
-    
+
     # Load postgres from the database-management stack feature compose.
-    postgres_compose = _ensure_database_management_compose(root_prefix, write_fn)
-    if _file_exists(postgres_compose):
-        print("DEBUG INFRA: Loading postgres compose from {}".format(postgres_compose))
-        _docker_compose(postgres_compose, env_file)
-        dc_resource('postgres', labels=['infra.tools'], resource_deps=['init-networks'], auto_init=True)
-    else:
-        print("DEBUG INFRA: Skipping postgres (compose file not found)")
-    
+    _register_platform_postgres(should_enable, root_prefix, env_file, write_fn)
+
     # Load messaging if compose file exists
     messaging_compose = root_prefix + 'services/platform/messaging/docker-compose.yml'
     if _file_exists(messaging_compose):
@@ -131,7 +182,7 @@ def _load_database_management(should_enable, root_prefix="", env_file=None, writ
             dc_resource('nats', labels=['infra.messaging'], auto_init=True)
     else:
         print("DEBUG INFRA: Skipping messaging (compose file not found)")
-    
+
     # Only create kafka resources if debezium is enabled AND messaging exists
     cdc_enabled = should_enable('debezium')
     if cdc_enabled and _file_exists(messaging_compose):
@@ -422,7 +473,7 @@ Infra = struct(
     # Main loader
     load_all = load_all_infrastructure,
     init_networks = _init_networks,
-    
+
     # Individual loaders (for granular control)
     load_database = _load_database_management,
     load_verdaccio = _load_verdaccio,
@@ -432,4 +483,8 @@ Infra = struct(
     load_debezium = _load_debezium,
     load_elk = _load_elk,
     load_golden_image = _load_golden_image,
+
+    # Shared platform Postgres start signal (dependsOn postgres/database-management
+    # when the database-management feature is off). Idempotent; no messaging/kafka/Prisma.
+    force_start_postgres = force_start_platform_postgres,
 )

@@ -59,12 +59,17 @@ describe("ui escape key", () => {
   // the message line — so the quit hint was set but drawn nowhere. That is exactly the
   // user this issue is about: someone who opens tdk ui, finds nothing, and presses Esc.
   it("draws the message line in the empty state too", () => {
-    expect(ui).toContain("return <EmptyState message={message} />");
+    const emptyStateStart = ui.indexOf("if (services.length === 0)");
+    expect(emptyStateStart, "empty services branch not found").toBeGreaterThanOrEqual(0);
+    const emptyStateEnd = ui.indexOf("\n  }", emptyStateStart);
+    const emptyState = ui.slice(emptyStateStart, emptyStateEnd);
+    expect(emptyState).toContain("{header}");
+    expect(emptyState).toContain("<EmptyState message={message} />");
   });
 
   it("renders the message in EmptyState", () => {
     const empty = ui.slice(ui.indexOf("const EmptyState"), ui.indexOf("const TUIApp"));
     expect(empty).toContain("({ message })");
-    expect(empty).toContain("▓▒░ {message} ░▒▓");
+    expect(empty).toContain("{theme.bannerStart} {message} {theme.bannerEnd}");
   });
 });

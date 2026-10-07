@@ -110,12 +110,14 @@ curl -fsSL https://tdk-landscape.github.io/install.sh | sh
 
 ## History
 
-TDK is older than this repository and its npm package suggest. Development started on 21 April 2026 in
-[tdk-landscape/tdk](https://github.com/tdk-landscape/tdk), now archived and kept as read-only history; its first commit is
-[`1714637`](https://github.com/tdk-landscape/tdk/commit/1714637637196ed54cbfa18534230a782c05ab36) ("Initial commit: TDK specs,
-generators, CLI, and standards"). This repository, `tdk-cli-core`, was created on 19 September 2026 and is where development
-continues; the `@tdk-landscape/tdk-cli-core` package on npm was first published on 21 September 2026. So the code lineage is about
-five months older than the repository and package dates that you will see on GitHub and npm.
+TDK development began on 21 April 2026. The archived, read-only [tdk-landscape/tdk](https://github.com/tdk-landscape/tdk)
+repository records its [first commit](https://github.com/tdk-landscape/tdk/commit/1714637637196ed54cbfa18534230a782c05ab36)
+("Initial commit: TDK specs, generators, CLI, and standards") from that day. A separate `tdk-cli` history spanning 21 April to
+18 September 2026 was [imported into this repository](https://github.com/tdk-landscape/tdk-cli-core/pull/670) as 306 filtered
+commits. Those commits are now ancestors of `main`; the import did not change the source tree.
+
+This `tdk-cli-core` repository was created on 19 September 2026, and the `@tdk-landscape/tdk-cli-core` npm package was first
+published on 21 September 2026. Those dates describe the current repository and package, not the start of TDK development.
 
 ## Requirements and support
 
@@ -142,3 +144,8 @@ Contributions are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md) and the
 TDK is MIT-licensed; see [LICENSE](LICENSE). The [license boundary](GOVERNANCE.md#license-boundary-and-donation-scope) says which code is MIT and which is downloaded with a key.
 
 Project governance: [GOVERNANCE.md](GOVERNANCE.md), [MAINTAINERS.md](MAINTAINERS.md), [ADOPTERS.md](ADOPTERS.md).
+
+Use `tdk ui` to inspect stacks and resources. Arrow keys or `j`/`k` move the
+selection; `g`/`G` or Home/End jump to the first/last item, and PageUp/PageDown
+move one visible page. `/` searches; navigation letters remain search text
+while searching. The selected row stays visible when the terminal is resized.

@@ -112,7 +112,7 @@ describe("tdk resources and stacks --json", () => {
       env: { ...process.env, NO_COLOR: "1" },
     });
 
-    expect(result.status).toBe(2);
+    expect(result.status).toBe(1);
     expect(result.stderr).toContain("Could not find project root");
     const envelope = parseSingleJsonLine(result.stdout);
     expect(envelope.data).toBeNull();

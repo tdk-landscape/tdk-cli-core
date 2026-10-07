@@ -1,0 +1,18 @@
+export interface StartupReport {
+    failed: Array<{
+        name: string;
+        message: string;
+    }>;
+    /** Not ready and depending, directly or through other services, on something that failed. */
+    blocked: Array<{
+        name: string;
+        because: string[];
+    }>;
+    /** Not ready with nothing failed upstream: still building or starting. */
+    starting: string[];
+}
+export declare function buildStartupReport(jsonText: string, dependsOn: Record<string, string[]>, deferred?: Set<string>): StartupReport;
+/** A failure exists and everything still pending is blocked by it, so waiting longer cannot help. */
+export declare function isStartupStalled(jsonText: string, dependsOn: Record<string, string[]>, deferred?: Set<string>): boolean;
+export declare function formatStartupReport(report: StartupReport, timedOut: boolean): string[];
+//# sourceMappingURL=startup-report.d.ts.map

@@ -20,7 +20,7 @@ export const resourcesCommand = new Command("resources")
     const action = async () => {
         if (options.json) {
             if (!findProjectRoot()) {
-                writeMachineError(new Error("Could not find project root (no .tdk/project.json found)"));
+                writeMachineError(errorFactories.notInProject());
             }
         }
         else {
@@ -33,7 +33,7 @@ export const resourcesCommand = new Command("resources")
         }
         const discovery = createDiscoveryContext();
         if (options.stack && !stackExists(options.stack, discovery.resources)) {
-            const error = errorFactories.stackNotFound(options.stack);
+            const error = errorFactories.stackNotFound(options.stack, discovery.stackNames);
             if (options.json)
                 writeMachineError(error);
             error.exit();

@@ -128,3 +128,32 @@ describe("evaluateTiltReadiness", () => {
     expect(failed.settled).toBe(true);
   });
 });
+
+describe("waitForTiltResourcesReady with a stalled failure", () => {
+  const stalled = json(item("postgres", "error", "none"), item("api", "pending", "pending"));
+
+  it("returns the failure at once when everything pending is blocked by it", async () => {
+    const started = Date.now();
+    const result = await waitForTiltResourcesReady(1, {
+      timeoutMs: 60_000,
+      intervalMs: 1,
+      fetchJson: async () => stalled,
+      deferred: new Set(),
+      isStalled: () => true,
+    });
+    expect(result).toMatchObject({ ready: false, timedOut: false });
+    expect(result.failures.map((f) => f.name)).toEqual(["postgres"]);
+    expect(Date.now() - started).toBeLessThan(5_000);
+  });
+
+  it("keeps waiting when the caller says progress is still possible", async () => {
+    const result = await waitForTiltResourcesReady(1, {
+      timeoutMs: 30,
+      intervalMs: 1,
+      fetchJson: async () => stalled,
+      deferred: new Set(),
+      isStalled: () => false,
+    });
+    expect(result).toMatchObject({ ready: false, timedOut: true });
+  });
+});

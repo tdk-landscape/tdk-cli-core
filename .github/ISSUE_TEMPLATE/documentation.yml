@@ -7,6 +7,10 @@ body:
       value: >-
         Help readers find accurate instructions. Include the page or file and
         describe what should change.
+
+        Do not delete the `<!-- ai-spec-buttons -->` marker or the Write spec
+        shields CI appends to this issue body. They link to AI chats that draft
+        a short spec from this issue (not OpenSpec). CI never writes files itself.
   - type: input
     id: page
     attributes:

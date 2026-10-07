@@ -1,6 +1,6 @@
 # Machine-readable CLI
 
-The supported agent polling loop uses `tdk status --json`; add `--tilt` when live Tilt resources are needed. Use `tdk resources --json` for the discovered manifest view, `tdk stacks --json` for stack names and counts and `tdk networks --json` for routed URLs and reachability. `tdk doctor --json` reports environment readiness and actionable checks.
+The supported agent polling loop uses `tdk status --json`; add `--tilt` to include Tilt's live resource list in `tilt.resources`. Use `tdk resources --json` for the discovered manifest view, `tdk stacks --json` for stack names and counts and `tdk networks --json` for routed URLs and reachability. `tdk doctor --json` reports environment readiness and actionable checks.
 
 Every response uses this envelope:
 
@@ -16,7 +16,7 @@ Every response uses this envelope:
 
 Command data:
 
-- `status`: `tilt.available`, `tilt.resourcesQueried`, optional live `tilt.resources`, discovered manifest `resources` (`name`, `stack`, `type`, `port`), and `stacks` (`name`, `resourceCount`). Without `--tilt`, `tilt.resourcesQueried` is `false` and `tilt.resources` is `null`; the `resources` array is still the manifest inventory and does not report live health. Pass `--tilt` to query Tilt's live resource state. If Tilt is unavailable, `tilt.available` is `false` and no live query is made.
+- `status`: `tilt.available`, `tilt.resourcesQueried`, `tilt.readiness`, optional live `tilt.resources`, total `resourceCount`, discovered manifest `resources` (`name`, `stack`, `type`, `port`), `stacks` (`name`, `resourceCount`, `resources` containing resource names), and `unassignedResources` (resource names). `--tilt` controls the live `tilt.resources` list: without it, `tilt.resourcesQueried` is `false` and `tilt.resources` is `null`. The manifest `resources` array is always available and does not report live health. `tilt.readiness` retains its existing behavior and may be populated whenever Tilt is available. If Tilt is unavailable, `tilt.available` is `false` and no live resource-list query is made.
 - `resources`: `resources` with stable service name, stack, type, port, and manifest path.
 - `stacks`: `stacks` with `name` and `resourceCount`. `--services` adds `services` (service names; its length equals `resourceCount`), and `--verbose` adds `description`; `--services` alone does not include `description`. A project with no stacks returns `stacks: []`. Outside a project it emits the same envelope as `resources --json` (`data: null`, one `errors` entry, exit 2).
 - `networks`: `services` with stable service name, stack, base path, URL, optional Windows loopback URL, service port, and reachability state (`running`, `stopped`, or `unknown`). An empty list means no discovered resource currently has a routable base path.

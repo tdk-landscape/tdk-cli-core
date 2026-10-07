@@ -8,7 +8,10 @@ import {
   ResourceSelectInput,
   ResourceTable,
   TabBar,
+  TUIHeader,
 } from "../components/index.js";
+import { TABS } from "../components/TabBar.js";
+import { createTUITheme, TUIThemeContext, useTUITheme } from "../components/ui-theme.js";
 import type {
   DiscoveredResource,
   DiscoveredStack,
@@ -20,7 +23,7 @@ import type {
   TabId,
 } from "../types/index.js";
 import { errorFactories, requireProjectRoot } from "../utils/errors.js";
-import { findProjectRoot } from "../utils/paths.js";
+import { findProjectRoot, getPackageVersion } from "../utils/paths.js";
 import { describeSearch } from "../utils/search-status.js";
 import {
   clearMetadataCache,
@@ -30,73 +33,89 @@ import {
   getStackMetadata,
 } from "../utils/services.js";
 import { createStatusMessageController } from "../utils/status-message.js";
+import { getListRowFromMouseY, getTerminalRuleWidth } from "../utils/terminal-layout.js";
 import { isTiltAvailable } from "../utils/tilt.js";
 
 // biome-ignore lint/correctness/noUnusedFunctionParameters: reserved callback prop kept in the component API
-const HelpPanel: React.FC<HelpPanelProps> = ({ onClose }) => (
-  <Box
-    borderStyle="single"
-    borderColor="cyan"
-    paddingX={2}
-    paddingY={1}
-    flexDirection="column"
-    width={60}
-  >
-    <Text bold color="cyan">
-      Keyboard Shortcuts
-    </Text>
-    <Box marginY={1} flexDirection="column">
-      <Text bold underline>
-        Navigation
+const HelpPanel: React.FC<HelpPanelProps> = ({ onClose }) => {
+  const theme = useTUITheme();
+  return (
+    <Box
+      {...(theme.ascii ? {} : { borderStyle: "single" as const, borderColor: theme.accent })}
+      paddingX={2}
+      paddingY={1}
+      flexDirection="column"
+      width={60}
+    >
+      <Text bold color={theme.accent}>
+        Keyboard Shortcuts
       </Text>
-      <Text> ↑/↓ Navigate list items</Text>
-      <Text> Enter Select item / Open detail</Text>
-      <Text> Space Toggle expand (tree view)</Text>
-      <Text> Tab Next tab</Text>
-      <Text> 1-5 Direct tab access</Text>
+      <Box marginY={1} flexDirection="column">
+        <Text bold underline color={theme.foreground}>
+          Navigation
+        </Text>
+        <Text color={theme.foreground}>
+          {theme.ascii
+            ? " [UP/DOWN] or j/k Navigate list items"
+            : " \u2191/\u2193 or j/k Navigate list items"}
+        </Text>
+        <Text color={theme.foreground}> g/G or Home/End First/last item</Text>
+        <Text color={theme.foreground}> PgUp/PgDn Move one page</Text>
+        <Text color={theme.foreground}> Enter Select item / Open detail</Text>
+        <Text color={theme.foreground}> Tab Next tab</Text>
+        <Text color={theme.foreground}>
+          {" "}
+          {TABS[0].shortcut}-{TABS[TABS.length - 1].shortcut} Direct tab access
+        </Text>
 
-      <Box marginTop={1}>
-        <Text bold underline>
-          Actions
+        <Box marginTop={1}>
+          <Text bold underline color={theme.foreground}>
+            Actions
+          </Text>
+        </Box>
+        <Text color={theme.foreground}> m Toggle mouse support</Text>
+        <Text color={theme.foreground}> t Toggle tooltips</Text>
+        <Text color={theme.foreground}> e Toggle enabled/disabled services</Text>
+        <Text color={theme.foreground}> r Refresh data</Text>
+        <Text color={theme.foreground}> / Search/filter</Text>
+        <Text color={theme.foreground}> ? Show this help</Text>
+        <Text color={theme.foreground}>
+          {theme.ascii ? " q Quit | Esc Back" : " q Quit \u2502 Esc Back"}
         </Text>
       </Box>
-      <Text> m Toggle mouse support</Text>
-      <Text> t Toggle tooltips</Text>
-      <Text> e Toggle enabled/disabled services</Text>
-      <Text> r Refresh data</Text>
-      <Text> / Search/filter</Text>
-      <Text> ? Show this help</Text>
-      <Text> q Quit │ Esc Back</Text>
+      <Box marginTop={1}>
+        <Text color={theme.muted} dimColor={theme.dimMuted}>
+          Press any key to close...
+        </Text>
+      </Box>
     </Box>
-    <Box marginTop={1}>
-      <Text color="gray" dimColor>
-        Press any key to close...
-      </Text>
-    </Box>
-  </Box>
-);
+  );
+};
 
 const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+const ASCII_SPINNER_FRAMES = ["-", "/", "|", "\\"];
 
 export const LoadingScreen: React.FC<LoadingScreenProps> = ({
   message = "Discovering resources...",
   animated = true,
 }) => {
+  const theme = useTUITheme();
+  const spinnerFrames = theme.ascii ? ASCII_SPINNER_FRAMES : SPINNER_FRAMES;
   const [frame, setFrame] = useState(0);
   useEffect(() => {
     if (!animated) return;
-    const timer = setInterval(() => setFrame((f) => (f + 1) % SPINNER_FRAMES.length), 80);
+    const timer = setInterval(() => setFrame((f) => (f + 1) % spinnerFrames.length), 80);
     return () => clearInterval(timer);
-  }, [animated]);
+  }, [animated, spinnerFrames.length]);
 
   return (
     <Box flexDirection="column" padding={2}>
-      <Text bold color="cyan">
-        ▓▒░ TDK NEON EDITION ░▒▓
+      <Text bold color={theme.accent}>
+        {theme.bannerStart} TDK NEON EDITION {theme.bannerEnd}
       </Text>
       <Box marginY={1} />
-      <Text>
-        {animated && <Text color="cyan">{SPINNER_FRAMES[frame]} </Text>}
+      <Text color={theme.foreground}>
+        {animated && <Text color={theme.accent}>{spinnerFrames[frame]} </Text>}
         {message}
       </Text>
     </Box>
@@ -104,47 +123,58 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
 };
 
 // biome-ignore lint/correctness/noUnusedFunctionParameters: reserved callback prop kept in the component API
-const ErrorScreen: React.FC<ErrorScreenProps> = ({ error, onRetry }) => (
-  <Box flexDirection="column" padding={2} alignItems="center">
-    <Text bold color="red">
-      Could Not Load Services
-    </Text>
-    <Box marginY={1} />
-    <Text color="red">✗ {error}</Text>
-    <Box marginY={1} />
-    <Text color="gray">Troubleshooting:</Text>
-    <Text color="gray"> 1. Check that every service.json is valid JSON</Text>
-    <Text color="gray"> 2. Run tdk from your project (the folder with the Tiltfile)</Text>
-    <Text color="gray"> 3. Try: tdk status --verbose</Text>
-    <Box marginY={1} />
-    <Text color="cyan">Press [r] to retry or [q] to quit</Text>
-  </Box>
-);
+const ErrorScreen: React.FC<ErrorScreenProps> = ({ error, onRetry }) => {
+  const theme = useTUITheme();
+  return (
+    <Box flexDirection="column" padding={2} alignItems="center">
+      <Text bold color={theme.error}>
+        Could Not Load Services
+      </Text>
+      <Box marginY={1} />
+      <Text color={theme.error}>
+        {theme.ascii ? "[x]" : "\u2717"} {error}
+      </Text>
+      <Box marginY={1} />
+      <Text color={theme.muted}>Troubleshooting:</Text>
+      <Text color={theme.muted}> 1. Check that every service.json is valid JSON</Text>
+      <Text color={theme.muted}> 2. Run tdk from your project (the folder with the Tiltfile)</Text>
+      <Text color={theme.muted}> 3. Try: tdk status --verbose</Text>
+      <Box marginY={1} />
+      <Text color={theme.accent}>Press [r] to retry or [q] to quit</Text>
+    </Box>
+  );
+};
 
-const EmptyState: React.FC<{ message?: string }> = ({ message }) => (
-  <Box flexDirection="column" padding={2} alignItems="center">
-    <Text bold color="yellow">
-      No Services Found
-    </Text>
-    <Box marginY={1} />
-    <Text color="gray">◉ No service.json files found</Text>
-    <Box marginY={1} />
-    <Text>To get started:</Text>
-    <Text> 1. Run: tdk project</Text>
-    <Text> 2. Run: tdk resource api --type backend</Text>
-    <Box marginY={1} />
-    <Text color="cyan">Press [r] to refresh or [q] to quit</Text>
-    {/* The top-level Esc hint has to be visible here too — with no services this is the
+const EmptyState: React.FC<{ message?: string }> = ({ message }) => {
+  const theme = useTUITheme();
+  return (
+    <Box flexDirection="column" padding={2} alignItems="center">
+      <Text bold color={theme.warning}>
+        No Services Found
+      </Text>
+      <Box marginY={1} />
+      <Text color={theme.muted}>{theme.ascii ? "[*]" : "\u25c9"} No service.json files found</Text>
+      <Box marginY={1} />
+      <Text color={theme.foreground}>To get started:</Text>
+      <Text color={theme.foreground}> 1. Run: tdk project</Text>
+      <Text color={theme.foreground}> 2. Run: tdk resource api --type backend</Text>
+      <Box marginY={1} />
+      <Text color={theme.accent}>Press [r] to refresh or [q] to quit</Text>
+      {/* The top-level Esc hint has to be visible here too — with no services this is the
         whole screen, and without this line the hint was set but never drawn. */}
-    {message && (
-      <Box paddingX={1} height={1}>
-        <Text color="cyan">▓▒░ {message} ░▒▓</Text>
-      </Box>
-    )}
-  </Box>
-);
+      {message && (
+        <Box paddingX={1} height={1}>
+          <Text color={theme.accent}>
+            {theme.bannerStart} {message} {theme.bannerEnd}
+          </Text>
+        </Box>
+      )}
+    </Box>
+  );
+};
 
-const TUIApp: React.FC<{ animated?: boolean }> = ({ animated = true }) => {
+export const TUIApp: React.FC<{ animated?: boolean }> = ({ animated = true }) => {
+  const theme = useTUITheme();
   const { exit } = useApp();
   const { stdout } = useStdout();
   const { stdin, setRawMode } = useStdin();
@@ -158,8 +188,17 @@ const TUIApp: React.FC<{ animated?: boolean }> = ({ animated = true }) => {
   const [isSearching, setIsSearching] = useState(false);
 
   const [terminalWidth, setTerminalWidth] = useState(stdout.columns || 120);
+  const [terminalRows, setTerminalRows] = useState(stdout.rows || 24);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [mouseEnabled, setMouseEnabled] = useState(true);
+  const [listTop, setListTop] = useState<number | null>(null);
+  const [listStart, setListStart] = useState(0);
+  // Reserve the header, tab bar, hints and footer; keep the cursor visible.
+  const pageSize = Math.max(1, terminalRows - 14);
+  const handleListLayout = useCallback((top: number, firstVisible = 0): void => {
+    setListTop(top);
+    setListStart(firstVisible);
+  }, []);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showTooltips, setShowTooltips] = useState(true);
@@ -298,7 +337,15 @@ const TUIApp: React.FC<{ animated?: boolean }> = ({ animated = true }) => {
     return [];
   }, [activeTab, filteredStacks, filteredServices, selectedStackData, selectedServiceData]);
 
-  const items = getItems();
+  const items = useMemo(getItems, [getItems]);
+  const selectableListVisible =
+    !loading &&
+    !error &&
+    !showHelp &&
+    (activeTab === "overview" ||
+      (activeTab === "resources" && !selectedStackData) ||
+      (activeTab === "files" && !selectedServiceData) ||
+      (activeTab === "config" && !selectedServiceData));
 
   // Only the stack and service lists are filtered by the query; drilled-in views are not.
   const searchList =
@@ -381,12 +428,13 @@ const TUIApp: React.FC<{ animated?: boolean }> = ({ animated = true }) => {
         const isLeftClick = (btn & 0b11) === 0;
 
         if (isLeftClick && !release) {
-          // Calculate row in the list (header takes ~6 lines)
-          const listRow = y - 7; // Adjust for header, tabs, and borders
+          const listRow =
+            selectableListVisible && listTop !== null ? getListRowFromMouseY(y, listTop) : -1;
 
-          if (listRow >= 0 && listRow < items.length) {
-            setHighlightedIndex(listRow);
-            const item = items[listRow];
+          const itemIndex = listStart + listRow;
+          if (listRow >= 0 && listRow < pageSize && itemIndex < items.length) {
+            setHighlightedIndex(itemIndex);
+            const item = items[itemIndex];
             if (item) {
               handleSelect(item);
             }
@@ -401,11 +449,21 @@ const TUIApp: React.FC<{ animated?: boolean }> = ({ animated = true }) => {
       stdin.off("data", handleMouseData);
       stdin.removeAllListeners("data");
     };
-  }, [stdin, items, mouseEnabled, handleSelect]);
+  }, [
+    stdin,
+    items,
+    listTop,
+    listStart,
+    pageSize,
+    selectableListVisible,
+    mouseEnabled,
+    handleSelect,
+  ]);
 
   const handleResize = useCallback(() => {
     setTerminalWidth(stdout.columns || 120);
-  }, [stdout.columns]);
+    setTerminalRows(stdout.rows || 24);
+  }, [stdout]);
 
   useEffect(() => {
     stdout.on("resize", handleResize);
@@ -525,7 +583,7 @@ const TUIApp: React.FC<{ animated?: boolean }> = ({ animated = true }) => {
     }
 
     if (key.tab) {
-      const tabs: TabId[] = ["overview", "resources", "events", "files", "config"];
+      const tabs = TABS.map((tab) => tab.id);
       const currentIdx = tabs.indexOf(activeTab);
       const nextIdx = key.shift
         ? (currentIdx - 1 + tabs.length) % tabs.length
@@ -534,24 +592,24 @@ const TUIApp: React.FC<{ animated?: boolean }> = ({ animated = true }) => {
       return;
     }
 
-    if (/^[1-5]$/.test(input)) {
-      const tabMap: Record<string, TabId> = {
-        "1": "overview",
-        "2": "resources",
-        "3": "events",
-        "4": "files",
-        "5": "config",
-      };
-      setActiveTab(tabMap[input]);
+    const shortcutTab = TABS.find((tab) => tab.shortcut === input);
+    if (shortcutTab) {
+      setActiveTab(shortcutTab.id);
       return;
     }
 
-    if (key.upArrow) {
+    const plainKey = !key.ctrl && !key.meta;
+    if (items.length > 0 && (key.upArrow || (plainKey && input === "k"))) {
       setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : items.length - 1));
     }
-    if (key.downArrow) {
+    if (items.length > 0 && (key.downArrow || (plainKey && input === "j"))) {
       setHighlightedIndex((prev) => (prev < items.length - 1 ? prev + 1 : 0));
     }
+    if (key.home || (plainKey && input === "g")) setHighlightedIndex(0);
+    if (key.end || (plainKey && input === "G")) setHighlightedIndex(Math.max(0, items.length - 1));
+    if (key.pageUp) setHighlightedIndex((prev) => Math.max(0, prev - pageSize));
+    if (key.pageDown)
+      setHighlightedIndex((prev) => Math.min(Math.max(0, items.length - 1), prev + pageSize));
     if (key.return || input === " ") {
       const currentItem = items[highlightedIndex];
       if (currentItem) {
@@ -588,8 +646,7 @@ const TUIApp: React.FC<{ animated?: boolean }> = ({ animated = true }) => {
   }, [selectedServiceData, services]);
 
   const showSidebar = terminalWidth > 100;
-  const compactTabBar = terminalWidth < 100;
-  const compact = terminalWidth < 80;
+  const mainPanelWidth = showSidebar ? terminalWidth - 45 : terminalWidth - 4;
 
   if (loading) {
     return <LoadingScreen message="Discovering resources..." animated={animated} />;
@@ -599,65 +656,72 @@ const TUIApp: React.FC<{ animated?: boolean }> = ({ animated = true }) => {
     return <ErrorScreen error={error} onRetry={refresh} />;
   }
 
+  const header = (
+    <>
+      <TUIHeader
+        projectRoot={projectRoot}
+        resourceCount={services.length}
+        terminalWidth={terminalWidth}
+        version={getPackageVersion()}
+      />
+
+      <Box paddingX={1}>
+        <Text color={theme.muted}>
+          {(theme.ascii ? "-" : "\u2500").repeat(getTerminalRuleWidth(terminalWidth))}
+        </Text>
+      </Box>
+    </>
+  );
+
   if (services.length === 0) {
-    return <EmptyState message={message} />;
+    return (
+      <Box flexDirection="column" height={stdout.rows || 24}>
+        {header}
+        <EmptyState message={message} />
+      </Box>
+    );
   }
 
   return (
     <Box flexDirection="column" height={stdout.rows || 24}>
-      <Box paddingX={1} paddingY={0}>
-        <Text>
-          <Text color="cyan" bold>
-            ▓▒░ TDK NEON EDITION ░▒▓
-          </Text>
-          <Text color="gray"> │ </Text>
-          <Text color="white">{projectRoot}</Text>
-          <Text color="gray"> │ </Text>
-          <Text color="green">{services.length} services ready</Text>
-        </Text>
-      </Box>
-
-      <Box paddingX={1}>
-        <Text color="gray">{"─".repeat(compact ? 60 : Math.min(terminalWidth - 4, 100))}</Text>
-      </Box>
+      {header}
 
       {isSearching && (
         <Box paddingX={1} height={1}>
-          <Text color="yellow">Search: {searchQuery}_</Text>
-          {searchStatus && <Text color="gray" dimColor>{`   ${searchStatus.summary}`}</Text>}
+          <Text color={theme.warning}>Search: {searchQuery}_</Text>
+          {searchStatus && (
+            <Text
+              color={theme.muted}
+              dimColor={theme.dimMuted}
+            >{`   ${searchStatus.summary}`}</Text>
+          )}
         </Box>
       )}
 
       {searchStatus?.emptyMessage && (
         <Box paddingX={1} height={1}>
-          <Text color="gray">{searchStatus.emptyMessage}</Text>
+          <Text color={theme.muted}>{searchStatus.emptyMessage}</Text>
         </Box>
       )}
 
       {!isSearching && message && (
         <Box paddingX={1} height={1}>
-          <Text color="cyan">▓▒░ {message} ░▒▓</Text>
+          <Text color={theme.accent}>
+            {theme.bannerStart} {message} {theme.bannerEnd}
+          </Text>
         </Box>
       )}
 
       {!isSearching && !message && showTooltips && !showHelp && (
         <Box paddingX={1} height={1}>
-          <Text color="gray" dimColor>
-            {activeTab === "overview" && selectedStack
-              ? `Stack "${selectedStack}" selected. [Enter] view │ [Esc] back │ [e] ${showEnabledOnly ? "show all" : "enabled only"} │ [?] help`
-              : activeTab === "overview" && !selectedStack
-                ? `[↑/↓] Navigate │ [Enter] Select │ [e] ${showEnabledOnly ? "show all" : "enabled only"} │ [?] help`
-                : activeTab === "resources"
-                  ? `[Tab] Tabs │ [r] Refresh │ [/] Search │ [e] ${showEnabledOnly ? "show all" : "enabled only"} │ [?] help`
-                  : activeTab === "events"
-                    ? `Event timeline │ [Tab] Switch tabs │ [e] ${showEnabledOnly ? "show all" : "enabled only"} │ [?] help`
-                    : activeTab === "files" && selectedService
-                      ? `Service "${selectedService}" │ [Space] Expand │ [Esc] Back │ [e] ${showEnabledOnly ? "show all" : "enabled only"} │ [?] help`
-                      : activeTab === "files"
-                        ? `Select service to view files │ [e] ${showEnabledOnly ? "show all" : "enabled only"} │ [?] help`
-                        : activeTab === "config"
-                          ? `View configurations │ [e] ${showEnabledOnly ? "show all" : "enabled only"} │ [?] help`
-                          : `[Tab] Next │ [1-5] Tabs │ [e] ${showEnabledOnly ? "show all" : "enabled only"} │ [?] help │ [q] Quit`}
+          <Text color={theme.muted} dimColor={theme.dimMuted}>
+            {createHelpHint(
+              activeTab,
+              selectedStack,
+              selectedService,
+              showEnabledOnly,
+              theme.ascii,
+            )}
           </Text>
         </Box>
       )}
@@ -671,20 +735,20 @@ const TUIApp: React.FC<{ animated?: boolean }> = ({ animated = true }) => {
       {!showHelp && (
         <>
           <Box marginTop={1}>
-            <TabBar activeTab={activeTab} onTabChange={setActiveTab} compact={compactTabBar} />
+            <TabBar
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              terminalWidth={terminalWidth}
+            />
           </Box>
 
           <Box flexDirection="row" paddingX={1} flexGrow={1}>
-            <Box
-              flexDirection="column"
-              flexGrow={1}
-              width={showSidebar ? terminalWidth - 45 : terminalWidth - 4}
-            >
+            <Box flexDirection="column" flexGrow={1} width={mainPanelWidth}>
               {activeTab === "overview" && (
                 <>
                   <Box marginBottom={1}>
-                    <Text bold color="gray">
-                      ┌─ Stacks ─
+                    <Text bold color={theme.muted}>
+                      {theme.ascii ? "[ Stacks ]" : "┌─ Stacks ─"}
                     </Text>
                   </Box>
                   <Box marginTop={1} flexGrow={1}>
@@ -692,6 +756,10 @@ const TUIApp: React.FC<{ animated?: boolean }> = ({ animated = true }) => {
                       items={items}
                       onSelect={handleSelect}
                       highlightedIndex={highlightedIndex}
+                      isActive={!isSearching}
+                      maxVisibleItems={pageSize}
+                      width={mainPanelWidth}
+                      onLayout={handleListLayout}
                     />
                   </Box>
                 </>
@@ -700,13 +768,13 @@ const TUIApp: React.FC<{ animated?: boolean }> = ({ animated = true }) => {
               {activeTab === "resources" && (
                 <>
                   <Box marginBottom={1}>
-                    <Text bold color="gray">
-                      ┌─ Resources ─
+                    <Text bold color={theme.muted}>
+                      {theme.ascii ? "[ Resources ]" : "┌─ Resources ─"}
                     </Text>
                   </Box>
                   {selectedStackData ? (
                     <>
-                      <Text color="gray">Stack: {selectedStackData.stack.name}</Text>
+                      <Text color={theme.muted}>Stack: {selectedStackData.stack.name}</Text>
                       <Box marginTop={1}>
                         <ResourceTable
                           resources={selectedStackData.metadata.resources}
@@ -716,12 +784,16 @@ const TUIApp: React.FC<{ animated?: boolean }> = ({ animated = true }) => {
                     </>
                   ) : (
                     <>
-                      <Text color="gray">Select a stack to view resources</Text>
+                      <Text color={theme.muted}>Select a stack to view resources</Text>
                       <Box marginTop={1}>
                         <ResourceSelectInput
                           items={items}
                           onSelect={handleSelect}
                           highlightedIndex={highlightedIndex}
+                          isActive={!isSearching}
+                          maxVisibleItems={pageSize}
+                          width={mainPanelWidth}
+                          onLayout={handleListLayout}
                         />
                       </Box>
                     </>
@@ -729,41 +801,32 @@ const TUIApp: React.FC<{ animated?: boolean }> = ({ animated = true }) => {
                 </>
               )}
 
-              {activeTab === "events" && (
-                <>
-                  <Box marginBottom={1}>
-                    <Text bold color="gray">
-                      ┌─ Events ─
-                    </Text>
-                  </Box>
-                  <Box marginTop={1}>
-                    <Text color="gray">Events tab not yet implemented</Text>
-                  </Box>
-                </>
-              )}
-
               {activeTab === "files" && (
                 <>
                   <Box marginBottom={1}>
-                    <Text bold color="gray">
-                      ┌─ Autogenerated Files ─
+                    <Text bold color={theme.muted}>
+                      {theme.ascii ? "[ Autogenerated Files ]" : "┌─ Autogenerated Files ─"}
                     </Text>
                   </Box>
                   {selectedServiceData ? (
                     <>
-                      <Text color="gray">Service: {selectedServiceData.service.name}</Text>
+                      <Text color={theme.muted}>Service: {selectedServiceData.service.name}</Text>
                       <Box marginTop={1}>
                         <FileTree nodes={fileTreeNodes} selectedPath={selectedFile || undefined} />
                       </Box>
                     </>
                   ) : (
                     <>
-                      <Text color="gray">Select a service to view files</Text>
+                      <Text color={theme.muted}>Select a service to view files</Text>
                       <Box marginTop={1}>
                         <ResourceSelectInput
                           items={items}
                           onSelect={handleSelect}
                           highlightedIndex={highlightedIndex}
+                          isActive={!isSearching}
+                          maxVisibleItems={pageSize}
+                          width={mainPanelWidth}
+                          onLayout={handleListLayout}
                         />
                       </Box>
                     </>
@@ -774,15 +837,21 @@ const TUIApp: React.FC<{ animated?: boolean }> = ({ animated = true }) => {
               {activeTab === "config" && (
                 <>
                   <Box marginBottom={1}>
-                    <Text bold color="gray">
-                      ┌─ Configuration ─
+                    <Text bold color={theme.muted}>
+                      {theme.ascii ? "[ Configuration ]" : "┌─ Configuration ─"}
                     </Text>
                   </Box>
                   {selectedServiceData ? (
                     <Box marginTop={1} flexDirection="column">
-                      <Text color="cyan">{selectedServiceData.service.configPath}</Text>
-                      <Box marginTop={1} borderStyle="single" borderColor="gray" paddingX={1}>
-                        <Text color="gray" wrap="wrap">
+                      <Text color={theme.accent}>{selectedServiceData.service.configPath}</Text>
+                      <Box
+                        marginTop={1}
+                        {...(theme.ascii
+                          ? {}
+                          : { borderStyle: "single" as const, borderColor: theme.border })}
+                        paddingX={1}
+                      >
+                        <Text color={theme.muted} wrap="wrap">
                           {JSON.stringify(selectedServiceData.service.config, null, 2).slice(
                             0,
                             1000,
@@ -792,12 +861,16 @@ const TUIApp: React.FC<{ animated?: boolean }> = ({ animated = true }) => {
                     </Box>
                   ) : (
                     <>
-                      <Text color="gray">Select a service to view configuration</Text>
+                      <Text color={theme.muted}>Select a service to view configuration</Text>
                       <Box marginTop={1}>
                         <ResourceSelectInput
                           items={items}
                           onSelect={handleSelect}
                           highlightedIndex={highlightedIndex}
+                          isActive={!isSearching}
+                          maxVisibleItems={pageSize}
+                          width={mainPanelWidth}
+                          onLayout={handleListLayout}
                         />
                       </Box>
                     </>
@@ -819,34 +892,44 @@ const TUIApp: React.FC<{ animated?: boolean }> = ({ animated = true }) => {
           </Box>
 
           <Box
-            borderStyle="single"
-            borderColor="gray"
+            {...(theme.ascii ? {} : { borderStyle: "single" as const, borderColor: theme.border })}
             paddingX={1}
             height={3}
             flexDirection="column"
             marginTop={1}
           >
             <Box justifyContent="space-between">
-              <Text color="cyan" bold>
-                ▓▒░ {activeTab}
+              <Text color={theme.accent} bold>
+                {theme.bannerStart} {activeTab}
               </Text>
-              <Text color="green">
-                ● {services.filter((s: DiscoveredResource) => s.stack).length} in stack
+              <Text color={theme.success}>
+                {theme.ascii ? "[+]" : "\u25cf"}{" "}
+                {services.filter((s: DiscoveredResource) => s.stack).length} in stack
               </Text>
-              <Text color="yellow">
-                ○ {services.filter((s: DiscoveredResource) => !s.stack).length} no stack
+              <Text color={theme.warning}>
+                {theme.ascii ? "-" : "\u25cb"}{" "}
+                {services.filter((s: DiscoveredResource) => !s.stack).length} no stack
               </Text>
             </Box>
             <Box justifyContent="space-between">
-              <Text color="gray">Stacks: {stacks.length}</Text>
-              <Text color="gray">Services: {services.length}</Text>
-              <Text color="gray">
-                🖱️ {mouseEnabled ? "ON" : "OFF"} │ ℹ️ {showTooltips ? "ON" : "OFF"} │
-                <Text color={showEnabledOnly ? "green" : "yellow"}>
-                  {showEnabledOnly ? "✓ enabled" : "✓ all"}
+              <Text color={theme.muted}>Stacks: {stacks.length}</Text>
+              <Text color={theme.muted}>Services: {services.length}</Text>
+              <Text color={theme.muted}>
+                {theme.ascii ? "Mouse" : "🖱️"} {mouseEnabled ? "ON" : "OFF"}
+                {theme.ascii ? " | " : " \u2502 "}
+                {theme.ascii ? "Info" : "ℹ️"} {showTooltips ? "ON" : "OFF"}
+                {theme.ascii ? " | " : " \u2502 "}
+                <Text color={showEnabledOnly ? theme.success : theme.warning}>
+                  {showEnabledOnly
+                    ? theme.ascii
+                      ? "[+] enabled"
+                      : "\u2713 enabled"
+                    : theme.ascii
+                      ? "[+] all"
+                      : "\u2713 all"}
                 </Text>
-                {" │ "}
-                [?] Help │ [q] Quit
+                {theme.ascii ? " | " : " \u2502 "}
+                [?] Help{theme.ascii ? " | " : " \u2502 "}[q] Quit
               </Text>
             </Box>
           </Box>
@@ -856,18 +939,65 @@ const TUIApp: React.FC<{ animated?: boolean }> = ({ animated = true }) => {
   );
 };
 
+/** Compose footer guidance for the current tab and terminal character set. */
+function createHelpHint(
+  activeTab: TabId,
+  selectedStack: string | null,
+  selectedService: string | null,
+  showEnabledOnly: boolean,
+  ascii: boolean,
+): string {
+  const separator = ascii ? " | " : " \u2502 ";
+  const enabledHint = `[e] ${showEnabledOnly ? "show all" : "enabled only"}`;
+  const common = [enabledHint, "[?] help"];
+  const tabRange = `${TABS[0].shortcut}-${TABS[TABS.length - 1].shortcut}`;
+
+  if (activeTab === "overview") {
+    const introduction = selectedStack
+      ? `Stack "${selectedStack}" selected. [Enter] view`
+      : `${ascii ? "[UP/DOWN]" : "[\u2191/\u2193]"} Navigate`;
+    const controls = selectedStack ? ["[Esc] back", ...common] : ["[Enter] Select", ...common];
+    return [introduction, ...controls].join(separator);
+  }
+  if (activeTab === "resources") {
+    return ["[Tab] Tabs", "[r] Refresh", "[/] Search", ...common].join(separator);
+  }
+  if (activeTab === "files" && selectedService) {
+    return [`Service "${selectedService}"`, "[Esc] Back", ...common].join(separator);
+  }
+  if (activeTab === "files") {
+    return ["Select service to view files", ...common].join(separator);
+  }
+  if (activeTab === "config") {
+    return ["View configurations", ...common].join(separator);
+  }
+  return ["[Tab] Next", `[${tabRange}] Tabs`, ...common, "[q] Quit"].join(separator);
+}
+
+const TUIRoot: React.FC<{ animated?: boolean; highContrast?: boolean }> = ({
+  animated,
+  highContrast,
+}) => (
+  <TUIThemeContext.Provider value={createTUITheme(Boolean(highContrast))}>
+    <TUIApp animated={animated} />
+  </TUIThemeContext.Provider>
+);
+
 export const uiCommand = new Command("ui")
   .description("Interactive TUI for managing stacks and services (Neon Edition)")
   .alias("interactive")
   .option("-v, --verbose", "Enable verbose output", false)
   .option("--no-animations", "Disable animations")
   .option("--high-contrast", "Enable high contrast mode")
-  .action(async (options: { animations: boolean }) => {
+  .action(async (options: { animations: boolean; highContrast: boolean }) => {
     const tiltAvailable = await isTiltAvailable();
     if (!tiltAvailable) {
       errorFactories.tiltNotInstalled().exit();
     }
 
     requireProjectRoot();
-    render(<TUIApp animated={options.animations} />);
+    // The app has no Static content, so its live layout starts at row 1 in the alternate screen.
+    render(<TUIRoot animated={options.animations} highContrast={options.highContrast} />, {
+      alternateScreen: true,
+    });
   });

@@ -1,0 +1,24 @@
+[files]
+extend-exclude = [
+  "**/node_modules/**",
+  "**/release-dist-*/**",
+  "bun.lock",
+  "cli/pnpm-lock.yaml",
+  "examples/byo-jobs/prisma/prisma/migrations/migration_lock.toml",
+  # Animated terminal demo stores partial typewriter frames, not prose.
+  "docs/assets/demo.svg",
+]
+
+[default]
+extend-ignore-re = [
+  # Keep intentionally imperfect recorded speech as evidence.
+  '(?Rm)^.*<!--\s*spellchecker:disable-line\s*-->$',
+]
+
+[default.extend-words]
+# Valid alternate spelling used for the parser error class.
+unparseable = "unparseable"
+# Product name in contributor outreach metadata.
+mirrord = "mirrord"
+# Intentional invalid dependency spelling in negative OpenSpec examples.
+postgress = "postgress"

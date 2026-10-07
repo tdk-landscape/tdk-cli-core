@@ -1,6 +1,7 @@
 export interface JsonError {
     code: string;
     message: string;
+    suggestions?: string[];
 }
 export type JsonEmitter = (data: Record<string, unknown>, errors?: JsonError[]) => void;
 /**

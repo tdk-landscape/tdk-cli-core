@@ -19,6 +19,10 @@ The focused [frontend provider guide](docs/frontend-framework-providers.md) has 
 
 If you pick an issue, leave a comment before starting so two people do not do the same work. For a bug report, include the output of `tdk doctor` when you can.
 
+## Spell check
+
+Install the pinned checker with `cargo install typos-cli --version 1.50.3`, then run `typos` from the repository root to check spelling.
+
 ## Labels
 
 Use labels to find work that fits your interests and experience. Maintainers apply

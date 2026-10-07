@@ -57,7 +57,7 @@ export declare function createByoServiceJson(name: string, stack: string, port: 
     exposeViaProxy?: boolean | undefined;
     restart?: string | undefined;
 };
-export declare function createPackageJson(name: string, type: string, frameworkId?: string): {
+export declare function createPackageJson(name: string, type: string, frameworkId?: string, prismaEnabled?: boolean): {
     name: string;
     version: string;
     type: string;
@@ -72,7 +72,10 @@ export declare function createPackageJson(name: string, type: string, frameworkI
         "lint:fix": string;
     };
     dependencies: {
-        [x: string]: string;
+        prisma?: string | undefined;
+        "@prisma/client"?: string | undefined;
+        "@prisma/adapter-pg"?: string | undefined;
+        pg?: string | undefined;
     };
     devDependencies: {
         "@types/bun": string;
@@ -83,6 +86,8 @@ export declare function createPackageJson(name: string, type: string, frameworkI
         vite?: string | undefined;
     };
 };
+export declare const PRISMA_SCHEMA_TEMPLATE = "generator client {\n  provider = \"prisma-client\"\n  output   = \"../generated/prisma\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n}\n";
+export declare const PRISMA_CONFIG_TEMPLATE = "export default {\n  schema: \"prisma/schema.prisma\",\n  datasource: {\n    url: process.env.DATABASE_URL,\n  },\n};\n";
 export declare function createResourceTsconfig(resourceType: CreatableResourceType, frameworkId?: string): {
     compilerOptions: {
         types?: string[] | undefined;

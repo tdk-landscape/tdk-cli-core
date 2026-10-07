@@ -18,6 +18,16 @@ export function parseTiltPort(value: string | undefined): TiltPortParseResult {
   return { ok: true, port };
 }
 
+export function secondUpAction(input: {
+  runningPorts: number[];
+  force: boolean;
+  only: boolean;
+}): { action: "start" } | { action: "already-running" | "only-blocked"; ports: number[] } {
+  if (input.runningPorts.length === 0 || input.force) return { action: "start" };
+  if (input.only) return { action: "only-blocked", ports: input.runningPorts };
+  return { action: "already-running", ports: input.runningPorts };
+}
+
 export async function resolveTiltPort(options: {
   configuredPort: number | undefined;
   force: boolean;

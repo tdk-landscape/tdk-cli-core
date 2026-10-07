@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { errorFactories } from "../../utils/errors.js";
 
 const tilt = vi.hoisted(() => ({
   isTiltAvailable: vi.fn(async () => true),
@@ -17,7 +18,7 @@ const logLine = (message: string) =>
 interface Envelope {
   schemaVersion: number;
   data: unknown;
-  errors: Array<{ code: string; message: string }>;
+  errors: Array<{ code: string; message: string; suggestions?: string[] }>;
 }
 
 let out: string[];
@@ -77,15 +78,56 @@ describe("tdk logs --json", () => {
     expect(args.slice(-3)).toEqual(["--", "api", "-weird"]);
   });
 
-  it("rejects an unknown service with the valid names, exit 2", async () => {
+  it("suggests a close resource name for an unknown service, exit 2", async () => {
     tilt.runTilt.mockResolvedValueOnce(resources("api", "web"));
-    const { envelope, code } = await run("-s", "nope");
+    const { envelope, code } = await run("-s", "aip");
     expect(code).toBe(2);
-    expect(envelope.errors[0]).toMatchObject({ code: "UNKNOWN_SERVICE" });
+    expect(envelope.errors[0]).toMatchObject({
+      code: "UNKNOWN_SERVICE",
+      suggestions: expect.arrayContaining(['Did you mean "api"?']),
+    });
     expect(envelope.errors[0].message).toContain("api, web");
     expect(tilt.runTilt).toHaveBeenCalledTimes(1);
   });
 
+  it("uses the shared unknown-service factory for an unknown Tilt resource", async () => {
+    tilt.runTilt.mockResolvedValueOnce(resources("api", "web"));
+    const factory = vi.spyOn(errorFactories, "unknownServices");
+    const { envelope, code } = await run("-s", "aip");
+    expect(code).toBe(2);
+    expect(envelope.errors[0].suggestions).toContain('Did you mean "api"?');
+    expect(factory).toHaveBeenCalledWith(["aip"], ["api", "web"]);
+  });
+
+  it("renders close resource suggestions in text errors", async () => {
+    tilt.runTilt.mockResolvedValueOnce(resources("api", "web"));
+    const messages: string[] = [];
+    vi.spyOn(console, "error").mockImplementation((...parts: unknown[]) => {
+      messages.push(parts.map(String).join(" "));
+    });
+    let code: number | null = null;
+    exit.mockImplementation(((exitCode: number) => {
+      code ??= exitCode;
+      throw new Error("exit");
+    }) as never);
+
+    try {
+      await logsCommand.parseAsync(["-s", "aip"], { from: "user" });
+    } catch {
+      // The mocked process.exit ends the command under test.
+    }
+
+    expect(code).toBe(2);
+    expect(messages.join("\n")).toContain('Did you mean "api"?');
+  });
+
+  it("omits name suggestions for an unrelated unknown service", async () => {
+    tilt.runTilt.mockResolvedValueOnce(resources("api", "web"));
+    const { envelope, code } = await run("-s", "completely-unrelated");
+    expect(code).toBe(2);
+    expect(envelope.errors[0]).toMatchObject({ code: "UNKNOWN_SERVICE" });
+    expect(envelope.errors[0].suggestions).toBeUndefined();
+  });
   it("reports a missing Tilt binary", async () => {
     tilt.isTiltAvailable.mockResolvedValue(false);
     const { envelope, code } = await run();

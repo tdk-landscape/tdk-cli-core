@@ -1,7 +1,7 @@
 import chalk from "chalk";
 import { Command } from "commander";
 import { createDiscoveryContext } from "../utils/discovery-context.js";
-import { runCommand } from "../utils/errors.js";
+import { errorFactories, runCommand } from "../utils/errors.js";
 import { formatCount, showDetail, showEmptyState, showStep } from "../utils/formatting.js";
 import { createMachineEnvelope, writeMachineError } from "../utils/machine-output.js";
 import { findProjectRoot } from "../utils/paths.js";
@@ -14,7 +14,7 @@ export const stacksCommand = new Command("stacks")
     .action(async (options) => {
     const action = async () => {
         if (options.json && !findProjectRoot()) {
-            writeMachineError(new Error("Could not find project root (no .tdk/project.json found)"));
+            writeMachineError(errorFactories.notInProject());
         }
         const discovery = createDiscoveryContext();
         const verbose = options.verbose || stacksCommand.parent?.opts().verbose === true;
