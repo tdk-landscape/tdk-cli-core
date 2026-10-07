@@ -13,6 +13,10 @@ Run checks from the repository root unless a command says otherwise.
 
 Do not say a check passed unless you ran it. If you cannot run a check, say so and give the reason.
 
+### If the golden-output test fails
+
+The generated Tilt and Compose files for three sample projects are checked against committed copies in `cli/src/generator/__tests__/golden/`. If you changed a template in `cli/templates/` or the generator on purpose, the test fails and names each file that moved. Accept the change by running `UPDATE_GOLDEN=1 bun run test -- golden-generated-output`, read the diff of the golden files, and commit them with your change. If you did not mean to change generated output, fix the cause instead of updating the files. Existing projects see the same bytes change, so `tdk config verify` reports them out of sync until their next `tdk config regenerate`; say so in the PR.
+
 ## Show what changed
 
 For a bug fix or behavior change, use the same steps on `main` and your branch when possible. Paste the real before-and-after output; do not recreate it from memory. Include the command, project or fixture, and any setup needed to repeat it. Cover the empty, error, or recovery cases named in the issue.

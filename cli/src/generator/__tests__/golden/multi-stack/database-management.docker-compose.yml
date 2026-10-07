@@ -1,0 +1,35 @@
+###############################################################################
+# SYSTEM-GENERATED - DO NOT EDIT
+# Stack feature: database-management
+# Source: .tdk/project.json phases.*.enabledStacks includes "database-management"
+# Regenerate with: tdk config regenerate
+###############################################################################
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: multi_stack_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: multi_stack
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: postgres
+    ports:
+      - "${TDK_POSTGRES_PORT:-15432}:5432"
+    volumes:
+      - multi_stack_postgres_data:/var/lib/postgresql/data
+    networks:
+      - database
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U multi_stack -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+networks:
+  database:
+    name: multi_stack_database
+    external: true
+
+volumes:
+  multi_stack_postgres_data:
