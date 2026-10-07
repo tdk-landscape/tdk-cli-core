@@ -78,6 +78,11 @@ describe("fetchServiceStates", () => {
     expect(await fetchServiceStates(services, 10350)).toEqual({});
   });
 
+  it("is empty, not a rejection, when asking Tilt throws", async () => {
+    vi.mocked(tiltGetUiResources).mockRejectedValue(new Error("spawn failed"));
+    await expect(fetchServiceStates(services, 10350)).resolves.toEqual({});
+  });
+
   it("is empty when Tilt's answer cannot be read", async () => {
     vi.mocked(tiltGetUiResources).mockResolvedValue("not json");
     expect(await fetchServiceStates(services, 10350)).toEqual({});

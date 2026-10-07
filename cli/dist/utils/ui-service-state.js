@@ -4,10 +4,10 @@ import { deriveStackStatus } from "./stack-status.js";
 import { tiltGetUiResources } from "./up-readiness.js";
 /** One look at the running Tilt. Empty when no Tilt answers, so every service stays unknown. */
 export async function fetchServiceStates(services, tiltPort) {
-    const text = await tiltGetUiResources(tiltPort);
-    if (!text)
-        return {};
     try {
+        const text = await tiltGetUiResources(tiltPort);
+        if (!text)
+            return {};
         return deriveServiceStates(text, Object.fromEntries(services.map((r) => [r.name, r.config?.dependsOn ?? []])), getDeferredResourceNames());
     }
     catch {

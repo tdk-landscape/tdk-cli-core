@@ -11,9 +11,9 @@ export async function fetchServiceStates(
   services: DiscoveredResource[],
   tiltPort: number,
 ): Promise<ServiceStates> {
-  const text = await tiltGetUiResources(tiltPort);
-  if (!text) return {};
   try {
+    const text = await tiltGetUiResources(tiltPort);
+    if (!text) return {};
     return deriveServiceStates(
       text,
       Object.fromEntries(services.map((r) => [r.name, r.config?.dependsOn ?? []])),
