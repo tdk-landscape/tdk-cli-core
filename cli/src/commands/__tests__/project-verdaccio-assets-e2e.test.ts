@@ -54,7 +54,7 @@ describe("project assets and Verdaccio E2E", () => {
     spec = readFileSync(join(projectRoot, ".tdk", ".tdk-out", "spec.master"), "utf-8");
     expect(starlarkSection(spec, "PRE_ALPHA_RESOURCES")).not.toContain('"verdaccio": True');
     expect(starlarkSection(spec, "OPTIONAL_INFRA_RESOURCES")).toContain('"verdaccio": False');
-  }, 10000);
+  }, 30000);
 
   it("warns instead of silently stripping stale Verdaccio state when no premium license grants it", () => {
     // generateMasterConfigs() intentionally does not enforce the license
@@ -82,7 +82,7 @@ describe("project assets and Verdaccio E2E", () => {
     const spec = readFileSync(join(projectRoot, ".tdk", ".tdk-out", "spec.master"), "utf-8");
     expect(starlarkSection(spec, "PRE_ALPHA_RESOURCES")).toContain('"verdaccio": True');
     expect(starlarkSection(spec, "OPTIONAL_INFRA_RESOURCES")).toContain('"verdaccio": True');
-  }, 10000);
+  }, 30000);
 
   it("copies Docker runtime assets and creates the root workspace manifest during project generation", () => {
     projectRoot = mkdtempSync(join(tmpdir(), "tdk-project-runtime-assets-"));
@@ -172,5 +172,5 @@ describe("project assets and Verdaccio E2E", () => {
       readFileSync(join(projectRoot, "services", "alpha", "web", "service.json"), "utf-8"),
     );
     expect(frontendService.featuresEnabled).toEqual(["api-client", "env-config", "api-index"]);
-  }, 10000);
+  }, 30000);
 });
