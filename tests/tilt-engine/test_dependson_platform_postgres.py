@@ -213,7 +213,7 @@ def test_force_start_two_dependents_materializes_one_existing_platform_compose(t
     content = compose.read_text()
     assert content.count("  postgres:\n") == 1
     assert "image: postgres:16-alpine" in content
-    assert '"15432:5432"' in content
+    assert '"127.0.0.1:15432:5432"' in content
     assert "name: shared_postgres_fixture_database" in content
     assert "container_name: shared_postgres_fixture_postgres" in content
     assert list(tmp_path.rglob("docker-compose.yml")) == [compose]
