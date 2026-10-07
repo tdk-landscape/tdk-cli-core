@@ -24,7 +24,6 @@ import type {
   TabId,
 } from "../types/index.js";
 import { errorFactories, requireProjectRoot } from "../utils/errors.js";
-import { latestOnly } from "../utils/latest-only.js";
 import { findProjectRoot, getPackageVersion } from "../utils/paths.js";
 import { describeSearch } from "../utils/search-status.js";
 import {
@@ -34,6 +33,7 @@ import {
   getResourceMetadata,
   getStackMetadata,
 } from "../utils/services.js";
+import { singleFlight } from "../utils/single-flight.js";
 import { createStatusMessageController } from "../utils/status-message.js";
 import { getListRowFromMouseY, getTerminalRuleWidth } from "../utils/terminal-layout.js";
 import { isTiltAvailable } from "../utils/tilt.js";
@@ -226,8 +226,8 @@ export const TUIApp: React.FC<{ animated?: boolean }> = ({ animated = true }) =>
   useEffect(() => {
     let cancelled = false;
     const tiltPort = Number.parseInt(process.env.TILT_PORT ?? "", 10);
-    // A Tilt call can outlast the 5 s interval; only the newest poll may update the screen.
-    const run = latestOnly<ServiceStates>((next) => {
+    // A Tilt call can outlast the 5 s interval; never start a poll while the last one is still running.
+    const run = singleFlight<ServiceStates>((next) => {
       if (cancelled) return;
       setServiceStates((previous) =>
         JSON.stringify(previous) === JSON.stringify(next) ? previous : next,
