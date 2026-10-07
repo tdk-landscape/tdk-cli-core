@@ -157,3 +157,28 @@ describe("waitForTiltResourcesReady with a stalled failure", () => {
     expect(result).toMatchObject({ ready: false, timedOut: true });
   });
 });
+
+describe("a resource that is building right now", () => {
+  // Shape captured from a real Tilt: the Tiltfile resource is ok, `slow` is mid-build.
+  const building = json(
+    item("(Tiltfile)", "ok", "not_applicable"),
+    item("slow", "in_progress", "not_applicable"),
+  );
+
+  it("is not ready, and not settled, while it builds", () => {
+    const { result, settled } = evaluateTiltReadiness(building, new Set());
+    expect(result).toMatchObject({ ready: false, pending: 1 });
+    expect(settled).toBe(false);
+  });
+
+  it("is ready once it finishes", () => {
+    const done = json(
+      item("(Tiltfile)", "ok", "not_applicable"),
+      item("slow", "ok", "not_applicable"),
+    );
+    expect(evaluateTiltReadiness(done, new Set()).result).toMatchObject({
+      ready: true,
+      pending: 0,
+    });
+  });
+});

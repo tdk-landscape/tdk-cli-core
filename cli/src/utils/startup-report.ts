@@ -1,4 +1,5 @@
 import { parseTiltResourceFailures, summarizeTiltBuildError } from "./doctor-runtime.js";
+import { isTiltResourcePending } from "./tilt-resource-state.js";
 import { onlyEnabledResources } from "./up-readiness.js";
 
 export interface StartupReport {
@@ -27,11 +28,8 @@ function transitiveDependencies(name: string, dependsOn: Record<string, string[]
   return seen;
 }
 
-/** Same "not ready yet" test as parseTiltResourceFailures, so the two never disagree about what is pending. */
 function isPending(item: Item): boolean {
-  const update = item.status?.updateStatus ?? "";
-  const runtime = item.status?.runtimeStatus ?? "";
-  return update === "pending" || runtime === "pending" || update === "none" || runtime === "none";
+  return isTiltResourcePending(item.status?.updateStatus ?? "", item.status?.runtimeStatus ?? "");
 }
 
 export function buildStartupReport(
