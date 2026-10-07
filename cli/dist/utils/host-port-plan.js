@@ -1,4 +1,5 @@
 import { createServer } from "node:net";
+import { hasLocalListener } from "./port-listener-probe.js";
 export const DEFAULT_HOST_PORT_RANGES = {
     ingressHttp: { start: 8080, end: 8180 },
     ingressHttps: { start: 8443, end: 8543 },
@@ -11,6 +12,8 @@ const ENV_KEYS = {
 };
 const REQUESTED_PORTS = { ingressHttp: 80, ingressHttps: 443, postgres: 5432 };
 export async function isHostPortAvailable(port) {
+    if (await hasLocalListener(port))
+        return false;
     return new Promise((resolve) => {
         const server = createServer();
         server.once("error", () => resolve(false));
