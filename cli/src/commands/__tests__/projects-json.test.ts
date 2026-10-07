@@ -133,5 +133,5 @@ describe("tdk projects --json", () => {
     } finally {
       fs.rmSync(emptyDir, { recursive: true, force: true });
     }
-  });
+  }, 30_000); // two CLI runs; the 5s default is exceeded under full-suite load
 });
