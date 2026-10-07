@@ -6,6 +6,16 @@ export type TiltPortParseResult = {
     message: string;
 };
 export declare function parseTiltPort(value: string | undefined): TiltPortParseResult;
+export declare function secondUpAction(input: {
+    runningPorts: number[];
+    force: boolean;
+    only: boolean;
+}): {
+    action: "start";
+} | {
+    action: "already-running" | "only-blocked";
+    ports: number[];
+};
 export declare function resolveTiltPort(options: {
     configuredPort: number | undefined;
     force: boolean;

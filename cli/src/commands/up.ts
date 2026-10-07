@@ -46,7 +46,12 @@ import { buildSmokePlans, formatSmokeFailure, runSmokePlans } from "../utils/smo
 import { evaluateTdkVersionFloor } from "../utils/tdk-version.js";
 import { buildTiltUpArgs, runTilt } from "../utils/tilt.js";
 import { stopTiltOnPort } from "../utils/tilt-process.js";
-import { parseTiltPort, resolveTiltPort, secondUpAction, stopTiltForUp } from "../utils/tilt-startup.js";
+import {
+  parseTiltPort,
+  resolveTiltPort,
+  secondUpAction,
+  stopTiltForUp,
+} from "../utils/tilt-startup.js";
 import { findUnknownServices, resolveOnlySelection } from "../utils/up-only.js";
 import { tiltGetUiResources, waitForTiltResourcesReady } from "../utils/up-readiness.js";
 import { enableDiscoveredStacks } from "./project.js";
@@ -403,9 +408,7 @@ export const upCommand = new Command("up")
 
       const basePort = 10350;
       const watchedPort = configuredTiltPort ?? basePort;
-      const candidatePorts = options.only
-        ? [...new Set([basePort, watchedPort])]
-        : [watchedPort];
+      const candidatePorts = options.only ? [...new Set([basePort, watchedPort])] : [watchedPort];
       const running: number[] = [];
       for (const candidate of candidatePorts) {
         if ((await tiltGetUiResources(candidate)) !== null) running.push(candidate);

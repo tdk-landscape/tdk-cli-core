@@ -11,6 +11,13 @@ export function parseTiltPort(value) {
     }
     return { ok: true, port };
 }
+export function secondUpAction(input) {
+    if (input.runningPorts.length === 0 || input.force)
+        return { action: "start" };
+    if (input.only)
+        return { action: "only-blocked", ports: input.runningPorts };
+    return { action: "already-running", ports: input.runningPorts };
+}
 export async function resolveTiltPort(options) {
     if (options.configuredPort !== undefined) {
         return { port: options.configuredPort, autoSwitched: false };

@@ -8,7 +8,12 @@ import {
 } from "../../generator/template-engine.js";
 import { runTilt } from "../../utils/tilt.js";
 import { findTiltProcessIdsOnPort, stopTiltOnPort } from "../../utils/tilt-process.js";
-import { parseTiltPort, resolveTiltPort, secondUpAction, stopTiltForUp } from "../../utils/tilt-startup.js";
+import {
+  parseTiltPort,
+  resolveTiltPort,
+  secondUpAction,
+  stopTiltForUp,
+} from "../../utils/tilt-startup.js";
 import {
   DRIFT_EXIT_CODE,
   driftReport,

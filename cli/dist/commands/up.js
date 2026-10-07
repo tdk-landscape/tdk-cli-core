@@ -21,7 +21,7 @@ import { buildSmokePlans, formatSmokeFailure, runSmokePlans } from "../utils/smo
 import { evaluateTdkVersionFloor } from "../utils/tdk-version.js";
 import { buildTiltUpArgs, runTilt } from "../utils/tilt.js";
 import { stopTiltOnPort } from "../utils/tilt-process.js";
-import { parseTiltPort, resolveTiltPort, stopTiltForUp } from "../utils/tilt-startup.js";
+import { parseTiltPort, resolveTiltPort, secondUpAction, stopTiltForUp, } from "../utils/tilt-startup.js";
 import { findUnknownServices, resolveOnlySelection } from "../utils/up-only.js";
 import { tiltGetUiResources, waitForTiltResourcesReady } from "../utils/up-readiness.js";
 import { enableDiscoveredStacks } from "./project.js";
@@ -313,23 +313,35 @@ export const upCommand = new Command("up")
         exportHostPortPlan(hostPortPlan);
         writeSavedHostPortPlan(projectRoot, hostPortPlan);
         const basePort = 10350;
-        // A second Tilt would apply a different selection to the same containers, whatever port it listens on, so `--only`
-        // looks for a Tilt that answers on the default port and on TILT_PORT before it chooses one. A listener that is not
-        // Tilt does not count: the port is then picked below as usual.
+        const watchedPort = configuredTiltPort ?? basePort;
+        const candidatePorts = options.only ? [...new Set([basePort, watchedPort])] : [watchedPort];
+        const running = [];
+        for (const candidate of candidatePorts) {
+            if ((await tiltGetUiResources(candidate)) !== null)
+                running.push(candidate);
+        }
+        const decision = secondUpAction({
+            runningPorts: running,
+            force: options.force,
+            only: Boolean(options.only),
+        });
+        if (decision.action === "already-running") {
+            const message = `Environment is already running on port ${decision.ports.join(", ")}.`;
+            emit?.({
+                ok: true,
+                alreadyRunning: true,
+                tiltUrl: `http://localhost:${decision.ports[0]}`,
+            });
+            if (!options.quiet)
+                console.log(chalk.green(message));
+            return;
+        }
+        if (decision.action === "only-blocked") {
+            const message = `A Tilt is already running on port ${decision.ports.join(", ")}. --only cannot change a running stack's services: run \`tdk down\` first, or pass --force to replace it.`;
+            emit?.({ ok: false }, [{ code: "TILT_ALREADY_RUNNING", message }]);
+            showErrorAndExit(message);
+        }
         if (options.only) {
-            const candidatePorts = [
-                ...new Set([basePort, ...(configuredTiltPort === undefined ? [] : [configuredTiltPort])]),
-            ];
-            const running = [];
-            for (const candidate of candidatePorts) {
-                if ((await tiltGetUiResources(candidate)) !== null)
-                    running.push(candidate);
-            }
-            if (running.length > 0 && !options.force) {
-                const message = `A Tilt is already running on port ${running.join(", ")}. --only cannot change a running stack's services: run \`tdk down\` first, or pass --force to replace it.`;
-                emit?.({ ok: false }, [{ code: "TILT_ALREADY_RUNNING", message }]);
-                showErrorAndExit(message);
-            }
             for (const runningPort of running)
                 stopTiltOnPort(runningPort);
         }
