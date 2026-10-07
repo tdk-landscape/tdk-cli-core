@@ -1,0 +1,5 @@
+# Python packages the engine tests need: python3 -m pip install -r tests/requirements.txt
+# Then run: pytest tests/tilt-engine   (or: make test-tilt-engine)
+pytest
+pytest-asyncio   # test_code_executor.py and test_daemon_polling.py use async tests
+pytest-cov       # only for: make test-tilt-engine-coverage
