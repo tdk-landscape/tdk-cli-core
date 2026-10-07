@@ -18,6 +18,8 @@ function asRecord(value) {
 const ESC = String.fromCharCode(0x1b);
 const BEL = String.fromCharCode(0x07);
 const ANSI_SEQUENCE = new RegExp(`${ESC}(?:\\[[0-?]*[ -/]*[@-~]|\\][^${BEL}${ESC}]*(?:${BEL}|${ESC}\\\\)?|[@-Z\\\\-_])`, "g");
+// A regex literal would trip noControlCharactersInRegex, so this stays a string; keep the autofix from rewriting it.
+// biome-ignore lint/complexity/useRegexLiterals: the control-character range must stay in a string
 const CONTROL_CHARS = new RegExp("[\\u0000-\\u0008\\u000b-\\u001f\\u007f-\\u009f]", "g");
 export function stripTerminalControls(value) {
     return value.replace(ANSI_SEQUENCE, "").replace(CONTROL_CHARS, "");

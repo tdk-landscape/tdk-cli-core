@@ -50,6 +50,8 @@ const ANSI_SEQUENCE = new RegExp(
   `${ESC}(?:\\[[0-?]*[ -/]*[@-~]|\\][^${BEL}${ESC}]*(?:${BEL}|${ESC}\\\\)?|[@-Z\\\\-_])`,
   "g",
 );
+// A regex literal would trip noControlCharactersInRegex, so this stays a string; keep the autofix from rewriting it.
+// biome-ignore lint/complexity/useRegexLiterals: the control-character range must stay in a string
 const CONTROL_CHARS = new RegExp("[\\u0000-\\u0008\\u000b-\\u001f\\u007f-\\u009f]", "g");
 
 export function stripTerminalControls(value: string): string {
