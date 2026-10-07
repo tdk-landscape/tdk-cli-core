@@ -72,6 +72,40 @@ export function checkWslProjectLocation(projectPath, strict, isWsl = process.pla
         fix: "Move the repository under your WSL home directory (for example, ~/projects) and retry tdk doctor.",
     };
 }
+/** True for IPv4 0.0.0.0 and any IPv6 unspecified form (::, 0:0::0, [::], ...). */
+function isWildcardBindAddress(value) {
+    const host = value.replace(/^\[(.*)\]$/, "$1");
+    if (host === "0.0.0.0")
+        return true;
+    // IPv4-embedded unspecified address, e.g. ::0.0.0.0
+    if (/^[0:]*:0\.0\.0\.0$/.test(host))
+        return true;
+    return host.includes(":") && /^[0:]+$/.test(host);
+}
+/**
+ * Dev ports (Traefik, Postgres) bind to 127.0.0.1 by default. TDK_BIND_ADDRESS
+ * opts in to another address; a wildcard exposes them to every machine on the
+ * network (GHSA-3hj3-f39v-j2x5).
+ */
+export function checkPublishedBindAddress(env = process.env, strict = false) {
+    const bindAddress = (env.TDK_BIND_ADDRESS ?? "").trim();
+    if (!isWildcardBindAddress(bindAddress)) {
+        return {
+            name: "Dev Port Bind Address",
+            didPass: true,
+            message: bindAddress
+                ? `Dev ports bind to ${bindAddress}`
+                : "Dev ports bind to 127.0.0.1 (this machine only)",
+        };
+    }
+    return {
+        name: "Dev Port Bind Address",
+        didPass: !strict,
+        isWarning: !strict,
+        message: `TDK_BIND_ADDRESS is ${bindAddress}: Traefik and Postgres are reachable from other machines on the network.`,
+        fix: "Unset TDK_BIND_ADDRESS to keep dev ports on 127.0.0.1. Keep it only when you test from another device on purpose.",
+    };
+}
 /** Failures are shown before passing statuses, with a 5432 conflict first. */
 export function orderDoctorResults(results) {
     const failures = results.filter((result) => !result.didPass && !result.isSkipped && !result.isWarning);
@@ -1124,6 +1158,7 @@ export const doctorCommand = new Command("doctor")
         checkDockerVersions,
         checkBun,
         () => checkWslProjectLocation(findProjectRoot() ?? process.cwd(), options.strict),
+        () => checkPublishedBindAddress(process.env, options.strict),
         // Each project needs several networks; a full address pool fails `tdk up` late.
         () => checkDockerNetworkCapacity(),
     ];

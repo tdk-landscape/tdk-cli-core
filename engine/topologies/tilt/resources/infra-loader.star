@@ -70,7 +70,7 @@ services:
       POSTGRES_PASSWORD: ${{DB_PASSWORD}}
       POSTGRES_DB: postgres
     ports:
-      - "{host_port}:5432"
+      - "{bind_address}:{host_port}:5432"
     volumes:
       - {name}_postgres_data:/var/lib/postgresql/data
     networks:
@@ -88,7 +88,7 @@ networks:
 
 volumes:
   {name}_postgres_data:
-""".format(name=name, database_network=database_network, host_port=os.environ.get('TDK_POSTGRES_PORT', '15432'))
+""".format(name=name, database_network=database_network, host_port=os.environ.get('TDK_POSTGRES_PORT', '15432'), bind_address=os.environ.get('TDK_BIND_ADDRESS', '127.0.0.1'))
 
 
 def _ensure_database_management_compose(root_prefix, write_fn):
@@ -236,6 +236,7 @@ def _load_standalone_traefik(root_prefix, env_file, write_fn):
         sablier_enabled,
         os.environ.get('TDK_HTTP_PORT', '8080'),
         os.environ.get('TDK_HTTPS_PORT', '8443'),
+        os.environ.get('TDK_BIND_ADDRESS', '127.0.0.1'),
     )
     if write_fn:
         write_fn(compose_rel, content)
