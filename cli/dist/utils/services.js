@@ -6,6 +6,7 @@ import { errorFactories } from "./errors.js";
 import { formatCount } from "./formatting.js";
 import { findProjectRoot } from "./paths.js";
 import { validateServiceManifest } from "./service-manifest.js";
+import { deriveStackStatus } from "./stack-status.js";
 import { includes } from "./validation.js";
 const RESOURCE_JSON_FILENAME = "service.json";
 function findServiceJsonFiles(dir, maxDepth = 5, currentDepth = 0) {
@@ -338,21 +339,7 @@ export function getStackMetadata(stack) {
     const timestamps = resourcesMetadata.map((r) => new Date(r.createdAt).getTime());
     const earliestTimestamp = Math.min(...timestamps);
     const latestTimestamp = Math.max(...timestamps);
-    const totalResources = resourcesMetadata.length;
-    let overallStatus = "unknown";
-    if (totalResources > 0) {
-        const readyCount = resourcesMetadata.filter((r) => r.status === "ready").length;
-        const ratio = readyCount / totalResources;
-        if (ratio > 0.9) {
-            overallStatus = "healthy";
-        }
-        else if (ratio > 0.5) {
-            overallStatus = "degraded";
-        }
-        else {
-            overallStatus = "error";
-        }
-    }
+    const overallStatus = deriveStackStatus(resourcesMetadata.map((r) => r.status));
     const metadata = {
         name: stack.name,
         resourceCount: resourcesMetadata.length,
