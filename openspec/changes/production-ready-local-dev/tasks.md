@@ -1,38 +1,30 @@
 # Tasks
 
-## 1. Lock the current contract
+This change ships the command boundaries. Sections 4 and 5 are not this change.
 
-- [ ] 1.1 Record current doctor human lines, exit codes, and JSON envelope on a fixture
-- [ ] 1.2 Record current `tdk logs` flags and exit codes
-- [ ] 1.3 Do not add a command or a flag to fill a gap
+## 1. Regenerate
 
-## 2. Doctor
+- [ ] 1.1 `tdk config regenerate` rewrites generated files and leaves every `service.json` byte-identical
+- [ ] 1.2 `tdk config regenerate --dry-run` writes nothing
+- [ ] 1.3 A second regenerate on unchanged `.tdk/project.json` is byte-identical
+- [ ] 1.4 `tdk config verify` exits 0 on that output and still says `tdk config regenerate`
 
-- [ ] 2.1 Keep exit 0 / 1 / 2 as `getDoctorExitCode` defines them
-- [ ] 2.2 Keep `schemaVersion`, `data.ready`, `data.checks`, and `errors` stable
-- [ ] 2.3 Keep `Doctor passed. Next: tdk up` and `Doctor failed. Fix the items above, then run: tdk doctor`
-- [ ] 2.4 Doctor and `tdk config verify` name the same generated drift
+## 2. Migrate
 
-## 3. Regenerate, migrate, and import
+- [ ] 2.1 A missing `schemaVersion` is written only by `tdk config migrate`
+- [ ] 2.2 Migrate does not rewrite generated Docker or Tilt files
+- [ ] 2.3 An unsupported `schemaVersion` fails and writes nothing
+- [ ] 2.4 A file that is already current is left byte-identical
 
-- [ ] 3.1 `tdk config regenerate` rewrites generated files and leaves every `service.json` byte-identical
-- [ ] 3.2 `tdk config regenerate --dry-run` writes nothing
-- [ ] 3.3 `tdk config migrate` sets a missing `schemaVersion` and does not rewrite generated files
-- [ ] 3.4 An unsupported `schemaVersion` fails migrate with no write
-- [ ] 3.5 `tdk import` does not call regenerate or migrate
-- [ ] 3.6 A second regenerate on unchanged inputs is byte-identical, and verify exits 0
+## 3. Import and doctor
 
-## 4. Up, status, ui, logs
+- [ ] 3.1 `tdk import` does not call regenerate or migrate
+- [ ] 3.2 Import npx failure stays exit 127
+- [ ] 3.3 Doctor JSON stays `{ schemaVersion, data.ready, data.checks, errors }` and exit codes stay 0/1/2
 
-- [ ] 4.1 `tdk status` and `tdk ui` agree when a service is not ready
-- [ ] 4.2 A second `tdk up` does not create a second environment
-- [ ] 4.3 A partial start names the failed dependency
-- [ ] 4.4 Human port output matches `data.ports.chosen` in doctor JSON
-- [ ] 4.5 `tdk logs` still prints the service error text and exits 2 on a bad flag or unknown service
-- [ ] 4.6 Ctrl+C during generate, up, and down leaves no partial generated file
+## 4. Not this change
 
-## 5. Proof
-
-- [ ] 5.1 Fixtures for doctor JSON, verify, logs usage, and `tdk up --dry-run`
-- [ ] 5.2 Golden generated output
-- [ ] 5.3 Do not add a command, a lock file, or native Windows runtime
+- [ ] 4.1 Do not add a command, alias, or flag
+- [ ] 4.2 Do not make `tdk up` idempotent here
+- [ ] 4.3 Do not add port-owner detection, Ctrl+C recovery, or a lock file here
+- [ ] 4.4 Do not add a golden suite or platform-matrix CI here

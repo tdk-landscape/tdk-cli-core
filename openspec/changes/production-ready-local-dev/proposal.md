@@ -32,5 +32,24 @@
 
 ## Impact
 
-- CLI: existing doctor, up, status, ui, logs, config verify, config regenerate, config migrate, import. No new command names.
-- Out of scope: new commands, a lock file, Kubernetes, replacing Docker or Tilt, native Windows runtime.
+Ship this change. Do not widen it.
+
+### In scope
+
+- Tests that lock the current command boundaries. No new command names.
+- `tdk config regenerate` rewrites generated files only. `--dry-run` writes nothing. A second run on the same `.tdk/project.json` is byte-identical.
+- `tdk config migrate` writes `schemaVersion` on `service.json` only. It does not rewrite Docker or Tilt files. An unsupported version fails and writes nothing.
+- `tdk import` runs `tdk-import` and does not call regenerate or migrate. npx failure stays exit 127.
+- `tdk config verify` stays the drift check. The fix line stays `tdk config regenerate`.
+- `tdk doctor` keeps exit 0/1/2, `Doctor passed. Next: tdk up`, `Doctor failed. Fix the items above, then run: tdk doctor`, and JSON `{ schemaVersion, data.ready, data.checks, errors }`.
+
+### Out of scope
+
+- New commands, aliases, or flags: `tdk generate`, `tdk migrate`, `tdk logs --follow`, `tdk diagnostics`, `tdk restart`.
+- A lock file, a support bundle, or a second UI.
+- Rewriting doctor JSON, doctor outcome lines, or status vocabulary.
+- Making `tdk up` idempotent, naming partial startup, Ctrl+C recovery, or port-owner detection. Those are later changes.
+- `tdk status` / `tdk ui` agreement work beyond a regression test if one already exists.
+- Golden fixtures for every stack, platform-matrix CI, performance benchmarks, offline mode, concurrency locks, and a security review.
+- Kubernetes, production deploy, replacing Docker or Tilt, native Windows runtime.
+- Changing what `tdk-import` detects. That package is a different repo.
