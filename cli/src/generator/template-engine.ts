@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import Handlebars from "handlebars";
 import { PLATFORM_STANDARDS } from "../config/platform-standards.js";
 import type { JsonValue, ProjectConfig } from "../types/index.js";
+import { writeTextFileAtomic } from "../utils/atomic-write.js";
 import { writeTextFile } from "../utils/file-helpers.js";
 import { assertTdkGeneratedPath } from "../utils/generated-paths.js";
 import { DEFAULT_ALWAYS_ENABLED_INFRA } from "../utils/project-config-defaults.js";
@@ -545,7 +546,7 @@ export async function generateMasterConfigs(
   for (const filename of ALL_GENERATED_FILES) {
     const content = files[filename];
     const filePath = assertTdkGeneratedPath(projectRoot, path.join(".tdk", ".tdk-out", filename));
-    writeTextFile(filePath, content);
+    writeTextFileAtomic(filePath, content);
     console.log(`✓ Generated: .tdk/.tdk-out/${filename}`);
   }
 
@@ -556,7 +557,7 @@ export async function generateMasterConfigs(
     );
     const composeDir = path.dirname(composePath);
     fs.mkdirSync(composeDir, { recursive: true });
-    writeTextFile(composePath, generateDatabaseManagementCompose(projectConfig));
+    writeTextFileAtomic(composePath, generateDatabaseManagementCompose(projectConfig));
     console.log("✓ Generated: services/platform/database-management/docker-compose.yml");
   }
 
