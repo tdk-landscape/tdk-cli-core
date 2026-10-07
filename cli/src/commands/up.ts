@@ -1,8 +1,10 @@
 import { connect } from "node:net";
+import { join } from "node:path";
 import chalk from "chalk";
 import { Command } from "commander";
 import { ensureProjectRuntimeAssets } from "../generator/template-engine.js";
 import { handleDryRun } from "../utils/command-helpers.js";
+import { checkDriftGate } from "../utils/drift-gate.js";
 import { completeEnvFile } from "../utils/env-validator.js";
 import {
   errorFactories,
@@ -82,6 +84,7 @@ export const upCommand = new Command("up")
   .option("-q, --quiet", "Suppress non-essential output", false)
   .option("--dry-run", "Show what would be started without starting", false)
   .option("-f, --force", "Kill existing Tilt process before starting", false)
+  .option("--ignore-drift", "Bypass drift verification and start Tilt anyway", false)
   .action(async (stackName, options) => {
     const platformRefusal = nativeWindowsUpRefusal(
       process.platform,
@@ -249,6 +252,13 @@ export const upCommand = new Command("up")
         focusTargets: stackName ? [stackName] : undefined,
       });
 
+      // Verify generated files before starting Tilt
+      checkDriftGate({
+        projectRoot,
+        ignoreDrift: options.ignoreDrift,
+        quiet: options.quiet,
+      });
+
       if (!options.quiet) {
         console.log(chalk.gray("\nRunning tilt up..."));
         console.log(chalk.gray(`Using Tiltfile: .tdk/.tdk-out/Tiltfile`));
@@ -276,7 +286,9 @@ export const upCommand = new Command("up")
           if (!options.quiet) {
             console.log(chalk.gray(`Smoke check: ${smokePlans.map((p) => p.name).join(", ")}`));
           }
-          const results = await runSmokePlans(smokePlans);
+          const results = await runSmokePlans(smokePlans, {
+            recordDir: join(projectRoot, ".tdk", "smoke"),
+          });
           for (const smokeResult of results) {
             if (smokeResult.ok) {
               if (!options.quiet)

@@ -42,5 +42,6 @@ coverage/
 # Generated reports
 .jscpd-report/
 .tdk/.tdk-out/
+.tdk/smoke/
 
 release-dist-*/

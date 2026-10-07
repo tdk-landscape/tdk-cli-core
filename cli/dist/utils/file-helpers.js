@@ -43,7 +43,13 @@ export function ensureDirectory(dirPath) {
     }
 }
 /** Generated files that must never be committed: .env holds a generated DB password. */
-const GITIGNORE_ENTRIES = [".env", ".tdk/.tdk-out/", ".tdk/.project-id", "node_modules/"];
+const GITIGNORE_ENTRIES = [
+    ".env",
+    ".tdk/.tdk-out/",
+    ".tdk/.project-id",
+    ".tdk/smoke/",
+    "node_modules/",
+];
 /**
  * Appends the TDK entries missing from the project's .gitignore (creating it
  * if needed), so the first `git add .` doesn't commit .env or generated

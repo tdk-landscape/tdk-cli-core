@@ -3,7 +3,10 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+// These spawn `tdk project` per test; the 5s default times out when the whole suite runs in parallel.
+vi.setConfig({ testTimeout: 60_000 });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

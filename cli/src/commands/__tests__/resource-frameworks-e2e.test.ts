@@ -552,7 +552,7 @@ describe("frontend resource framework selection", () => {
           "--type",
           "frontend",
           "--framework",
-          "angular",
+          "nonesuch",
           "--stack",
           "shop",
           "--path",
@@ -561,7 +561,7 @@ describe("frontend resource framework selection", () => {
         projectRoot,
       ),
     ).toThrow(
-      /Unknown frontend framework "angular"[\s\S]*Use one of: react, vue, svelte, preact, lit, solid, qwik, vanilla, tanstack-router/,
+      /Unknown frontend framework "nonesuch"[\s\S]*Use one of: react, vue, svelte, preact, lit, solid, qwik, vanilla, tanstack-router/,
     );
     expect(existsSync(resourcePath)).toBe(false);
   }, 15000);
