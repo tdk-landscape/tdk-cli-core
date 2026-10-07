@@ -632,6 +632,21 @@ def _build_resource_config(res, manifest, resource_config, full_res_path, infra_
     }
 
 
+def count_routable_backends_by_stack(resource_config, resource_manifests, default_stack):
+    """Count the backends of each stack that get a Traefik route (workers, frontends, SDKs, libraries and unproxied BYO do not)."""
+    counts = {}
+    for resource in resource_config.get('resources', []):
+        manifest = resource_manifests.get(resource['name'], {})
+        app_type = manifest.get('appType', 'backend')
+        if resource.get('frontend', False) or app_type in ['frontend', 'worker', 'library', 'sdk', 'infra']:
+            continue
+        if app_type == 'bring-your-own' and not manifest.get('exposeViaProxy', True):
+            continue
+        stack = manifest.get('stack', default_stack)
+        counts[stack] = counts.get(stack, 0) + 1
+    return counts
+
+
 def register_compose_resources(resource_config, ctx, runtime_flags, manifest_state):
     """Register all compose resources for a service."""
     resource_name = resource_config.get('name', '')
@@ -695,6 +710,7 @@ def register_compose_resources(resource_config, ctx, runtime_flags, manifest_sta
 
     resource_entries = []
     resource_configs = []
+    stack_backend_counts = count_routable_backends_by_stack(resource_config, resource_manifests, resource_name)
 
     for res in resource_config.get('resources', []):
         if _should_skip_frontend(res, should_enable):
@@ -702,6 +718,10 @@ def register_compose_resources(resource_config, ctx, runtime_flags, manifest_sta
         
         full_res_path = res.get('_resource_path', resource_path + '/' + res['name'])
         manifest = resource_manifests.get(res['name'], {})
+        if manifest:
+            # Tell the Traefik label generator how many routable backends share this stack (see _stack_is_shared in networking/traefik.star).
+            manifest = dict(manifest)
+            manifest['_stackBackendCount'] = stack_backend_counts.get(manifest.get('stack', resource_name), 1)
         
         # Skip non-app resources - they don't use the golden app Dockerfile pipeline.
         # infra (e.g. verdaccio) is loaded via registries/verdaccio_loader.star instead.

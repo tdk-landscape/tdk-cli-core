@@ -53,6 +53,7 @@ const RESOURCE_CONFIG_FIELDS = [
   "sablier",
   "dockerfile",
   "image",
+  "exposeViaProxy",
 ] as const satisfies readonly (keyof ResourceConfigFields)[];
 type ResourceConfigFieldsAreComplete =
   Exclude<keyof ResourceConfigFields, (typeof RESOURCE_CONFIG_FIELDS)[number]> extends never

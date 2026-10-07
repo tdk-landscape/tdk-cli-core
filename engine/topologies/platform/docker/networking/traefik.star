@@ -83,6 +83,22 @@ def get_frontend_traefik_labels(res_name, domain, base_path, port, traefik_host=
 
     return labels
 
+def _stack_is_shared(manifest):
+    """True when this backend shares its stack with another routable backend (`_stackBackendCount`, set by register_compose_resources).
+
+    The stack-scoped routers (the host/`pathPrefix` router and `<name>-management`) carry one rule per stack. With two backends in
+    one stack they would carry the same rule, so Traefik would pick between them arbitrarily. Each backend keeps its own
+    `<name>-project` router (`/api/<name>`).
+    """
+    return bool(manifest) and manifest.get('_stackBackendCount', 1) > 1
+
+
+def _explicit_backend_route(manifest):
+    """The `traefik.host` / `traefik.pathPrefix` a manifest set on purpose, as (host, path); either may be empty."""
+    traefik_cfg = (manifest.get('traefik') or {}) if manifest else {}
+    return traefik_cfg.get('host') or '', traefik_cfg.get('pathPrefix') or ''
+
+
 def get_backend_traefik_labels(
     resource_entry_name,
     traefik_host,
@@ -123,12 +139,31 @@ def get_backend_traefik_labels(
         # No middleware if path is empty - router has no middlewares
         middleware_config = ""
 
-    labels = """      - "{traefik_enable_label}"
-      - "traefik.http.routers.{resource_entry_name}.rule={backend_route_rule}"
+    stack_shared = _stack_is_shared(manifest)
+    explicit_host, explicit_path = _explicit_backend_route(manifest)
+    if stack_shared:
+        # Another backend in this stack would match the same stack rule, so it is not emitted. The service labels stay (the
+        # -project router points at the service). A manifest that set its own host or pathPrefix keeps a router, but one whose
+        # rule is only what it set, never the shared stack host or path.
+        backend_route_rule = backend_rule(explicit_host, explicit_path)
+
+    if stack_shared and not backend_route_rule:
+        backend_router_labels = ""
+    else:
+        backend_router_labels = """      - "traefik.http.routers.{resource_entry_name}.rule={backend_route_rule}"
       - "traefik.http.routers.{resource_entry_name}.entrypoints={backend_entrypoints}"
       - "traefik.http.routers.{resource_entry_name}.service={traefik_resource_name}"
 {middleware_config}
-      - "traefik.http.services.{traefik_resource_name}.loadbalancer.server.port={internal_port}"
+""".format(
+            resource_entry_name=resource_entry_name,
+            backend_route_rule=backend_route_rule,
+            backend_entrypoints=backend_entrypoints,
+            traefik_resource_name=traefik_resource_name,
+            middleware_config=middleware_config,
+        )
+
+    labels = """      - "{traefik_enable_label}"
+{backend_router_labels}      - "traefik.http.services.{traefik_resource_name}.loadbalancer.server.port={internal_port}"
       - "traefik.http.services.{traefik_resource_name}.loadbalancer.healthcheck.path={health_path}"
       - "traefik.http.services.{traefik_resource_name}.loadbalancer.healthcheck.interval={health_interval}"
       - "traefik.http.services.{traefik_resource_name}.loadbalancer.healthcheck.timeout={health_timeout}"
@@ -137,10 +172,8 @@ def get_backend_traefik_labels(
 """.format(
         resource_entry_name=resource_entry_name,
         traefik_enable_label=TRAEFIK_ENABLE_LABEL,
-        backend_route_rule=backend_route_rule,
-        backend_entrypoints=backend_entrypoints,
+        backend_router_labels=backend_router_labels,
         traefik_resource_name=traefik_resource_name,
-        middleware_config=middleware_config,
         internal_port=internal_port,
         health_path=health_path,
         health_interval=TRAEFIK_HEALTHCHECK_INTERVAL,
@@ -188,7 +221,7 @@ def get_backend_traefik_labels(
             router_priority=router_priority,
         )
 
-        if management_path and management_path != api_path:
+        if management_path and management_path != api_path and not stack_shared:
             labels += """
       - "traefik.http.routers.{resource_entry_name}-management.rule=Host(`{api_host}`) && PathPrefix(`{management_path}`)"
       - "traefik.http.routers.{resource_entry_name}-management.entrypoints={project_entrypoints}"

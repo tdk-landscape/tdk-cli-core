@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -16,6 +16,7 @@ import {
   probeContainerRuntimeError,
   summarizeTiltBuildError,
 } from "../../utils/doctor-runtime.js";
+import { checkSharedStackRoutes } from "../../utils/doctor-wiring.js";
 import {
   checkDockerVersions,
   checkFrontendDockerPreflight,
@@ -1134,5 +1135,95 @@ describe("doctor TDK version pin", () => {
     const result = checkTdkVersion("1.3.80");
     expect(result.didPass).toBe(false);
     expect(result.message).toContain("minTdkVersion");
+  });
+});
+
+describe("checkSharedStackRoutes", () => {
+  const originalCwd = process.cwd();
+  let testDir: string;
+
+  beforeEach(() => {
+    testDir = mkdtempSync(join(tmpdir(), "tdk-doctor-stack-routes-"));
+  });
+
+  afterEach(() => {
+    process.chdir(originalCwd);
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  function writeResource(name: string, extra: Record<string, unknown> = {}) {
+    const dir = join(testDir, "services", "shop", name);
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      join(dir, "service.json"),
+      JSON.stringify({ appName: name, appType: "backend", stack: "shop", ...extra }),
+    );
+  }
+
+  it("passes when each stack has one backend", () => {
+    writeResource("orders-api");
+    expect(checkSharedStackRoutes(testDir).didPass).toBe(true);
+  });
+
+  it("warns, naming both backends, when two share a stack and neither sets a route", () => {
+    writeResource("orders-api");
+    writeResource("billing-api");
+
+    const result = checkSharedStackRoutes(testDir);
+
+    expect(result.didPass).toBe(false);
+    expect(result.isWarning).toBe(true);
+    expect(result.message).toContain(
+      "billing-api, orders-api lose the shared /api/shop-management route",
+    );
+    expect(result.fix).toContain("traefik.pathPrefix");
+  });
+
+  it("warns about only the backend that has no route of its own when the other sets a pathPrefix", () => {
+    writeResource("orders-api");
+    writeResource("billing-api", { traefik: { pathPrefix: "/api/billing" } });
+
+    const result = checkSharedStackRoutes(testDir);
+
+    expect(result.didPass).toBe(false);
+    expect(result.message).toContain("orders-api lose the shared");
+    expect(result.message).not.toContain("billing-api lose");
+  });
+
+  it("passes when both backends set a different pathPrefix", () => {
+    writeResource("orders-api", { traefik: { pathPrefix: "/api/orders-v1" } });
+    writeResource("billing-api", { traefik: { pathPrefix: "/api/billing-v1" } });
+    expect(checkSharedStackRoutes(testDir).didPass).toBe(true);
+  });
+
+  it("warns when two backends set the same pathPrefix", () => {
+    writeResource("orders-api", { traefik: { pathPrefix: "/api/v1" } });
+    writeResource("billing-api", { traefik: { pathPrefix: "/api/v1" } });
+
+    const result = checkSharedStackRoutes(testDir);
+
+    expect(result.didPass).toBe(false);
+    expect(result.message).toContain(
+      'billing-api and orders-api both set traefik.pathPrefix "/api/v1"',
+    );
+  });
+
+  it("ignores workers, frontends and unproxied bring-your-own resources, like the engine", () => {
+    writeResource("orders-api");
+    writeResource("jobs", { appType: "worker" });
+    writeResource("storefront", { appType: "frontend" });
+    writeResource("legacy", { appType: "bring-your-own", exposeViaProxy: false });
+    expect(checkSharedStackRoutes(testDir).didPass).toBe(true);
+  });
+
+  it("does not group two service directories that declare the same stack, because the engine counts per directory", () => {
+    writeResource("orders-api");
+    const dir = join(testDir, "services", "other", "billing-api");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      join(dir, "service.json"),
+      JSON.stringify({ appName: "billing-api", appType: "backend", stack: "shop" }),
+    );
+    expect(checkSharedStackRoutes(testDir).didPass).toBe(true);
   });
 });

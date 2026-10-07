@@ -39,6 +39,8 @@ export interface ResourceConfigFields {
   smoke?: import("../utils/smoke.js").SmokeConfig;
   /** Traefik routing overrides. `healthCheck` is the path Traefik's load balancer probes; defaults to healthCheckPath. */
   traefik?: { host?: string; pathPrefix?: string; healthCheck?: string };
+  /** bring-your-own only: false keeps the resource off Traefik (no route, no health check). Defaults to true. */
+  exposeViaProxy?: boolean;
   /** On-demand scaling via Sablier (Premium - requires TDK_LICENSE_KEY). See hasSablierLicense() in extension-fetch.ts. */
   sablier?: {
     enable?: boolean;

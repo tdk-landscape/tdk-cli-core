@@ -64,7 +64,7 @@ def frontend_rule(res_name, base_path, traefik_host):
 
 def backend_rule(traefik_host, traefik_path):
     parts = []
-    if TRAEFIK_ENABLE_BACKEND_HOST_RULE:
+    if TRAEFIK_ENABLE_BACKEND_HOST_RULE and traefik_host:
         parts.append("Host(`{host}`)".format(host=traefik_host))
     if TRAEFIK_ENABLE_BACKEND_PATH_RULE and traefik_path:
         parts.append("PathPrefix(`{path}`)".format(path=traefik_path))

@@ -38,6 +38,7 @@ import {
   checkResourcePackageJson,
   checkServiceUrlPorts,
   checkSharedPlatformPostgres,
+  checkSharedStackRoutes,
   checkTiltInstances,
 } from "../utils/doctor-wiring.js";
 import { validateEnvFile } from "../utils/env-validator.js";
@@ -1466,6 +1467,7 @@ export const doctorCommand = new Command("doctor")
       () => checkDuplicateResourcePorts(),
       () => checkServiceUrlPorts(),
       () => checkFrontendBackendUrls(),
+      () => checkSharedStackRoutes(),
       () => checkNatsBroker(),
       () => checkPrismaConsistency(),
       // Shared platform Postgres: will-start report + unknown dependsOn names stay errors.
