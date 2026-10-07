@@ -1,8 +1,10 @@
+import * as fs from "node:fs";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  EnvUnreadableError,
   envSecretValues,
   MIN_REDACTED_VALUE_LENGTH,
   REDACTED,
@@ -42,6 +44,14 @@ describe("envSecretValues", () => {
   it("skips values shorter than the minimum so ordinary words are not masked", () => {
     const short = "x".repeat(MIN_REDACTED_VALUE_LENGTH - 1);
     expect(envSecretValues(projectWithEnv(`TOKEN=${short}\n`))).toEqual([]);
+  });
+
+  it("throws EnvUnreadableError when .env exists but cannot be read", () => {
+    const root = projectWithEnv("TOKEN=abcdefghijk\n");
+    fs.chmodSync(join(root, ".env"), 0o000);
+    if (process.getuid?.() === 0) return; // root reads any file, so the permission case cannot be set up
+    expect(() => envSecretValues(root)).toThrow(EnvUnreadableError);
+    fs.chmodSync(join(root, ".env"), 0o600);
   });
 
   it("returns nothing when there is no .env file", () => {

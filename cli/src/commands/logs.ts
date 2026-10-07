@@ -3,7 +3,12 @@ import { STANDARD_PORTS } from "../utils/constants.js";
 import { errorFactories, runCommand, showErrorAndExit, TdkError } from "../utils/errors.js";
 import { createMachineEnvelope } from "../utils/machine-output.js";
 import { findProjectRoot } from "../utils/paths.js";
-import { envSecretValues, redactSecrets, redactValue } from "../utils/secret-redaction.js";
+import {
+  EnvUnreadableError,
+  envSecretValues,
+  redactSecrets,
+  redactValue,
+} from "../utils/secret-redaction.js";
 import { isTiltAvailable, runTilt } from "../utils/tilt.js";
 import {
   DEFAULT_LOG_TAIL,
@@ -39,7 +44,7 @@ export const logsCommand = new Command("logs")
   .option("--port <n>", "Tilt UI port (default: TILT_PORT or 10350)")
   .option("--json", "Output one JSON object and exit", false)
   .action(async (options) => {
-    const secrets = envSecretValues(findProjectRoot() ?? process.cwd());
+    let secrets: string[] = [];
     const fail = (
       code: string,
       rawMessage: string,
@@ -47,18 +52,25 @@ export const logsCommand = new Command("logs")
       suggestions: string[] = [],
     ): never => {
       const message = redactSecrets(rawMessage, secrets);
+      const redactedSuggestions = redactValue(suggestions, secrets);
       if (options.json) {
         console.log(
           JSON.stringify(
             createMachineEnvelope(null, [
-              { code, message, ...(suggestions.length > 0 ? { suggestions } : {}) },
+              {
+                code,
+                message,
+                ...(redactedSuggestions.length > 0 ? { suggestions: redactedSuggestions } : {}),
+              },
             ]),
           ),
         );
         console.error(message);
         process.exit(exitCode);
       }
-      if (suggestions.length > 0) return new TdkError(message, suggestions, exitCode).exit();
+      if (redactedSuggestions.length > 0) {
+        return new TdkError(message, redactedSuggestions, exitCode).exit();
+      }
       return showErrorAndExit(message, exitCode);
     };
 
@@ -71,6 +83,15 @@ export const logsCommand = new Command("logs")
     if (!isValidPort(portText)) fail("USAGE", "--port must be a valid port number", 2);
     const tail = Number(options.tail);
     const services: string[] = options.service ?? [];
+
+    try {
+      secrets = envSecretValues(findProjectRoot() ?? process.cwd());
+    } catch (error) {
+      if (!(error instanceof EnvUnreadableError)) throw error;
+      fail("ENV_UNREADABLE", error.message, 1, [
+        "Fix the read permission on .env, or move it out of the project",
+      ]);
+    }
 
     const action = async (): Promise<void> => {
       if (!(await isTiltAvailable())) {

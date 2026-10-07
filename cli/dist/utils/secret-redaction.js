@@ -2,17 +2,35 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseEnv } from "./env-validator.js";
 export const REDACTED = "[REDACTED]";
+export class EnvUnreadableError extends Error {
+    path;
+    constructor(path, reason) {
+        super(`Could not read ${path}: ${reason}`);
+        this.path = path;
+        this.name = "EnvUnreadableError";
+    }
+}
 /**
  * Shorter values are left alone: masking a two-letter value would hit ordinary words in every log line. The cost is
  * that a short secret in .env is not masked, so keep real secrets at least this long.
  */
 export const MIN_REDACTED_VALUE_LENGTH = 8;
-/** Values of the project's own .env file, longest first so a value that contains another is masked whole. */
+/**
+ * Values of the project's own .env file, longest first so a value that contains another is masked whole. Throws when the
+ * file exists but cannot be read: continuing without the values would print secrets unmasked.
+ */
 export function envSecretValues(projectRoot) {
     const envPath = join(projectRoot, ".env");
     if (!existsSync(envPath))
         return [];
-    const values = [...parseEnv(readFileSync(envPath, "utf-8")).values()].filter((value) => value.length >= MIN_REDACTED_VALUE_LENGTH);
+    let content;
+    try {
+        content = readFileSync(envPath, "utf-8");
+    }
+    catch (error) {
+        throw new EnvUnreadableError(envPath, error instanceof Error ? error.message : String(error));
+    }
+    const values = [...parseEnv(content).values()].filter((value) => value.length >= MIN_REDACTED_VALUE_LENGTH);
     return [...new Set(values)].sort((a, b) => b.length - a.length);
 }
 export function redactSecrets(text, secrets) {

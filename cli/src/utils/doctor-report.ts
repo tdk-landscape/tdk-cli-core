@@ -3,7 +3,7 @@ import type { HostInfo } from "./agent-host.js";
 import type { HostPortPlan } from "./host-port-plan.js";
 
 export interface DoctorError {
-  code: "USAGE" | "INTERNAL";
+  code: "USAGE" | "INTERNAL" | "ENV_UNREADABLE";
   message: string;
 }
 
