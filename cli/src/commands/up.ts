@@ -402,9 +402,10 @@ export const upCommand = new Command("up")
       writeSavedHostPortPlan(projectRoot, hostPortPlan);
 
       const basePort = 10350;
-      const candidatePorts = [
-        ...new Set([basePort, ...(configuredTiltPort === undefined ? [] : [configuredTiltPort])]),
-      ];
+      const watchedPort = configuredTiltPort ?? basePort;
+      const candidatePorts = options.only
+        ? [...new Set([basePort, watchedPort])]
+        : [watchedPort];
       const running: number[] = [];
       for (const candidate of candidatePorts) {
         if ((await tiltGetUiResources(candidate)) !== null) running.push(candidate);
@@ -416,7 +417,11 @@ export const upCommand = new Command("up")
       });
       if (decision.action === "already-running") {
         const message = `Environment is already running on port ${decision.ports.join(", ")}.`;
-        emit?.({ ok: true, alreadyRunning: true, tiltUrl: `http://localhost:${decision.ports[0]}` });
+        emit?.({
+          ok: true,
+          alreadyRunning: true,
+          tiltUrl: `http://localhost:${decision.ports[0]}`,
+        });
         if (!options.quiet) console.log(chalk.green(message));
         return;
       }
