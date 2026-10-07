@@ -10,7 +10,7 @@ TDK has no telemetry or analytics ([project overview](project-overview.md#teleme
 | --- | --- | --- | --- |
 | `tdk upgrade` version check and download | Only when you run `tdk upgrade` | `api.github.com` releases, GitHub release assets, and on Windows `registry.npmjs.org` | An ordinary unauthenticated request. The binary and the bundled engine are checked against the release `checksums.txt` before the installed copy is replaced (`checksum mismatch` error path read in `upgrade.ts`). |
 | Premium extension fetch | Only when `TDK_LICENSE_KEY` is set and a premium feature is used | `TDK_PREMIUM_ENDPOINT`, default a Cloudflare Worker (`tdk-extension-dist.oranguman.workers.dev`) | The licence key as a bearer token, the resource name and a random per-project id stored in `.tdk/`. A bundle is cached under `~/.tdk/cache/`. |
-| `tdk doctor` service ping, `tdk smoke` | When services are running; `tdk doctor --no-ping` skips the ping | `<project>.localhost` (or `TDK_SERVICE_BASE_URL`) | A GET to each service's health endpoint. |
+| `tdk doctor` service ping, and the `smoke` checks that `tdk up` runs for services that declare them | When services are running; `tdk doctor --no-ping` skips the ping | `<project>.localhost` (or `TDK_SERVICE_BASE_URL`) | A GET to each service's health endpoint. |
 
 Without a licence key, and without running `tdk upgrade`, the CLI makes no outbound request of its own. There is no update check on startup.
 

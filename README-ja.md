@@ -21,7 +21,7 @@ mkdir shop && cd shop
 tdk project --yes
 tdk resource orders-api --type backend --stack shop --yes
 tdk up shop
-curl http://api.shop.localhost:8080/api/orders-api/health
+curl http://api.shop.localhost:8080/api/orders/health
 ```
 
 ![TDK がバックエンドとフロントエンドをスキャフォールドし、スタックを一覧表示する様子](docs/assets/demo.svg)

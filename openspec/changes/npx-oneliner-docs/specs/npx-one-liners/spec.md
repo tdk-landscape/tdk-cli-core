@@ -38,7 +38,7 @@ Docs SHALL use these blocks, each prefixed `npx -y @tdk-landscape/tdk-cli-core`:
 
 - Try: `--version`
 - Scaffold one backend: `mkdir shop && cd shop`, then `project --yes`, then `resource orders-api --type backend --stack shop --yes`
-- Spin the stack (Docker + Tilt already installed): `up shop`, then `curl http://api.shop.localhost/api/orders-api/health`
+- Spin the stack (Docker + Tilt already installed): `up shop`, then `curl http://api.shop.localhost/api/orders/health`
 - Single line: the three commands above chained with `&&`
 - Preview, no containers: `up shop --dry-run`
 - Frontend: `resource web --type frontend --stack shop --yes` and `resource web --type frontend --framework vue --stack shop --yes`

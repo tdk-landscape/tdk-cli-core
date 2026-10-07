@@ -21,7 +21,7 @@ mkdir shop && cd shop
 tdk project --yes
 tdk resource orders-api --type backend --stack shop --yes
 tdk up shop
-curl http://api.shop.localhost:8080/api/orders-api/health
+curl http://api.shop.localhost:8080/api/orders/health
 ```
 
 ![TDK 搭建后端和前端，然后列出 stack](docs/assets/demo.svg)

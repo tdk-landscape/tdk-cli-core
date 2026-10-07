@@ -32,10 +32,10 @@ mkdir shop && cd shop
 tdk project --yes
 tdk resource orders-api --type backend --stack shop --yes
 tdk up shop
-curl http://api.shop.localhost:8080/api/orders-api/health
+curl http://api.shop.localhost:8080/api/orders/health
 ```
 
-`tdk up` prints the host ports it chose. Port 8080 is the default; if it was taken, use the HTTP port `tdk up` reports (or set `TDK_HTTP_PORT`).
+`tdk up` prints the host ports it chose. Port 8080 is the default; if it was taken, use the HTTP port `tdk up` reports (or set `TDK_HTTP_PORT`). A resource named `orders-api` is served at `/api/orders` (a trailing `-api` is dropped); `tdk up` prints the exact URLs.
 
 ![TDK scaffolding a backend and a frontend, then listing the stack](docs/assets/demo.svg)
 
