@@ -35,7 +35,7 @@ jobs:
             const user = context.payload.comment.user.login;
             const text = context.payload.comment.body || '';
             // Short, direct claims only. A long comment that merely mentions "take" is a discussion.
-            const CLAIM = /^\s*(?:(?:i['’]?ll|i will|i can|let me|can i|may i|could i)\s+(?:take|work on|try|do|fix|pick up|have a go at)|(?:take|taking|claim|assign me|working on|i['’]?m (?:on it|taking|working on))\b)/i;
+            const CLAIM = /^\s*(?:(?:hi|hello|hey)[,!.]?\s+)?(?:(?:i['’]?ll|i will|i can|let me|can i|may i|could i|i['’]?d (?:like|love) to|i would (?:like|love) to|i want to)\s+(?:take|work on|try|do|fix|pick up|tackle|have a go at)|(?:i would|i['’]?d) (?:like|love) this one|(?:take|taking|claim|claiming|assign me|please assign|working on|i['’]?m (?:on it|taking|working on))\b)/i;
             if (text.length > 400 || !CLAIM.test(text)) return;
             if (issue.labels.some((l) => l.name === 'tracking' || l.name === 'rfc')) return;
 

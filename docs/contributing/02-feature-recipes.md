@@ -30,6 +30,27 @@ Use the existing code as a map:
 
 Do not assume a new tool needs every file above. Follow the current implementation that is closest to your feature and keep shared service behavior working.
 
+## Try a Starlark change without Docker
+
+You can run any engine function and look at its output with only Tilt installed. From the repository root, create `try.Tiltfile` (it is git-ignored):
+
+```python
+load("engine/topologies/platform/docker/compose/compose.star", "generate_backend_compose_entry")
+
+manifest = {"appType": "backend", "stack": "shop", "port": 4000, "appName": "orders-api"}
+resource = {"name": "orders-api", "_resource_path": "services/shop/orders-api"}
+manifest["_resource_path"] = resource["_resource_path"]
+
+entry = generate_backend_compose_entry("services/shop", "orders-api", resource, manifest)
+fail("OUTPUT\n" + entry)  # fail() is how a Tiltfile prints a string without Docker
+```
+
+```bash
+tilt alpha tiltfile-result -f try.Tiltfile
+```
+
+The generated Compose entry is printed after `Error in fail: OUTPUT`. Paths in `load()` are relative to the Tiltfile, so keep it in the repo root. Change the manifest, run it again, and compare. The same idea is how the Starlark tests in `cli/src/commands/__tests__/` (for example `stack-routers.test.ts`) check generator output; copy one when you add a test.
+
 ## Change the engine or service discovery
 
 1. For Tilt resource orchestration, begin in `engine/topologies/tilt/resources/`.

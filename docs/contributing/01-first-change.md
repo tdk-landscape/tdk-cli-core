@@ -26,7 +26,7 @@ Replace `my-change` with a short name, for example `docs-new-framework-guide`.
 
 1. Open the [good first issues](https://github.com/tdk-landscape/tdk-cli-core/labels/good%20first%20issue) or [help wanted issues](https://github.com/tdk-landscape/tdk-cli-core/labels/help%20wanted).
 2. Read the issue and check whether someone is already working on it.
-3. Comment that you would like to take it. If there is no issue, open one describing the change before starting a large feature.
+3. Comment `I'll take this` (or `I would like this one`); a bot assigns you and adds the `claimed` label. If there is no issue, open one describing the change before starting a large feature.
 4. Use [the feature recipes](02-feature-recipes.md) to find the likely files and checks.
 
 ## When to write a change proposal

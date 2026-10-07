@@ -10,6 +10,19 @@ Welcome! Small fixes and large features are both useful. Start with the short [c
 
 The focused [frontend provider guide](docs/frontend-framework-providers.md) has the exact steps for adding another Vite framework like Vue. The [backend provider guide](docs/backend-language-providers.md) covers adding a backend language like Python.
 
+## Quick setup
+
+You need Git, [Bun](https://bun.sh) and Node.js 22.12+. Docker and Tilt are not needed for most changes.
+
+```bash
+git clone https://github.com/tdk-landscape/tdk-cli-core.git
+cd tdk-cli-core
+bun install
+bun run typecheck && bun run lint && bun run test   # about a minute; all of it should pass before you change anything
+```
+
+If one of these fails on a clean checkout, that is a bug in the project, not in your setup: please [open an issue](https://github.com/tdk-landscape/tdk-cli-core/issues/new/choose).
+
 ## Find something to work on
 
 - 🗺️ [The TDK Journey](docs/journey/README.md): pick an island, finish a quest, rank up (8 kyu → 1 dan)
@@ -17,7 +30,7 @@ The focused [frontend provider guide](docs/frontend-framework-providers.md) has 
 - [Help wanted](https://github.com/tdk-landscape/tdk-cli-core/labels/help%20wanted)
 - [Report a bug or ask a question](https://github.com/tdk-landscape/tdk-cli-core/issues/new/choose)
 
-If you pick an issue, leave a comment before starting so two people do not do the same work. For a bug report, include the output of `tdk doctor` when you can.
+If you pick an issue, comment `I'll take this` (or `I would like this one`, `I'd like to work on this`, `Can I take this?`). A bot assigns you and adds the `claimed` label so two people do not do the same work. A claim with no pull request is nudged after 14 days and released after 21; a draft PR counts as progress. For a bug report, include the output of `tdk doctor` when you can.
 
 ## Spell check
 

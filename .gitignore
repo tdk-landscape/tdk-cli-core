@@ -45,3 +45,6 @@ coverage/
 .tdk/smoke/
 
 release-dist-*/
+
+# scratch file for trying Starlark changes (docs/contributing/02-feature-recipes.md)
+/try.Tiltfile
