@@ -30,7 +30,9 @@ describe("template-engine", () => {
     const compose = generateDatabaseManagementCompose({
       project: { name: "port_test", version: "1.0.0" },
     } as ProjectConfig);
-    expect(compose).toContain('"$' + '{TDK_POSTGRES_PORT:-15432}:5432"');
+    expect(compose).toContain(
+      '"$' + "{TDK_BIND_ADDRESS:-127.0.0.1}:$" + '{TDK_POSTGRES_PORT:-15432}:5432"',
+    );
   });
 
   it("preserves user files and detects service manifest and generated Dockerfile drift", async () => {
@@ -313,7 +315,7 @@ describe("template-engine", () => {
       // renders only `traefik`; forcing the flag on renders all three.)
       const compose = readEngine("topologies/platform/docker/compose/traefik_standalone.star");
       expect(compose).toMatch(
-        /def generate_standalone_traefik_compose\(sablier_enabled\s*=\s*False,\s*http_host_port\s*=\s*"8080",\s*https_host_port\s*=\s*"8443"\)/,
+        /def generate_standalone_traefik_compose\(sablier_enabled\s*=\s*False,\s*http_host_port\s*=\s*"8080",\s*https_host_port\s*=\s*"8443",\s*bind_address\s*=\s*"127\.0\.0\.1"\)/,
       );
       for (const marker of [
         "  sablier:\n",
@@ -331,9 +333,30 @@ describe("template-engine", () => {
 
       const loader = readEngine("topologies/tilt/resources/infra-loader.star");
       expect(loader).toMatch(
-        /generate_standalone_traefik_compose\(\s*sablier_enabled,\s*os\.environ\.get\('TDK_HTTP_PORT', '8080'\),\s*os\.environ\.get\('TDK_HTTPS_PORT', '8443'\),?\s*\)/,
+        /generate_standalone_traefik_compose\(\s*sablier_enabled,\s*os\.environ\.get\('TDK_HTTP_PORT', '8080'\),\s*os\.environ\.get\('TDK_HTTPS_PORT', '8443'\),\s*os\.environ\.get\('TDK_BIND_ADDRESS', '127\.0\.0\.1'\),?\s*\)/,
       );
       expect(loader).toMatch(/sablier_middleware_suffix\(\{"sablier":\s*\{"enable":\s*True\}\}/);
+    });
+
+    it("published dev ports bind to loopback unless TDK_BIND_ADDRESS opts in", () => {
+      // Regression (GHSA-3hj3-f39v-j2x5): a `ports:` entry with no host IP makes Docker bind
+      // 0.0.0.0, so Traefik (80/443), the Postgres port and the Traefik API were reachable by
+      // anyone on the same network. Dev ports now default to 127.0.0.1.
+      const traefik = readEngine("topologies/platform/docker/compose/traefik_standalone.star");
+      expect(traefik).toContain('"{bind_address}:{http_host_port}:80"');
+      expect(traefik).toContain('"{bind_address}:{https_host_port}:443"');
+      expect(traefik).not.toContain("--api.insecure=true");
+
+      const loader = readEngine("topologies/tilt/resources/infra-loader.star");
+      expect(loader).toContain('"{bind_address}:{host_port}:5432"');
+      expect(loader).toMatch(/os\.environ\.get\('TDK_BIND_ADDRESS', '127\.0\.0\.1'\)/);
+
+      const postgres = generateDatabaseManagementCompose({
+        project: { name: "port_test", version: "1.0.0" },
+      } as ProjectConfig);
+      expect(postgres).toContain(
+        '"$' + "{TDK_BIND_ADDRESS:-127.0.0.1}:$" + '{TDK_POSTGRES_PORT:-15432}:5432"',
+      );
     });
 
     it("focus mode always enables nats and every messaging-compose service, not just the hardcoded infra names", () => {

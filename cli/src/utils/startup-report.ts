@@ -1,4 +1,5 @@
 import { parseTiltResourceFailures, summarizeTiltBuildError } from "./doctor-runtime.js";
+import { portConflictFix } from "./port-conflict-fix.js";
 import { isTiltResourcePending } from "./tilt-resource-state.js";
 import { onlyEnabledResources } from "./up-readiness.js";
 
@@ -79,7 +80,11 @@ export function isStartupStalled(
 
 export function formatStartupReport(report: StartupReport, timedOut: boolean): string[] {
   const lines: string[] = [];
-  for (const { name, message } of report.failed) lines.push(`✗ ${name} failed: ${message}`);
+  for (const { name, message } of report.failed) {
+    lines.push(`✗ ${name} failed: ${message}`);
+    const fix = portConflictFix(message);
+    if (fix) lines.push(`  ${fix}`);
+  }
   for (const { name, because } of report.blocked) {
     lines.push(`✗ ${name} is not ready because ${because.join(", ")} failed`);
   }
