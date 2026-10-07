@@ -5,6 +5,7 @@ import chalk from "chalk";
 import { Command } from "commander";
 import { hasVerdaccioLicense } from "../generator/extension-fetch.js";
 import { DEVCONTAINER_DOCKER_FIX, detectHost, isContainerHost, WEBCONTAINER_DOCS, WEBCONTAINER_UP_MESSAGE, } from "../utils/agent-host.js";
+import { projectNeedsBun } from "../utils/bun-requirement.js";
 import { MASTER_CONFIG_FILES, REQUIRED_PACKAGE_SCRIPTS } from "../utils/constants.js";
 import { isPathDiscovered, readDiscoveryPaths } from "../utils/discovery-paths.js";
 import { collectDoctorChecks, createDoctorReport, getDoctorExitCode, } from "../utils/doctor-report.js";
@@ -16,7 +17,6 @@ import { formatCount } from "../utils/formatting.js";
 import { getHostPortPlan } from "../utils/host-port-config.js";
 import { createHostPortPlan } from "../utils/host-port-plan.js";
 import { findProjectRoot, getPackageVersion } from "../utils/paths.js";
-import { isApiServiceType } from "../utils/resource-kind.js";
 import { EnvUnreadableError, envSecretValues, redactSecrets, redactValue, } from "../utils/secret-redaction.js";
 import { checkCircularDependencies, checkDependsOnShape, checkSchemaVersions, checkServicePorts, } from "../utils/service-config-checks.js";
 import { buildHealthTargets, pingHealthTargets } from "../utils/service-urls.js";
@@ -363,11 +363,7 @@ export async function checkBun(exec = execAsync) {
             message: "Not in a project - skipping Bun check",
         };
     }
-    const resources = discoverResourcesFromRoot(projectRoot);
-    const hasGeneratedJsServices = resources.some((resource) => isApiServiceType(resource.config?.appType) ||
-        resource.config?.appType === "frontend" ||
-        resource.config?.appType === "worker");
-    if (!hasGeneratedJsServices) {
+    if (!projectNeedsBun(discoverResourcesFromRoot(projectRoot))) {
         return {
             name: "Bun",
             didPass: true,

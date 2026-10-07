@@ -12,6 +12,7 @@ import {
   WEBCONTAINER_DOCS,
   WEBCONTAINER_UP_MESSAGE,
 } from "../utils/agent-host.js";
+import { projectNeedsBun } from "../utils/bun-requirement.js";
 import { MASTER_CONFIG_FILES, REQUIRED_PACKAGE_SCRIPTS } from "../utils/constants.js";
 import { isPathDiscovered, readDiscoveryPaths } from "../utils/discovery-paths.js";
 import {
@@ -47,7 +48,6 @@ import { formatCount } from "../utils/formatting.js";
 import { getHostPortPlan } from "../utils/host-port-config.js";
 import { createHostPortPlan, type HostPortPlan } from "../utils/host-port-plan.js";
 import { findProjectRoot, getPackageVersion } from "../utils/paths.js";
-import { isApiServiceType } from "../utils/resource-kind.js";
 import {
   EnvUnreadableError,
   envSecretValues,
@@ -465,15 +465,7 @@ export async function checkBun(exec: ExecAsync = execAsync): Promise<CheckResult
     };
   }
 
-  const resources = discoverResourcesFromRoot(projectRoot);
-  const hasGeneratedJsServices = resources.some(
-    (resource) =>
-      isApiServiceType(resource.config?.appType) ||
-      resource.config?.appType === "frontend" ||
-      resource.config?.appType === "worker",
-  );
-
-  if (!hasGeneratedJsServices) {
+  if (!projectNeedsBun(discoverResourcesFromRoot(projectRoot))) {
     return {
       name: "Bun",
       didPass: true,

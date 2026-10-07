@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { checkDockerCompose, checkDockerRuntime, checkDockerVersions, checkTilt, } from "../commands/doctor.js";
 import { BUN_FLOOR_LABEL, bunMeetsFloor } from "./bun-floor.js";
+import { projectNeedsBun } from "./bun-requirement.js";
 import { checkNatsBroker } from "./doctor-wiring.js";
 import { getHostPortPlan } from "./host-port-config.js";
 import { findProjectRoot } from "./paths.js";
@@ -79,8 +80,10 @@ export async function runColdPreflight(opts = {}) {
         return requireVerifiedDockerVersions(versions);
     }, "Docker Engine or Compose version check failed"));
     items.push(await safeCheck("tilt", checkTilt, "Tilt CLI not found"));
+    // Outside a project Bun stays required: `tdk project` is about to create services that need it.
+    const bunNeeded = projectRoot ? projectNeedsBun(discoverResourcesFromRoot(projectRoot)) : true;
     let bun = false;
-    const bunPath = findOnPath("bun");
+    const bunPath = bunNeeded ? findOnPath("bun") : undefined;
     if (bunPath) {
         try {
             const version = execFileSync(bunPath, ["--version"], {
@@ -93,14 +96,16 @@ export async function runColdPreflight(opts = {}) {
             /* reported as a failed runtime check */
         }
     }
-    items.push({
-        id: "bun",
-        ok: bun,
-        message: bun
-            ? `Bun ${BUN_FLOOR_LABEL} is available on PATH`
-            : `Bun ${BUN_FLOOR_LABEL} not found on PATH`,
-        fix: bun ? undefined : "curl -fsSL https://bun.sh/install | bash",
-    });
+    items.push(bunNeeded
+        ? {
+            id: "bun",
+            ok: bun,
+            message: bun
+                ? `Bun ${BUN_FLOOR_LABEL} is available on PATH`
+                : `Bun ${BUN_FLOOR_LABEL} not found on PATH`,
+            fix: bun ? undefined : "curl -fsSL https://bun.sh/install | bash",
+        }
+        : { id: "bun", ok: true, message: "Bun not needed: no generated JS services" });
     try {
         const plan = await getHostPortPlan(projectRoot ?? cwd);
         items.push({
