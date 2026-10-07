@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { checkDriftGate } from "../drift-gate.js";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as templateEngine from "../../generator/template-engine.js";
+import { checkDriftGate } from "../drift-gate.js";
 
 vi.mock("../../generator/template-engine.js");
 

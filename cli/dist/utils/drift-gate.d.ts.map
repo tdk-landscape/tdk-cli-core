@@ -1,0 +1,1 @@
+{"version":3,"file":"drift-gate.d.ts","sourceRoot":"","sources":["../../src/utils/drift-gate.ts"],"names":[],"mappings":"AAGA,MAAM,WAAW,gBAAgB;IAC/B,WAAW,EAAE,MAAM,CAAC;IACpB,WAAW,CAAC,EAAE,OAAO,CAAC;IACtB,KAAK,CAAC,EAAE,OAAO,CAAC;CACjB;AAED;;;;GAIG;AACH,wBAAgB,cAAc,CAAC,OAAO,EAAE,gBAAgB,GAAG,OAAO,CA0BjE"}

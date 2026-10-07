@@ -14,8 +14,8 @@ import {
   WEBCONTAINER_UP_MESSAGE,
 } from "../utils/agent-host.js";
 import { handleDryRun } from "../utils/command-helpers.js";
-import { checkDriftGate } from "../utils/drift-gate.js";
 import { getDeferredResourceNames } from "../utils/doctor-runtime.js";
+import { checkDriftGate } from "../utils/drift-gate.js";
 import { completeEnvFile } from "../utils/env-validator.js";
 import {
   errorFactories,
