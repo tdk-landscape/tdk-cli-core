@@ -86,7 +86,8 @@ describe("tdk stack command scriptability", () => {
     const output = result.stdout + result.stderr;
 
     expect(result.status).toBe(0);
-    expect(output).toContain(`skipped ${malformedPath}: invalid JSON`);
+    // macOS temp dirs live under /var, a symlink to /private/var; discovery reports the resolved path.
+    expect(output).toContain(`skipped ${fs.realpathSync(malformedPath)}: invalid JSON`);
     expect(output).toContain("api");
   });
 

@@ -4,6 +4,7 @@ import { errorFactories, runCommand, showErrorAndExit, TdkError } from "../utils
 import { createMachineEnvelope } from "../utils/machine-output.js";
 import { isTiltAvailable, runTilt } from "../utils/tilt.js";
 import { DEFAULT_LOG_TAIL, isTiltConnectionFailure, isValidPort, isValidSince, isValidTail, MAX_LOG_TAIL, parseTiltLogLines, } from "../utils/tilt-logs.js";
+import { tiltUnreachableMessage } from "../utils/tilt-unreachable-message.js";
 /** Resource names Tilt knows about, or null when they cannot be listed (the logs call then reports the real error). */
 async function tiltResourceNames(port) {
     try {
@@ -75,7 +76,7 @@ export const logsCommand = new Command("logs")
         if (result.exitCode !== 0) {
             const detail = result.stderr.trim();
             if (!detail || isTiltConnectionFailure(detail)) {
-                fail("TILT_NOT_RUNNING", `Could not reach Tilt on port ${portText}: ${detail || "is the stack running? Start it with: tdk up"}`);
+                fail("TILT_NOT_RUNNING", tiltUnreachableMessage(portText));
             }
             fail("TILT_LOGS_FAILED", `tilt logs failed: ${detail}`);
         }
