@@ -8,6 +8,12 @@ describe("portConflictFix", () => {
     );
   });
 
+  it("reads the raw Docker bind error too", () => {
+    expect(portConflictFix("Bind for 0.0.0.0:5432 failed: port is already allocated")).toContain(
+      "lsof -nP -iTCP:5432 -sTCP:LISTEN",
+    );
+  });
+
   it("gives no next step when the port is not known", () => {
     expect(portConflictFix("a required host port is already allocated")).toBeNull();
   });

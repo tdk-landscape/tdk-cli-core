@@ -3,7 +3,9 @@
  * needs the OS, so the command that finds it is given instead.
  */
 export function portConflictFix(message) {
-    const match = message.match(/^host port (\d+) is already allocated$/);
+    // The raw Docker error can reach the report when the readiness check fails before the summary runs.
+    const match = message.match(/^host port (\d+) is already allocated$/) ??
+        message.match(/Bind for [^ ]+:(\d+) failed: port is already allocated/i);
     if (!match)
         return null;
     const port = match[1];
