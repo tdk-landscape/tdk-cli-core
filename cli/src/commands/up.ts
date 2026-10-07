@@ -38,6 +38,7 @@ import { findProjectRoot, getPackageVersion } from "../utils/paths.js";
 import { findAvailablePort } from "../utils/port-assignment.js";
 import { formatPortFallbackNotice } from "../utils/port-fallback-notice.js";
 import { isApiServiceType } from "../utils/resource-kind.js";
+import { enforceSchemaVersionGate } from "../utils/schema-version-gate.js";
 import { enforceServiceConfigGate, warnSchemaVersions } from "../utils/service-config-checks.js";
 import { appendHealthPath, resolveSubdomainBases } from "../utils/service-urls.js";
 import {
@@ -240,6 +241,14 @@ export const upCommand = new Command("up")
     );
     if (platformRefusal) showErrorAndExit(platformRefusal);
 
+    // An unknown schemaVersion is refused before the machine check, so --json can name the file even when Bun is missing.
+    const schemaRoot = findProjectRoot();
+    if (schemaRoot) {
+      enforceSchemaVersionGate(schemaRoot, {
+        onInvalid: (message) =>
+          emit?.({ ok: false }, [{ code: "INVALID_SCHEMA_VERSION", message }]),
+      });
+    }
     if (!options.dryRun) {
       const { assertMachineReadyOrExit } = await import("../utils/cold-preflight.js");
       await assertMachineReadyOrExit();
