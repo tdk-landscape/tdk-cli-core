@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { checkDockerCompose, checkDockerRuntime, checkDockerVersions, checkTilt, } from "../commands/doctor.js";
+import { BUN_FLOOR_LABEL, bunMeetsFloor } from "./bun-floor.js";
 import { checkNatsBroker } from "./doctor-wiring.js";
 import { getHostPortPlan } from "./host-port-config.js";
 import { findProjectRoot } from "./paths.js";
@@ -86,8 +87,7 @@ export async function runColdPreflight(opts = {}) {
                 encoding: "utf-8",
                 timeout: 3000,
             }).trim();
-            const [major = 0, minor = 0] = version.split(".").map((part) => Number.parseInt(part, 10));
-            bun = major > 1 || (major === 1 && minor >= 2);
+            bun = bunMeetsFloor(version);
         }
         catch {
             /* reported as a failed runtime check */
@@ -96,7 +96,9 @@ export async function runColdPreflight(opts = {}) {
     items.push({
         id: "bun",
         ok: bun,
-        message: bun ? "Bun 1.2+ is available on PATH" : "Bun 1.2+ not found on PATH",
+        message: bun
+            ? `Bun ${BUN_FLOOR_LABEL} is available on PATH`
+            : `Bun ${BUN_FLOOR_LABEL} not found on PATH`,
         fix: bun ? undefined : "curl -fsSL https://bun.sh/install | bash",
     });
     try {
@@ -157,7 +159,7 @@ export async function runColdPreflight(opts = {}) {
     const header = failures.length
         ? machineFailed
             ? bunFailed
-                ? "Cold start blocked. Bun 1.2+ must be installed on PATH.\nPrisma/NATS configuration is project-specific and generated after `tdk project`. Fix the machine checks below."
+                ? `Cold start blocked. Bun ${BUN_FLOOR_LABEL} must be installed on PATH.\nPrisma/NATS configuration is project-specific and generated after \`tdk project\`. Fix the machine checks below.`
                 : "Cold start blocked. Bun/Prisma/NATS are not the first failure.\nThey are generated after `tdk project`. Fix the machine checks below."
             : "Machine is ready. Project wiring is not."
         : "";

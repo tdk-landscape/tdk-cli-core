@@ -376,8 +376,8 @@ export async function checkTilt(exec: ExecAsync = execAsync): Promise<CheckResul
     return {
       name: "Tilt CLI",
       didPass: false,
-      message: `Tilt ${raw || "version unknown"} is below the required v0.25.0 floor`,
-      fix: "Install Tilt v0.25.0 or newer: https://docs.tilt.dev/install.html",
+      message: `Tilt ${raw || "version unknown"} is below the required v${MIN_TILT_VERSION.join(".")} floor`,
+      fix: `Install Tilt v${MIN_TILT_VERSION.join(".")} or newer: https://docs.tilt.dev/install.html`,
     };
   }
   return { name: "Tilt CLI", didPass: true, message: `Tilt ${raw} is available` };
@@ -444,8 +444,8 @@ export async function checkBun(exec: ExecAsync = execAsync): Promise<CheckResult
       return {
         name: "Bun",
         didPass: false,
-        message: `Bun ${rawVersion || "version unknown"} is below the required 1.2.0 floor`,
-        fix: "Install Bun 1.2.0 or newer: https://bun.sh/install",
+        message: `Bun ${rawVersion || "version unknown"} is below the required ${MIN_BUN_VERSION.join(".")} floor`,
+        fix: `Install Bun ${MIN_BUN_VERSION.join(".")} or newer: https://bun.sh/install`,
       };
     }
     return {
