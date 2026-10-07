@@ -2,6 +2,8 @@ import { Command } from "commander";
 import { STANDARD_PORTS } from "../utils/constants.js";
 import { errorFactories, runCommand, showErrorAndExit, TdkError } from "../utils/errors.js";
 import { createMachineEnvelope } from "../utils/machine-output.js";
+import { findProjectRoot } from "../utils/paths.js";
+import { envSecretValues, redactSecrets, redactValue } from "../utils/secret-redaction.js";
 import { isTiltAvailable, runTilt } from "../utils/tilt.js";
 import { DEFAULT_LOG_TAIL, isTiltConnectionFailure, isValidPort, isValidSince, isValidTail, MAX_LOG_TAIL, parseTiltLogLines, } from "../utils/tilt-logs.js";
 import { tiltUnreachableMessage } from "../utils/tilt-unreachable-message.js";
@@ -29,7 +31,9 @@ export const logsCommand = new Command("logs")
     .option("--port <n>", "Tilt UI port (default: TILT_PORT or 10350)")
     .option("--json", "Output one JSON object and exit", false)
     .action(async (options) => {
-    const fail = (code, message, exitCode = 1, suggestions = []) => {
+    const secrets = envSecretValues(findProjectRoot() ?? process.cwd());
+    const fail = (code, rawMessage, exitCode = 1, suggestions = []) => {
+        const message = redactSecrets(rawMessage, secrets);
         if (options.json) {
             console.log(JSON.stringify(createMachineEnvelope(null, [
                 { code, message, ...(suggestions.length > 0 ? { suggestions } : {}) },
@@ -81,11 +85,11 @@ export const logsCommand = new Command("logs")
             fail("TILT_LOGS_FAILED", `tilt logs failed: ${detail}`);
         }
         if (!options.json) {
-            process.stdout.write(result.stdout);
+            process.stdout.write(redactSecrets(result.stdout, secrets));
             return;
         }
         const lines = parseTiltLogLines(result.stdout, tail);
-        console.log(JSON.stringify(createMachineEnvelope({ services, tail, since: options.since ?? null, lines })));
+        console.log(JSON.stringify(redactValue(createMachineEnvelope({ services, tail, since: options.since ?? null, lines }), secrets)));
     };
     await runCommand(action);
 });

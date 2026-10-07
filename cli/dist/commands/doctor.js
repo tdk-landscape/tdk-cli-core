@@ -17,6 +17,7 @@ import { getHostPortPlan } from "../utils/host-port-config.js";
 import { createHostPortPlan } from "../utils/host-port-plan.js";
 import { findProjectRoot, getPackageVersion } from "../utils/paths.js";
 import { isApiServiceType } from "../utils/resource-kind.js";
+import { envSecretValues, redactSecrets, redactValue } from "../utils/secret-redaction.js";
 import { checkCircularDependencies, checkDependsOnShape, checkSchemaVersions, checkServicePorts, } from "../utils/service-config-checks.js";
 import { buildHealthTargets, pingHealthTargets } from "../utils/service-urls.js";
 import { discoverResourcesFromRoot } from "../utils/services.js";
@@ -1187,9 +1188,10 @@ export const doctorCommand = new Command("doctor")
     const exitCode = getDoctorExitCode(report);
     const allPassed = report.data.ready;
     if (options.json) {
-        console.log(JSON.stringify(report));
+        const secrets = envSecretValues(findProjectRoot() ?? process.cwd());
+        console.log(JSON.stringify(redactValue(report, secrets)));
         for (const error of errors)
-            console.error(error.message);
+            console.error(redactSecrets(error.message, secrets));
         if (exitCode !== 0)
             process.exit(exitCode);
         return;

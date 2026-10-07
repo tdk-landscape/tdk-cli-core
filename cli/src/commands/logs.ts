@@ -2,6 +2,8 @@ import { Command } from "commander";
 import { STANDARD_PORTS } from "../utils/constants.js";
 import { errorFactories, runCommand, showErrorAndExit, TdkError } from "../utils/errors.js";
 import { createMachineEnvelope } from "../utils/machine-output.js";
+import { findProjectRoot } from "../utils/paths.js";
+import { envSecretValues, redactSecrets, redactValue } from "../utils/secret-redaction.js";
 import { isTiltAvailable, runTilt } from "../utils/tilt.js";
 import {
   DEFAULT_LOG_TAIL,
@@ -37,12 +39,14 @@ export const logsCommand = new Command("logs")
   .option("--port <n>", "Tilt UI port (default: TILT_PORT or 10350)")
   .option("--json", "Output one JSON object and exit", false)
   .action(async (options) => {
+    const secrets = envSecretValues(findProjectRoot() ?? process.cwd());
     const fail = (
       code: string,
-      message: string,
+      rawMessage: string,
       exitCode = 1,
       suggestions: string[] = [],
     ): never => {
+      const message = redactSecrets(rawMessage, secrets);
       if (options.json) {
         console.log(
           JSON.stringify(
@@ -97,13 +101,16 @@ export const logsCommand = new Command("logs")
       }
 
       if (!options.json) {
-        process.stdout.write(result.stdout);
+        process.stdout.write(redactSecrets(result.stdout, secrets));
         return;
       }
       const lines = parseTiltLogLines(result.stdout, tail);
       console.log(
         JSON.stringify(
-          createMachineEnvelope({ services, tail, since: options.since ?? null, lines }),
+          redactValue(
+            createMachineEnvelope({ services, tail, since: options.since ?? null, lines }),
+            secrets,
+          ),
         ),
       );
     };
