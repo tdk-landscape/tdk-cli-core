@@ -325,8 +325,12 @@ export const configCommand = new Command("config")
               console.log(chalk.gray(`   - ${error}`));
             }
             for (const { diff } of result.diffs) console.log(chalk.gray(`\n${diff}`));
-            if (!result.valid) {
-              console.log(chalk.gray("\nRun `tdk config regenerate` to fix."));
+            const schemaErrors = result.errors.filter((error) => error.includes(".schemaVersion:"));
+            if (schemaErrors.length > 0) {
+              console.log(chalk.gray("\nRun `tdk config migrate` to fix schemaVersion."));
+            }
+            if (result.diffs.length > 0) {
+              console.log(chalk.gray("\nRun `tdk config regenerate` to fix generated files."));
             }
             process.exit(1);
           }
