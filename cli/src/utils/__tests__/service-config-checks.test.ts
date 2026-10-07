@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   checkCircularDependencies,
+  checkDependsOnShape,
   checkServicePorts,
   enforceServiceConfigGate,
 } from "../service-config-checks.js";
@@ -156,5 +157,48 @@ describe("enforceServiceConfigGate", () => {
     const printed = err.mock.calls.map((call) => String(call[0])).join("\n");
     expect(printed).toContain("circular dependency");
     expect(printed).toContain("not an integer from 1 to 65535");
+  });
+});
+
+describe("a dependsOn that is not an array of service names", () => {
+  const exit = (code: number): never => {
+    throw new Error(`exit ${code}`);
+  };
+
+  it.each([
+    ['"worker"', "worker"],
+    ["7", 7],
+    ['{"a":1}', { a: 1 }],
+    ['["api",2]', ["api", 2]],
+  ])("is reported with the file and the value %s", (shown, dependsOn) => {
+    service("api", { dependsOn });
+    const result = checkDependsOnShape(root);
+    expect(result.didPass).toBe(false);
+    expect(result.message).toContain(join("services", "app", "api", "service.json"));
+    expect(result.message).toContain(`dependsOn ${shown}`);
+    expect(result.fix).toContain("array");
+  });
+
+  it("passes for a missing, empty or valid dependsOn", () => {
+    service("db");
+    service("api", { dependsOn: ["db"] });
+    service("worker", { dependsOn: [] });
+    expect(checkDependsOnShape(root).didPass).toBe(true);
+  });
+
+  it("does not make the cycle check throw", () => {
+    service("api", { dependsOn: "worker" });
+    service("worker", { port: 4001, dependsOn: ["api"] });
+    expect(() => checkCircularDependencies(root)).not.toThrow();
+    expect(checkCircularDependencies(root).didPass).toBe(true);
+  });
+
+  it("is refused by the gate with a clear message instead of a crash", () => {
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    service("api", { dependsOn: "worker" });
+    expect(() => enforceServiceConfigGate(root, {}, exit)).toThrow("exit 1");
+    expect(err.mock.calls.map((call) => String(call[0])).join("\n")).toContain(
+      "expected an array of service names",
+    );
   });
 });

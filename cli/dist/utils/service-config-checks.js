@@ -7,10 +7,19 @@ import { discoverResourcesFromRoot } from "./services.js";
 function filePath(projectRoot, resource) {
     return relative(projectRoot, resource.configPath) || resource.configPath;
 }
+/** The dependsOn names a service declares: none when absent, null when it is not an array of strings. */
+function declaredDependsOn(resource) {
+    const value = resource.config?.dependsOn;
+    if (value === undefined)
+        return [];
+    if (Array.isArray(value) && value.every((entry) => typeof entry === "string"))
+        return value;
+    return null;
+}
 /** Each cycle once, as service names starting from the alphabetically first, ending where it started. */
 function findDependencyCycles(resources) {
     const known = new Set(resources.map((r) => r.name));
-    const edges = new Map(resources.map((r) => [r.name, (r.config?.dependsOn ?? []).filter((dep) => known.has(dep))]));
+    const edges = new Map(resources.map((r) => [r.name, (declaredDependsOn(r) ?? []).filter((dep) => known.has(dep))]));
     const cycles = new Map();
     const state = new Map();
     const stack = [];
@@ -36,6 +45,27 @@ function findDependencyCycles(resources) {
             visit(name);
     }
     return [...cycles.values()];
+}
+/** A dependsOn that is not a list of service names cannot be followed, so say so instead of failing later. */
+export function checkDependsOnShape(projectRoot = findProjectRoot() ?? process.cwd()) {
+    const problems = discoverResourcesFromRoot(projectRoot).flatMap((resource) => declaredDependsOn(resource) === null
+        ? [
+            `${filePath(projectRoot, resource)} dependsOn ${JSON.stringify(resource.config?.dependsOn)}: expected an array of service names`,
+        ]
+        : []);
+    if (problems.length === 0) {
+        return {
+            name: "dependsOn",
+            didPass: true,
+            message: "Every dependsOn is a list of service names",
+        };
+    }
+    return {
+        name: "dependsOn",
+        didPass: false,
+        message: `${formatCount(problems.length, "invalid dependsOn", "invalid dependsOn")}:\n    ${problems.join("\n    ")}`,
+        fix: 'Write "dependsOn" as an array of service names, for example ["postgres", "api"]',
+    };
 }
 /** Services that wait on each other can never both start. A dependsOn name that is not a service is left to the unknown-name check. */
 export function checkCircularDependencies(projectRoot = findProjectRoot() ?? process.cwd()) {
@@ -90,6 +120,7 @@ export function checkServicePorts(projectRoot = findProjectRoot() ?? process.cwd
 export function enforceServiceConfigGate(projectRoot, options = {}, exit = process.exit) {
     const failed = [
         checkDuplicateResourceNames(projectRoot),
+        checkDependsOnShape(projectRoot),
         checkCircularDependencies(projectRoot),
         checkServicePorts(projectRoot),
     ].filter((check) => !check.didPass);

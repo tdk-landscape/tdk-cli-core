@@ -1,4 +1,6 @@
 import type { CheckResult } from "../types/index.js";
+/** A dependsOn that is not a list of service names cannot be followed, so say so instead of failing later. */
+export declare function checkDependsOnShape(projectRoot?: string): CheckResult;
 /** Services that wait on each other can never both start. A dependsOn name that is not a service is left to the unknown-name check. */
 export declare function checkCircularDependencies(projectRoot?: string): CheckResult;
 /** A port outside 1-65535 can never be bound, and `tdk up` would otherwise find out only when Docker fails. */

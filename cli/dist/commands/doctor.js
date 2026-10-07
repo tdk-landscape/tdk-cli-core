@@ -17,7 +17,7 @@ import { getHostPortPlan } from "../utils/host-port-config.js";
 import { createHostPortPlan } from "../utils/host-port-plan.js";
 import { findProjectRoot, getPackageVersion } from "../utils/paths.js";
 import { isApiServiceType } from "../utils/resource-kind.js";
-import { checkCircularDependencies, checkServicePorts } from "../utils/service-config-checks.js";
+import { checkCircularDependencies, checkDependsOnShape, checkServicePorts, } from "../utils/service-config-checks.js";
 import { buildHealthTargets, pingHealthTargets } from "../utils/service-urls.js";
 import { discoverResourcesFromRoot } from "../utils/services.js";
 import { evaluateTdkVersionFloor } from "../utils/tdk-version.js";
@@ -1140,6 +1140,7 @@ export const doctorCommand = new Command("doctor")
         // Wiring mistakes that otherwise surface minutes into `tdk up`.
         () => checkResourcePackageJson(),
         () => checkDuplicateResourceNames(),
+        () => checkDependsOnShape(),
         () => checkCircularDependencies(),
         () => checkServicePorts(),
         () => checkDuplicateResourcePorts(),
