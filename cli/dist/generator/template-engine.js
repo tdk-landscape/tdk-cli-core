@@ -221,6 +221,7 @@ export function generateDatabaseManagementCompose(projectConfig) {
 # SYSTEM-GENERATED - DO NOT EDIT
 # Stack feature: database-management
 # Source: .tdk/project.json phases.*.enabledStacks includes "database-management"
+# Regenerate with: tdk config regenerate
 ###############################################################################
 
 services:
