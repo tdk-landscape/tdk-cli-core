@@ -9,7 +9,7 @@ export declare function checkServicePorts(projectRoot?: string): CheckResult;
  * A service.json with no schemaVersion is how every project began, so this is a warning: it keeps working, and only
  * `tdk config migrate` writes the field. A version this tdk does not know is reported the same way, with a different fix.
  */
-export declare function checkSchemaVersions(projectRoot?: string): CheckResult;
+export declare function checkSchemaVersions(projectRoot?: string, strict?: boolean): CheckResult;
 /** Prints the schemaVersion warning once. It never stops anything: the project keeps working as it is. */
 export declare function warnSchemaVersions(projectRoot: string): void;
 /**

@@ -130,7 +130,10 @@ export function checkServicePorts(projectRoot = findProjectRoot() ?? process.cwd
  * A service.json with no schemaVersion is how every project began, so this is a warning: it keeps working, and only
  * `tdk config migrate` writes the field. A version this tdk does not know is reported the same way, with a different fix.
  */
-export function checkSchemaVersions(projectRoot = findProjectRoot() ?? process.cwd()): CheckResult {
+export function checkSchemaVersions(
+  projectRoot = findProjectRoot() ?? process.cwd(),
+  strict = false,
+): CheckResult {
   const missing: string[] = [];
   const unsupported: string[] = [];
   for (const resource of discoverResourcesFromRoot(projectRoot)) {
@@ -154,15 +157,13 @@ export function checkSchemaVersions(projectRoot = findProjectRoot() ?? process.c
   const fixes = [
     ...(missing.length > 0 ? ["Run `tdk config migrate` to add the missing schemaVersion"] : []),
     ...(unsupported.length > 0
-      ? [
-          `A version this tdk does not support cannot be migrated: upgrade tdk, or set schemaVersion to ${SERVICE_MANIFEST_SCHEMA_VERSION}`,
-        ]
+      ? ["A version this tdk does not support cannot be migrated: upgrade tdk"]
       : []),
   ];
   return {
     name: "schemaVersion",
     didPass: false,
-    isWarning: true,
+    isWarning: !strict,
     message: `${formatCount(missing.length + unsupported.length, "service.json file")} without a supported schemaVersion:\n    ${[...missing, ...unsupported].join("\n    ")}`,
     fix: fixes.join(". "),
   };

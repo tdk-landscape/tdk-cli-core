@@ -235,8 +235,23 @@ describe("schemaVersion", () => {
       expect(result.message).toContain(`schemaVersion ${shown}`);
       expect(result.fix).toContain("upgrade tdk");
       expect(result.fix).not.toContain("tdk config migrate");
+      expect(result.fix).not.toMatch(/set schemaVersion/i);
     },
   );
+
+  it("fails instead of warning under --strict, as the flag promises", () => {
+    service("api");
+    const relaxed = checkSchemaVersions(root);
+    const strict = checkSchemaVersions(root, true);
+    expect(relaxed).toMatchObject({ didPass: false, isWarning: true });
+    expect(strict).toMatchObject({ didPass: false, isWarning: false });
+    expect(strict.message).toBe(relaxed.message);
+  });
+
+  it("passes under --strict when every file is current", () => {
+    service("api", { schemaVersion: 1 });
+    expect(checkSchemaVersions(root, true).didPass).toBe(true);
+  });
 
   it("gives both fixes when some files are missing it and others are unsupported", () => {
     service("api");
