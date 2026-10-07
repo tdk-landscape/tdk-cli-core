@@ -196,5 +196,5 @@ describe.skipIf(!EXTENSION_SOURCE_AVAILABLE)("saas-starter cloning and discovery
     expect(doctorResult.stdout).toContain(
       "TILT_TECH_STACK.star, TILT_RESOURCE_DEFAULTS.star, spec.master found",
     );
-  }, 15000);
+  }, 60000); // matches the 60s spawnSync limit on the doctor run above
 });
