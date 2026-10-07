@@ -14,6 +14,7 @@ import type { JsonValue, ProjectConfig } from "../types/index.js";
 import { isMasterConfigFileName } from "../types/index.js";
 import { assertValid } from "../utils/command-helpers.js";
 import { MASTER_CONFIG_FILES } from "../utils/constants.js";
+import { checkPrismaConsistency } from "../utils/doctor-wiring.js";
 import { errorFactories, requireProjectRoot, runCommand } from "../utils/errors.js";
 import { writeJsonFile } from "../utils/file-helpers.js";
 import { createMachineEnvelope, writeMachineError } from "../utils/machine-output.js";
@@ -23,6 +24,7 @@ import {
   validateServiceManifest,
 } from "../utils/service-manifest.js";
 import { discoverServiceManifestPaths } from "../utils/services.js";
+import { evaluateSharedPlatformPostgres } from "../utils/shared-platform-postgres.js";
 import { validateOptionalInfraService } from "../utils/validation.js";
 
 /**
@@ -155,7 +157,7 @@ export const configCommand = new Command("config")
           }
 
           console.log(chalk.blue("📋 Regenerating master configuration files...\n"));
-          await generateMasterConfigs(projectRoot);
+          await generateMasterConfigs(projectRoot, { discardHandEdits: true });
           console.log(chalk.green("\n✅ Configuration regenerated!"));
         });
       }),
@@ -238,19 +240,33 @@ export const configCommand = new Command("config")
           if (!projectRoot) throw errorFactories.notInProject();
 
           const result = verifyMasterConfigs(projectRoot);
+          // Same predicate as tdk doctor's Shared platform Postgres check.
+          const sharedPostgres = evaluateSharedPlatformPostgres(projectRoot);
+          const prismaConsistency = checkPrismaConsistency(projectRoot);
+          const sharedPostgresErrors = sharedPostgres.unknownDependsOnNames.map(
+            ({ resource, name }) =>
+              `dependsOn "${name}" on ${resource} is not a known service or stack (shared platform Postgres names are postgres and database-management)`,
+          );
 
           if (options.json) {
             console.log(
               JSON.stringify(
                 createMachineEnvelope({
-                  valid: result.valid,
-                  errors: result.errors,
+                  valid:
+                    result.valid && sharedPostgresErrors.length === 0 && prismaConsistency.didPass,
+                  errors: [
+                    ...result.errors,
+                    ...sharedPostgresErrors,
+                    ...(prismaConsistency.didPass ? [] : [prismaConsistency.message]),
+                  ],
                   warnings: result.warnings,
                   diffs: result.diffs,
+                  sharedPlatformPostgres: sharedPostgres,
                 }),
               ),
             );
-            if (!result.valid) process.exit(1);
+            if (!result.valid || sharedPostgresErrors.length > 0 || !prismaConsistency.didPass)
+              process.exit(1);
             return;
           }
 
@@ -260,7 +276,47 @@ export const configCommand = new Command("config")
             console.warn(chalk.yellow(`⚠️  ${warning}`));
           }
 
-          if (result.valid) {
+          for (const error of sharedPostgresErrors) {
+            console.log(chalk.red(`❌ ${error}`));
+          }
+          if (!prismaConsistency.didPass) console.log(chalk.red(`❌ ${prismaConsistency.message}`));
+
+          if (sharedPostgres.willStart) {
+            // Project resource set (discoverResourcesFromRoot), not a tdk up --only filter.
+            // Feature-on alone is not new behavior — print gray so default projects are not noisy.
+            // dependsOn is the reason Postgres starts when the feature is off — green.
+            if (sharedPostgres.reason === "feature" && sharedPostgres.dependsOnUsers.length === 0) {
+              const source =
+                sharedPostgres.featureOnFromTiltfile || sharedPostgres.featureOnFromSpecMaster
+                  ? " (generated Tiltfile/spec.master)"
+                  : "";
+              console.log(
+                chalk.gray(
+                  `ℹ️  Postgres will start because database-management is enabled${source} (project-wide; not a tdk up selection)`,
+                ),
+              );
+            } else if (sharedPostgres.reason === "feature") {
+              console.log(
+                chalk.yellow(
+                  `ℹ️  Postgres will start because database-management is enabled and resource(s) ${sharedPostgres.dependsOnUsers.join(", ")} depend on postgres/database-management (project resource set; tdk up may select a subset)`,
+                ),
+              );
+            } else {
+              console.log(
+                chalk.green(
+                  `ℹ️  Postgres will start because resource(s) ${sharedPostgres.dependsOnUsers.join(", ")} depend on postgres/database-management (project resource set; tdk up may select a subset)`,
+                ),
+              );
+            }
+          } else if (sharedPostgres.focusWouldEnableDatabaseManagement) {
+            console.log(
+              chalk.yellow(
+                "ℹ️  Postgres will not start from project.json/generated Tiltfile, but default focus/CORE_INFRA expansion would enable database-management on a typical tdk up",
+              ),
+            );
+          }
+
+          if (result.valid && sharedPostgresErrors.length === 0 && prismaConsistency.didPass) {
             console.log(chalk.green("✅ All files are in sync!"));
             return;
           } else {
@@ -269,7 +325,13 @@ export const configCommand = new Command("config")
               console.log(chalk.gray(`   - ${error}`));
             }
             for (const { diff } of result.diffs) console.log(chalk.gray(`\n${diff}`));
-            console.log(chalk.gray("\nRun `tdk config regenerate` to fix."));
+            const schemaErrors = result.errors.filter((error) => error.includes(".schemaVersion:"));
+            if (schemaErrors.length > 0) {
+              console.log(chalk.gray("\nRun `tdk config migrate` to fix schemaVersion."));
+            }
+            if (result.diffs.length > 0) {
+              console.log(chalk.gray("\nRun `tdk config regenerate` to fix generated files."));
+            }
             process.exit(1);
           }
         };

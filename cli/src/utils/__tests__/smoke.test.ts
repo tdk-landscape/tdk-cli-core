@@ -288,18 +288,50 @@ describe("readiness gate", () => {
   it("sends no write until a GET to the health path is answered, and never repeats the write", async () => {
     const reset = Object.assign(new Error("read ECONNRESET"), { code: "ECONNRESET" });
     const { fetch, calls } = fakeFetch({
+<<<<<<< HEAD
       [`GET ${base}/health`]: [reset, { status: 404 }, { status: 503 }, { status: 200 }],
+=======
+      [`GET ${base}/health`]: [
+        reset,
+        { status: 404 },
+        { status: 503 },
+        { status: 500 },
+        { status: 200 },
+      ],
+>>>>>>> origin/main
       [`POST ${base}/records`]: [{ status: 201, body: '{"id":"a1"}' }],
       [`GET ${base}/records/a1`]: [{ status: 200, body: "smoke" }],
     });
     expect((await runSmokePlan(gated, { fetch, ...clock() })).ok).toBe(true);
     const firstPost = calls.findIndex((c) => c.method === "POST");
     expect(calls.slice(0, firstPost).map((c) => `${c.method} ${c.url}`)).toEqual(
+<<<<<<< HEAD
       Array(4).fill(`GET ${base}/health`),
+=======
+      Array(5).fill(`GET ${base}/health`),
+>>>>>>> origin/main
     );
     expect(calls.filter((c) => c.method === "POST")).toHaveLength(1);
   });
 
+<<<<<<< HEAD
+=======
+  it("gives the steps their own timeout after a slow readiness wait", async () => {
+    const plan: SmokePlan = {
+      ...gated,
+      smoke: { via: "proxy", timeoutSeconds: 3, steps: [{ name: "ping", path: "/ping" }] },
+    };
+    // Three not-ready health answers use up the whole 3s budget; the step still gets its own retries.
+    const { fetch, calls } = fakeFetch({
+      [`GET ${base}/health`]: [{ status: 503 }, { status: 503 }, { status: 503 }, { status: 200 }],
+      [`GET ${base}/ping`]: [{ status: 503 }, { status: 200, body: "ok" }],
+    });
+    const result = await runSmokePlan(plan, { fetch, ...clock() });
+    expect(result.ok).toBe(true);
+    expect(calls.filter((c) => c.url.endsWith("/ping"))).toHaveLength(2);
+  });
+
+>>>>>>> origin/main
   it("falls through to the first step when the service never answers, so that step reports it", async () => {
     const down = Object.assign(new Error("connect ECONNREFUSED"), { code: "ECONNREFUSED" });
     const { fetch, calls } = fakeFetch({
@@ -420,6 +452,32 @@ describe("smoke records", () => {
     expect(existsSync(join(dir, "body.txt"))).toBe(false);
   });
 
+<<<<<<< HEAD
+=======
+  it("keeps a separate record for steps whose names slug the same", async () => {
+    const recordDir = tmp();
+    const plan: SmokePlan = {
+      ...PLAN,
+      smoke: {
+        via: "proxy",
+        steps: [
+          { name: "read back", path: "/a" },
+          { name: "read-back", path: "/b" },
+        ],
+      },
+    };
+    const { fetch } = fakeFetch({
+      [`GET ${base}/a`]: [{ status: 200, body: "first" }],
+      [`GET ${base}/b`]: [{ status: 200, body: "second" }],
+    });
+    await runSmokePlan(plan, { fetch, recordDir, ...clock() });
+    expect(readFileSync(join(stepDir(recordDir, "read-back"), "body.txt"), "utf8")).toBe("first");
+    expect(readFileSync(join(stepDir(recordDir, "read-back-2"), "body.txt"), "utf8")).toBe(
+      "second",
+    );
+  });
+
+>>>>>>> origin/main
   it("writes nothing without a recordDir", async () => {
     const { fetch } = fakeFetch({
       [`POST ${base}/records`]: [{ status: 201, body: '{"id":"a1"}' }],

@@ -13,6 +13,7 @@ load("./__init__.star", "Manifest")
 load("./loader.star", "ManifestLoader")
 load("./parser.star", "ManifestParser")
 load("./validator.star", "ManifestValidator")
+load("../resources/shared-platform-postgres.star", "SHARED_POSTGRES_DEPENDENCY_NAMES")
 
 # Phase 5: Migration complete - always use new system
 def load_and_validate_manifest(manifest_path, all_manifests=None):
@@ -290,21 +291,27 @@ def check_port_conflicts(manifests):
 def check_dependencies_valid(manifests):
     """
     Check if all dependencies reference valid services.
-    
+
+    Shared platform Postgres names (`postgres`, `database-management`) are not
+    app services; they resolve to the Tilt resource `postgres` and are not
+    reported as missing.
+
     Args:
         manifests: List of manifest dicts
-    
+
     Returns:
         List of dependency error structs
     """
     errors = []
     app_names = {m.get('appName'): m for m in manifests if m.get('appName')}
-    
+
     for manifest in manifests:
         app_name = manifest.get('appName', 'unknown')
         internal_deps = manifest.get('dependsOn', [])
-        
+
         for dep in internal_deps:
+            if dep in SHARED_POSTGRES_DEPENDENCY_NAMES:
+                continue
             if dep not in app_names:
                 errors.append(ManifestErrors.new(
                     message="Service '{}' depends on non-existent service '{}'".format(app_name, dep),

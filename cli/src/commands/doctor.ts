@@ -5,6 +5,13 @@ import chalk from "chalk";
 import { Command } from "commander";
 import { hasVerdaccioLicense } from "../generator/extension-fetch.js";
 import type { CheckResult } from "../types/index.js";
+import {
+  DEVCONTAINER_DOCKER_FIX,
+  detectHost,
+  isContainerHost,
+  WEBCONTAINER_DOCS,
+  WEBCONTAINER_UP_MESSAGE,
+} from "../utils/agent-host.js";
 import { MASTER_CONFIG_FILES, REQUIRED_PACKAGE_SCRIPTS } from "../utils/constants.js";
 import { isPathDiscovered, readDiscoveryPaths } from "../utils/discovery-paths.js";
 import {
@@ -22,10 +29,15 @@ import {
 } from "../utils/doctor-runtime.js";
 import {
   checkDockerNetworkCapacity,
+  checkDuplicateResourceNames,
+  checkDuplicateResourcePorts,
   checkFrontendBackendUrls,
+  checkMigrationsInApi,
   checkNatsBroker,
+  checkPrismaConsistency,
   checkResourcePackageJson,
   checkServiceUrlPorts,
+  checkSharedPlatformPostgres,
   checkTiltInstances,
 } from "../utils/doctor-wiring.js";
 import { validateEnvFile } from "../utils/env-validator.js";
@@ -33,10 +45,11 @@ import { type ExecAsync, execAsync, isExecTimeout } from "../utils/exec-async.js
 import { formatCount } from "../utils/formatting.js";
 import { getHostPortPlan } from "../utils/host-port-config.js";
 import { createHostPortPlan, type HostPortPlan } from "../utils/host-port-plan.js";
-import { findProjectRoot } from "../utils/paths.js";
+import { findProjectRoot, getPackageVersion } from "../utils/paths.js";
 import { isApiServiceType } from "../utils/resource-kind.js";
 import { buildHealthTargets, pingHealthTargets } from "../utils/service-urls.js";
 import { discoverResourcesFromRoot } from "../utils/services.js";
+import { evaluateTdkVersionFloor } from "../utils/tdk-version.js";
 import { findOnPath } from "../utils/which.js";
 
 export {
@@ -505,6 +518,41 @@ function checkMasterConfigs(): CheckResult {
     didPass: false,
     message: `Master configs missing: ${missing.join(", ")}`,
     fix: "Run: tdk project",
+  };
+}
+
+/**
+ * A repo can pin the oldest CLI it works with: `"minTdkVersion": "1.3.80"` in
+ * .tdk/project.json. An older `tdk` fails here, so a team sees one clear line
+ * instead of a half-working `tdk up`.
+ */
+export function checkTdkVersion(currentVersion: string = getPackageVersion()): CheckResult {
+  const projectRoot = findProjectRoot();
+  if (!projectRoot) {
+    return {
+      name: "TDK version",
+      didPass: true,
+      isSkipped: true,
+      message: "Not in a project - skipping TDK version check",
+    };
+  }
+
+  const floor = evaluateTdkVersionFloor(projectRoot, currentVersion);
+  if (floor.status === "none") {
+    return {
+      name: "TDK version",
+      didPass: true,
+      isSkipped: true,
+      message: `tdk ${currentVersion} (no minTdkVersion in .tdk/project.json)`,
+    };
+  }
+  if (floor.status === "malformed" || floor.status === "too-old") {
+    return { name: "TDK version", didPass: false, message: floor.message, fix: floor.fix };
+  }
+  return {
+    name: "TDK version",
+    didPass: true,
+    message: `tdk ${currentVersion} meets minTdkVersion ${floor.required}`,
   };
 }
 
@@ -1243,6 +1291,7 @@ export const doctorCommand = new Command("doctor")
       );
     }
 
+    const host = detectHost();
     if (process.platform === "win32") {
       if (options.json) {
         let windowsPortPlan: HostPortPlan | null = null;
@@ -1265,11 +1314,33 @@ export const doctorCommand = new Command("doctor")
               Boolean(findProjectRoot()),
               [],
               windowsPortPlan,
+              { ...host, canUp: false },
             ),
           ),
         );
       }
       console.error(NATIVE_WINDOWS_DOCTOR_MESSAGE);
+      process.exit(1);
+      return;
+    }
+
+    if (host.kind === "webcontainer") {
+      const report = createDoctorReport(
+        [
+          {
+            name: "Host",
+            didPass: false,
+            message: WEBCONTAINER_UP_MESSAGE,
+            fix: `Use a machine with Docker. Guide: ${WEBCONTAINER_DOCS}`,
+          },
+        ],
+        Boolean(findProjectRoot()),
+        [],
+        undefined,
+        host,
+      );
+      if (options.json) console.log(JSON.stringify(report));
+      console.error(WEBCONTAINER_UP_MESSAGE);
       process.exit(1);
       return;
     }
@@ -1325,6 +1396,7 @@ export const doctorCommand = new Command("doctor")
       () => checkDockerNetworkCapacity(),
     ];
     const projectChecks: Array<() => CheckResult | Promise<CheckResult>> = [
+      () => checkTdkVersion(),
       checkMasterConfigs,
       checkGeneratedProjectRuntimeAssets,
       checkStarlarkLoadExports,
@@ -1336,9 +1408,15 @@ export const doctorCommand = new Command("doctor")
       checkResourceDiscovery,
       // Wiring mistakes that otherwise surface minutes into `tdk up`.
       () => checkResourcePackageJson(),
+      () => checkDuplicateResourceNames(),
+      () => checkDuplicateResourcePorts(),
       () => checkServiceUrlPorts(),
       () => checkFrontendBackendUrls(),
       () => checkNatsBroker(),
+      () => checkPrismaConsistency(),
+      // Shared platform Postgres: will-start report + unknown dependsOn names stay errors.
+      () => checkSharedPlatformPostgres(),
+      () => checkMigrationsInApi(),
       () => checkTiltInstances(),
       checkEnvironmentVariables,
       // Preflight: Verdaccio down causes ImageBuild bun install ConnectionRefused.
@@ -1368,7 +1446,20 @@ export const doctorCommand = new Command("doctor")
       machineChecks,
       inProject ? projectChecks : [],
     );
-    const report = createDoctorReport(orderDoctorResults(results), inProject, errors, hostPortPlan);
+    if (isContainerHost(host.kind)) {
+      for (const result of results) {
+        if (result.name === "Container Runtime" && !result.didPass) {
+          result.fix = DEVCONTAINER_DOCKER_FIX;
+        }
+      }
+    }
+    const report = createDoctorReport(
+      orderDoctorResults(results),
+      inProject,
+      errors,
+      hostPortPlan,
+      host,
+    );
     const exitCode = getDoctorExitCode(report);
     const allPassed = report.data.ready;
     if (options.json) {

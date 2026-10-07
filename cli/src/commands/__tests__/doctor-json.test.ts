@@ -55,6 +55,7 @@ describe("doctor JSON command", () => {
       const report = JSON.parse(String(log.mock.calls[0]?.[0]));
       expect(report.data.ready).toBe(false);
       expect(report.data.checks[0].message).toBe(NATIVE_WINDOWS_DOCTOR_MESSAGE);
+      expect(report.data.host).toMatchObject({ kind: "native-windows", canUp: false });
       expect(report.errors).toEqual([]);
     } finally {
       Object.defineProperty(process, "platform", platform);

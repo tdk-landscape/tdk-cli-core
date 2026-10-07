@@ -1,14 +1,18 @@
 import chalk from "chalk";
 import { Command } from "commander";
+import { VALID_RESOURCE_TYPES } from "../utils/constants.js";
 import { createDiscoveryContext } from "../utils/discovery-context.js";
-import { requireProjectRoot, runCommand } from "../utils/errors.js";
+import { errorFactories, requireProjectRoot, runCommand, TdkError } from "../utils/errors.js";
 import { formatCount, showAllSatisfyCondition, showDetail, showEmptyState, showStep, } from "../utils/formatting.js";
 import { createMachineEnvelope, writeMachineError } from "../utils/machine-output.js";
 import { findProjectRoot } from "../utils/paths.js";
+import { stackExists } from "../utils/services.js";
+import { includes } from "../utils/validation.js";
 export const resourcesCommand = new Command("resources")
     .description("List all resources (services) in the project")
     .option("-v, --verbose", "Show detailed information about each resource", false)
     .option("-s, --stack <stack>", "Filter resources by stack name")
+    .option("-t, --type <type>", "Filter resources by type")
     .option("--no-stack", "Show only resources without a stack")
     .option("--ports", "Show port assignments", false)
     .option("--json", "Output a versioned JSON resource report", false)
@@ -16,27 +20,42 @@ export const resourcesCommand = new Command("resources")
     const action = async () => {
         if (options.json) {
             if (!findProjectRoot()) {
-                writeMachineError(new Error("Could not find project root (no .tdk/project.json found)"));
+                writeMachineError(errorFactories.notInProject());
             }
         }
         else {
             requireProjectRoot();
         }
+        if (options.type !== undefined && !includes(VALID_RESOURCE_TYPES, options.type)) {
+            throw new TdkError(`Invalid resource type "${options.type}"`, [
+                `Valid types: ${VALID_RESOURCE_TYPES.join(", ")}`,
+            ]);
+        }
         const discovery = createDiscoveryContext();
+        if (options.stack && !stackExists(options.stack, discovery.resources)) {
+            const error = errorFactories.stackNotFound(options.stack);
+            if (options.json)
+                writeMachineError(error);
+            error.exit();
+        }
+        const withoutStackFilter = options.noStack || options.stack === false;
         let resources = discovery.resources;
         if (options.stack) {
             resources = discovery.resourcesByStack.get(options.stack) || [];
-            if (resources.length === 0 && !options.json) {
+            if (resources.length === 0 && !options.json && options.type === undefined) {
                 showEmptyState("stack-services", ` in stack "${options.stack}"`);
                 return;
             }
         }
-        if (options.noStack) {
+        if (withoutStackFilter) {
             resources = discovery.unassignedResources;
-            if (resources.length === 0 && !options.json) {
+            if (resources.length === 0 && !options.json && options.type === undefined) {
                 showAllSatisfyCondition("resources", "assigned to a stack");
                 return;
             }
+        }
+        if (options.type !== undefined) {
+            resources = resources.filter((resource) => (resource.config?.appType ?? resource.type) === options.type);
         }
         if (options.json) {
             const data = resources.map((resource) => ({
@@ -50,7 +69,10 @@ export const resourcesCommand = new Command("resources")
             return;
         }
         if (resources.length === 0) {
-            showEmptyState(options.stack ? "stack-services" : "resources", options.stack ? ` in stack "${options.stack}"` : "");
+            const stackContext = options.stack ? ` in stack "${options.stack}"` : "";
+            const noStackContext = withoutStackFilter && !options.stack ? " without a stack" : "";
+            const typeContext = options.type !== undefined ? ` with type "${options.type}"` : "";
+            showEmptyState(options.stack ? "stack-services" : "resources", stackContext + noStackContext + typeContext);
             return;
         }
         showStep(`Found ${formatCount(resources.length, "resource")}:\n`);
@@ -82,10 +104,10 @@ export const resourcesCommand = new Command("resources")
             }
             showDetail("\nRun with --verbose for more details or --ports to see port assignments.", 0);
         }
-        const withoutStackCount = options.stack
+        const withoutStackCount = options.stack || options.type !== undefined
             ? resources.filter((r) => !r.stack).length
             : discovery.unassignedResources.length;
-        if (withoutStackCount > 0 && !options.noStack && !options.stack) {
+        if (withoutStackCount > 0 && !withoutStackFilter && !options.stack) {
             console.log(chalk.yellow(`\n${formatCount(withoutStackCount, "resource")} not assigned to any stack.`));
             showDetail('Run "tdk resources --no-stack" to see them, or "tdk stack" to assign them.');
         }

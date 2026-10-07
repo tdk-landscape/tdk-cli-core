@@ -1,106 +1,50 @@
-import { existsSync, readdirSync } from "node:fs";
-import { join } from "node:path";
-import chalk from "chalk";
+import { type SpawnOptions, spawn } from "node:child_process";
 import { Command } from "commander";
-import { runCommand } from "../utils/errors.js";
-
-const TIER_1_FILES = ["docker-compose.yml", "Dockerfile", "package.json", "Procfile"];
-
-export interface DetectionResult {
-  found: string[];
-  skipped: string[];
-  importable: boolean;
-}
 
 /**
- * Detect Tier-1 files in a directory.
- * Tier-1 files are: docker-compose.yml, Dockerfile, package.json, Procfile
+ * The importer lives in its own repo so detectors can ship without a CLI release. Until it is
+ * published to npm it is run from git; `TDK_IMPORT_PACKAGE` overrides the package spec.
  */
-export function detectImportableFiles(dir: string): DetectionResult {
-  if (!existsSync(dir)) {
-    return { found: [], skipped: [], importable: false };
-  }
+export const IMPORT_PACKAGE = "github:tdk-landscape/tdk-import";
 
-  const files = readdirSync(dir);
-  const found: string[] = [];
-  const skipped: string[] = [];
+type SpawnFn = (command: string, args: string[], options: SpawnOptions) => ReturnType<typeof spawn>;
 
-  // Check for Tier-1 files
-  for (const file of TIER_1_FILES) {
-    if (files.includes(file)) {
-      found.push(file);
-    }
-  }
-
-  // Detect common unsupported files that should be listed as skipped
-  const commonUnsupportedPatterns = [
-    "Dockerfile",
-    "docker-compose",
-    "helm",
-    "kustomization",
-    "values.yaml",
-    "Chart.yaml",
-  ];
-
-  for (const pattern of commonUnsupportedPatterns) {
-    for (const file of files) {
-      if (file.toLowerCase().includes(pattern.toLowerCase()) && !found.includes(file)) {
-        skipped.push(file);
-      }
-    }
-  }
-
+export function importInvocation(
+  args: string[],
+  env: NodeJS.ProcessEnv = process.env,
+  platform: NodeJS.Platform = process.platform,
+): { command: string; args: string[]; shell: boolean } {
+  const pkg = env.TDK_IMPORT_PACKAGE || IMPORT_PACKAGE;
   return {
-    found,
-    skipped: [...new Set(skipped)], // Remove duplicates
-    importable: found.length > 0,
+    command: platform === "win32" ? "npx.cmd" : "npx",
+    args: ["--yes", pkg, ...args],
+    shell: platform === "win32",
   };
 }
 
-export const importCommand = new Command("import")
-  .description("Import project configuration from Docker Compose, Dockerfile, or package.json")
-  .argument("[directory]", "Directory to import from (default: current directory)", ".")
-  .option("--dry-run", "Show what would be imported without writing files", false)
-  .action(async (directory, options) => {
-    await runCommand(async () => {
-      const dir = directory || ".";
-      const result = detectImportableFiles(dir);
-
-      console.log(chalk.blue(`\n🔍 Scanning ${dir}...\n`));
-
-      if (result.found.length > 0) {
-        console.log(chalk.green("✓ Importable files found:"));
-        for (const file of result.found) {
-          console.log(chalk.gray(`  - ${file}`));
-        }
-      }
-
-      if (result.skipped.length > 0) {
-        console.log(
-          chalk.yellow("\n⊘ Skipped (not yet imported):"),
-        );
-        for (const file of result.skipped) {
-          console.log(chalk.gray(`  - ${file}`));
-        }
-      }
-
-      if (!result.importable) {
-        console.error(
-          chalk.red("\n✗ No importable files found"),
-        );
-        console.error(
-          chalk.gray("\nSupported file types: Docker Compose, Dockerfile, package.json, Procfile"),
-        );
-        process.exit(2);
-      }
-
-      if (options.dryRun) {
-        console.log(chalk.blue("\n📋 Dry run - no files would be written\n"));
-        return;
-      }
-
-      console.log(chalk.blue("\n📝 Importing...\n"));
-      // Implementation would go here
-      console.log(chalk.green("✅ Import complete!\n"));
+/** Runs tdk-import with the caller's terminal and resolves to its exit code. */
+export function runImport(args: string[], spawnFn: SpawnFn = spawn): Promise<number> {
+  const invocation = importInvocation(args);
+  return new Promise((resolve) => {
+    const child = spawnFn(invocation.command, invocation.args, {
+      stdio: "inherit",
+      shell: invocation.shell,
     });
+    child.on("error", (err) => {
+      console.error(
+        `tdk import: could not run npx (${err.message}). Install Node.js/npm and retry.`,
+      );
+      resolve(127);
+    });
+    child.on("close", (code) => resolve(code ?? 1));
+  });
+}
+
+export const importCommand = new Command("import")
+  .description("Import the services a directory describes (runs tdk-import)")
+  .argument("[args...]", "Passed to tdk-import: [dir] --dry-run --yes --force --only <ids>")
+  .allowUnknownOption()
+  .helpOption(false)
+  .action(async (args: string[]) => {
+    process.exitCode = await runImport(args);
   });

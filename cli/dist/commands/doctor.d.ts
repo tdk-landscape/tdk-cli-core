@@ -27,6 +27,12 @@ export declare function checkTilt(exec?: ExecAsync): Promise<CheckResult>;
 export declare function checkDockerOperatingSystem(exec?: ExecAsync): Promise<CheckResult>;
 export declare function checkBun(exec?: ExecAsync): Promise<CheckResult>;
 /**
+ * A repo can pin the oldest CLI it works with: `"minTdkVersion": "1.3.80"` in
+ * .tdk/project.json. An older `tdk` fails here, so a team sees one clear line
+ * instead of a half-working `tdk up`.
+ */
+export declare function checkTdkVersion(currentVersion?: string): CheckResult;
+/**
  * Tilt only builds resources under `discovery.paths`, but the CLI finds every service.json,
  * so a resource outside them is listed and given a URL by `tdk up` yet never started.
  */

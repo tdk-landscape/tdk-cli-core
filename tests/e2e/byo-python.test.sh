@@ -31,6 +31,19 @@ cat > "${PROJECT_DIR}/.tdk/project.json" <<'JSON'
 {
   "version": "1.0.0",
   "project": { "name": "byo-python-e2e", "version": "1.0.0" },
+  "phases": {
+    "pre_alpha": { "name": "Pre-Alpha", "description": "", "enabledStacks": [] },
+    "alpha": { "name": "Alpha", "description": "", "enabledStacks": [] },
+    "beta": { "name": "Beta", "description": "", "enabledStacks": [] },
+    "out_of_scope": { "name": "Out of scope", "description": "", "enabledStacks": [] }
+  },
+  "optional_infra": {
+    "monitoring": false,
+    "elk": false,
+    "debezium": false,
+    "golden_image": false,
+    "verdaccio": false
+  },
   "discovery": { "paths": ["services/**"] }
 }
 JSON

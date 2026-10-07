@@ -1,0 +1,71 @@
+import { describe, expect, it, vi } from "vitest";
+import { completionCommand } from "../completion.js";
+
+interface CompletionOutput {
+  stdout: string;
+  stderr: string;
+}
+
+async function runCompletion(args: string[]): Promise<CompletionOutput> {
+  const log = vi.spyOn(console, "log").mockImplementation(() => {});
+  const error = vi.spyOn(console, "error").mockImplementation(() => {});
+  const exit = vi.spyOn(process, "exit").mockImplementation((() => {
+    throw new Error("process.exit was called");
+  }) as never);
+
+  try {
+    await completionCommand.parseAsync(["node", "tdk", ...args], { from: "node" });
+    return {
+      stdout: log.mock.calls.map(([value]) => String(value)).join("\n"),
+      stderr: error.mock.calls.map(([value]) => String(value)).join("\n"),
+    };
+  } finally {
+    log.mockRestore();
+    error.mockRestore();
+    exit.mockRestore();
+  }
+}
+
+describe("tdk completion shell selection", () => {
+  it("accepts the shell as a positional argument", async () => {
+    const { stdout } = await runCompletion(["zsh"]);
+
+    expect(stdout).toContain("#compdef tdk");
+  });
+
+  it("detects the current shell when none is supplied", async () => {
+    const previousShell = process.env.SHELL;
+    process.env.SHELL = "/bin/zsh";
+
+    try {
+      const { stdout, stderr } = await runCompletion([]);
+
+      expect(stdout).toContain("#compdef tdk");
+      expect(stderr).toContain("Using zsh completion");
+    } finally {
+      if (previousShell === undefined) {
+        delete process.env.SHELL;
+      } else {
+        process.env.SHELL = previousShell;
+      }
+    }
+  });
+
+  it.each(["", "/bin/sh"])("falls back to bash for unsupported SHELL=%s", async (shell) => {
+    const previousShell = process.env.SHELL;
+    process.env.SHELL = shell;
+
+    try {
+      const { stdout, stderr } = await runCompletion([]);
+
+      expect(stdout).toContain("# TDK CLI Bash Completion");
+      expect(stderr).toContain("Using bash completion");
+    } finally {
+      if (previousShell === undefined) {
+        delete process.env.SHELL;
+      } else {
+        process.env.SHELL = previousShell;
+      }
+    }
+  });
+});

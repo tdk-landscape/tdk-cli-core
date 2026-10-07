@@ -20,8 +20,12 @@ export async function collectDoctorChecks(machineChecks, projectChecks) {
     }
     return { checks, errors };
 }
+function containerRuntimeReachable(checks) {
+    const runtime = checks.find((check) => check.name === "Container Runtime");
+    return runtime ? runtime.didPass : null;
+}
 /** Produce the same readiness decision for human and machine consumers. */
-export function createDoctorReport(checks, inProject, errors = [], portPlan) {
+export function createDoctorReport(checks, inProject, errors = [], portPlan, host) {
     return {
         schemaVersion: 1,
         data: {
@@ -29,6 +33,15 @@ export function createDoctorReport(checks, inProject, errors = [], portPlan) {
                 checks.every((check) => check.didPass || check.isSkipped || check.isWarning),
             inProject,
             checks,
+            ...(host
+                ? {
+                    host: {
+                        ...host,
+                        containerRuntimeReachable: containerRuntimeReachable(checks),
+                        canUp: host.canUp && containerRuntimeReachable(checks) !== false,
+                    },
+                }
+                : {}),
             ...(portPlan !== undefined
                 ? {
                     ports: {

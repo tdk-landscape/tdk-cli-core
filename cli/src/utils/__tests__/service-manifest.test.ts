@@ -47,6 +47,42 @@ describe("service manifest compatibility", () => {
     expect(bad.errors.join("\n")).toMatch(/service\.json\.smoke\.steps\[0\]\.path/);
   });
 
+  it("accepts dev.liveReload as a boolean and reports anything else as an error by path", () => {
+    const base = {
+      appName: "api",
+      appType: "backend",
+      stack: "shop",
+      schemaVersion: SERVICE_MANIFEST_SCHEMA_VERSION,
+    };
+    const ok = validateServiceManifest(
+      { ...base, language: "go", dev: { liveReload: true } },
+      "service.json",
+    );
+    expect(ok.errors).toEqual([]);
+    expect(ok.warnings).toEqual([]);
+
+    const bad = validateServiceManifest(
+      { ...base, language: "go", dev: { liveReload: "yes" } },
+      "service.json",
+    );
+    expect(bad.errors.join("\n")).toMatch(/service\.json\.dev\.liveReload: expected true or false/);
+  });
+
+  it("warns that dev.liveReload only applies to Go services", () => {
+    const base = {
+      appName: "api",
+      appType: "backend",
+      stack: "shop",
+      schemaVersion: SERVICE_MANIFEST_SCHEMA_VERSION,
+    };
+    const result = validateServiceManifest(
+      { ...base, language: "python", dev: { liveReload: true } },
+      "service.json",
+    );
+    expect(result.errors).toEqual([]);
+    expect(result.warnings.join("\n")).toMatch(/service\.json\.dev\.liveReload: .*only .*Go/);
+  });
+
   it("warns specifically that a jwtSecret in service.json is ignored and must not be committed", () => {
     const result = validateServiceManifest(
       {

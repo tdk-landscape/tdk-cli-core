@@ -1,0 +1,129 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const tilt = vi.hoisted(() => ({
+  isTiltAvailable: vi.fn(async () => true),
+  runTilt: vi.fn(),
+}));
+vi.mock("../../utils/tilt.js", () => ({ ...tilt, getTiltfilePath: () => "Tiltfile" }));
+
+import { logsCommand } from "../logs.js";
+
+const ok = (stdout: string) => ({ exitCode: 0, stdout, stderr: "" });
+const resources = (...names: string[]) =>
+  ok(JSON.stringify({ items: names.map((name) => ({ metadata: { name } })) }));
+const logLine = (message: string) =>
+  JSON.stringify({ time: "t", resource: "api", level: "info", source: "runtime", message });
+
+interface Envelope {
+  schemaVersion: number;
+  data: unknown;
+  errors: Array<{ code: string; message: string }>;
+}
+
+let out: string[];
+let exit: ReturnType<typeof vi.spyOn>;
+
+async function run(...args: string[]): Promise<{ envelope: Envelope; code: number | null }> {
+  let code: number | null = null;
+  exit.mockImplementation(((c: number) => {
+    // runCommand catches the mocked exit and exits again; the first code is the real one.
+    code ??= c;
+    throw new Error("exit");
+  }) as never);
+  try {
+    await logsCommand.parseAsync(["--json", ...args], { from: "user" });
+  } catch (error) {
+    if ((error as Error).message !== "exit") throw error;
+  }
+  return { envelope: JSON.parse(out[0] ?? "null"), code };
+}
+
+beforeEach(() => {
+  out = [];
+  vi.spyOn(console, "log").mockImplementation((line) => void out.push(String(line)));
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  exit = vi.spyOn(process, "exit");
+  tilt.isTiltAvailable.mockResolvedValue(true);
+  tilt.runTilt.mockReset();
+});
+afterEach(() => {
+  vi.restoreAllMocks();
+  for (const option of ["service", "since", "port", "tail"])
+    logsCommand.setOptionValue(option, undefined);
+  logsCommand.setOptionValue("tail", "200");
+  logsCommand.setOptionValue("json", false);
+});
+
+describe("tdk logs --json", () => {
+  it("returns one envelope with normalized lines and never follows", async () => {
+    tilt.runTilt.mockResolvedValueOnce(ok(`${logLine("hi")}\n`));
+    const { envelope, code } = await run("--tail", "5");
+    expect(code).toBeNull();
+    expect(envelope).toMatchObject({
+      schemaVersion: 1,
+      data: { services: [], tail: 5, since: null, lines: [{ resource: "api", text: "hi" }] },
+      errors: [],
+    });
+    const args = tilt.runTilt.mock.calls[0]?.[1] as string[];
+    expect(args).toEqual(expect.arrayContaining(["--tail", "5", "--json"]));
+    expect(args).not.toContain("-f");
+    expect(args).not.toContain("--follow");
+  });
+
+  it("passes service names after `--` so they cannot be read as flags", async () => {
+    tilt.runTilt.mockResolvedValueOnce(resources("api", "-weird")).mockResolvedValueOnce(ok(""));
+    await run("--service=api", "--service=-weird");
+    const args = tilt.runTilt.mock.calls[1]?.[1] as string[];
+    expect(args.slice(-3)).toEqual(["--", "api", "-weird"]);
+  });
+
+  it("rejects an unknown service with the valid names, exit 2", async () => {
+    tilt.runTilt.mockResolvedValueOnce(resources("api", "web"));
+    const { envelope, code } = await run("-s", "nope");
+    expect(code).toBe(2);
+    expect(envelope.errors[0]).toMatchObject({ code: "UNKNOWN_SERVICE" });
+    expect(envelope.errors[0].message).toContain("api, web");
+    expect(tilt.runTilt).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports a missing Tilt binary", async () => {
+    tilt.isTiltAvailable.mockResolvedValue(false);
+    const { envelope, code } = await run();
+    expect(code).toBe(1);
+    expect(envelope.errors[0].code).toBe("TILT_MISSING");
+  });
+
+  it("labels an unreachable Tilt TILT_NOT_RUNNING", async () => {
+    tilt.runTilt.mockResolvedValueOnce({
+      exitCode: 1,
+      stdout: "",
+      stderr: "dial tcp: connection refused",
+    });
+    const { envelope, code } = await run();
+    expect(code).toBe(1);
+    expect(envelope.errors[0].code).toBe("TILT_NOT_RUNNING");
+  });
+
+  it("labels a rejected argument TILT_LOGS_FAILED, not 'stack is down'", async () => {
+    tilt.runTilt.mockResolvedValueOnce({
+      exitCode: 1,
+      stdout: "",
+      stderr: 'invalid argument "x" for "--since"',
+    });
+    const { envelope } = await run();
+    expect(envelope.errors[0].code).toBe("TILT_LOGS_FAILED");
+  });
+
+  it.each([
+    [["--tail", "0"]],
+    [["--tail", "10001"]],
+    [["--since", ""]],
+    [["--since", "5"]],
+    [["--port", "65536"]],
+  ])("rejects %j as USAGE (exit 2) without calling Tilt", async (args) => {
+    const { envelope, code } = await run(...args);
+    expect(code).toBe(2);
+    expect(envelope.errors[0].code).toBe("USAGE");
+    expect(tilt.runTilt).not.toHaveBeenCalled();
+  });
+});

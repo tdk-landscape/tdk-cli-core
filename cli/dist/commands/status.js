@@ -1,10 +1,15 @@
 import chalk from "chalk";
 import { Command } from "commander";
 import { createDiscoveryContext } from "../utils/discovery-context.js";
+import { getDeferredResourceNames } from "../utils/doctor-runtime.js";
 import { runCommand } from "../utils/errors.js";
 import { formatCount, showDetail, showStep } from "../utils/formatting.js";
+import { getHostPortPlan } from "../utils/host-port-config.js";
 import { createMachineEnvelope, writeMachineError } from "../utils/machine-output.js";
+import { findProjectRoot } from "../utils/paths.js";
+import { buildServicePorts, buildStackPorts } from "../utils/status-ports.js";
 import { getTiltfilePath, isTiltAvailable, runTilt } from "../utils/tilt.js";
+import { evaluateTiltReadiness, tiltGetUiResources } from "../utils/up-readiness.js";
 export const statusCommand = new Command("status")
     .description("Show status of resources and stacks")
     .option("--json", "Output a versioned JSON status report", false)
@@ -14,6 +19,8 @@ export const statusCommand = new Command("status")
     .option("--tilt", "Show tilt resource status", false)
     .action(async (options) => {
     const action = async () => {
+        // Discover first: outside a project this fails before any status line is printed.
+        const discovery = createDiscoveryContext();
         let tiltAvailable = false;
         try {
             tiltAvailable = await isTiltAvailable();
@@ -30,7 +37,6 @@ export const statusCommand = new Command("status")
             }
             console.log();
         }
-        const discovery = createDiscoveryContext();
         let tiltResources = null;
         let queryError = null;
         if (options.json && options.tilt && tiltAvailable) {
@@ -49,24 +55,53 @@ export const statusCommand = new Command("status")
                 queryError = result.stderr || "Could not retrieve Tilt resource status";
             }
         }
+        // A single look at the running Tilt, so a caller that started `tdk up` detached can poll for readiness. Null when no
+        // Tilt answers or its output cannot be read.
+        let readiness = null;
+        if (options.json && tiltAvailable) {
+            const port = Number.parseInt(process.env.TILT_PORT ?? "", 10);
+            const text = await tiltGetUiResources(Number.isInteger(port) ? port : 10350);
+            if (text) {
+                try {
+                    readiness = evaluateTiltReadiness(text, getDeferredResourceNames()).result;
+                }
+                catch {
+                    readiness = null;
+                }
+            }
+        }
         if (options.json) {
+            let portPlan = null;
+            try {
+                const root = findProjectRoot();
+                portPlan = root ? await getHostPortPlan(root, { inspectDocker: false }) : null;
+            }
+            catch {
+                // Port planning is best effort; stack ports then list only the Tilt UI.
+            }
             const errors = queryError ? [{ code: "TILT_STATUS_UNAVAILABLE", message: queryError }] : [];
             const data = {
                 tilt: {
                     available: tiltAvailable,
                     resourcesQueried: options.tilt && tiltAvailable,
                     resources: tiltResources,
+                    readiness,
                 },
+                resourceCount: discovery.resources.length,
                 resources: discovery.resources.map((resource) => ({
                     name: resource.name,
                     stack: resource.stack ?? null,
                     type: resource.type ?? "unknown",
                     port: resource.port ?? null,
+                    ...buildServicePorts(resource, portPlan?.ingressHttp),
                 })),
+                ports: buildStackPorts(portPlan, process.env.TILT_PORT ? Number.parseInt(process.env.TILT_PORT, 10) : undefined),
                 stacks: discovery.stacks.map((stack) => ({
                     name: stack.name,
                     resourceCount: stack.resourceCount,
+                    resources: stack.resources.map((resource) => resource.name),
                 })),
+                unassignedResources: discovery.unassignedResources.map((resource) => resource.name),
             };
             console.log(JSON.stringify(createMachineEnvelope(data, errors)));
             if (errors.length > 0) {
@@ -112,7 +147,7 @@ export const statusCommand = new Command("status")
             }
         }
         console.log();
-        showDetail('Run "tdk list-stacks" to see all stacks.');
+        showDetail('Run "tdk stacks" to see all stacks.');
         showDetail('Run "tdk up <stack-name>" to start a stack.');
     };
     if (options.json) {

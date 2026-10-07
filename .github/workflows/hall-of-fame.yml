@@ -1,0 +1,93 @@
+name: 🏆 Hall of fame
+
+# Keeps one pinned-style tracking issue up to date with every community contributor's
+# merged PRs and highest kyu/dan rank. It edits an issue body, so it needs no push to
+# main. Run it by hand (workflow_dispatch) to create the issue or rebuild it.
+
+on:
+  pull_request_target: # zizmor: ignore[dangerous-triggers] never checks out or runs PR code; only reads merged-PR data and edits an issue
+    types: [closed]
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: hall-of-fame
+  cancel-in-progress: false
+
+jobs:
+  update:
+    name: Rebuild the contributor table
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+      pull-requests: read
+    steps:
+      - uses: actions/github-script@v8
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const MARK = '<!-- tdk:hall-of-fame -->';
+            const MAINTAINERS = ['kburym', 'odykyi'];
+            const TITLE = 'Hall of fame: community contributors';
+
+            const rankOf = (name) => {
+              const m = /^rank: (\d+) (kyu|dan)$/.exec(name);
+              return m ? { name: `${m[1]} ${m[2]}`, value: m[2] === 'dan' ? 100 + Number(m[1]) : 100 - Number(m[1]) } : null;
+            };
+
+            const people = new Map();
+            let after = null;
+            for (;;) {
+              const res = await github.graphql(
+                `query($q:String!,$after:String){search(query:$q,type:ISSUE,first:100,after:$after){
+                   pageInfo{hasNextPage endCursor}
+                   nodes{... on PullRequest{number author{login __typename} authorAssociation
+                     closingIssuesReferences(first:10){nodes{number labels(first:30){nodes{name}}}}}}}}`,
+                { q: `repo:${owner}/${repo} is:pr is:merged`, after });
+              for (const pr of res.search.nodes) {
+                if (!pr.author || pr.author.__typename !== 'User') continue;
+                // The Actions token often reports maintainers as CONTRIBUTOR, so list them by name too.
+                if (MAINTAINERS.includes(pr.author.login)) continue;
+                if (['OWNER', 'MEMBER', 'COLLABORATOR'].includes(pr.authorAssociation)) continue;
+                const p = people.get(pr.author.login) || { prs: 0, issues: 0, best: null };
+                p.prs += 1;
+                for (const i of pr.closingIssuesReferences.nodes) {
+                  p.issues += 1;
+                  for (const l of i.labels.nodes) {
+                    const r = rankOf(l.name);
+                    if (r && (!p.best || r.value > p.best.value)) p.best = r;
+                  }
+                }
+                people.set(pr.author.login, p);
+              }
+              if (!res.search.pageInfo.hasNextPage) break;
+              after = res.search.pageInfo.endCursor;
+            }
+
+            const rows = [...people.entries()].sort((a, b) =>
+              b[1].prs - a[1].prs || (b[1].best?.value ?? -1) - (a[1].best?.value ?? -1) || a[0].localeCompare(b[0]));
+            const body = [
+              MARK,
+              'Everyone outside the maintainer team who has had a PR merged. Updated automatically on every merge.',
+              '',
+              'Ranks come from the `rank:` label of the issues your PRs fixed: 8 kyu is the easiest, then 7 down to 1 kyu, then 1 dan and up. Pick a harder issue to rank up.',
+              '',
+              '| Contributor | Merged PRs | Issues fixed | Highest rank |',
+              '| --- | ---: | ---: | --- |',
+              ...rows.map(([login, p]) => `| @${login} | ${p.prs} | ${p.issues} | ${p.best ? p.best.name : '-'} |`),
+              '',
+              `Last updated for the ${rows.length} contributors above. Want to be on this list? Start with a [good first issue](https://github.com/${owner}/${repo}/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).`,
+            ].join('\n');
+
+            // Not search: its index lags, and two runs in a row would each create the issue.
+            const open = await github.paginate(github.rest.issues.listForRepo,
+              { owner, repo, state: 'open', labels: 'community', per_page: 100 });
+            const found = open.find((i) => !i.pull_request && i.body && i.body.includes(MARK));
+            if (found) {
+              if (found.body !== body) await github.rest.issues.update({ owner, repo, issue_number: found.number, body });
+            } else {
+              await github.rest.issues.create({ owner, repo, title: TITLE, body, labels: ['community'] });
+            }

@@ -39,6 +39,7 @@ load('./topologies/tilt/resources/conditions.star', _Database='Database')
 load('./topologies/tilt/resources/declaration.star', _Orchestrator='Orchestrator')
 load('./topologies/tilt/resources/ordering.star', _Infra='Infra')
 load('./topologies/tilt/resources/triggers.star', _Watchers='Watchers')
+load('./topologies/tilt/resources/orchestrator/apply_compose_resource_registration.star', _resource_defers_start='resource_defers_start')
 
 # =============================================================================
 # RE-EXPORTS
@@ -76,5 +77,8 @@ Database = _Database
 Orchestrator = _Orchestrator
 Infra = _Infra
 Watchers = _Watchers
+
+# True when a manifest's deferStart is actually active (licensed); decides whether a `<name>-image` prebuild resource exists.
+resource_defers_start = _resource_defers_start
 
 print("✅ TDK Engine loaded: orchestration, resources, and lifecycle")

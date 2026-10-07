@@ -23,6 +23,7 @@ const KNOWN_SERVICE_FIELDS = new Set([
   "backendName",
   "basePath",
   "build",
+  "buildContext",
   "databaseName",
   "dependencies",
   "dev",
@@ -82,6 +83,15 @@ export function validateServiceManifest(
       `${displayPath}.schemaVersion: unsupported version ${String(manifest.schemaVersion)} (supported: ${SERVICE_MANIFEST_SCHEMA_VERSION})`,
     );
   }
+  const dev = manifest.dev;
+  const liveReload =
+    dev && typeof dev === "object" && !Array.isArray(dev)
+      ? (dev as Record<string, unknown>).liveReload
+      : undefined;
+  if (liveReload !== undefined && typeof liveReload !== "boolean") {
+    errors.push(`${displayPath}.dev.liveReload: expected true or false`);
+  }
+
   if ("smoke" in manifest) {
     for (const message of validateSmoke(manifest.smoke)) errors.push(`${displayPath}.${message}`);
   }
@@ -93,6 +103,11 @@ export function validateServiceManifest(
       return [`${displayPath}.${field}: unknown field is preserved`];
     return [];
   });
+  if (liveReload === true && manifest.language !== "go") {
+    warnings.push(
+      `${displayPath}.dev.liveReload: only applies to Go services (language "go"); it is ignored here`,
+    );
+  }
   return { errors, warnings, manifest };
 }
 

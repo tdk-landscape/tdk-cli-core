@@ -1,0 +1,42 @@
+import { isValidPort } from "./validation.js";
+export function parseTiltPort(value) {
+    if (value === undefined || value === "")
+        return { ok: true, port: undefined };
+    const port = Number(value);
+    if (!/^[0-9]+$/.test(value) || !isValidPort(port)) {
+        return {
+            ok: false,
+            message: `Invalid TILT_PORT "${value}": expected an integer from 1 to 65535.`,
+        };
+    }
+    return { ok: true, port };
+}
+export function secondUpAction(input) {
+    if (input.runningPorts.length === 0 || input.force)
+        return { action: "start" };
+    if (input.only)
+        return { action: "only-blocked", ports: input.runningPorts };
+    return { action: "already-running", ports: input.runningPorts };
+}
+export async function resolveTiltPort(options) {
+    if (options.configuredPort !== undefined) {
+        return { port: options.configuredPort, autoSwitched: false };
+    }
+    if (options.force)
+        return { port: options.basePort, autoSwitched: false };
+    const availablePort = await options.findAvailablePort(options.basePort, 10);
+    if (availablePort && availablePort !== options.basePort) {
+        return { port: availablePort, autoSwitched: true };
+    }
+    return { port: options.basePort, autoSwitched: false };
+}
+export async function stopTiltForUp(options, dependencies) {
+    if (!options.force)
+        return;
+    if (!options.quiet) {
+        dependencies.log(`Force flag set - stopping Tilt on port ${options.port} if running...`);
+    }
+    dependencies.stop(options.port);
+    await dependencies.wait(2000);
+}
+//# sourceMappingURL=tilt-startup.js.map

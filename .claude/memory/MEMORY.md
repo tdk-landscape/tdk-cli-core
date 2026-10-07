@@ -5,6 +5,8 @@ Hard-won, repo-specific facts for anyone (human or agent) working here. Keep ent
 ## Verify before you push
 - Lint and typecheck from `cli/` by exit code, not by `| tail`: `./node_modules/.bin/biome check . ; echo $?` and `./node_modules/.bin/tsc --noEmit ; echo $?`. `npx biome` runs an unrelated v0.3.3 package that exits 0 without checking.
 - Run `npm run build` before vitest when `src/` changed: the e2e tests spawn `cli/bin/tdk.js`, which imports `dist/`.
+- 2026-10-07 (#124): `scripts/benchmark/cli-startup.mjs` measures `tdk status` including its read-only Tilt availability probe; when Tilt is absent from `PATH`, each sample can spend about 10 seconds in that probe. Use the benchmark script's `--skip-status` for smoke runs and treat default status timings as probe-dominated.
+- On Windows, TypeScript preserves CRLF inside multiline template literals in generated `cli/dist` even with `--newLine lf`; normalize emitted files to LF before staging.
 - BSD sed (macOS) has no `\b`; use python `re.sub` or perl for renames and confirm with `grep -c`.
 - A red test must be red for the right reason: temporarily remove the fix and read the failure. Common ways a test is red wrongly: a JS template literal evaluating `${...}`, JSON `true`/`null` pasted into Starlark (`True`/`None`), a too-narrow regex.
 - Do not leave `.skip` on a failing test; fix the code or the setup.
@@ -20,10 +22,15 @@ Hard-won, repo-specific facts for anyone (human or agent) working here. Keep ent
 ## Engine and generators
 - A changed `.star` file reaches a running container only after re-vendoring (`tdk project --yes`), a Tiltfile content change, and an image rebuild. Byte-identical output logs `Skipping ... (no changes)`.
 - Check a BYO example through `tdk up` (`scripts/verify-byo-tdk.sh`), not only a standalone `docker run`: TDK adds a `Host: api.<project>.localhost` header, a Postgres `DATABASE_URL`, and its own bind expectations.
+- Do not make a service run its own migrations to prove a database path works (2026-10-04, #533): a fixture whose `index.ts` ran `bunx prisma migrate deploy` crashed in CI with `Cannot find module '@prisma/engines'`, then looped until the script timed out. Use a `migrator` resource and check Postgres, migrator, API order through `tdk up`.
 - Say only what a run observed; mark everything else "not run" in docs and PRs.
 - Resource scaffolds must write current keys (`dependsOn`, `healthCheckPath`); `tdk doctor` warns on deprecated and unknown ones.
+- `tdk config verify` validates discovered `service.json` files and generated service snapshots as well as project files; `tdk config regenerate` rewrites project outputs, while service outputs are written on `tdk up` (2026-10-05).
+- A feature-off Postgres `dependsOn` needs `services/platform/database-management/docker-compose.yml` in both CLI and Tilt generated-file allowlists; test from a missing Compose, since a pre-existing file hides a denied write. Tilt registers all siblings before applying `--focus`, so force-start checks must use the focus resource list, not `should_enable` (2026-10-06, #646).
+- Doctor's default-focus Postgres warning must inspect the generated Tiltfile, spec, and vendored `CORE_INFRA` mapping; `project.json` alone cannot prove the feature path, and a project-scope `dependsOn` result must not hide that warning (2026-10-06, #646).
 - Env and secrets: no JWT in generated files; Compose takes `JWT_SECRET` from the project `.env`; `completeEnvFile` appends missing keys and never rotates.
 
 ## Housekeeping
 - Verification scripts must remove every tag of `app_<project>` images (Tilt adds a `tilt-<hash>` tag) and the project's containers and networks.
 - `PAGES_SYNC_TOKEN` is not set, so the schema publish workflow succeeds but does nothing.
+- npm publication can succeed before cached registry metadata shows the new version (2026-10-05, importer 0.1.1): wait for ordinary `npm view` and fresh-cache `npx` to see it before removing release gates; verify the registry tarball against the workflow artifact.

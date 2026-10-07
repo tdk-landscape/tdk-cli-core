@@ -40,7 +40,11 @@ Here is valid JSON; the explanations are outside the file so it remains parseabl
 
 - Once Tilt is up, `tdk up` sends each step to the service's public base URL (`http://api.<project>.localhost[:port]/api/<name>` for a backend, `mcp` or bring-your-own service, `http://app.<project>.localhost[:port]/<name>` for a frontend), the same URL `tdk up` prints. `path` must start with `/`; a full URL or relative path is rejected, because it would skip the proxy.
 - `expect` is the status (default 200). `bodyContains` is optional. `save` copies a response field (`$.id`, `$.data.items[0].id`) into `{{id}}` for later steps, in the path and in string values of `body`.
+<<<<<<< HEAD
 - Before the first step, `tdk up` polls `GET <public URL><healthCheckPath>` (default `/health` for backend and `mcp` services; none for frontends and bring-your-own without `healthCheckPath`) until something other than a connection error, 404, 502, 503 or 504 answers, so a write is never the first request to reach a service that is still building. If it never answers within `timeoutSeconds`, the first step runs anyway and reports the failure.
+=======
+- Before the first step, `tdk up` polls `GET <public URL><healthCheckPath>` (default `/health` for backend and `mcp` services; none for frontends and bring-your-own without `healthCheckPath`) until something other than a connection error, 404 or a 5xx answers, so a write is never the first request to reach a service that is still building or migrating. The wait has its own `timeoutSeconds` budget, and the steps then get a fresh one. If the service never answers, the first step runs anyway and reports the failure.
+>>>>>>> origin/main
 - A 404, 502, 503 or 504 means the route is not up yet and is retried for `timeoutSeconds` (default 60). A thrown error is retried for GET, HEAD and OPTIONS; for a write (POST, PUT, ...) only when the error proves the request was never sent (connection refused, DNS failure), never after a timeout or reset, which may have reached the service. Any other wrong status fails at once, so a write is never repeated.
 - A failed step stops Tilt, prints the service, step, URL, method, status and a body snippet, and makes `tdk up` exit non-zero. The containers are left running for inspection; `tdk down` removes them.
 - Every step that ran leaves a record under `.tdk/smoke/<service>/<step-slug>/` (`<step-slug>` is the lowercased step name, or `step-N` when unnamed). `latest.json` holds the service, step, method, public URL, expected and actual status, `truncated`, the byte length and the body file name; `body.txt` holds the response body, capped at 64 KiB (`truncated: true` when the cap cut it). A step that got no response (after retries) writes `latest.json` with `status: null` and the error code, and no body file. When a step passes, `last-success.json` and `last-success-body.txt` are replaced with that response; a failure never touches them, so a later regression can be compared with the last good response (`diff last-success-body.txt body.txt`). The failure line ends with `(record: <path to latest.json>)`. The directory is gitignored (`tdk project` adds `.tdk/smoke/`), `tdk down` leaves it, and nothing is uploaded from your machine. Bodies are kept as the service returned them, with no redaction; request headers and cookies are not stored.
@@ -71,7 +75,7 @@ For VS Code, associate both filenames with their schema in workspace settings. T
 }
 ```
 
-The service schema is also in [`engine/schemas/service-schema.json`](../engine/schemas/service-schema.json), and the current project configuration schema is [`engine/schemas/project-schema.json`](../engine/schemas/project-schema.json). Run `tdk config verify` to check that generated project files match `.tdk/project.json`; it does not validate the service manifest or Helm values. `tdk doctor` checks local readiness and service concerns.
+The service schema is also in [`engine/schemas/service-schema.json`](../engine/schemas/service-schema.json), and the current project configuration schema is [`engine/schemas/project-schema.json`](../engine/schemas/project-schema.json). Run `tdk config verify` to check generated project files, validate discovered service manifests, and compare generated service files with their snapshots. It does not validate Helm values. `tdk doctor` checks local readiness and service concerns. See [generated service files](generated-files.md).
 
 ### The service schema and how it is published
 
@@ -86,4 +90,3 @@ deploy artifact for editors. It is only an editor hint. The CLI provider registr
   reports in its run summary whether the live copy matches. It needs a repository secret named `PAGES_SYNC_TOKEN` (a fine-grained
   token with `contents: write` on `tdk-landscape/tdk-landscape.github.io`). Without it the copy is skipped with a warning and the live
   copy falls behind `main`; the summary says so.
-

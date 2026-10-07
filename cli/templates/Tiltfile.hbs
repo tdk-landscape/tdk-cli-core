@@ -89,6 +89,7 @@ load('ext://tdk-cli',
 'APP_RESOURCES',
 'GLOBAL_CONFIG_EXPORT',
 'Registry',
+'resource_defers_start',
 )
 
 # =============================================================================
@@ -224,6 +225,8 @@ TILT_CONTEXT = {
     'project_root': PROJECT_ROOT,
     'all_services': _app_resources_list,
     'golden_image_resource': GOLDEN_IMAGE_RESOURCE,
+    'focus_mode': FOCUS_MODE,
+    'focus_enabled_resources': FOCUS_ENABLED_RESOURCES,
 }
 
 print("🚀 Creating Tilt resources for {} services...".format(len(_app_resources_list)))
@@ -265,7 +268,9 @@ for _KNOWN_SVC in _app_resources_list:
                 _KNOWN_TILT_RESOURCES.add(_KNOWN_RES_NAME + '-config-gen')
                 _KNOWN_RES_MANIFEST = _KNOWN_RES.get('_manifest', {})
                 _KNOWN_RES_SABLIER = _KNOWN_RES_MANIFEST.get('sablier', {})
-                if _KNOWN_RES_SABLIER.get('enable', False) and _KNOWN_RES_SABLIER.get('deferStart', False):
+                # Mirrors _register_single_resource: the prebuild only exists for
+                # a resource that gets a docker_build (has syncs, not a library/sdk/BYO).
+                if resource_defers_start(_KNOWN_RES_MANIFEST) and _KNOWN_RES_MANIFEST.get('appType', 'backend') not in ['library', 'sdk', 'bring-your-own'] and _KNOWN_RES_MANIFEST.get('syncs'):
                     _DEFERRED_IMAGE_RESOURCES.add(_KNOWN_RES_NAME + '-image')
                 if _KNOWN_SVC_STACK:
                     _STACK_TO_RESOURCE_NAMES.setdefault(_KNOWN_SVC_STACK, [])
@@ -291,7 +296,11 @@ if FOCUS_MODE and FOCUS_ENABLED_RESOURCES:
                 # local_resource because their dc_resource is not auto-init.
                 # Keep that prebuild in focus mode so `tdk up <stack>` still
                 # prepares the image before the first request wakes the service.
-                _FILTERED_RESOURCES.append(_STACK_RES_NAME + '-image')
+                # Only when it exists: without a license deferStart is off and
+                # no `-image` resource is registered, and Tilt errors on an
+                # enabled name it cannot find.
+                if _STACK_RES_NAME + '-image' in _DEFERRED_IMAGE_RESOURCES:
+                    _FILTERED_RESOURCES.append(_STACK_RES_NAME + '-image')
         else:
             _MATCHED = [kr for kr in _KNOWN_TILT_RESOURCES if kr != 'service-discovery-daemon' and kr.startswith(_R + '-')]
             _FILTERED_RESOURCES.extend(_MATCHED)
@@ -307,7 +316,9 @@ if FOCUS_MODE and FOCUS_ENABLED_RESOURCES:
     # local mail catcher standing in for a managed email provider. Every
     # service it declares is loaded via docker_compose() in infra-loader.star,
     # so it must be enabled here too, or it is silently disabled the same way.
-    _ALWAYS_ENABLED_INFRA_RESOURCES = ['init-networks', 'postgres', 'traefik', 'golden-layers-build']
+    _ALWAYS_ENABLED_INFRA_RESOURCES = ['init-networks', 'traefik', 'golden-layers-build']
+    if should_enable('database-management') or TILT_CONTEXT.get('_shared_platform_postgres_force_started', False):
+        _ALWAYS_ENABLED_INFRA_RESOURCES.append('postgres')
     _messaging_compose_path = PROJECT_ROOT + '/services/platform/messaging/docker-compose.yml'
     if str(local("test -f '" + _messaging_compose_path + "' && echo yes || echo no", quiet=True, echo_off=True)).strip() == 'yes':
         # infra-loader.star only creates these Tilt resources when this file

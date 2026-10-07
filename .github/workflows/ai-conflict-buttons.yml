@@ -1,0 +1,74 @@
+# Posts one PR comment with Grok, Claude, and Codex conflict-resolve links
+# when the PR conflicts with the base branch. Updates that comment instead of
+# posting another. Once the conflict is gone, the same comment drops the buttons.
+# pull_request_target is allowed only because checkout is the default branch
+# and the only write is a PR comment. Do not checkout the PR head and do not
+# run PR code in this job.
+name: 🤖 AI conflict buttons
+
+on:
+  pull_request_target: # zizmor: ignore[dangerous-triggers] never checks out or runs PR code; only writes a PR comment
+    types: [opened, reopened, synchronize, edited]
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ai-conflict-buttons-${{ github.event.pull_request.number || 'backfill' }}
+  cancel-in-progress: false
+
+jobs:
+  comment:
+    name: Comment AI conflict buttons
+    if: github.event_name == 'pull_request_target'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      - name: Post or update the conflict comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          HEAD_OWNER: ${{ github.event.pull_request.head.repo.owner.login }}
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+          BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
+        run: |
+          set -euo pipefail
+          test -f scripts/ai-conflict-buttons.mjs
+          bash scripts/ai-conflict-buttons-comment.sh
+
+  backfill:
+    name: Backfill open conflicting PRs
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      - name: Backfill open PRs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test -f scripts/ai-conflict-buttons.mjs
+          gh pr list --repo "${GITHUB_REPOSITORY}" --state open --limit 100 \
+            --json number,url,headRefName,headRepositoryOwner,baseRefName \
+            --jq '.[] | [.number, .url, (.headRepositoryOwner.login // ""), .headRefName, .baseRefName] | @tsv' |
+          while IFS=$'\t' read -r number url owner branch base; do
+            export PR_NUMBER="$number" PR_URL="$url" HEAD_OWNER="$owner" HEAD_BRANCH="$branch" BASE_BRANCH="$base"
+            bash scripts/ai-conflict-buttons-comment.sh || echo "PR #${number} skipped"
+          done

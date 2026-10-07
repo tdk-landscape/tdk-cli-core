@@ -1,0 +1,86 @@
+# Appends AI "Write spec" links (Grok, Claude, Codex) to same-repo issue bodies.
+# Markdown shields only: no model call, no issue comment, no files from CI.
+# Kind (openspec / primitive / skip) is resolved in the script from labels + body.
+# Separate from the PR review buttons (.github/workflows/ai-review-buttons.yml).
+# Do not switch this job to pull_request_target; issues events are same-repo by definition.
+name: 📝 AI spec buttons
+
+on:
+  issues:
+    # labeled/unlabeled: issues.edited does not fire on label changes, and kind
+    # depends on labels (enhancement → OpenSpec, bug/docs → short spec, etc.).
+    types: [opened, reopened, edited, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+# Serialize writes per issue: two `edited` events cannot PATCH in parallel.
+concurrency:
+  group: ai-spec-buttons-issue-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  append:
+    name: Append AI spec buttons
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    # Issues only exist on this repository. No fork PR path; no secrets.
+    permissions:
+      issues: write
+    steps:
+      # Check out the default branch so CI runs the same scripts/ai-spec-buttons.mjs
+      # contributors test locally (single implementation). persist-credentials: false
+      # keeps the job from leaving a write-capable git credential on disk.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      # Event fields go through env, never into the script string (template-injection safe).
+      # Body is fetched with gh so large/multiline bodies are not interpolated into the workflow.
+      - name: Append AI spec buttons
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
+          ISSUE_LABELS: ${{ join(github.event.issue.labels.*.name, ',') }}
+          OUT_FILE: ${{ runner.temp }}/issue-body-new.md
+          PATCH_FILE: ${{ runner.temp }}/issue-body-patch.json
+        run: |
+          set -euo pipefail
+          test -f scripts/ai-spec-buttons.mjs
+
+          # Snapshot the live body (not the event payload).
+          gh api "repos/${GITHUB_REPOSITORY}/issues/${ISSUE_NUMBER}" \
+            --jq '(.body // "") | @base64' > "${OUT_FILE}.b64"
+          base64 -d < "${OUT_FILE}.b64" > "${OUT_FILE}.in"
+
+          # Single implementation: append when marker missing; regenerate tail when
+          # title/URL/kind drift; skip when the generated prompt already matches.
+          # Kind skip (question / social / license) leaves any existing marker alone.
+          export BODY_FILE="${OUT_FILE}.in"
+          node scripts/ai-spec-buttons.mjs
+
+          if cmp -s "${OUT_FILE}.in" "$OUT_FILE"; then
+            echo "Body unchanged; nothing to PATCH."
+            exit 0
+          fi
+
+          # Lost-update guard: re-read immediately before PATCH. If the author
+          # (or another actor) changed the body since the snapshot, skip rather
+          # than overwrite their edit.
+          gh api "repos/${GITHUB_REPOSITORY}/issues/${ISSUE_NUMBER}" \
+            --jq '(.body // "") | @base64' > "${OUT_FILE}.now.b64"
+          base64 -d < "${OUT_FILE}.now.b64" > "${OUT_FILE}.now"
+          if ! cmp -s "${OUT_FILE}.in" "${OUT_FILE}.now"; then
+            echo "Body changed since snapshot; skipping PATCH to avoid a lost update."
+            exit 0
+          fi
+
+          jq -n --rawfile body "$OUT_FILE" '{body: $body}' > "$PATCH_FILE"
+          jq -e 'has("body") and (.body | type == "string")' "$PATCH_FILE" > /dev/null
+          # Pipe JSON to stdin; --input <file> is unreliable across gh versions for large bodies.
+          gh api --method PATCH \
+            "repos/${GITHUB_REPOSITORY}/issues/${ISSUE_NUMBER}" \
+            --input - < "$PATCH_FILE"

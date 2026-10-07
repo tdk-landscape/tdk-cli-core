@@ -98,3 +98,87 @@ describe("completing an existing .env", () => {
     expect(envValue(readEnv(), "DB_PASSWORD")).toBe("keep-this-password");
   });
 });
+
+describe("ensureEnvFile", () => {
+  it("creates .env and returns true when missing", () => {
+    expect(existsSync(join(root, ".env"))).toBe(false);
+    expect(envValidator.ensureEnvFile(root)).toBe(true);
+    expect(existsSync(join(root, ".env"))).toBe(true);
+    expect(readEnv()).toContain("TILT_ENV=dev");
+  });
+
+  it("returns false and leaves an existing file untouched", () => {
+    const original = "CUSTOM_VAR=custom_val\nTILT_ENV=prod\n";
+    writeEnv(original);
+    expect(envValidator.ensureEnvFile(root)).toBe(false);
+    expect(readEnv()).toBe(original);
+  });
+});
+
+describe("generateEnvFile", () => {
+  it("contains every variable in REQUIRED_ENV_VARS", () => {
+    const content = envValidator.generateEnvFile();
+    const parsed = envValidator.parseEnv(content);
+
+    const expectedVars = [
+      "VERDACCIO_URL_DOCKER",
+      "VERDACCIO_URL",
+      "TILT_ENV",
+      "DATABASE_URL",
+      "DB_PASSWORD",
+      "JWT_SECRET",
+    ];
+
+    for (const name of expectedVars) {
+      expect(parsed.has(name)).toBe(true);
+      expect(content).toContain(`${name}=`);
+    }
+  });
+});
+
+describe("validateEnvFile coverage", () => {
+  it("reports required variables as missing and warning when .env does not exist", () => {
+    expect(existsSync(join(root, ".env"))).toBe(false);
+    const result = envValidator.validateEnvFile(root);
+
+    expect(result.missing).toContain("TILT_ENV");
+    expect(result.missing).toContain("DB_PASSWORD");
+    expect(result.missing).not.toContain("VERDACCIO_URL_DOCKER");
+    expect(result.invalid).toEqual([]);
+    expect(result.warnings).toContain(".env file not found - will be auto-generated");
+  });
+
+  it("reports no missing or invalid entries for a complete generated .env", () => {
+    const generated = envValidator.generateEnvFile();
+    writeEnv(generated);
+
+    const result = envValidator.validateEnvFile(root);
+    expect(result.missing).toEqual([]);
+    expect(result.invalid).toEqual([]);
+    expect(result.warnings).toEqual([]);
+  });
+
+  it("reports missing required variables when absent", () => {
+    writeEnv("TILT_ENV=dev\n");
+    const result = envValidator.validateEnvFile(root);
+
+    expect(result.missing).toEqual(["DB_PASSWORD"]);
+    expect(result.invalid).toEqual([]);
+  });
+
+  it("reports invalid entry when a variable is set but empty", () => {
+    writeEnv("TILT_ENV=dev\nDB_PASSWORD=\n");
+    const result = envValidator.validateEnvFile(root);
+
+    expect(result.missing).toEqual([]);
+    expect(result.invalid).toContain("DB_PASSWORD is set but empty");
+  });
+
+  it("does not count commented lines as set", () => {
+    writeEnv("# TILT_ENV=dev\n# DB_PASSWORD=my-secret-password\n");
+    const result = envValidator.validateEnvFile(root);
+
+    expect(result.missing).toContain("TILT_ENV");
+    expect(result.missing).toContain("DB_PASSWORD");
+  });
+});

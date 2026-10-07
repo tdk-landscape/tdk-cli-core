@@ -1,6 +1,11 @@
 ---
 name: tdk-doctor
 description: Check or repair the local TDK development environment and project configuration using `tdk doctor`. Use when setting up a TDK project, before running `tdk up`, or when Docker, Tilt, Bun, ports, generated files or service manifests may be misconfigured.
+license: MIT
+compatibility: Requires the tdk CLI, Docker and Tilt on the local machine. Does not deploy.
+metadata:
+  author: tdk-landscape
+  version: "1.0"
 ---
 
 # TDK doctor

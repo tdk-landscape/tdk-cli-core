@@ -19,14 +19,16 @@ Initialize your project with master configuration files:
 tdk project
 
 # 📊 Check project info and config status
-tdk projects              # Overview
+tdk projects                  # Overview
 
-tdk projects --check      # ✅ CI validation (exit 0/1)
+tdk projects --check          # ✅ CI validation (exit 0/1)
+tdk projects --json           # Versioned JSON report
+tdk projects --json --check   # Machine-readable CI validation (exit 0/1; 1 also if no project root)
 ```
 
 **Creates:**
 - ⚙️ `TILT_RESOURCE_DEFAULTS.star` — Platform config (ports 3000-4999, health checks, memory limits)
-- 🔧 `TILT_TECH_STACK.star` — Tech stack lock (Bun v1.2, Vite v5, Prisma v7, NATS v2)
+- ⚙️ `TILT_TECH_STACK.star` — Platform technology labels and compatibility checks, not version pins. See [the tech stack guide](../docs/tech-stack-lock.md).
 
 ---
 
@@ -37,6 +39,7 @@ Organize resources into deployment groups:
 ```bash
 # 📋 List all stacks
 tdk stacks
+tdk stacks --json
 tdk stacks --services     # 🔍 Include resources in each stack
 
 # 🗂️  Organize resources into stacks (interactive)
@@ -57,9 +60,14 @@ Create and manage individual services:
 ```bash
 # 📋 List all resources
 tdk resources
+tdk resources --json
 tdk resources --stack api     # 🔍 Filter by stack
+tdk resources --type backend  # Filter by resource type
+tdk resources --type backend --stack api
 tdk resources --no-stack           # ⚠️ Show unassigned only
 tdk resources --ports              # 🔌 Show port assignments
+tdk resources --stack api --json
+tdk resources --no-stack --json
 
 # 🆕 Create new resource (interactive)
 tdk resource my-api --type backend --stack api
@@ -79,7 +87,14 @@ tdk resource my-h3-api --type backend --framework h3 --stack api
 tdk resource my-fastify-api --type backend --framework fastify --stack api
 tdk resource my-worker --type worker --stack background
 tdk resource my-mcp --type mcp --stack api
+
+# Non-interactive resource creation
+tdk resource my-api --type backend --stack api --yes
 ```
+
+`--yes` skips resource creation prompts and requires an explicit resource name. A new project uses the
+`main` stack, an existing single-stack project reuses that stack, and a project with multiple stacks
+must pass `--stack`. Without `--yes`, prompt answers can still be supplied on stdin for scripted use.
 
 **Creates:**
 - 📄 `service.json` — Auto-assigned port from master config
@@ -115,7 +130,7 @@ The frontend provider owns root `index.html` and starter source. After TDK gener
 
 | Command | Description |
 |---------|-------------|
-| `tdk ui` | 🎨 Interactive terminal UI |
+| `tdk ui [--high-contrast] [--no-animations]` | 🎨 Interactive terminal UI |
 | `tdk networks` | 🌐 Show Traefik-routed URLs (`--stack`, `--json`, `--raw`) |
 | `tdk config regenerate` | ♻️ Regenerate master config files from `.tdk/project.json` |
 | `tdk config verify` | ✅ Check generated files match `.tdk/project.json` |
@@ -125,6 +140,20 @@ The frontend provider owns root `index.html` and starter source. After TDK gener
 | `tdk upgrade` | ⬆️ Self-update to the latest version (`--dry-run`, `--force`) |
 | `tdk version` | ℹ️  Show version |
 | `tdk --help` | ❓ Show help |
+
+`-v` is context-specific: `tdk -v` prints the version, while `tdk up -v` and `tdk down -v`
+enable verbose output. Use `--version` and `--verbose` when clarity matters.
+
+Use `tdk ui --high-contrast` for a brighter palette with clearer text hierarchy
+and no dimmed secondary text. `tdk ui --no-animations` keeps the loading screen
+static. If `NO_COLOR` is set (including an empty value), or `TERM` begins with
+`dumb`, the environment takes precedence over `--high-contrast`: color styling
+is disabled and ASCII markers, separators, and file-tree symbols are used.
+
+If `tdk ui` finds no services, its empty state points to `tdk project` to create a
+project and `tdk resource api --type backend` to add a service. Press `q` to leave
+the UI before running these commands, then reopen it or press `r` to refresh
+after another terminal adds a service.
 
 ---
 
@@ -295,7 +324,10 @@ tdk resource --help
 tdk stack --help
 tdk up --help
 tdk eject --help
+tdk import --help
 ```
+
+To bring an existing repo in (Procfile, Compose, Dockerfile, `package.json`), `tdk import` runs [tdk-import](https://github.com/tdk-landscape/tdk-import) (it needs `npx`). Flags such as `--dry-run`, `--yes`, `--force` and `--only` go straight to it.
 
 ---
 
@@ -330,6 +362,6 @@ Use `tdk doctor --json` for CI readiness checks. Exit codes: 0 ready (warnings p
 
 ### Machine-readable status
 
-`tdk status --json`, `tdk resources --json`, and `tdk networks --json` emit one JSON object with `schemaVersion: 1`, `data`, and `errors`. Use `tdk status --json --tilt` to request live Tilt resources; without `--tilt`, the response reports Tilt availability and sets `resourcesQueried` to false. The old `tdk networks --json` array remains temporarily available as `tdk networks --json-legacy`; migrate consumers to `data.services` before that compatibility flag is removed. Diagnostics go to stderr.
+`tdk status --json`, `tdk resources --json`, `tdk stacks --json`, and `tdk networks --json` emit one JSON object with `schemaVersion: 1`, `data`, and `errors`. Use `tdk status --json --tilt` to request live Tilt resources; without `--tilt`, the response reports Tilt availability and sets `resourcesQueried` to false. The old `tdk networks --json` array remains temporarily available as `tdk networks --json-legacy`; migrate consumers to `data.services` before that compatibility flag is removed. `tdk stacks --json` returns `data.stacks` with each stack name and resource count. `--services` adds service names, and `--verbose` adds descriptions. Diagnostics go to stderr.
 
 See [machine-readable CLI](../docs/reference/machine-readable-cli.md) for JSON shapes, exit codes, schema evolution, and an agent polling example.

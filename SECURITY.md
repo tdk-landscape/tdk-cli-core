@@ -15,3 +15,7 @@ Report them privately through [GitHub security advisories](https://github.com/td
 - what an attacker could do with it
 
 We aim to reply within a few days and will credit you in the fix unless you prefer otherwise.
+
+## What TDK sends and how secrets are handled
+
+See [docs/security.md](docs/security.md).

@@ -3,7 +3,11 @@
 ### Requirement: One page to operate it
 Docs MUST state, in one place:
 - install: macOS, Linux, and WSL2 Ubuntu for `tdk up`; native Windows is inspect-only
+<<<<<<< HEAD
 - the pinned Docker and Tilt versions `tdk doctor` checks
+=======
+- the minimum Docker and Tilt versions `tdk doctor` checks
+>>>>>>> origin/main
 - how a release binary and `checksums.txt` are published
 - that a missing or expired `TDK_LICENSE_KEY` still runs `tdk up`
 

@@ -197,6 +197,8 @@ jobs:
     permissions:
       contents: write
       id-token: write
+      issues: write
+      pull-requests: read
     steps:
       - uses: actions/checkout@v7
         with:
@@ -250,6 +252,44 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.BINARY_RELEASE_TOKEN }}
           SOURCE_COMMIT: ${{ steps.source.outputs.commit }}
+
+      # Tell each fixed issue which release carries it. Best effort: a failure here must
+      # never fail the release, so it is allowed to error.
+      - name: Credit fixed issues with this release
+        continue-on-error: true
+        uses: actions/github-script@v8
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+          SOURCE_COMMIT: ${{ steps.source.outputs.commit }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const version = process.env.VERSION;
+            const head = process.env.SOURCE_COMMIT;
+            const releases = (await github.rest.repos.listReleases({ owner, repo: 'tdk-cli-releases', per_page: 5 })).data;
+            const current = releases.find((r) => r.tag_name === `v${version}`);
+            const previous = releases.find((r) => r.tag_name !== `v${version}`);
+            if (!current || !previous) return;
+            const since = previous.published_at.slice(0, 19) + 'Z';
+            const prs = (await github.rest.search.issuesAndPullRequests({
+              q: `repo:${owner}/${repo} is:pr is:merged merged:>=${since}`, sort: 'updated', order: 'desc', per_page: 50,
+            })).data.items;
+            for (const item of prs) {
+              const pr = (await github.rest.pulls.get({ owner, repo, pull_number: item.number })).data;
+              // Only credit PRs whose merge commit is part of this release's source commit.
+              const cmp = await github.rest.repos.compareCommitsWithBasehead({ owner, repo, basehead: `${pr.merge_commit_sha}...${head}` });
+              if (!['ahead', 'identical'].includes(cmp.data.status)) continue;
+              const res = await github.graphql(
+                `query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){pullRequest(number:$n){
+                   closingIssuesReferences(first:20){nodes{number}}}}}`, { o: owner, r: repo, n: pr.number });
+              for (const { number } of res.repository.pullRequest.closingIssuesReferences.nodes) {
+                const mark = `<!-- tdk:shipped:${number} -->`;
+                const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number: number, per_page: 100 });
+                if (comments.some((c) => c.body && c.body.includes(mark))) continue;
+                await github.rest.issues.createComment({ owner, repo, issue_number: number,
+                  body: `${mark}\nShipped in [v${version}](${current.html_url}) (from #${pr.number}). Update with \`tdk upgrade\`, then tell us if it works for you. 🚀` });
+              }
+            }
 
       # The root package owns the public tdk bin entry and compiled CLI.
       - name: Publish to npm

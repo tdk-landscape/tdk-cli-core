@@ -92,6 +92,12 @@ export function buildTiltDownArgs(options = {}) {
     if (options.force) {
         args.push("--force");
     }
+    // `tilt down` re-evaluates the Tiltfile and removes only the resources that evaluation registers. Without `--focus`
+    // the Tiltfile falls back to its default phase and never registers a stack's own compose project, so `tdk up shop`
+    // containers survived `tdk down`. Pass the same selection `tdk up` used (every stack) after `--`.
+    if (options.focusTargets && options.focusTargets.length > 0) {
+        args.push("--", `--focus=${options.focusTargets.join(",")}`);
+    }
     return args;
 }
 //# sourceMappingURL=tilt.js.map

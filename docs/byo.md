@@ -35,6 +35,7 @@ Aliases: `byo`, `bring-your-own`
 - `--port` accepts an unused integer from 4000 through 5999
 - By default, TDK writes an Nginx Dockerfile and health endpoint that listen on the assigned
   service port
+- Set `"buildContext"` in `service.json` (a path relative to the resource directory) to build from a source tree elsewhere in the repo, as `tdk-import` does for an existing Dockerfile. `dockerfile` is then relative to that context. Without it the context is the resource directory
 - Pass `--dockerfile <path>` to select a custom Dockerfile, or `--image <image>` to use an
   existing image without creating a Dockerfile
 
@@ -101,7 +102,7 @@ The existing `Dockerfile` is kept, and the resource gets a `service.json` like t
 
 ### Limits
 
-- **No live reload.** TDK does not sync source into a bring-your-own container, and only the manifest is watched. After changing source, rebuild the image from the Tilt UI or restart `tdk up`.
+- **No live reload.** TDK does not sync source into a bring-your-own container, and only the manifest is watched. After changing source, rebuild the image from the Tilt UI or restart `tdk up`. For Go, the native provider has an opt-in loop (`dev.liveReload`, see [backend language providers](backend-language-providers.md#opt-in-live-reload)); a Go app you bring as a container, including the Gin example, does not get it.
 - **Ports.** 4000-5999 for this type, shared with backends.
 - **No generated code.** TDK will not add a health route, a `PORT` read or a Dockerfile for you.
 
@@ -127,8 +128,8 @@ Recipes for using TDK next to other tools live in [`recipes/`](recipes/): [moon]
 - **Resource names must be unique across TDK projects that share one Docker daemon.** Traefik watches every container,
   so two projects that both define `orders-api` clash and routes are dropped.
 - **Docker can run out of address pools.** Each project creates several networks. When Docker answers
-  `all predefined address pools have been fully subnetted`, `tdk up` does not report it and fails later with
-  `network ... declared as external, but could not be found`. Free unused networks with `docker network prune`.
+  `all predefined address pools have been fully subnetted`, the `init-networks` resource fails with Docker's message
+  (`Failed to create Docker network <name>: ...`) and the services that need the network do not start. Free unused networks with `tdk down --prune-networks` in projects you no longer use (or `docker network prune` for every unused network).
 - Through `tdk up`, a service is routed at `http://api.<project>.localhost/api/<name without -api>/...` with the prefix
   stripped, so a frontend served under that path needs its `base` set.
 

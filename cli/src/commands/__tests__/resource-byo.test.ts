@@ -8,14 +8,16 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { networksCommand } from "../../commands/networks.js";
-import { resolveByoPort, resourceCommand } from "../../commands/resource.js";
+import { createServiceJson, resolveByoPort, resourceCommand } from "../../commands/resource.js";
 import { resourcesCommand } from "../../commands/resources.js";
 import { statusCommand } from "../../commands/status.js";
 import { upCommand } from "../../commands/up.js";
-import { discoverResourcesFromRoot } from "../../utils/services.js";
+import { VALID_RESOURCE_TYPES } from "../../utils/constants.js";
+import { clearDiscoveryCache } from "../../utils/discovery-context.js";
+import { discoverResourcesFromRoot, resetPrintedServiceWarnings } from "../../utils/services.js";
 
 const originalCwd = process.cwd();
 
@@ -75,6 +77,21 @@ describe("bring-your-own resource type", () => {
       if (output) console.log = originalLog;
     }
     return join(tempDir, "services", "shop", "widget");
+  }
+
+  function addResource(
+    name: string,
+    type: Parameters<typeof createServiceJson>[1],
+    stack: string,
+    port: number,
+  ): void {
+    const resourcePath = join(tempDir, "services", stack, name);
+    mkdirSync(resourcePath, { recursive: true });
+    writeFileSync(
+      join(resourcePath, "service.json"),
+      JSON.stringify(createServiceJson(name, type, stack, port), null, 2),
+    );
+    clearDiscoveryCache();
   }
 
   it("creates a discoverable service.json without scaffolding source", async () => {
@@ -145,6 +162,144 @@ describe("bring-your-own resource type", () => {
     }
   }, 15_000);
 
+  it("filters text resource output by type", async () => {
+    await createByo();
+    addResource("orders-api", "backend", "shop", 4000);
+    addResource("catalog-api", "backend", "catalog", 4100);
+    addResource("queue-worker", "worker", "shop", 6000);
+    addResource("unassigned-api", "backend", "", 4200);
+
+    const output: string[] = [];
+    const log = vi.spyOn(console, "log").mockImplementation((...parts: unknown[]) => {
+      output.push(parts.map(String).join(" "));
+    });
+    try {
+      clearDiscoveryCache();
+      await resourcesCommand.parseAsync(["node", "tdk", "--type", "worker"], { from: "node" });
+      const report = output.join("\n");
+      expect(report).toContain("queue-worker [shop]");
+      expect(report).not.toContain("orders-api");
+      expect(report).not.toContain("catalog-api");
+      expect(report).not.toContain("widget");
+      expect(report).not.toContain("unassigned-api");
+      expect(report).not.toContain("not assigned to any stack");
+    } finally {
+      log.mockRestore();
+      clearDiscoveryCache();
+    }
+  });
+
+  it("combines the type and stack filters in JSON output", async () => {
+    await createByo();
+    addResource("orders-api", "backend", "shop", 4000);
+    addResource("catalog-api", "backend", "catalog", 4100);
+    addResource("queue-worker", "worker", "shop", 6000);
+
+    const output: string[] = [];
+    const log = vi.spyOn(console, "log").mockImplementation((...parts: unknown[]) => {
+      output.push(parts.map(String).join(" "));
+    });
+    try {
+      clearDiscoveryCache();
+      await resourcesCommand.parseAsync(
+        ["node", "tdk", "--type", "backend", "--stack", "shop", "--json"],
+        { from: "node" },
+      );
+      const report = JSON.parse(output.join("\n"));
+      expect(report.data.resources).toHaveLength(1);
+      expect(report.data.resources).toMatchObject([
+        { name: "orders-api", stack: "shop", type: "backend" },
+      ]);
+    } finally {
+      log.mockRestore();
+      clearDiscoveryCache();
+    }
+  });
+
+  it("prints an empty state when no resources match the selected type", async () => {
+    await createByo();
+
+    const output: string[] = [];
+    const log = vi.spyOn(console, "log").mockImplementation((...parts: unknown[]) => {
+      output.push(parts.map(String).join(" "));
+    });
+    try {
+      clearDiscoveryCache();
+      await resourcesCommand.parseAsync(["node", "tdk", "--type", "backend", "--stack", "shop"], {
+        from: "node",
+      });
+      expect(output.join("\n")).toContain('No services found in stack "shop" with type "backend".');
+    } finally {
+      log.mockRestore();
+      clearDiscoveryCache();
+    }
+  });
+
+  it("lists valid resource types when the type filter is invalid", async () => {
+    await createByo();
+    const output: string[] = [];
+    const errors: string[] = [];
+    const log = vi.spyOn(console, "log").mockImplementation((...parts: unknown[]) => {
+      output.push(parts.map(String).join(" "));
+    });
+    const error = vi.spyOn(console, "error").mockImplementation((...parts: unknown[]) => {
+      errors.push(parts.map(String).join(" "));
+    });
+    const exit = vi.spyOn(process, "exit").mockImplementation((() => {
+      throw new Error("process.exit");
+    }) as never);
+    try {
+      await resourcesCommand
+        .parseAsync(["node", "tdk", "--type", "unknown"], { from: "node" })
+        .catch(() => {});
+      expect(exit).toHaveBeenCalledWith(1);
+      const combined = [...output, ...errors].join("\n");
+      expect(combined).toContain('Invalid resource type "unknown"');
+      expect(combined).toContain(`Valid types: ${VALID_RESOURCE_TYPES.join(", ")}`);
+    } finally {
+      log.mockRestore();
+      error.mockRestore();
+      exit.mockRestore();
+      clearDiscoveryCache();
+    }
+  });
+
+  it("fails missing stack filters in text commands", async () => {
+    await createByo();
+    const output: string[] = [];
+    const errors: string[] = [];
+    const log = vi.spyOn(console, "log").mockImplementation((...parts: unknown[]) => {
+      output.push(parts.map(String).join(" "));
+    });
+    const error = vi.spyOn(console, "error").mockImplementation((...parts: unknown[]) => {
+      errors.push(parts.map(String).join(" "));
+    });
+    const exit = vi.spyOn(process, "exit").mockImplementation((() => {
+      throw new Error("process.exit");
+    }) as never);
+
+    try {
+      for (const command of [resourcesCommand, networksCommand]) {
+        output.length = 0;
+        errors.length = 0;
+        exit.mockClear();
+        clearDiscoveryCache();
+        await command
+          .parseAsync(["node", "tdk", "--stack", "missing"], { from: "node" })
+          .catch(() => {});
+
+        expect(exit).toHaveBeenCalledWith(1);
+        const combined = [...output, ...errors].join("\n");
+        expect(combined).toContain('Stack "missing" not found');
+        expect(combined).toContain("tdk stacks");
+      }
+    } finally {
+      log.mockRestore();
+      error.mockRestore();
+      exit.mockRestore();
+      clearDiscoveryCache();
+    }
+  });
   it("keeps --dry-run side-effect free even when --force is also set", async () => {
     await createByo();
     const before = snapshotTree(tempDir);
@@ -254,5 +409,65 @@ describe("bring-your-own resource type", () => {
     expect(() => resolveByoPort("4550", 4000, [{ config: { port: 4550 } }])).toThrow(
       /already assigned/,
     );
+  });
+
+  it("lists valid resources with a warning and keeps tdk up strict", async () => {
+    await createByo();
+    const badPath = join(tempDir, "services", "shop", "broken", "service.json");
+    mkdirSync(dirname(badPath), { recursive: true });
+    writeFileSync(badPath, "{ not json");
+
+    const output: string[] = [];
+    const warnings: string[] = [];
+    const errors: string[] = [];
+    const log = vi.spyOn(console, "log").mockImplementation((...parts: unknown[]) => {
+      output.push(parts.map(String).join(" "));
+    });
+    const warn = vi.spyOn(console, "warn").mockImplementation((...parts: unknown[]) => {
+      warnings.push(parts.map(String).join(" "));
+    });
+
+    try {
+      clearDiscoveryCache();
+      await resourcesCommand.parseAsync(["node", "tdk"], { from: "node" });
+      expect(output.join("\n")).toContain("widget [shop]");
+      expect(warnings.join("\n")).toContain(badPath);
+      expect(warnings.join("\n")).toContain("invalid JSON");
+
+      clearDiscoveryCache();
+      resetPrintedServiceWarnings();
+      output.length = 0;
+      warnings.length = 0;
+      await statusCommand.parseAsync(["node", "tdk", "--json"], { from: "node" });
+      const report = JSON.parse(output.join("\n"));
+      expect(report.data.resources).toMatchObject([{ name: "widget", stack: "shop" }]);
+      expect(warnings.join("\n")).toContain(badPath);
+      expect(warnings.join("\n")).toContain("invalid JSON");
+
+      const previousWindowsOverride = process.env.TDK_ALLOW_NATIVE_WINDOWS;
+      process.env.TDK_ALLOW_NATIVE_WINDOWS = "1";
+      const error = vi.spyOn(console, "error").mockImplementation((...parts: unknown[]) => {
+        errors.push(parts.map(String).join(" "));
+      });
+      const exit = vi.spyOn(process, "exit").mockImplementation((() => {
+        throw new Error("process.exit");
+      }) as never);
+      try {
+        clearDiscoveryCache();
+        await upCommand
+          .parseAsync(["node", "tdk", "--dry-run", "--quiet"], { from: "node" })
+          .catch(() => {});
+      } finally {
+        error.mockRestore();
+        exit.mockRestore();
+        if (previousWindowsOverride === undefined) delete process.env.TDK_ALLOW_NATIVE_WINDOWS;
+        else process.env.TDK_ALLOW_NATIVE_WINDOWS = previousWindowsOverride;
+      }
+      expect(errors.join("\n")).toContain(badPath);
+    } finally {
+      log.mockRestore();
+      warn.mockRestore();
+      clearDiscoveryCache();
+    }
   });
 });

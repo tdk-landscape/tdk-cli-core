@@ -1,0 +1,12 @@
+export interface JsonError {
+    code: string;
+    message: string;
+}
+export type JsonEmitter = (data: Record<string, unknown>, errors?: JsonError[]) => void;
+/**
+ * Returns an emitter that writes at most one `{schemaVersion, data, errors}` object to stdout. If the process
+ * exits before anything was emitted (a preflight `process.exit`, Tilt ending early), a failure object is written
+ * so a JSON consumer never sees an empty stdout. Uses writeSync because `process.exit` does not flush async writes.
+ */
+export declare function createJsonEmitter(failureCode: string, command: string): JsonEmitter;
+//# sourceMappingURL=json-output.d.ts.map

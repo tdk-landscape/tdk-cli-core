@@ -4,7 +4,7 @@
 
 `service.json` is not `values.yaml`. `service.json` describes the local service (ports, stack, health URL). `values.yaml` configures Kubernetes objects (Deployment, Service, Ingress).
 
-TDK does not replace Helm. Helm remains the templating engine for the cluster. TDK only templates the laptop environment. Keep app-template or the chart you already use for production; TDK does not install or take over those charts.
+TDK does not replace Helm. Helm remains the templating engine for the cluster. TDK only templates the laptop environment (see [scope and non-goals](scope.md) for what differs from production). Keep app-template or the chart you already use for production; TDK does not install or take over those charts.
 
 ```text
 Local:   tdk up shop      → containers on the laptop, *.localhost

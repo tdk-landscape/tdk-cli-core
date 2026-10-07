@@ -2,22 +2,32 @@ import { connect } from "node:net";
 import { join } from "node:path";
 import chalk from "chalk";
 import { Command } from "commander";
-import { ensureProjectRuntimeAssets } from "../generator/template-engine.js";
+import { ensureProjectRuntimeAssets, ProjectConfigNotFoundError, verifyMasterConfigs, } from "../generator/template-engine.js";
+import { DEVCONTAINER_DOCKER_FIX, detectHost, isContainerHost, WEBCONTAINER_UP_MESSAGE, } from "../utils/agent-host.js";
 import { handleDryRun } from "../utils/command-helpers.js";
+<<<<<<< HEAD
 import { checkDriftGate } from "../utils/drift-gate.js";
+=======
+import { getDeferredResourceNames } from "../utils/doctor-runtime.js";
+>>>>>>> origin/main
 import { completeEnvFile } from "../utils/env-validator.js";
 import { errorFactories, handleTiltFailure, requireProjectRoot, runCommand, showErrorAndExit, withTiltCheck, } from "../utils/errors.js";
 import { formatCount } from "../utils/formatting.js";
 import { exportHostPortPlan, getHostPortPlan, writeSavedHostPortPlan, } from "../utils/host-port-config.js";
 import { formatHostPortPlan } from "../utils/host-port-plan.js";
-import { findProjectRoot } from "../utils/paths.js";
+import { createJsonEmitter } from "../utils/json-output.js";
+import { findProjectRoot, getPackageVersion } from "../utils/paths.js";
 import { findAvailablePort } from "../utils/port-assignment.js";
 import { isApiServiceType } from "../utils/resource-kind.js";
 import { appendHealthPath, resolveSubdomainBases } from "../utils/service-urls.js";
-import { discoverResources, discoverStacks, getResourcesForStack, stackExists, } from "../utils/services.js";
+import { discoverResources, discoverResourcesStrict, discoverStacks, stackExists, } from "../utils/services.js";
 import { buildSmokePlans, formatSmokeFailure, runSmokePlans } from "../utils/smoke.js";
+import { evaluateTdkVersionFloor } from "../utils/tdk-version.js";
 import { buildTiltUpArgs, runTilt } from "../utils/tilt.js";
 import { stopTiltOnPort } from "../utils/tilt-process.js";
+import { parseTiltPort, resolveTiltPort, secondUpAction, stopTiltForUp, } from "../utils/tilt-startup.js";
+import { findUnknownServices, resolveOnlySelection } from "../utils/up-only.js";
+import { tiltGetUiResources, waitForTiltResourcesReady } from "../utils/up-readiness.js";
 import { enableDiscoveredStacks } from "./project.js";
 export function formatUpSuccess(port, appUrls = []) {
     return [
@@ -34,6 +44,80 @@ export function nativeWindowsUpRefusal(platform, allowNativeWindows) {
     if (platform !== "win32" || allowNativeWindows === "1")
         return null;
     return "Landscape startup needs Ubuntu on WSL2. Native Windows is inspect-only.";
+}
+/** Why `tdk up` cannot work on this host, or null when it may proceed. Docker reachability is only probed in container hosts. */
+export async function hostUpRefusal(host = detectHost(), dockerReachable = defaultDockerReachable) {
+    if (host.kind === "webcontainer")
+        return WEBCONTAINER_UP_MESSAGE;
+    if (isContainerHost(host.kind) && !(await dockerReachable()))
+        return DEVCONTAINER_DOCKER_FIX;
+    return null;
+}
+async function defaultDockerReachable() {
+    const { execFile } = await import("node:child_process");
+    return new Promise((resolve) => {
+        execFile("docker", ["ps"], { timeout: 10_000 }, (error) => resolve(!error));
+    });
+}
+/** Exit status for `tdk up` when generated files no longer match service.json / project.json. */
+export const DRIFT_EXIT_CODE = 2;
+/**
+ * Generated service files edited by hand. Only these block `tdk up`: when service.json itself changed, `tdk up` regenerates
+ * the outputs, so stale outputs are the normal edit-then-up loop and not drift.
+ */
+export function driftReport(projectRoot) {
+    let handEdited;
+    try {
+        ({ handEdited } = verifyMasterConfigs(projectRoot));
+    }
+    catch (error) {
+        // A project with no .tdk/project.json has no snapshots to compare. Anything else (a corrupt config) must not skip the gate.
+        if (error instanceof ProjectConfigNotFoundError)
+            return null;
+        throw error;
+    }
+    if (handEdited.length === 0)
+        return null;
+    return [
+        "Generated files were edited by hand and no longer match service.json:",
+        ...handEdited.map((file) => `  ${file}`),
+        "Run `tdk config regenerate` to discard the edits, or bypass with `tdk up --ignore-drift`.",
+    ];
+}
+/**
+ * Runs before Tilt is started: exits with DRIFT_EXIT_CODE on drift unless `ignoreDrift` is set. With `ignoreDrift` the
+ * warning is printed every time, whether or not anything drifted, because the check is skipped and cannot tell.
+ */
+export function enforceDriftGate(projectRoot, options, exit = process.exit) {
+    if (options.ignoreDrift) {
+        console.warn(chalk.yellow("Warning: --ignore-drift set; generated files were not checked."));
+        return;
+    }
+    const drift = driftReport(projectRoot);
+    if (!drift)
+        return;
+    options.onDrift?.(drift.join("\n"));
+    for (const line of drift)
+        console.error(chalk.red(line));
+    exit(DRIFT_EXIT_CODE);
+}
+/**
+ * Runs before anything starts (also under --dry-run, like the drift gate): a project's `minTdkVersion` in
+ * .tdk/project.json that this CLI does not meet, or cannot read, exits with 1 and the same text as `tdk doctor`.
+ * `ignoreVersion` skips the check and says so. No minTdkVersion means no check.
+ */
+export function enforceVersionFloor(projectRoot, options, currentVersion = getPackageVersion(), exit = process.exit) {
+    if (options.ignoreVersion) {
+        console.warn(chalk.yellow("Warning: --ignore-version set; minTdkVersion was not checked."));
+        return;
+    }
+    const floor = evaluateTdkVersionFloor(projectRoot, currentVersion);
+    if (floor.status === "none" || floor.status === "ok")
+        return;
+    options.onFail?.(`${floor.message}\n${floor.fix}`);
+    console.error(chalk.red(floor.message));
+    console.error(chalk.red(floor.fix));
+    exit(1);
 }
 function waitForTiltUi(port, timeoutMs = 30_000) {
     return new Promise((resolve) => {
@@ -65,8 +149,37 @@ export const upCommand = new Command("up")
     .option("-q, --quiet", "Suppress non-essential output", false)
     .option("--dry-run", "Show what would be started without starting", false)
     .option("-f, --force", "Kill existing Tilt process before starting", false)
+<<<<<<< HEAD
     .option("--ignore-drift", "Bypass drift verification and start Tilt anyway", false)
+=======
+    .option("--ignore-drift", "Start even if generated files differ from service.json", false)
+    .option("--ignore-version", "Start even if this tdk is older than minTdkVersion in .tdk/project.json", false)
+    .option("--only <services...>", "Start only these services plus what the Tiltfile enables for them (their dependsOn services and shared infrastructure). With a stack, names must belong to that stack; dependencies may cross stacks")
+    .option("--json", "Print one JSON object on stdout when the stack is ready or the command fails; implies --quiet", false)
+>>>>>>> origin/main
     .action(async (stackName, options) => {
+    const emit = options.json ? createJsonEmitter("UP_FAILED", "tdk up") : undefined;
+    if (options.json)
+        options.quiet = true;
+    const portSetting = parseTiltPort(process.env.TILT_PORT);
+    if (!portSetting.ok) {
+        emit?.({ ok: false }, [{ code: "INVALID_TILT_PORT", message: portSetting.message }]);
+        showErrorAndExit(portSetting.message);
+    }
+    const configuredTiltPort = portSetting.port;
+    // First, before the host/Docker checks below: an old CLI must stop with one clear line, not a half-working stack.
+    const versionRoot = findProjectRoot();
+    if (versionRoot) {
+        enforceVersionFloor(versionRoot, {
+            ignoreVersion: options.ignoreVersion,
+            onFail: (message) => emit?.({ ok: false }, [{ code: "TDK_VERSION_TOO_OLD", message }]),
+        });
+    }
+    const hostRefusal = options.dryRun ? null : await hostUpRefusal();
+    if (hostRefusal) {
+        emit?.({ ok: false }, [{ code: "HOST_UNSUPPORTED", message: hostRefusal }]);
+        showErrorAndExit(hostRefusal);
+    }
     const platformRefusal = nativeWindowsUpRefusal(process.platform, process.env.TDK_ALLOW_NATIVE_WINDOWS);
     if (platformRefusal)
         showErrorAndExit(platformRefusal);
@@ -75,16 +188,37 @@ export const upCommand = new Command("up")
         await assertMachineReadyOrExit();
     }
     const action = async () => {
-        const projectRoot = options.dryRun
-            ? requireProjectRoot()
-            : (findProjectRoot() ?? process.cwd());
+        const foundRoot = options.dryRun ? requireProjectRoot() : findProjectRoot();
+        const projectRoot = foundRoot ?? process.cwd();
+        const discoveredResources = discoverResourcesStrict();
+        // Reject a bad request before anything below can write to the project (.env, runtime assets, .tdk/project.json).
+        if (options.only) {
+            if (stackName && !stackExists(stackName))
+                errorFactories.stackNotFound(stackName).exit();
+            const candidates = stackName
+                ? discoveredResources.filter((resource) => resource.stack === stackName)
+                : discoveredResources;
+            const unknown = findUnknownServices(options.only, candidates);
+            if (unknown.length > 0) {
+                const message = `Unknown service ${unknown.join(", ")}. Valid names: ${candidates.map((s) => s.name).join(", ")}`;
+                emit?.({ ok: false }, [{ code: "UNKNOWN_SERVICE", message }]);
+                showErrorAndExit(message, 2);
+            }
+        }
+        // Also under --dry-run: the check only reads, and a dry run should show what a real run would refuse.
+        if (foundRoot) {
+            enforceDriftGate(foundRoot, {
+                ignoreDrift: options.ignoreDrift,
+                onDrift: (message) => emit?.({ ok: false }, [{ code: "DRIFT_DETECTED", message }]),
+            });
+        }
         const hostPortPlan = await getHostPortPlan(projectRoot, {
             inspectDocker: !options.dryRun,
         });
         if (!options.dryRun) {
             // An older project's .env predates keys such as JWT_SECRET, which Compose now requires. Add what is missing (never
             // changing an existing value) before anything starts. Only inside a real project, so a stray run never writes a .env.
-            if (findProjectRoot()) {
+            if (foundRoot) {
                 const addedEnvKeys = completeEnvFile(projectRoot);
                 if (addedEnvKeys.length > 0 && !options.quiet) {
                     console.log(chalk.gray(`Added ${addedEnvKeys.join(", ")} to .env (generated; existing values unchanged)`));
@@ -103,17 +237,26 @@ export const upCommand = new Command("up")
         let stackDescription;
         let focusServiceNames = [];
         if (stackName) {
-            if (!stackExists(stackName)) {
+            servicesToStart = discoveredResources.filter((resource) => resource.stack === stackName);
+            if (servicesToStart.length === 0) {
                 errorFactories.stackNotFound(stackName).exit();
             }
-            servicesToStart = getResourcesForStack(stackName);
             focusServiceNames = servicesToStart.map((s) => s.name);
             stackDescription = `stack "${stackName}"`;
         }
         else {
-            servicesToStart = discoverResources();
-            const allStacks = discoverStacks();
+            servicesToStart = discoveredResources;
+            const allStacks = discoverStacks(discoveredResources);
             stackDescription = `all stacks (${formatCount(allStacks.length, "stack")}, ${formatCount(servicesToStart.length, "service")})`;
+        }
+        let dependencyNames = [];
+        if (options.only) {
+            // Dependencies come from the whole project, not just the named stack: dependsOn may cross stacks.
+            const selection = resolveOnlySelection(options.only, discoverResources());
+            servicesToStart = selection.selected;
+            dependencyNames = selection.dependencies;
+            focusServiceNames = servicesToStart.map((s) => s.name);
+            stackDescription = `${formatCount(options.only.length, "requested service")}${dependencyNames.length > 0 ? ` plus ${dependencyNames.join(", ")}` : ""}`;
         }
         if (options.verbose && !options.quiet) {
             console.log(chalk.gray(`Found ${formatCount(servicesToStart.length, "service")} in ${stackDescription}`));
@@ -147,12 +290,30 @@ export const upCommand = new Command("up")
                 });
             }
         }
-        const dryRunCommand = stackName
-            ? `tilt up -- --focus=${stackName} ${focusServiceNames.join(" ")}`
-            : "tilt up";
+        const focusTargets = options.only ?? (stackName ? [stackName] : undefined);
+        const tiltArgs = buildTiltUpArgs(focusServiceNames, {
+            verbose: options.verbose,
+            quiet: options.quiet,
+            force: options.force,
+            focusTargets,
+        });
+        const dryRunCommand = focusTargets ? `tilt up ${tiltArgs.join(" ")}` : "tilt up";
         if (!options.quiet) {
             console.log(chalk.blue(formatHostPortPlan(hostPortPlan)));
             console.log(chalk.gray("Override with TDK_HTTP_PORT, TDK_HTTPS_PORT, or TDK_POSTGRES_PORT."));
+        }
+        if (emit && options.dryRun) {
+            emit({
+                ok: true,
+                dryRun: true,
+                stack: stackName ?? null,
+                services: serviceNames,
+                ...(options.only
+                    ? { requested: options.only, declaredDependencies: dependencyNames }
+                    : {}),
+                command: dryRunCommand,
+            });
+            return;
         }
         if (handleDryRun(options, "not starting services", dryRunCommand)) {
             return;
@@ -160,33 +321,54 @@ export const upCommand = new Command("up")
         exportHostPortPlan(hostPortPlan);
         writeSavedHostPortPlan(projectRoot, hostPortPlan);
         const basePort = 10350;
-        let port = basePort;
-        if (process.env.TILT_PORT) {
-            port = parseInt(process.env.TILT_PORT, 10);
+        const watchedPort = configuredTiltPort ?? basePort;
+        const candidatePorts = options.only ? [...new Set([basePort, watchedPort])] : [watchedPort];
+        const running = [];
+        for (const candidate of candidatePorts) {
+            if ((await tiltGetUiResources(candidate)) !== null)
+                running.push(candidate);
         }
-        else if (!options.force) {
-            const availablePort = await findAvailablePort(basePort, 10);
-            if (availablePort && availablePort !== basePort) {
-                port = availablePort;
-                if (!options.quiet) {
-                    console.log(chalk.yellow(`⚠️  Port ${basePort} is already in use`));
-                    console.log(chalk.blue(`🔄 Auto-switching to port ${port}\n`));
-                }
-            }
+        const decision = secondUpAction({
+            runningPorts: running,
+            force: options.force,
+            only: Boolean(options.only),
+        });
+        if (decision.action === "already-running") {
+            const message = `Environment is already running on port ${decision.ports.join(", ")}.`;
+            emit?.({
+                ok: true,
+                alreadyRunning: true,
+                tiltUrl: `http://localhost:${decision.ports[0]}`,
+            });
+            if (!options.quiet)
+                console.log(chalk.green(message));
+            return;
+        }
+        if (decision.action === "only-blocked") {
+            const message = `A Tilt is already running on port ${decision.ports.join(", ")}. --only cannot change a running stack's services: run \`tdk down\` first, or pass --force to replace it.`;
+            emit?.({ ok: false }, [{ code: "TILT_ALREADY_RUNNING", message }]);
+            showErrorAndExit(message);
+        }
+        if (options.only) {
+            for (const runningPort of running)
+                stopTiltOnPort(runningPort);
+        }
+        const resolution = await resolveTiltPort({
+            configuredPort: configuredTiltPort,
+            force: options.force,
+            basePort,
+            findAvailablePort,
+        });
+        const port = resolution.port;
+        if (resolution.autoSwitched && !options.quiet) {
+            console.log(chalk.yellow(`⚠️  Port ${basePort} is already in use`));
+            console.log(chalk.blue(`🔄 Auto-switching to port ${port}\n`));
         }
         process.env.TILT_PORT = port.toString();
-        if (options.force) {
-            if (!options.quiet) {
-                console.log(chalk.yellow(`Force flag set - stopping Tilt on port ${port} if running...`));
-            }
-            stopTiltOnPort(port);
-            await new Promise((resolve) => setTimeout(resolve, 2000));
-        }
-        const tiltArgs = buildTiltUpArgs(focusServiceNames, {
-            verbose: options.verbose,
-            quiet: options.quiet,
-            force: options.force,
-            focusTargets: stackName ? [stackName] : undefined,
+        await stopTiltForUp({ force: options.force, quiet: options.quiet, port }, {
+            stop: stopTiltOnPort,
+            log: (message) => console.log(chalk.yellow(message)),
+            wait: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
         });
         // Verify generated files before starting Tilt
         checkDriftGate({
@@ -199,7 +381,7 @@ export const upCommand = new Command("up")
             console.log(chalk.gray(`Using Tiltfile: .tdk/.tdk-out/Tiltfile`));
         }
         const tiltRun = runTilt("up", tiltArgs, {
-            verbose: options.verbose,
+            verbose: options.verbose && !options.json,
             quiet: options.quiet,
             inheritStdio: !options.quiet, // Suppress tilt output in quiet mode
         });
@@ -210,12 +392,45 @@ export const upCommand = new Command("up")
         let printedSuccess = false;
         const successOutput = (async () => {
             const uiReady = await waitForTiltUi(port);
+            // JSON consumers get success only after every non-deferred resource is built and running, not when the UI port opens.
+            let jsonReady = false;
+            let startedServices = serviceNames;
+            let startedDependencies = dependencyNames;
+            if (uiReady && emit) {
+                const deferred = getDeferredResourceNames();
+                const readiness = await waitForTiltResourcesReady(port, {
+                    deferred,
+                    // Only what the caller named must be enabled. Dependencies are the Tiltfile's call (it skips some on purpose).
+                    expected: options.only
+                        ? options.only.filter((name) => !deferred.has(name))
+                        : undefined,
+                });
+                if (readiness.ready) {
+                    jsonReady = true;
+                    if (options.only) {
+                        // Report what Tilt actually enabled, not the service.json closure, which can differ from the Tiltfile's expansion.
+                        const enabled = new Set(readiness.enabled);
+                        const allNames = discoverResources().map((r) => r.name);
+                        startedServices = allNames.filter((name) => enabled.has(name));
+                        startedDependencies = startedServices.filter((name) => !options.only.includes(name));
+                    }
+                }
+                else {
+                    const detail = readiness.failures.map((f) => `${f.name}: ${f.message}`).join("; ");
+                    emit({ ok: false, tiltUrl: `http://localhost:${port}`, failures: readiness.failures }, [
+                        {
+                            code: readiness.timedOut ? "UP_TIMEOUT" : "UP_RESOURCE_FAILED",
+                            message: `${readiness.timedOut ? "Timed out waiting for resources" : "Resources failed"}${detail ? ` (${detail})` : ""}. Tilt is still running; inspect it or run: tdk down`,
+                        },
+                    ]);
+                }
+            }
             if (uiReady && !options.quiet) {
                 for (const line of formatUpSuccess(port))
                     console.log(chalk.blue(line));
                 printedSuccess = true;
             }
-            if (uiReady && smokePlans.length > 0) {
+            if (uiReady && smokePlans.length > 0 && (!emit || jsonReady)) {
                 if (!options.quiet) {
                     console.log(chalk.gray(`Smoke check: ${smokePlans.map((p) => p.name).join(", ")}`));
                 }
@@ -232,8 +447,21 @@ export const upCommand = new Command("up")
                         console.error(chalk.red(formatSmokeFailure(smokeResult)));
                     }
                 }
-                if (smokeFailed)
+                if (smokeFailed) {
                     stopTiltOnPort(port);
+                    emit?.({ ok: false }, [
+                        { code: "UP_SMOKE_FAILED", message: "A smoke check failed; Tilt was stopped" },
+                    ]);
+                }
+            }
+            if (uiReady && jsonReady && !smokeFailed) {
+                emit?.({
+                    ok: true,
+                    stack: stackName ?? null,
+                    services: startedServices,
+                    ...(options.only ? { requested: options.only, dependencies: startedDependencies } : {}),
+                    tiltUrl: `http://localhost:${port}`,
+                });
             }
         })();
         const result = await tiltRun;

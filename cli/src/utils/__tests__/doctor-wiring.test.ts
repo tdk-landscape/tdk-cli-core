@@ -1,14 +1,22 @@
 import type { execSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { TemplateEngine } from "../../generator/template-engine.js";
+import type { ProjectConfig } from "../../types/index.js";
 import {
   checkDockerNetworkCapacity,
+  checkDuplicateResourceNames,
+  checkDuplicateResourcePorts,
   checkFrontendBackendUrls,
+  checkMigrationsInApi,
   checkNatsBroker,
+  checkPrismaConsistency,
   checkResourcePackageJson,
   checkServiceUrlPorts,
+  checkSharedPlatformPostgres,
   checkTiltInstances,
   parseTiltProcesses,
 } from "../doctor-wiring.js";
@@ -53,6 +61,47 @@ describe("checkResourcePackageJson", () => {
     resource("app", "bun-api", { appType: "backend", port: 4001, language: "bun" }, {});
     expect(checkResourcePackageJson(root).message).toContain("bun-api");
   });
+
+  it("skips go and rust backends, which have no package.json", () => {
+    resource("app", "gosvc", { appType: "backend", port: 4000, language: "go" }, {});
+    resource("app", "rssvc", { appType: "backend", port: 4001, language: "rust" }, {});
+    expect(checkResourcePackageJson(root).didPass).toBe(true);
+  });
+
+  it("does not require a package.json for a bring-your-own resource (image, dockerfile, buildContext)", () => {
+    resource(
+      "shop",
+      "by-image",
+      { appType: "bring-your-own", port: 4000, image: "nginx:1.27" },
+      {},
+    );
+    resource(
+      "shop",
+      "by-dockerfile",
+      { appType: "bring-your-own", port: 4001, dockerfile: "./Dockerfile" },
+      { Dockerfile: "FROM nginx:1.27-alpine\n" },
+    );
+    resource(
+      "shop",
+      "by-context",
+      { appType: "bring-your-own", port: 4002, buildContext: "../../..", dockerfile: "Dockerfile" },
+      {},
+    );
+    const result = checkResourcePackageJson(root);
+    expect(result.didPass).toBe(true);
+    expect(result.message).not.toContain("without");
+  });
+
+  it.each(["backend", "frontend", "worker", "migrator", "mcp", "library", "sdk"])(
+    "still fails a %s without a package.json, even next to a bring-your-own resource",
+    (appType) => {
+      resource("shop", "legacy", { appType: "bring-your-own", port: 4000, image: "nginx" }, {});
+      resource("shop", "needs-pkg", { appType, port: 4100 }, {});
+      const result = checkResourcePackageJson(root);
+      expect(result.didPass).toBe(false);
+      expect(result.message).toContain("1 resource without a package.json: needs-pkg");
+    },
+  );
 
   it("names the resource whose image build would fail", () => {
     resource("app", "api", { appType: "backend", port: 4000 });
@@ -184,6 +233,418 @@ describe("checkNatsBroker", () => {
   });
 });
 
+describe("checkSharedPlatformPostgres", () => {
+  function writeGeneratedFocus(preAlphaStacks: string[] = ["app"]): void {
+    const repoRoot = fileURLToPath(new URL("../../../../", import.meta.url));
+    const config = {
+      ...featureOffProjectJson(),
+      project: { name: "reports-demo", version: "1.0.0" },
+      discovery: { paths: ["services/*/*"] },
+      optional_infra: {},
+      phases: {
+        ...(featureOffProjectJson().phases as Record<string, unknown>),
+        pre_alpha: { name: "Pre-Alpha", description: "", enabledStacks: preAlphaStacks },
+      },
+    } as ProjectConfig;
+    const generated = new TemplateEngine(join(repoRoot, "cli", "templates")).generateAll(config);
+    const output = join(root, ".tdk", ".tdk-out");
+    mkdirSync(output, { recursive: true });
+    writeFileSync(join(output, "Tiltfile"), generated.Tiltfile);
+    writeFileSync(join(output, "spec.master"), generated["spec.master"]);
+    for (const relativePath of [
+      "discovery/config.star",
+      "engine/topologies/tilt/config/profiles.star",
+    ]) {
+      const destination = join(output, "tdk-cli-ext", relativePath);
+      mkdirSync(join(destination, ".."), { recursive: true });
+      copyFileSync(join(repoRoot, relativePath), destination);
+    }
+  }
+
+  function writeProjectJson(config: Record<string, unknown>): void {
+    writeFileSync(join(root, ".tdk", "project.json"), JSON.stringify(config));
+  }
+
+  function featureOffProjectJson(): Record<string, unknown> {
+    return {
+      project: { name: "reports-demo" },
+      always_enabled_infra: ["proxy"],
+      phases: {
+        pre_alpha: { name: "Pre-Alpha", description: "", enabledStacks: ["app"] },
+        alpha: { name: "Alpha", description: "", enabledStacks: [] },
+        beta: { name: "Beta", description: "", enabledStacks: [] },
+        out_of_scope: { name: "Out of Scope", description: "", enabledStacks: [] },
+      },
+    };
+  }
+
+  function featureOnProjectJson(): Record<string, unknown> {
+    return {
+      project: { name: "reports-demo" },
+      always_enabled_infra: ["database-management", "proxy"],
+      phases: {
+        pre_alpha: {
+          name: "Pre-Alpha",
+          description: "",
+          enabledStacks: ["app", "database-management"],
+        },
+        alpha: { name: "Alpha", description: "", enabledStacks: [] },
+        beta: { name: "Beta", description: "", enabledStacks: [] },
+        out_of_scope: { name: "Out of Scope", description: "", enabledStacks: [] },
+      },
+    };
+  }
+
+  beforeEach(() => writeProjectJson(featureOffProjectJson()));
+
+  it("passes when willStart because a resource depends on postgres", () => {
+    resource("app", "orders-api", {
+      appType: "backend",
+      port: 4000,
+      dependsOn: ["postgres"],
+    });
+    const result = checkSharedPlatformPostgres(root);
+    expect(result.didPass).toBe(true);
+    expect(result.name).toBe("Shared platform Postgres");
+    expect(result.message).toContain("orders-api");
+    expect(result.message).toContain("depend on postgres/database-management");
+  });
+
+  it("passes when willStart because a resource depends on database-management", () => {
+    resource("app", "billing-api", {
+      appType: "backend",
+      port: 4100,
+      dependsOn: ["database-management"],
+    });
+    const result = checkSharedPlatformPostgres(root);
+    expect(result.didPass).toBe(true);
+    expect(result.message).toContain("billing-api");
+  });
+
+  it("passes when willStart because the feature is on", () => {
+    writeProjectJson(featureOnProjectJson());
+    resource("app", "api", { appType: "backend", port: 4000 });
+    const result = checkSharedPlatformPostgres(root);
+    expect(result.didPass).toBe(true);
+    expect(result.message).toContain("database-management feature is enabled");
+  });
+
+  it("skips when feature is off and nothing depends on either name", () => {
+    resource("app", "api", { appType: "backend", port: 4000, dependsOn: [] });
+    const result = checkSharedPlatformPostgres(root);
+    expect(result.didPass).toBe(true);
+    expect(result.isSkipped).toBe(true);
+    expect(result.message).toContain("will not start");
+  });
+
+  it("warns from generated default focus when project.json has database-management off", () => {
+    resource("app", "api", { appType: "backend", port: 4000 });
+    writeGeneratedFocus();
+    const result = checkSharedPlatformPostgres(root);
+    expect(result.isWarning).toBe(true);
+    expect(result.isSkipped).toBeFalsy();
+    expect(result.message).toContain("default tdk up takes the feature path");
+  });
+
+  it("warns about the feature path even when a project dependency suggests the force path", () => {
+    resource("app", "orders-api", {
+      appType: "backend",
+      port: 4000,
+      dependsOn: ["postgres"],
+    });
+    writeGeneratedFocus();
+    const result = checkSharedPlatformPostgres(root);
+    expect(result.isWarning).toBe(true);
+    expect(result.message).toContain("depend on postgres/database-management");
+    expect(result.message).toContain("default tdk up takes the feature path");
+  });
+
+  it("does not claim default focus enables the feature before generation or with empty focus", () => {
+    resource("app", "api", { appType: "backend", port: 4000 });
+    expect(checkSharedPlatformPostgres(root).message).not.toContain("default tdk up");
+    writeGeneratedFocus([]);
+    expect(checkSharedPlatformPostgres(root).message).not.toContain("default tdk up");
+  });
+
+  it("fails on unknown typo dependsOn names and still reports will-start", () => {
+    resource("app", "orders-api", {
+      appType: "backend",
+      port: 4000,
+      dependsOn: ["postgress"],
+    });
+    resource("app", "billing-api", {
+      appType: "backend",
+      port: 4100,
+      dependsOn: ["postgres"],
+    });
+    const result = checkSharedPlatformPostgres(root);
+    expect(result.didPass).toBe(false);
+    expect(result.message).toContain('"postgress" (from orders-api)');
+    expect(result.message).toContain("Postgres will start");
+    expect(result.message).toContain("project resource set");
+  });
+
+  it("reports project-scope on the will-start success message", () => {
+    resource("app", "orders-api", {
+      appType: "backend",
+      port: 4000,
+      dependsOn: ["postgres"],
+    });
+    const result = checkSharedPlatformPostgres(root);
+    expect(result.didPass).toBe(true);
+    expect(result.message).toContain("project resource set");
+    expect(result.message).toContain("tdk up may select a subset");
+  });
+
+  it("does not report postgres as a missing service when the dependency is present", () => {
+    resource("app", "orders-api", {
+      appType: "backend",
+      port: 4000,
+      dependsOn: ["postgres"],
+    });
+    const result = checkSharedPlatformPostgres(root);
+    expect(result.didPass).toBe(true);
+    expect(result.message.toLowerCase()).not.toContain("missing");
+    expect(result.message.toLowerCase()).not.toContain("not a known service");
+  });
+
+  it("does not claim Prisma will start when prisma is not in featuresEnabled", () => {
+    resource("app", "orders-api", {
+      appType: "backend",
+      port: 4000,
+      dependsOn: ["postgres"],
+    });
+    const result = checkSharedPlatformPostgres(root);
+    expect(result.didPass).toBe(true);
+    expect(result.message).not.toMatch(/prisma/i);
+  });
+
+  it("agrees with evaluateSharedPlatformPostgres on the will-start predicate", async () => {
+    const { evaluateSharedPlatformPostgres } = await import("../shared-platform-postgres.js");
+    resource("app", "orders-api", {
+      appType: "backend",
+      port: 4000,
+      dependsOn: ["postgres"],
+    });
+    const evaluation = evaluateSharedPlatformPostgres(root);
+    const result = checkSharedPlatformPostgres(root);
+    expect(result.didPass).toBe(evaluation.willStart);
+    expect(evaluation.willStart).toBe(true);
+  });
+
+  it("finds the dependency through project-scoped discovery even without feature on", () => {
+    resource("other", "billing-api", {
+      appType: "backend",
+      port: 4100,
+      dependsOn: ["postgres"],
+    });
+    const result = checkSharedPlatformPostgres(root);
+    expect(result.didPass).toBe(true);
+    expect(result.message).toContain("billing-api");
+  });
+});
+
+describe("checkPrismaConsistency", () => {
+  const schema =
+    'generator client { provider = "prisma-client-js" }\ndatasource db { provider = "postgresql" }\n';
+  const config =
+    'import { defineConfig, env } from "prisma/config"; export default defineConfig({ datasource: { url: env("DATABASE_URL") } });\n';
+  const packages = { dependencies: { prisma: "7.5.0", "@prisma/client": "7.5.0" } };
+
+  function validProject(overrides: Record<string, unknown> = {}): void {
+    resource(
+      "app",
+      "orders-api-migrator",
+      { appType: "migrator", port: 7000, featuresEnabled: ["prisma"], dependsOn: ["postgres"] },
+      {
+        "package.json": JSON.stringify(packages),
+        "prisma/schema.prisma": schema,
+        "prisma.config.ts": config,
+      },
+    );
+    resource(
+      "app",
+      "orders-api",
+      {
+        appType: "backend",
+        port: 4000,
+        featuresEnabled: ["prisma"],
+        dependsOn: ["orders-api-migrator"],
+        ...overrides,
+      },
+      {
+        "package.json": JSON.stringify(packages),
+        "prisma/schema.prisma": schema,
+        "prisma.config.ts": config,
+      },
+    );
+  }
+
+  it("passes one valid Prisma 7 API and migrator shape", () => {
+    validProject();
+    const result = checkPrismaConsistency(root);
+    expect(result.didPass).toBe(true);
+    expect(result.message).not.toContain("Prisma 8");
+  });
+
+  it("skips when no resource enables Prisma", () => {
+    resource("app", "api", { appType: "backend", port: 4000, featuresEnabled: [] });
+    const result = checkPrismaConsistency(root);
+    expect(result.didPass).toBe(true);
+    expect(result.isSkipped).toBe(true);
+  });
+
+  it("fails a legacy features prisma key even without featuresEnabled", () => {
+    resource("app", "api", { appType: "backend", port: 4000, features: ["prisma"] });
+    const result = checkPrismaConsistency(root);
+    expect(result.didPass).toBe(false);
+    expect(result.isSkipped).toBeFalsy();
+    expect(result.message).toContain("use featuresEnabled");
+  });
+
+  it("accepts the generated process.env.DATABASE_URL config", () => {
+    validProject();
+    mkdirSync(join(root, "services/app/orders-api/.autogenerated"), { recursive: true });
+    writeFileSync(
+      join(root, "services/app/orders-api/.autogenerated/prisma.config.autogenerated.ts"),
+      "export default { datasource: { url: process.env.DATABASE_URL } };",
+    );
+    rmSync(join(root, "services/app/orders-api/prisma.config.ts"));
+    expect(checkPrismaConsistency(root).didPass).toBe(true);
+  });
+
+  it("ignores comments when checking the active datasource provider", () => {
+    validProject();
+    writeFileSync(
+      join(root, "services/app/orders-api/prisma/schema.prisma"),
+      '// provider = "postgresql"\ndatasource db { provider = "mysql" }',
+    );
+    expect(checkPrismaConsistency(root).didPass).toBe(false);
+  });
+
+  it("fails when prisma packages are missing", () => {
+    validProject();
+    writeFileSync(
+      join(root, "services/app/orders-api/package.json"),
+      JSON.stringify({ dependencies: {} }),
+    );
+    expect(checkPrismaConsistency(root).didPass).toBe(false);
+  });
+
+  it("fails when Prisma package majors differ", () => {
+    validProject();
+    writeFileSync(
+      join(root, "services/app/orders-api/package.json"),
+      JSON.stringify({ dependencies: { prisma: "7.5.0", "@prisma/client": "6.19.3" } }),
+    );
+    expect(checkPrismaConsistency(root).didPass).toBe(false);
+  });
+
+  it("fails when either Prisma major is not 7", () => {
+    validProject();
+    writeFileSync(
+      join(root, "services/app/orders-api/package.json"),
+      JSON.stringify({ dependencies: { prisma: "8.0.0", "@prisma/client": "8.0.0" } }),
+    );
+    expect(checkPrismaConsistency(root).didPass).toBe(false);
+  });
+
+  it("fails the legacy features key", () => {
+    validProject({ featuresEnabled: [], features: ["prisma"] });
+    expect(checkPrismaConsistency(root).didPass).toBe(false);
+  });
+
+  it("fails when schema.prisma is missing", () => {
+    validProject();
+    rmSync(join(root, "services/app/orders-api/prisma/schema.prisma"));
+    expect(checkPrismaConsistency(root).didPass).toBe(false);
+  });
+
+  it("fails when schema provider is not postgresql", () => {
+    validProject();
+    writeFileSync(
+      join(root, "services/app/orders-api/prisma/schema.prisma"),
+      'datasource db { provider = "mysql" }',
+    );
+    expect(checkPrismaConsistency(root).didPass).toBe(false);
+  });
+
+  it("fails when schema still owns url or directUrl", () => {
+    validProject();
+    writeFileSync(
+      join(root, "services/app/orders-api/prisma/schema.prisma"),
+      `${schema} datasource db { url = env("DATABASE_URL") }`,
+    );
+    expect(checkPrismaConsistency(root).didPass).toBe(false);
+  });
+
+  it("fails when Prisma config is missing or has the wrong URL", () => {
+    validProject();
+    rmSync(join(root, "services/app/orders-api/prisma.config.ts"));
+    expect(checkPrismaConsistency(root).didPass).toBe(false);
+  });
+
+  it("fails when the migrator does not depend on Postgres", () => {
+    validProject();
+    writeFileSync(
+      join(root, "services/app/orders-api-migrator/service.json"),
+      JSON.stringify({
+        appName: "orders-api-migrator",
+        appType: "migrator",
+        featuresEnabled: ["prisma"],
+        dependsOn: [],
+      }),
+    );
+    expect(checkPrismaConsistency(root).didPass).toBe(false);
+  });
+
+  it("fails when the API does not depend on its migrator", () => {
+    validProject({ dependsOn: [] });
+    expect(checkPrismaConsistency(root).didPass).toBe(false);
+  });
+
+  it("fails when the API start script migrates", () => {
+    validProject();
+    writeFileSync(
+      join(root, "services/app/orders-api/package.json"),
+      JSON.stringify({ ...packages, scripts: { start: "prisma migrate deploy && bun start" } }),
+    );
+    expect(checkPrismaConsistency(root).didPass).toBe(false);
+  });
+
+  it("allows prisma generate when the Prisma 7 schema and packages are present", () => {
+    validProject();
+    writeFileSync(
+      join(root, "services/app/orders-api/Dockerfile"),
+      "FROM oven/bun\nRUN prisma generate\n",
+    );
+    expect(checkPrismaConsistency(root).didPass).toBe(true);
+  });
+
+  it("fails when shared Postgres will not start", () => {
+    validProject();
+    writeFileSync(
+      join(root, "services/app/orders-api-migrator/service.json"),
+      JSON.stringify({
+        appName: "orders-api-migrator",
+        appType: "migrator",
+        featuresEnabled: ["prisma"],
+        dependsOn: [],
+      }),
+    );
+    writeFileSync(
+      join(root, "services/app/orders-api/service.json"),
+      JSON.stringify({
+        appName: "orders-api",
+        appType: "backend",
+        featuresEnabled: ["prisma"],
+        dependsOn: ["orders-api-migrator"],
+      }),
+    );
+    expect(checkPrismaConsistency(root).didPass).toBe(false);
+  });
+});
+
 describe("checkTiltInstances", () => {
   const tiltLine = (pid: number, project: string) =>
     `${pid} tilt up -f ${project}/.tdk/.tdk-out/Tiltfile -- --focus=store`;
@@ -245,5 +706,159 @@ describe("checkDockerNetworkCapacity", async () => {
       });
     }) as unknown as ExecAsync;
     expect((await checkDockerNetworkCapacity(exec)).isSkipped).toBe(true);
+  });
+});
+
+describe("checkMigrationsInApi", () => {
+  const backend = { appType: "backend", port: 4000 };
+
+  it("passes when no service runs a migration from its start-up", () => {
+    resource("app", "api", backend, {
+      "package.json": JSON.stringify({
+        scripts: { start: "bun run dist/index.js", migrate: "prisma migrate deploy" },
+      }),
+      "src/index.ts": "export default {};",
+    });
+    const result = checkMigrationsInApi(root);
+    expect(result.didPass).toBe(true);
+    expect(result.isWarning).toBeUndefined();
+  });
+
+  it("warns about a migration in a start script, naming the script", () => {
+    resource("app", "api", backend, {
+      "package.json": JSON.stringify({
+        scripts: { start: "prisma migrate deploy && bun run dist/index.js" },
+      }),
+    });
+    const result = checkMigrationsInApi(root);
+    expect(result.didPass).toBe(false);
+    expect(result.isWarning).toBe(true);
+    expect(result.message).toContain('api: package.json "start" script');
+    expect(result.fix).toContain("migrator");
+  });
+
+  it("warns about a migration run from the service source, as the failing e2e did", () => {
+    resource("app", "api", backend, {
+      "package.json": "{}",
+      "src/index.ts":
+        'execFileSync("bunx", ["prisma", "migrate", "deploy"], { stdio: "inherit" });',
+    });
+    expect(checkMigrationsInApi(root).message).toContain("src/index.ts");
+  });
+
+  it("warns about a Dockerfile CMD or an entrypoint script, but not a build-time RUN", () => {
+    resource("app", "cmd", backend, {
+      "package.json": "{}",
+      Dockerfile: 'FROM oven/bun\nCMD ["sh", "-c", "drizzle-kit migrate && bun start"]\n',
+    });
+    resource(
+      "app",
+      "run",
+      { appType: "backend", port: 4001 },
+      {
+        "package.json": "{}",
+        Dockerfile: "FROM oven/bun\nRUN bunx prisma migrate deploy\n",
+      },
+    );
+    resource(
+      "app",
+      "entry",
+      { appType: "worker", port: 4002 },
+      {
+        "package.json": "{}",
+        "entrypoint.sh": "#!/bin/sh\nknex migrate:latest\nexec bun start\n",
+      },
+    );
+    const message = checkMigrationsInApi(root).message;
+    expect(message).toContain("cmd: ");
+    expect(message).toContain("entry: ");
+    expect(message).not.toContain("run: ");
+  });
+
+  it("leaves migrators, bring-your-own jobs, tests and comments alone", () => {
+    const migrate = {
+      "package.json": JSON.stringify({ scripts: { start: "prisma migrate deploy" } }),
+    };
+    resource("app", "db-migrator", { appType: "migrator", port: 7000 }, migrate);
+    resource("app", "job", { appType: "bring-your-own", port: 4003 }, migrate);
+    resource("app", "api", backend, {
+      "package.json": "{}",
+      "src/index.ts": "// run prisma migrate deploy from the migrator instead\n",
+      "src/index.test.ts": "prisma migrate deploy",
+    });
+    expect(checkMigrationsInApi(root).didPass).toBe(true);
+  });
+});
+
+describe("checkDuplicateResourceNames", () => {
+  /** Same appName in two different directories. */
+  function twin(dir: string, appName: string, config: Record<string, unknown> = {}) {
+    const path = join(root, "services", dir);
+    mkdirSync(path, { recursive: true });
+    writeFileSync(
+      join(path, "service.json"),
+      JSON.stringify({ appName, appType: "backend", stack: "app", port: 4000, ...config }),
+    );
+  }
+
+  it("fails when two directories use one appName, naming both paths", () => {
+    twin("app/api", "api");
+    twin("other/api-copy", "api");
+    const result = checkDuplicateResourceNames(root);
+    expect(result.didPass).toBe(false);
+    expect(result.isWarning).toBeUndefined();
+    expect(result.message).toContain('"api"');
+    expect(result.message).toContain(join("services", "app", "api", "service.json"));
+    expect(result.message).toContain(join("services", "other", "api-copy", "service.json"));
+    expect(result.fix).toContain("appName");
+  });
+
+  it("fails across different types, because the name is what collides", () => {
+    twin("app/web", "shop", { appType: "frontend" });
+    twin("app/shop-api", "shop");
+    expect(checkDuplicateResourceNames(root).didPass).toBe(false);
+  });
+
+  it("passes when every appName is unique, and with no resources", () => {
+    expect(checkDuplicateResourceNames(root).didPass).toBe(true);
+    twin("app/api", "api");
+    twin("app/orders", "orders");
+    expect(checkDuplicateResourceNames(root).didPass).toBe(true);
+  });
+});
+
+describe("checkDuplicateResourcePorts", () => {
+  it("warns, not fails, when two backends share a port", () => {
+    resource("app", "api", { appType: "backend", port: 4000 });
+    resource("app", "orders", { appType: "backend", port: 4000 });
+    const result = checkDuplicateResourcePorts(root);
+    expect(result.didPass).toBe(false);
+    expect(result.isWarning).toBe(true);
+    expect(result.message).toContain("port 4000: api, orders");
+  });
+
+  it("warns for a backend and a bring-your-own resource on one port", () => {
+    resource("app", "api", { appType: "backend", port: 4000 });
+    resource("app", "legacy", { appType: "bring-your-own", port: 4000 });
+    expect(checkDuplicateResourcePorts(root).isWarning).toBe(true);
+  });
+
+  it("passes for distinct ports", () => {
+    resource("app", "api", { appType: "backend", port: 4000 });
+    resource("app", "orders", { appType: "backend", port: 4001 });
+    const result = checkDuplicateResourcePorts(root);
+    expect(result.didPass).toBe(true);
+    expect(result.isWarning).toBeUndefined();
+  });
+
+  it("ignores frontends, workers, libraries, unrouted bring-your-own resources and missing ports", () => {
+    resource("app", "api", { appType: "backend", port: 3000 });
+    resource("app", "web", { appType: "frontend", port: 3000 });
+    resource("app", "jobs", { appType: "worker", port: 3000 });
+    resource("app", "lib", { appType: "library", port: 3000 });
+    resource("app", "byo", { appType: "bring-your-own", port: 3000, exposeViaProxy: false });
+    resource("app", "noport", { appType: "backend" });
+    resource("app", "noport2", { appType: "backend" });
+    expect(checkDuplicateResourcePorts(root).didPass).toBe(true);
   });
 });

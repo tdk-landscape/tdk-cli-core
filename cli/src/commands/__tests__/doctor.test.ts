@@ -21,6 +21,7 @@ import {
   checkGeneratedProjectRuntimeAssets,
   checkResourceDiscovery,
   checkStarlarkLoadExports,
+  checkTdkVersion,
   checkTypeScriptTypeDependencies,
   DOCTOR_FIXES,
   getDoctorOutcomeMessage,
@@ -1041,5 +1042,59 @@ describe("doctor resource discovery", () => {
     expect(result.message).toContain("apps/storefront");
     expect(result.message).not.toContain("orders-api");
     expect(result.fix).toContain("discovery.paths");
+  });
+});
+
+describe("doctor TDK version pin", () => {
+  let testDir: string;
+  let originalCwd: string;
+
+  beforeEach(() => {
+    originalCwd = process.cwd();
+    testDir = join(
+      tmpdir(),
+      `tdk-doctor-version-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    );
+    mkdirSync(join(testDir, ".tdk"), { recursive: true });
+    writeFileSync(join(testDir, "Tiltfile"), "");
+    process.chdir(testDir);
+  });
+
+  afterEach(() => {
+    process.chdir(originalCwd);
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  function writeProject(config: object) {
+    writeFileSync(join(testDir, ".tdk", "project.json"), JSON.stringify(config));
+  }
+
+  it("skips when the project sets no minTdkVersion", () => {
+    writeProject({});
+    const result = checkTdkVersion("1.3.80");
+    expect(result.didPass).toBe(true);
+    expect(result.isSkipped).toBe(true);
+  });
+
+  it("passes when the CLI is at or above the minimum", () => {
+    writeProject({ minTdkVersion: "1.3.80" });
+    expect(checkTdkVersion("1.3.80").didPass).toBe(true);
+    expect(checkTdkVersion("1.4.0").didPass).toBe(true);
+  });
+
+  it("fails and says to upgrade when the CLI is older", () => {
+    writeProject({ minTdkVersion: "1.3.80" });
+    const result = checkTdkVersion("1.3.79");
+    expect(result.didPass).toBe(false);
+    expect(result.message).toContain("1.3.79");
+    expect(result.message).toContain("1.3.80");
+    expect(result.fix).toBe("Run: tdk upgrade");
+  });
+
+  it("fails on a value that is not MAJOR.MINOR.PATCH", () => {
+    writeProject({ minTdkVersion: "latest" });
+    const result = checkTdkVersion("1.3.80");
+    expect(result.didPass).toBe(false);
+    expect(result.message).toContain("minTdkVersion");
   });
 });

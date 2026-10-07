@@ -1,4 +1,5 @@
 import type { CheckResult } from "../types/index.js";
+import type { HostInfo } from "./agent-host.js";
 import type { HostPortPlan } from "./host-port-plan.js";
 
 export interface DoctorError {
@@ -12,6 +13,7 @@ export interface DoctorReport {
     ready: boolean;
     inProject: boolean;
     checks: CheckResult[];
+    host?: HostInfo & { containerRuntimeReachable: boolean | null };
     ports?: {
       http: { requested: number; chosen: number | null; explicit: boolean; reason: string };
       https: { requested: number; chosen: number | null; explicit: boolean; reason: string };
@@ -49,12 +51,18 @@ export async function collectDoctorChecks(
   return { checks, errors };
 }
 
+function containerRuntimeReachable(checks: CheckResult[]): boolean | null {
+  const runtime = checks.find((check) => check.name === "Container Runtime");
+  return runtime ? runtime.didPass : null;
+}
+
 /** Produce the same readiness decision for human and machine consumers. */
 export function createDoctorReport(
   checks: CheckResult[],
   inProject: boolean,
   errors: DoctorError[] = [],
   portPlan?: HostPortPlan | null,
+  host?: HostInfo,
 ): DoctorReport {
   return {
     schemaVersion: 1,
@@ -64,6 +72,15 @@ export function createDoctorReport(
         checks.every((check) => check.didPass || check.isSkipped || check.isWarning),
       inProject,
       checks,
+      ...(host
+        ? {
+            host: {
+              ...host,
+              containerRuntimeReachable: containerRuntimeReachable(checks),
+              canUp: host.canUp && containerRuntimeReachable(checks) !== false,
+            },
+          }
+        : {}),
       ...(portPlan !== undefined
         ? {
             ports: {

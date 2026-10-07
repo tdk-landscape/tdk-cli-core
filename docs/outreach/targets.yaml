@@ -25,6 +25,39 @@ targets:
       stars; tdk-cli-core is created 2026-09-19 with 15 stars. Earliest 2026-12-19,
       and only if stars >= 20. It also says AI-generated PRs are not welcome and
       wants one PR per app with human reasoning, so a human writes it.
+<<<<<<< HEAD
 # Rejected after checking:
 # - abhishek-ch/awesome-k8s-resources: lists Tilt, but last push 2020-09-13 (stale).
 # - vilaca/awesome-k8s-tools: ranked automatically by stars, no manual submissions.
+=======
+  - url: https://github.com/mfornos/awesome-microservices
+    list_path: README.md
+    why: >-
+      "### Local Development" section lists mirrord ("Run local code as if it were
+      a pod in a remote Kubernetes cluster."). Maintained (pushed 2026-08-20).
+    channel: pr
+    notes: >-
+      CONTRIBUTING.md: one PR per suggestion, format "[Name](link) - Short
+      description.", alphabetical order, no star or age rule. Fit is moderate: the
+      list is about microservice architecture and TDK runs local multi-service stacks.
+  - url: https://github.com/wmariuss/awesome-devops
+    list_path: README.md
+    why: >-
+      "## Applications Platforms" lists Docker Compose ("Define and run
+      multi-container applications with Docker."). Maintained (pushed 2026-09-20).
+    channel: pr
+    notes: >-
+      CONTRIBUTING.md: PR title in imperative mood; description names the
+      application, category and open source project link; descriptions under 80
+      characters ending in a full stop. Issues are for discussion only, so use a PR.
+      Fit is weak: that section is mostly platforms, so a "Productivity Tools" or
+      "Automation & Orchestration" placement may be needed. Let the maintainer pick.
+# Rejected after checking:
+# - abhishek-ch/awesome-k8s-resources: lists Tilt, but last push 2020-09-13 (stale).
+# - vilaca/awesome-k8s-tools: ranked automatically by stars, no manual submissions.
+# - workos/awesome-developer-experience: archived.
+# - jondot/awesome-devenv: last push 2024-07-29, no recent merges; revisit if it revives.
+# - shospodarets/awesome-platform-engineering: no section that fits local orchestration.
+# - prokopsimek/awesome-developer-experience: "Local development" is AI assistants and
+#   emulators; last push 2025-05-07.
+>>>>>>> origin/main

@@ -25,6 +25,7 @@ load("./constants.star",
 load("./schema.star", "ManifestSchema")
 load("./errors.star", "ManifestErrors")
 load("./parser.star", "extract_stack_from_path")
+load("../resources/shared-platform-postgres.star", "is_shared_platform_postgres_dependency")
 
 def validate(manifest, context=None, level='all'):
     """
@@ -463,6 +464,9 @@ def _validate_cross_resource(manifest, context):
         
         missing_deps = []
         for dep in internal_deps:
+            # Shared platform Postgres aliases are not app services.
+            if is_shared_platform_postgres_dependency(dep):
+                continue
             if dep not in app_names:
                 missing_deps.append(dep)
         

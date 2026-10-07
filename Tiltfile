@@ -35,6 +35,7 @@ load('./engine/topologies/tilt/resources/conditions.star', _Database='Database')
 load('./engine/topologies/tilt/resources/declaration.star', _Orchestrator='Orchestrator')
 load('./engine/topologies/tilt/resources/ordering.star', _Infra='Infra')
 load('./engine/topologies/tilt/resources/triggers.star', _Watchers='Watchers')
+load('./engine/topologies/tilt/resources/orchestrator/apply_compose_resource_registration.star', _resource_defers_start='resource_defers_start')
 
 # =============================================================================
 # SPECS (Tech stack and standards)
@@ -127,6 +128,10 @@ Database = _Database
 Orchestrator = _Orchestrator
 Infra = _Infra
 Watchers = _Watchers
+
+# True when a manifest's deferStart is actually active (licensed); decides whether a `<name>-image` prebuild resource exists.
+# The generated Tiltfile loads this from ext://tdk-cli, which resolves to this root Tiltfile.
+resource_defers_start = _resource_defers_start
 
 # Specs
 assert_tech_stack = _assert_tech_stack

@@ -71,9 +71,7 @@ export const errorFactories = {
 export function requireProjectRoot() {
     const projectRoot = findProjectRoot();
     if (!projectRoot) {
-        console.error(chalk.red("Error: Could not find project root (no .tdk/project.json found)."));
-        console.error(chalk.gray("Run `tdk project --yes` to initialize a new project."));
-        process.exit(1);
+        return errorFactories.notInProject().exit();
     }
     return projectRoot;
 }

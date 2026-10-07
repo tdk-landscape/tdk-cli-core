@@ -1,0 +1,64 @@
+name: Thinking about using TDK? Ask us
+description: Questions before you adopt, in any state. No question is too small.
+title: "adopt: "
+labels: ["question", "growth"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for looking at TDK! This form is for questions like "would this fit our setup?", "what would it take to migrate?" or "what does it not do?". You do not need to have tried it yet.
+
+        **We aim to reply within one working day.** Honest answers are part of the deal, including "TDK is not the right tool for this". Issues are public, so please don't post secrets or client details.
+  - type: textarea
+    id: question
+    attributes:
+      label: What would you like to know?
+      description: Ask it in your own words. A one-line question is fine.
+    validations:
+      required: true
+  - type: dropdown
+    id: current
+    attributes:
+      label: How do you run your services locally today?
+      options:
+        - docker-compose
+        - Tilt
+        - Skaffold or DevSpace
+        - Makefile or shell scripts
+        - Kubernetes (kind, minikube, k3d)
+        - Each service by hand
+        - Other
+  - type: dropdown
+    id: services
+    attributes:
+      label: Roughly how many services does one project have?
+      options:
+        - 1 to 3
+        - 4 to 10
+        - 11 to 30
+        - More than 30
+  - type: dropdown
+    id: team
+    attributes:
+      label: Team size
+      options:
+        - Just me
+        - 2-10 developers
+        - 11-50 developers
+        - More than 50
+  - type: input
+    id: stack
+    attributes:
+      label: Languages and frameworks
+      placeholder: "e.g. Java/Spring, Node/NestJS, Python/FastAPI, PostgreSQL"
+  - type: textarea
+    id: worries
+    attributes:
+      label: What would stop you from trying it?
+      description: Missing language, Windows, migration cost, licence, anything. This tells us what to fix or document next.
+  - type: checkboxes
+    id: follow-up
+    attributes:
+      label: Optional
+      options:
+        - label: I would be happy to share how it went (here, or in ADOPTERS.md) if I try it.

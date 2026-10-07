@@ -1,0 +1,34 @@
+# sanic
+
+**Stack:** a minimal Sanic app (Python 3.12), two files: `app.py` and `requirements.txt`
+
+**Notes:**
+- Sanic has no project generator, so unlike the `create-*` examples the app is written out here (a `/health` route and a `/` route).
+- `sanic app:app --host 0.0.0.0 --port $PORT --single-process` makes the server reachable from outside the container and uses the port
+  TDK assigns. `--single-process` runs one worker, which is enough for local development and keeps the container's logs in one place.
+- Through TDK, Traefik sends `Host: api.<project>.localhost`; Sanic accepted it with no host configuration (checked through a real
+  `tdk up`).
+- Sanic is pulled from PyPI at build time within `>=24,<26`.
+
+## Check it
+
+Needs Docker. Builds the image, runs it with `PORT=4000` and expects HTTP 200 on `/health`:
+
+```bash
+scripts/verify-byo-example.sh sanic
+```
+
+Through a real `tdk up` and Traefik, which sends `Host: api.<project>.localhost` (needs Docker, Tilt and a built CLI):
+
+```bash
+VERIFY_WAIT_SECONDS=300 scripts/verify-byo-tdk.sh sanic /health
+```
+
+## Register it in a TDK project
+
+```bash
+tdk resource sanic-api --type bring-your-own --stack shop --dockerfile ./Dockerfile --yes
+```
+
+Use a resource name that is unique across TDK projects sharing one Docker daemon. See
+[../README.md](../README.md) and [docs/byo.md](../../../docs/byo.md) for the container contract.

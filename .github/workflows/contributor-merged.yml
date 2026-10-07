@@ -8,24 +8,49 @@ name: 💜 Contributor merged
 # as data inside github-script, never interpolated into a shell command.
 
 on:
+<<<<<<< HEAD
   pull_request_target:
     types: [closed]
+=======
+  pull_request_target: # zizmor: ignore[dangerous-triggers] never checks out or runs PR code; only reads event data and posts comments
+    types: [closed]
+  # Re-post for a merged PR whose run failed (for example on a GitHub rate limit).
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Merged PR number to thank
+        required: true
+>>>>>>> origin/main
 
 permissions: {}
 
 concurrency:
+<<<<<<< HEAD
   group: contributor-merged-${{ github.event.pull_request.number }}
+=======
+  group: contributor-merged-${{ github.event.pull_request.number || inputs.pr_number }}
+>>>>>>> origin/main
   cancel-in-progress: false
 
 jobs:
   thank:
     name: Thank the contributor and note the fixed issues
     if: >-
+<<<<<<< HEAD
       github.event.pull_request.merged == true &&
       github.event.pull_request.user.type == 'User' &&
       !contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.pull_request.author_association)
     runs-on: ubuntu-latest
     timeout-minutes: 3
+=======
+      github.event_name == 'workflow_dispatch' || (
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.user.type == 'User' &&
+      !contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.pull_request.author_association) &&
+      !contains(fromJSON('["kburym","odykyi"]'), github.event.pull_request.user.login))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+>>>>>>> origin/main
     permissions:
       contents: read
       issues: write
@@ -35,8 +60,26 @@ jobs:
         with:
           script: |
             const { owner, repo } = context.repo;
+<<<<<<< HEAD
             const pr = context.payload.pull_request;
             const author = pr.user.login;
+=======
+            const retry = async (fn) => {
+              try { return await fn(); } catch (e) {
+                // Secondary rate limit: wait out the burst once, then try again.
+                if (e.status !== 403 && e.status !== 429) throw e;
+                await new Promise((r) => setTimeout(r, 30000));
+                return fn();
+              }
+            };
+            const pr = context.payload.pull_request || (await github.rest.pulls.get(
+              { owner, repo, pull_number: Number(context.payload.inputs.pr_number) })).data;
+            const author = pr.user.login;
+            if (!pr.merged || pr.user.type !== 'User' || ['kburym', 'odykyi'].includes(author)) {
+              core.info(`Skipping #${pr.number}: not a merged community PR.`);
+              return;
+            }
+>>>>>>> origin/main
             const MARK_PR = '<!-- tdk:contributor-merged -->';
             const MARK_ISSUE = `<!-- tdk:issue-fixed:${pr.number} -->`;
             const base = `https://github.com/${owner}/${repo}`;
@@ -55,16 +98,28 @@ jobs:
             const issues = linked.repository.pullRequest.closingIssuesReferences.nodes;
 
             // How many PRs this person has had merged here, counting this one.
+<<<<<<< HEAD
             const mergedCount = (await github.rest.search.issuesAndPullRequests({
               q: `repo:${owner}/${repo} is:pr is:merged author:${author}`, per_page: 1,
             })).data.total_count;
 
             // Pick up to three open, unclaimed issues to try next: same area first, then anything easy.
+=======
+            // The search index can lag the merge by a few seconds, so add this PR if it is missing.
+            const found = (await retry(() => github.rest.search.issuesAndPullRequests({
+              q: `repo:${owner}/${repo} is:pr is:merged author:${author}`,
+              sort: 'updated', order: 'desc', per_page: 5,
+            }))).data;
+            const mergedCount = found.total_count + (found.items.some((i) => i.number === pr.number) ? 0 : 1);
+
+            // Pick up to three open, unclaimed issues to try next: same area first, then anything at their level.
+>>>>>>> origin/main
             const labelNames = new Set([
               ...pr.labels.map((l) => l.name),
               ...issues.flatMap((i) => i.labels.nodes.map((l) => l.name)),
             ]);
             const areas = [...labelNames].filter((n) => n.startsWith('area: ') || n.startsWith('island: '));
+<<<<<<< HEAD
             const search = async (extra) => (await github.rest.search.issuesAndPullRequests({
               q: `repo:${owner}/${repo} is:issue is:open no:assignee label:"good first issue" ${extra}`,
               sort: 'created', order: 'desc', per_page: 10,
@@ -76,13 +131,74 @@ jobs:
             }
             if (picked.size < 3) for (const i of await search('')) picked.set(i.number, i);
             const next = [...picked.values()].slice(0, 3);
+=======
+            // Kyu/dan ranks: 8 kyu is the easiest, then 7..1 kyu, then 1 dan and up.
+            const rankOf = (name) => {
+              const m = /^rank: (\d+) (kyu|dan)$/.exec(name);
+              return m ? { name: `${m[1]} ${m[2]}`, value: m[2] === 'dan' ? 100 + Number(m[1]) : 100 - Number(m[1]) } : null;
+            };
+            const bestRank = (labelLists) => labelLists.flat().map(rankOf).filter(Boolean)
+              .reduce((best, r) => (!best || r.value > best.value ? r : best), null);
+            const thisRank = bestRank(issues.map((i) => i.labels.nodes.map((l) => l.name)));
+            let rankLine = null;
+            if (thisRank) {
+              const prior = await retry(() => github.graphql(
+                `query($q:String!){search(query:$q,type:ISSUE,first:100){nodes{... on PullRequest{number
+                   closingIssuesReferences(first:10){nodes{labels(first:30){nodes{name}}}}}}}}`,
+                { q: `repo:${owner}/${repo} is:pr is:merged author:${author}` }));
+              const before = bestRank(prior.search.nodes.filter((n) => n.number !== pr.number)
+                .flatMap((n) => n.closingIssuesReferences.nodes.map((i) => i.labels.nodes.map((l) => l.name))));
+              const island = [...labelNames].find((n) => n.startsWith('island: '));
+              rankLine = `You cleared a **${thisRank.name}** issue${island ? ` on ${island.replace('island: ', '')}` : ''}.`;
+              if (!before) rankLine += ` That sets your starting rank: **${thisRank.name}**. 🥋`;
+              else if (thisRank.value > before.value) rankLine += ` **Rank up!** Your highest rank goes from ${before.name} to **${thisRank.name}**. 🥋🎊`;
+              else rankLine += ` Your highest rank is still **${before.name}**. Take a harder one to rank up.`;
+            }
+
+            // Offer harder work as people merge more: easy -> medium -> hard.
+            const level = mergedCount >= 10 ? 'label:"difficulty: hard"'
+              : mergedCount >= 3 ? 'label:"difficulty: medium"' : 'label:"good first issue"';
+            // One search, then pick by area in JS: several searches in a row trip the secondary rate limit.
+            // Suggestions are a nicety, so a failure here must not stop the thank-you.
+            let next = [];
+            try {
+              const items = (await retry(() => github.rest.search.issuesAndPullRequests({
+                q: `repo:${owner}/${repo} is:issue is:open no:assignee ${level}`,
+                sort: 'created', order: 'desc', per_page: 30,
+              }))).data.items;
+              const inArea = (i) => i.labels.some((l) => areas.includes(l.name));
+              next = [...items.filter(inArea), ...items.filter((i) => !inArea(i))].slice(0, 3);
+            } catch (e) {
+              core.warning(`Could not look up next issues: ${e.message}`);
+            }
+>>>>>>> origin/main
 
             const fixed = issues.map((i) => `#${i.number}`).join(', ');
             const lines = [MARK_PR, `Merged, thank you @${author}! 🎉`];
             if (fixed) lines.push('', `This fixes ${fixed}. It will ship in the next release and appear in the [CHANGELOG](${base}/blob/main/CHANGELOG.md).`);
+<<<<<<< HEAD
             lines.push('', mergedCount > 1
               ? `That is your ${mergedCount}${['th','st','nd','rd'][(mergedCount % 100 > 10 && mergedCount % 100 < 14) || mergedCount % 10 > 3 ? 0 : mergedCount % 10]} merged PR here. We really appreciate you coming back. 💜`
               : 'This is your first merged PR here. Welcome to TDK! 💜');
+=======
+            const ordinal = (n) => `${n}${['th', 'st', 'nd', 'rd'][(n % 100 > 10 && n % 100 < 14) || n % 10 > 3 ? 0 : n % 10]}`;
+            const MILESTONES = {
+              1: 'This is your first merged PR here. Welcome to TDK! 💜',
+              2: 'Your 2nd merged PR. Coming back for a second one means a lot. 💜',
+              3: 'Your 3rd merged PR. You now know this codebase well enough that we will point you at medium-difficulty issues. 🌱',
+              5: 'Your 5th merged PR. That makes you a regular contributor, and we are glad to have you. 🌟',
+              10: 'Your 10th merged PR! Double digits. You have shaped a real part of TDK, and we would love your view on direction too: open an issue or RFC any time. 🚀',
+              15: 'Your 15th merged PR. At this point you are practically a maintainer. Would you like to help review other contributors\' PRs? Just say so. 🙌',
+              20: 'Your 20th merged PR. Remarkable consistency, thank you for sticking with TDK. 🏔️',
+              30: 'Your 30th merged PR. TDK is measurably better because of you. 💎',
+              50: 'Your 50th merged PR! This is a rare milestone. We would like to invite you to become a maintainer: a maintainer will reach out. 👑',
+              80: 'Your 80th merged PR. Few projects are lucky enough to have a contributor like you. Thank you. 🏆',
+              100: 'Your 100th merged PR! 🎉🎉🎉 An extraordinary contribution to TDK. Thank you, truly. 💯',
+            };
+            lines.push('', MILESTONES[mergedCount]
+              || `That is your ${ordinal(mergedCount)} merged PR here. We really appreciate you coming back. 💜`);
+            if (rankLine) lines.push('', rankLine);
+>>>>>>> origin/main
             if (next.length) {
               lines.push('', 'If you want another one, these are open and unclaimed. Comment on one to claim it:');
               for (const i of next) lines.push(`- #${i.number} ${i.title}`);

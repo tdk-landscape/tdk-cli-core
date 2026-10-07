@@ -6,7 +6,9 @@
 - [Run one Python backend locally](../examples/one-backend-python/README.md)
 - [Full multi-service example](../examples/tdk-example/README.md)
 - [Configuration and editor schemas](configuration.md)
+- [Generated service files](generated-files.md): what TDK writes from `service.json`, and how to handle drift
 - [Environment, params and secrets](environment.md): the project `.env`, `params`, `secrets` and auth
+- [Operator runbook](operator-runbook.md): install matrix, version minimums, releases, license key
 - [WSL2 setup](wsl2.md)
 - [Install and use TDK alongside Helm](with-helm.md)
 
@@ -20,6 +22,20 @@
 
 ## Guides
 
+- [Pilot TDK on a real repository](adopt-tdk.md): a team lead's guide to trying TDK in an afternoon
+- [Scope and non-goals](scope.md): local development only, what differs from production, which Dockerfile you ship
+- [Layout and ownership](layout.md): one project or one per repo, services in other repos, name clashes, CODEOWNERS, layouts for 5, 20 and 50 services
+- [Pilot scorecard](pilot-scorecard.md): record the same measurements and decision at the end of a pilot
+- [FAQ for agencies and multi-client teams](faq-teams.md): honest answers on stacks, proxies, Windows, licence and exit
+- [Running TDK in CI](ci.md): a GitHub Actions workflow for your repository: `tdk config verify`, then `tdk up` and a health wait
+- [Gradual adoption](gradual-adoption.md): what TDK adds to an existing repository, what to commit, and how to remove it
+- [Troubleshooting](troubleshooting.md): tdk and Tilt messages as printed, with cause, fix and how each was checked
+- [Leaving TDK](leaving-tdk.md): what `tdk eject` really does, what stays usable without TDK, what you lose
+- [Local data: reset, seed, snapshot](data.md): where Postgres data lives and how to reset it
+- [Upgrading and version pinning](upgrading.md): `minTdkVersion`, installing a specific version, what is versioned
+- [Security: network calls, secrets and supply chain](security.md): what TDK sends, where secrets live, image tags and release checks
+- [Smoke check](smoke.md): `tdk up` checks a service through the URL it prints
+- [Agent hosts](agent-hosts.md): Dev Containers, Codespaces and WebContainers, and what `tdk doctor` reports for them
 - [Bring-your-own resources](byo.md): wrap an existing service or image, one-shot jobs, `--restart`
 - [Frontend framework providers](frontend-framework-providers.md): add a Vite framework (React, Vue, Svelte, Preact, Lit, Solid, Qwik, plain TypeScript)
 - [MCP resources](mcp.md): `--type mcp` scaffolds a Model Context Protocol server
@@ -51,6 +67,7 @@
 | Folder | Holds |
 | --- | --- |
 | `docs/` (top level) | Long-lived guides that other repos, error messages and published releases link to. Their paths are kept stable on purpose, for example `wsl2.md` is named in CLI messages and `byo.md` in upstream issues. |
+| [`operator-runbook.md`](operator-runbook.md) | Importer command, core version prerequisite, and import boundaries. |
 | `docs/recipes/` | One file per outside tool |
 | `docs/reference/` | Contracts that scripts and agents rely on |
 | `docs/benchmarks/` | Measurements and how they were taken |

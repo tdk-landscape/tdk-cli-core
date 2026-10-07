@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import chalk from "chalk";
 import { Command } from "commander";
-import { confirmOrCancel } from "../utils/command-helpers.js";
+import { assertValid, confirmOrCancel } from "../utils/command-helpers.js";
 import { clearDiscoveryCache, createDiscoveryContext } from "../utils/discovery-context.js";
 import { requireProjectRoot, runCommand } from "../utils/errors.js";
 import { writeJsonFile } from "../utils/file-helpers.js";
@@ -13,7 +13,7 @@ import {
   showSuccess,
 } from "../utils/formatting.js";
 import { promptMultiSelect, promptText } from "../utils/prompt.js";
-import { createKebabCaseValidator } from "../utils/validation.js";
+import { createKebabCaseValidator, validateStackName } from "../utils/validation.js";
 
 export const stackCommand = new Command("stack")
   .description("Organize resources into stacks (groups)")
@@ -63,6 +63,7 @@ export const stackCommand = new Command("stack")
         return;
       }
 
+      if (stackName) assertValid(validateStackName(stackName));
       let targetStack = stackName;
       if (!targetStack) {
         const name = await promptText({

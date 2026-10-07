@@ -212,7 +212,7 @@ export interface ProjectConfig {
   overrides?: Record<string, JsonValue>;
 }
 
-export type TabId = "overview" | "resources" | "events" | "files" | "config";
+export type TabId = "overview" | "resources" | "files" | "config";
 
 export interface Tab {
   id: TabId;
@@ -223,7 +223,10 @@ export interface Tab {
 export interface TabBarProps {
   activeTab: TabId;
   onTabChange: (tab: TabId) => void;
+  /** Retained for callers using the original fixed-width layout. */
   compact?: boolean;
+  /** Enables the responsive layout when provided. */
+  terminalWidth?: number;
 }
 
 // Reuse BaseTooltipProps instead of duplicating
@@ -242,9 +245,13 @@ export interface ResourceTableProps {
 }
 
 export interface ResourceSelectInputProps {
+  isActive?: boolean;
+  maxVisibleItems?: number;
   items: SelectItem[];
   onSelect: (item: SelectItem) => void;
   highlightedIndex: number;
+  width: number;
+  onLayout?: (listTop: number, firstVisibleItem?: number) => void;
 }
 
 export interface FileNode {
@@ -303,8 +310,14 @@ export type StatusValue =
 
 export type StatusCategory = "success" | "error" | "warning" | "unknown";
 
+export interface DiscoveryProblem {
+  path: string;
+  reason: string;
+}
+
 export interface DiscoveryContext {
   resources: DiscoveredResource[];
+  problems: DiscoveryProblem[];
   stacks: DiscoveredStack[];
   stackNames: string[];
   unassignedResources: DiscoveredResource[];
@@ -328,8 +341,9 @@ export interface BaseTooltipProps {
 }
 
 export interface LoadingScreenProps {
-  progress: number;
-  message: string;
+  message?: string;
+  /** Show the spinner; false renders static text (`--no-animations`). */
+  animated?: boolean;
 }
 
 export interface ErrorScreenProps {

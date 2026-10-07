@@ -135,6 +135,16 @@ function slug(text) {
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-+|-+$/g, "") || "step");
 }
+<<<<<<< HEAD
+=======
+/** Two steps whose names slug the same (`read back`, `read-back`) must not share a record directory. */
+function stepKey(seen, label) {
+    const base = slug(label);
+    const n = (seen.get(base) ?? 0) + 1;
+    seen.set(base, n);
+    return n === 1 ? base : `${base}-${n}`;
+}
+>>>>>>> origin/main
 /** Writes latest.json (+ body.txt) for a step; a passing step also replaces the last-success pair. Returns the latest.json path. */
 function writeStepRecord(recordDir, stepKey, record, body, passed) {
     try {
@@ -179,7 +189,8 @@ export async function runSmokePlan(plan, deps = {}) {
     const doFetch = deps.fetch ?? ((url, init) => fetch(url, init));
     const now = deps.now ?? Date.now;
     const sleep = deps.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
-    const deadline = now() + (plan.smoke.timeoutSeconds ?? DEFAULT_SMOKE_TIMEOUT_SECONDS) * 1000;
+    const budgetMs = (plan.smoke.timeoutSeconds ?? DEFAULT_SMOKE_TIMEOUT_SECONDS) * 1000;
+    let deadline = now() + budgetMs;
     const saved = {};
     // A manifest with errors is still loaded, so a malformed block must fail the check, not throw out of `tdk up`.
     const invalid = validateSmoke(plan.smoke);
@@ -202,7 +213,12 @@ export async function runSmokePlan(plan, deps = {}) {
                     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
                 });
                 await response.text();
+<<<<<<< HEAD
                 if (!NOT_READY_STATUSES.has(response.status))
+=======
+                // A 5xx from the health path (migrations running, database not up) is still "not ready"; 401 or 3xx means something answered.
+                if (!NOT_READY_STATUSES.has(response.status) && response.status < 500)
+>>>>>>> origin/main
                     break;
             }
             catch {
@@ -213,6 +229,12 @@ export async function runSmokePlan(plan, deps = {}) {
             await sleep(RETRY_DELAY_MS);
         }
     }
+<<<<<<< HEAD
+=======
+    // The steps get their own `timeoutSeconds`; a slow build must not eat the first step's budget.
+    deadline = now() + budgetMs;
+    const stepKeys = new Map();
+>>>>>>> origin/main
     for (const [index, step] of plan.smoke.steps.entries()) {
         const label = step.name ?? `step ${index + 1}`;
         const method = (step.method ?? "GET").toUpperCase();
@@ -260,7 +282,11 @@ export async function runSmokePlan(plan, deps = {}) {
             const passed = error === undefined &&
                 status === expected &&
                 (step.bodyContains === undefined || text.includes(step.bodyContains));
+<<<<<<< HEAD
             recordPath = writeStepRecord(deps.recordDir, slug(label), {
+=======
+            recordPath = writeStepRecord(deps.recordDir, stepKey(stepKeys, label), {
+>>>>>>> origin/main
                 service: plan.name,
                 step: label,
                 method,

@@ -50,8 +50,19 @@ export declare class TemplateEngine {
     generateAll(projectConfig: ProjectConfig): Record<GeneratedFileName, string>;
 }
 export declare function generateDatabaseManagementCompose(projectConfig: ProjectConfig): string;
+/** The project has no .tdk/project.json yet, as opposed to one that exists but is unreadable or invalid. */
+export declare class ProjectConfigNotFoundError extends Error {
+}
 export declare function readProjectConfig(projectRoot: string): ProjectConfig;
-export declare function generateMasterConfigs(projectRoot: string): Promise<void>;
+export interface GenerateMasterConfigsOptions {
+    /**
+     * Overwrite a root .tiltignore that carries TDK's generated header but was edited by hand.
+     * Set by `tdk config regenerate`, the explicit "discard hand edits" command. A root
+     * .tiltignore without the header belongs to the team and is never overwritten.
+     */
+    discardHandEdits?: boolean;
+}
+export declare function generateMasterConfigs(projectRoot: string, options?: GenerateMasterConfigsOptions): Promise<void>;
 export declare function findCliAssetRoot(): string | null;
 export declare function ensureProjectRuntimeAssets(projectRoot: string): string[];
 export declare function verifyMasterConfigs(projectRoot: string): {
@@ -62,6 +73,8 @@ export declare function verifyMasterConfigs(projectRoot: string): {
         file: string;
         diff: string;
     }>;
+    /** Generated service files (project-relative) whose content differs from their TDK snapshot, i.e. edited by hand. */
+    handEdited: string[];
 };
 export {};
 //# sourceMappingURL=template-engine.d.ts.map

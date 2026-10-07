@@ -35,12 +35,12 @@ const sha = (path: string) => createHash("sha256").update(readFileSync(path)).di
 // The service.json hash was re-captured on purpose, twice, so a fresh scaffold writes the keys the engine reads and trips no warning:
 // the unread `healthCheck` became `healthCheckPath` (#402), and the deprecated `dependencies` became `dependsOn`.
 const BUN_BASELINE: Record<string, string> = {
-  Dockerfile: "774de124dcb019d75714cac2613b9f793ee66ed3d95f6b80f7b85150acae6145",
+  Dockerfile: "d5d856331ea4307ac42e36886407298a9fc63b1600b4ed18870940a6ec72a063",
   "package.json": "398877b088717f97af437af3d2233a7863af6ef442a62ba0fafcf29830d29ee1",
   "service.json": "bc6598c626865ea3350e5204bbdb14aefd0eb0c36e64b6db6b8c6fe01ae76e6f",
   "src/index.ts": "f50139530382e929db7128be7cb55f3bbc5f2fae03264979d675d3be4d0f4ef3",
   "tests/orders-api.test.ts": "a4946ac3123eb4bee78d7b84304cad8b7c36d4268688e3c878da2aaa11ef98ab",
-  "tsconfig.json": "6982db23a5ea4c059e7404031b33634884bf69395ed0b8c143c7079045942804",
+  "tsconfig.json": "c0503e8c2d9e7cb0b77a1e0eaea674f4ee03f3182ff9f5429b9bb7ba0fabee41",
 };
 
 describe("backend language registry", () => {

@@ -6,6 +6,7 @@ import { stripVTControlCharacters } from "node:util";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { clearDiscoveryCache } from "../../utils/discovery-context.js";
 import { isTiltAvailable, runTilt } from "../../utils/tilt.js";
+import { tiltGetUiResources } from "../../utils/up-readiness.js";
 import { projectCommand } from "../project.js";
 import { statusCommand } from "../status.js";
 
@@ -19,6 +20,11 @@ vi.mock("../../utils/tilt.js", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../utils/tilt.js")>()),
   isTiltAvailable: vi.fn(),
   runTilt: vi.fn(),
+}));
+
+vi.mock("../../utils/up-readiness.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../utils/up-readiness.js")>()),
+  tiltGetUiResources: vi.fn(),
 }));
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -41,6 +47,7 @@ async function runStatus(args: string[] = []): Promise<string> {
   } finally {
     log.mockRestore();
   }
+  if (!args.includes("--tilt")) expect(runTilt).not.toHaveBeenCalled();
   return stripVTControlCharacters(lines.join("\n"));
 }
 
@@ -84,12 +91,14 @@ describe("tdk status", () => {
   beforeEach(() => {
     clearDiscoveryCache();
     vi.mocked(isTiltAvailable).mockResolvedValue(true);
+    vi.mocked(runTilt).mockReset();
+    vi.mocked(tiltGetUiResources).mockReset().mockResolvedValue(null);
   });
 
   afterEach(() => {
-    // Without --tilt, status must never call Tilt beyond the availability check.
-    expect(runTilt).not.toHaveBeenCalled();
     vi.mocked(isTiltAvailable).mockReset();
+    vi.mocked(runTilt).mockReset();
+    vi.mocked(tiltGetUiResources).mockReset();
   });
 
   it("prints Tilt availability, resource and stack counts, and next steps by default", async () => {
@@ -104,7 +113,8 @@ describe("tdk status", () => {
     expect(output).toMatch(/^ {2}shop: 2 resources$/m);
     expect(output.indexOf("billing:")).toBeLessThan(output.indexOf("shop:"));
     expect(output).toContain("1 resource not in any stack:");
-    expect(output).toContain('Run "tdk list-stacks" to see all stacks.');
+    expect(output).toContain('Run "tdk stacks" to see all stacks.');
+    expect(output).not.toContain("tdk list-stacks");
     expect(output).toContain('Run "tdk up <stack-name>" to start a stack.');
 
     // Resource names are only listed with --verbose.
@@ -164,5 +174,78 @@ describe("tdk status", () => {
       process.chdir(projectRoot);
       rmSync(emptyRoot, { recursive: true, force: true });
     }
+  });
+
+  it("prints one JSON envelope with stack and unassigned resource details", async () => {
+    vi.mocked(isTiltAvailable).mockResolvedValue(false);
+
+    const output = await runStatus(["--json"]);
+    expect(output.trim().split(/\r?\n/)).toHaveLength(1);
+    expect(JSON.parse(output)).toMatchObject({
+      schemaVersion: 1,
+      data: {
+        tilt: { available: false, resourcesQueried: false, resources: null, readiness: null },
+        resourceCount: 4,
+        stacks: [
+          { name: "billing", resourceCount: 1, resources: ["invoices"] },
+          { name: "shop", resourceCount: 2, resources: ["orders-api", "orders-web"] },
+        ],
+        unassignedResources: ["report-job"],
+      },
+      errors: [],
+    });
+  });
+
+  it("includes Tilt resource status in JSON when requested and available", async () => {
+    vi.mocked(isTiltAvailable).mockResolvedValue(true);
+    vi.mocked(runTilt).mockResolvedValue({
+      exitCode: 0,
+      stdout: JSON.stringify({ items: [{ metadata: { name: "orders-api" } }] }),
+      stderr: "",
+    });
+    vi.mocked(tiltGetUiResources).mockResolvedValue(null);
+
+    const output = await runStatus(["--json", "--tilt"]);
+    const envelope = JSON.parse(output);
+
+    expect(output.trim().split(/\r?\n/)).toHaveLength(1);
+    expect(envelope.data.tilt).toMatchObject({
+      available: true,
+      resourcesQueried: true,
+      resources: { items: [{ metadata: { name: "orders-api" } }] },
+      readiness: null,
+    });
+    expect(runTilt).toHaveBeenCalledTimes(1);
+  });
+
+  it("fails on the missing project before printing any status line", async () => {
+    const outside = mkdtempSync(join(tmpdir(), "tdk-status-outside-"));
+    process.chdir(outside);
+    clearDiscoveryCache();
+    const lines: string[] = [];
+    const log = vi.spyOn(console, "log").mockImplementation((...parts: unknown[]) => {
+      lines.push(parts.map(String).join(" "));
+    });
+    const errors: string[] = [];
+    const err = vi.spyOn(console, "error").mockImplementation((...parts: unknown[]) => {
+      errors.push(parts.map(String).join(" "));
+    });
+    const exit = vi.spyOn(process, "exit").mockImplementation((() => {
+      throw new Error("process.exit");
+    }) as never);
+    try {
+      await statusCommand.parseAsync([], { from: "user" }).catch(() => {});
+    } finally {
+      log.mockRestore();
+      err.mockRestore();
+      exit.mockRestore();
+      process.chdir(projectRoot);
+      rmSync(outside, { recursive: true, force: true });
+    }
+
+    const stdout = stripVTControlCharacters(lines.join("\n"));
+    expect(stdout).not.toContain("TDK Status");
+    expect(stdout).not.toContain("Tilt:");
+    expect(stripVTControlCharacters(errors.join("\n"))).toContain("Could not find project root");
   });
 });

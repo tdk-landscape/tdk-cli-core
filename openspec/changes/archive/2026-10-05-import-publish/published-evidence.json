@@ -1,0 +1,95 @@
+{
+  "verifiedAt": "2026-10-05T10:48:07.707Z",
+  "sourceTag": "v0.1.1",
+  "sourceCommit": "14480fb3425a3876b9cc8c6f07fdf430bfa10af8",
+  "publishRun": "https://github.com/tdk-landscape/tdk-cli-core/actions/runs/37298395884",
+  "publishInputs": {
+    "ref": "v0.1.1",
+    "dry_run": false
+  },
+  "latest": "0.1.1",
+  "tarball": "https://registry.npmjs.org/@tdk-landscape/tdk-import/-/tdk-import-0.1.1.tgz",
+  "integrity": "sha512-8Ddn94Liy6U1AKImOd9JexKHdpsT8ktpsK60M7ybiD4zpfR5b1Pzt6tCBuS1nft4uvBP0kQlsmdHcM0T4QSRug==",
+  "artifactMatches": true,
+  "freshCache": true,
+  "results": [
+    {
+      "name": "version",
+      "command": "npx -y @tdk-landscape/tdk-import@0.1.1 --version",
+      "exit": 0,
+      "stdout": "0.1.1\n",
+      "stderr": "npm notice\nnpm notice New major version of npm available! 11.21.0 -> 12.2.0\nnpm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0\nnpm notice To update run: npm install -g npm@12.2.0\nnpm notice\n",
+      "files": [],
+      "unchanged": true
+    },
+    {
+      "name": "helm",
+      "command": "npx -y @tdk-landscape/tdk-import@0.1.1 .",
+      "exit": 2,
+      "stdout": "Chart.yaml [unsupported]: Helm is not imported\n",
+      "stderr": "Error: Helm is not imported; nothing was written\n  -> Add a Dockerfile or image for skipped Procfile processes\n  -> tdk import reads Compose, Dockerfile, package.json scripts, and Procfile\n",
+      "files": [
+        "Chart.yaml"
+      ],
+      "unchanged": true
+    },
+    {
+      "name": "helm-dry-run",
+      "command": "npx -y @tdk-landscape/tdk-import@0.1.1 . --dry-run",
+      "exit": 2,
+      "stdout": "Chart.yaml [unsupported]: Helm is not imported\n",
+      "stderr": "Error: Helm is not imported; nothing was written\n  -> Add a Dockerfile or image for skipped Procfile processes\n  -> tdk import reads Compose, Dockerfile, package.json scripts, and Procfile\n",
+      "files": [
+        "Chart.yaml"
+      ],
+      "unchanged": true
+    },
+    {
+      "name": "kustomize",
+      "command": "npx -y @tdk-landscape/tdk-import@0.1.1 .",
+      "exit": 2,
+      "stdout": "kustomization.yaml [unsupported]: Kustomize is not imported\n",
+      "stderr": "Error: Kustomize is not imported; nothing was written\n  -> Add a Dockerfile or image for skipped Procfile processes\n  -> tdk import reads Compose, Dockerfile, package.json scripts, and Procfile\n",
+      "files": [
+        "kustomization.yaml"
+      ],
+      "unchanged": true
+    },
+    {
+      "name": "kustomize-dry-run",
+      "command": "npx -y @tdk-landscape/tdk-import@0.1.1 . --dry-run",
+      "exit": 2,
+      "stdout": "kustomization.yaml [unsupported]: Kustomize is not imported\n",
+      "stderr": "Error: Kustomize is not imported; nothing was written\n  -> Add a Dockerfile or image for skipped Procfile processes\n  -> tdk import reads Compose, Dockerfile, package.json scripts, and Procfile\n",
+      "files": [
+        "kustomization.yaml"
+      ],
+      "unchanged": true
+    },
+    {
+      "name": "mixed",
+      "command": "npx -y @tdk-landscape/tdk-import@0.1.1 . --yes",
+      "exit": 0,
+      "stdout": "Found 1 service(s) and 0 job(s) in /private/var/folders/hw/kqd4kkjj4bv33zwhkf2hdx1h0000gn/T/import-published-NjN3Mb/mixed\n\n  worker  (service)\n    from:      Procfile [procfile]\n    command:   node worker.js\n    write:     services/mixed/worker/service.json  [create]\n    note:      no Dockerfile found: scaffolded one from the command (guessed base image); the app must listen on $PORT\n\nSkipped / not fully imported:\n  Procfile [procfile]: process \"web\" skipped: command \"python app.py\" is not a supported Node command and no Dockerfile or image is associated; add a Dockerfile or image\n\n  wrote services/mixed/worker/service.json\n\nWrote 1 service.json file(s).\n",
+      "stderr": "",
+      "files": [
+        "Procfile",
+        "services/mixed/worker/Dockerfile",
+        "services/mixed/worker/Dockerfile.dockerignore",
+        "services/mixed/worker/service.json"
+      ],
+      "unchanged": false
+    },
+    {
+      "name": "skipped",
+      "command": "npx -y @tdk-landscape/tdk-import@0.1.1 . --yes",
+      "exit": 2,
+      "stdout": "Procfile [procfile]: process \"web\" skipped: command \"python app.py\" is not a supported Node command and no Dockerfile or image is associated; add a Dockerfile or image\n",
+      "stderr": "Error: all 1 Procfile process(es) were skipped; nothing was written\n  -> Add a Dockerfile or image for skipped Procfile processes\n  -> tdk import reads Compose, Dockerfile, package.json scripts, and Procfile\n",
+      "files": [
+        "Procfile"
+      ],
+      "unchanged": true
+    }
+  ]
+}

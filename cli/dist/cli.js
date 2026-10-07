@@ -9,6 +9,12 @@ import { downCommand } from "./commands/down.js";
 import { ejectCommand } from "./commands/eject.js";
 import { showHelp } from "./commands/help.js";
 import { importCommand } from "./commands/import.js";
+<<<<<<< HEAD
+=======
+import { logsCommand } from "./commands/logs.js";
+import { maintainersCommand } from "./commands/maintainers.js";
+import { mcpCommand } from "./commands/mcp.js";
+>>>>>>> origin/main
 import { networksCommand } from "./commands/networks.js";
 import { projectCommand } from "./commands/project.js";
 import { projectsCommand } from "./commands/projects.js";
@@ -23,6 +29,7 @@ import { upCommand } from "./commands/up.js";
 import { upgradeCommand } from "./commands/upgrade.js";
 import { versionCommand } from "./commands/version.js";
 import { formatColdPreflight, runColdPreflight } from "./utils/cold-preflight.js";
+import { unknownHelpTarget } from "./utils/help-command.js";
 const program = new Command();
 program
     .name("tdk")
@@ -44,7 +51,10 @@ program.addCommand(resourcesCommand);
 program.addCommand(projectsCommand);
 program.addCommand(upCommand);
 program.addCommand(downCommand);
+program.addCommand(mcpCommand);
+program.addCommand(logsCommand);
 program.addCommand(ejectCommand);
+program.addCommand(importCommand);
 program.addCommand(statusCommand);
 program.addCommand(stackCommand);
 program.addCommand(resourceCommand);
@@ -54,6 +64,7 @@ program.addCommand(configCommand);
 program.addCommand(importCommand);
 program.addCommand(uiCommand);
 program.addCommand(versionCommand);
+program.addCommand(maintainersCommand);
 program.addCommand(doctorCommand);
 program.addCommand(completionCommand);
 program.addCommand(upgradeCommand);
@@ -70,6 +81,13 @@ if (process.argv[2] === "--doctor")
 if (process.argv.length === 3 && ["-h", "--help", "help"].includes(process.argv[2])) {
     showHelp();
     process.exit(0);
+}
+const unknownHelp = unknownHelpTarget(process.argv.slice(2), program.commands);
+if (unknownHelp) {
+    program.error(`error: unknown command '${unknownHelp}'`, {
+        exitCode: 1,
+        code: "commander.unknownCommand",
+    });
 }
 program.parse();
 //# sourceMappingURL=cli.js.map
