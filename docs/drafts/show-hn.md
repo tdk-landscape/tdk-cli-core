@@ -9,7 +9,7 @@ tdk resource orders-api --type backend --stack shop --yes
 tdk up shop
 ```
 
-Then open `http://api.shop.localhost/api/orders-api/health`.
+Then open `http://api.shop.localhost:8080/api/orders-api/health`.
 
 TDK runs local development services through Docker and Tilt. It does not deploy to a cluster and does not replace Compose for a small stack you already maintain. Native Windows is inspect-only; landscape startup needs Ubuntu on WSL2.
 

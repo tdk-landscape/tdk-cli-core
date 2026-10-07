@@ -21,7 +21,7 @@ mkdir shop && cd shop
 tdk project --yes
 tdk resource orders-api --type backend --stack shop --yes
 tdk up shop
-curl http://api.shop.localhost/api/orders-api/health
+curl http://api.shop.localhost:8080/api/orders-api/health
 ```
 
 ![TDK がバックエンドとフロントエンドをスキャフォールドし、スタックを一覧表示する様子](docs/assets/demo.svg)
@@ -82,7 +82,7 @@ TDK は、このリポジトリや npm パッケージの日付から想像さ�
 
 ## 要件とサポート
 
-ローカルランタイムには、Docker（Desktop、OrbStack、または Colima。Engine 25+、Compose 2.20+）と [Tilt](https://docs.tilt.dev/install.html) をインストールしてください。デフォルトで生成されるサービスは Bun 1.2+ を使用します。TDK は HTTP、HTTPS、Postgres のホストポートを、範囲が限られたフォールバック範囲から選びます。上書きするには `TDK_HTTP_PORT`、`TDK_HTTPS_PORT`、`TDK_POSTGRES_PORT` を設定してください。TDK は macOS、Linux、および WSL2 Ubuntu 経由の Windows をサポートします。ネイティブ Windows では CLI の確認のみ可能です。`tdk doctor` を実行してローカルの準備状況を確認してください。[WSL2 のセットアップ](docs/wsl2.md)を参照してください。
+ローカルランタイムには、Docker（Desktop、OrbStack、または Colima。Engine 25+、Compose 2.20.2+）と [Tilt](https://docs.tilt.dev/install.html) をインストールしてください。デフォルトで生成されるサービスは Bun 1.2+ を使用します。TDK は HTTP、HTTPS、Postgres のホストポートを、範囲が限られたフォールバック範囲から選びます。上書きするには `TDK_HTTP_PORT`、`TDK_HTTPS_PORT`、`TDK_POSTGRES_PORT` を設定してください。TDK は macOS、Linux、および WSL2 Ubuntu 経由の Windows をサポートします。ネイティブ Windows では CLI の確認のみ可能です。`tdk doctor` を実行してローカルの準備状況を確認してください。[WSL2 のセットアップ](docs/wsl2.md)を参照してください。
 
 ネイティブ Windows では、`tdk --version`、`tdk doctor`、`tdk up --dry-run` は確認専用のコマンドです。`tdk up` は終了コード 2 で終了し、「Landscape startup needs Ubuntu on WSL2. Native Windows is inspect-only.」と表示します。
 

@@ -32,8 +32,10 @@ mkdir shop && cd shop
 tdk project --yes
 tdk resource orders-api --type backend --stack shop --yes
 tdk up shop
-curl http://api.shop.localhost/api/orders-api/health
+curl http://api.shop.localhost:8080/api/orders-api/health
 ```
+
+`tdk up` prints the host ports it chose. Port 8080 is the default; if it was taken, use the HTTP port `tdk up` reports (or set `TDK_HTTP_PORT`).
 
 ![TDK scaffolding a backend and a frontend, then listing the stack](docs/assets/demo.svg)
 
@@ -62,6 +64,13 @@ You do not need to write the nginx config, Dockerfile, or a `docker-compose.yml`
 If Helm, Compose, or your existing Tilt setup already gives you a working local environment, keep using it. TDK CLI is for engineers managing several services who want a clear local service contract and one command to start the stack.
 
 See [how TDK CLI works alongside Helm](https://tdk-landscape.github.io/tdk-website/docs/with-helm/), the [service schema](engine/schemas/service-schema.json), and the [project configuration schema](engine/schemas/project-schema.json).
+
+## Terminal UI
+
+Use `tdk ui` to inspect stacks and resources. Arrow keys or `j`/`k` move the
+selection; `g`/`G` or Home/End jump to the first/last item, and PageUp/PageDown
+move one visible page. `/` searches; navigation letters remain search text
+while searching. The selected row stays visible when the terminal is resized.
 
 ## Installation
 
@@ -122,7 +131,7 @@ published on 21 September 2026. Those dates describe the current repository and 
 
 ## Requirements and support
 
-For the local runtime, install Docker (Desktop, OrbStack, or Colima; Engine 25+, Compose 2.20+) and [Tilt](https://docs.tilt.dev/install.html). Bun 1.2+ is used by the default generated services. TDK selects host ports from bounded fallback ranges for HTTP, HTTPS, and Postgres; set `TDK_HTTP_PORT`, `TDK_HTTPS_PORT`, or `TDK_POSTGRES_PORT` to override them. TDK supports macOS, Linux, and Windows through WSL2 Ubuntu; native Windows supports CLI inspection only. Run `tdk doctor` to check local readiness (supports `--no-ping` to skip service health checks and `--ping-timeout <ms>`). See [WSL2 setup](docs/wsl2.md).
+For the local runtime, install Docker (Desktop, OrbStack, or Colima; Engine 25+, Compose 2.20.2+) and [Tilt](https://docs.tilt.dev/install.html). Bun 1.2+ is used by the default generated services. TDK selects host ports from bounded fallback ranges for HTTP, HTTPS, and Postgres; set `TDK_HTTP_PORT`, `TDK_HTTPS_PORT`, or `TDK_POSTGRES_PORT` to override them. TDK supports macOS, Linux, and Windows through WSL2 Ubuntu; native Windows supports CLI inspection only. Run `tdk doctor` to check local readiness (supports `--no-ping` to skip service health checks and `--ping-timeout <ms>`). See [WSL2 setup](docs/wsl2.md).
 
 On native Windows, `tdk --version`, `tdk doctor`, and `tdk up --dry-run` are inspect-only commands. `tdk up` exits 2 with “Landscape startup needs Ubuntu on WSL2. Native Windows is inspect-only.”
 
@@ -145,8 +154,3 @@ Contributions are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md) and the
 TDK is MIT-licensed; see [LICENSE](LICENSE). The [license boundary](GOVERNANCE.md#license-boundary-and-donation-scope) says which code is MIT and which is downloaded with a key.
 
 Project governance: [GOVERNANCE.md](GOVERNANCE.md), [MAINTAINERS.md](MAINTAINERS.md), [ADOPTERS.md](ADOPTERS.md).
-
-Use `tdk ui` to inspect stacks and resources. Arrow keys or `j`/`k` move the
-selection; `g`/`G` or Home/End jump to the first/last item, and PageUp/PageDown
-move one visible page. `/` searches; navigation letters remain search text
-while searching. The selected row stays visible when the terminal is resized.
