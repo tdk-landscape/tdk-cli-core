@@ -13,12 +13,12 @@
 
 ## 3. Operator runbook
 
-- [ ] 3.1 Write one runbook page: install matrix, pinned Docker/Tilt versions from `tdk doctor`, release + `checksums.txt` steps, license-key behavior.
+- [x] 3.1 Write one runbook page: install matrix, pinned Docker/Tilt versions from `tdk doctor`, release + `checksums.txt` steps, license-key behavior.
 - [ ] 3.2 Verify unset/expired `TDK_LICENSE_KEY` still runs `tdk up` and premium commands print a key-needed message.
 
 ## 4. Adopters
 
-- [ ] 4.1 Add `ADOPTERS.md` stating there are no external adopters; list no example repos or authors.
+- [x] 4.1 Add `ADOPTERS.md` stating there are no external adopters; list no example repos or authors.
 
 ## 5. Acceptance
 
