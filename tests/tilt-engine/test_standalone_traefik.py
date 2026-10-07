@@ -124,8 +124,21 @@ def test_standalone_compose_uses_selected_ingress_ports(tmp_path):
         "load('@COMPOSE/traefik_standalone.star', 'generate_standalone_traefik_compose')\n"
         "r = {'yaml': generate_standalone_traefik_compose(False, os.environ['TDK_HTTP_PORT'], os.environ['TDK_HTTPS_PORT'])}\n",
     )
-    assert '\"18080:80\"' in r["yaml"]
-    assert '\"18443:443\"' in r["yaml"]
+    assert '\"127.0.0.1:18080:80\"' in r["yaml"]
+    assert '\"127.0.0.1:18443:443\"' in r["yaml"]
+    assert "--api.insecure" not in r["yaml"]
+
+
+@pytest.mark.skipif(shutil.which("tilt") is None, reason="tilt CLI not installed")
+def test_standalone_compose_bind_address_is_opt_in(tmp_path):
+    """GHSA-3hj3-f39v-j2x5: dev ports stay on loopback unless TDK_BIND_ADDRESS is set."""
+    r = _run_starlark(
+        tmp_path,
+        "load('@COMPOSE/traefik_standalone.star', 'generate_standalone_traefik_compose')\n"
+        "r = {'yaml': generate_standalone_traefik_compose(False, '8080', '8443', '0.0.0.0')}\n",
+    )
+    assert '\"0.0.0.0:8080:80\"' in r["yaml"]
+    assert '\"0.0.0.0:8443:443\"' in r["yaml"]
 
 
 @pytest.mark.skipif(shutil.which("tilt") is None, reason="tilt CLI not installed")

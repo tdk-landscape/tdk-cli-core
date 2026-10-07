@@ -6,7 +6,7 @@ import { ensureProjectRuntimeAssets, ProjectConfigNotFoundError, verifyMasterCon
 import { DEVCONTAINER_DOCKER_FIX, detectHost, isContainerHost, WEBCONTAINER_UP_MESSAGE, } from "../utils/agent-host.js";
 import { handleDryRun } from "../utils/command-helpers.js";
 import { STANDARD_PORTS } from "../utils/constants.js";
-import { getDeferredResourceNames } from "../utils/doctor-runtime.js";
+import { getDeferredResourceNames, summarizeTiltBuildError } from "../utils/doctor-runtime.js";
 import { completeEnvFile } from "../utils/env-validator.js";
 import { errorFactories, handleTiltFailure, requireProjectRoot, runCommand, showErrorAndExit, withTiltCheck, } from "../utils/errors.js";
 import { formatCount } from "../utils/formatting.js";
@@ -461,7 +461,10 @@ export const upCommand = new Command("up")
                     const report = resourcesJson
                         ? buildStartupReport(resourcesJson, dependsOn, deferred)
                         : {
-                            failed: readiness.failures,
+                            failed: readiness.failures.map((failure) => ({
+                                name: failure.name,
+                                message: summarizeTiltBuildError(failure.message),
+                            })),
                             blocked: [],
                             starting: [],
                         };

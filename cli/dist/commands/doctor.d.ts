@@ -17,6 +17,12 @@ export declare const MIN_TILT_VERSION: readonly [0, 25, 0];
 export declare const MIN_BUN_VERSION: readonly [1, 2, 0];
 export declare function versionMeetsMinimum(raw: string, minimum: readonly number[]): boolean;
 export declare function checkWslProjectLocation(projectPath: string, strict: boolean, isWsl?: boolean): CheckResult;
+/**
+ * Dev ports (Traefik, Postgres) bind to 127.0.0.1 by default. TDK_BIND_ADDRESS
+ * opts in to another address; a wildcard exposes them to every machine on the
+ * network (GHSA-3hj3-f39v-j2x5).
+ */
+export declare function checkPublishedBindAddress(env?: NodeJS.ProcessEnv, strict?: boolean): CheckResult;
 /** Failures are shown before passing statuses, with a 5432 conflict first. */
 export declare function orderDoctorResults(results: CheckResult[]): CheckResult[];
 export declare function getDoctorOutcomeMessage(inProject: boolean, allPassed: boolean): string;
