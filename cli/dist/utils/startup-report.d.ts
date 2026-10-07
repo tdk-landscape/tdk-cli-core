@@ -11,6 +11,7 @@ export interface StartupReport {
     /** Not ready with nothing failed upstream: still building or starting. */
     starting: string[];
 }
+export declare function transitiveDependencies(name: string, dependsOn: Record<string, string[]>): Set<string>;
 export declare function buildStartupReport(jsonText: string, dependsOn: Record<string, string[]>, deferred?: Set<string>): StartupReport;
 /** A failure exists and everything still pending is blocked by it, so waiting longer cannot help. */
 export declare function isStartupStalled(jsonText: string, dependsOn: Record<string, string[]>, deferred?: Set<string>): boolean;

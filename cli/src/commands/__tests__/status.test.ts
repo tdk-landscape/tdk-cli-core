@@ -32,7 +32,13 @@ const repoRoot = resolve(__dirname, "../../../..");
 
 const FIXTURE_SERVICES = [
   { dir: "services/shop/orders-api", appName: "orders-api", appType: "backend", stack: "shop" },
-  { dir: "services/shop/orders-web", appName: "orders-web", appType: "frontend", stack: "shop" },
+  {
+    dir: "services/shop/orders-web",
+    appName: "orders-web",
+    appType: "frontend",
+    stack: "shop",
+    dependsOn: ["orders-api"],
+  },
   { dir: "services/billing/invoices", appName: "invoices", appType: "backend", stack: "billing" },
   { dir: "tools/report-job", appName: "report-job", appType: "backend" },
 ];
@@ -216,6 +222,57 @@ describe("tdk status", () => {
       readiness: null,
     });
     expect(runTilt).toHaveBeenCalledTimes(1);
+  });
+
+  describe("service state from a running Tilt", () => {
+    const tilt = (...items: Array<[string, string, string]>) =>
+      JSON.stringify({
+        items: items.map(([name, update, runtime]) => ({
+          metadata: { name },
+          status: { updateStatus: update, runtimeStatus: runtime },
+        })),
+      });
+    // orders-api failed; orders-web depends on it and its own process is up.
+    const apiDown = tilt(
+      ["orders-api", "error", "none"],
+      ["orders-web", "ok", "ok"],
+      ["invoices", "ok", "ok"],
+    );
+
+    it("does not call a service ready when a dependency has failed, in JSON", async () => {
+      vi.mocked(tiltGetUiResources).mockResolvedValue(apiDown);
+      const output = await runStatus(["--json"]);
+      const resources = JSON.parse(output).data.resources as Array<Record<string, unknown>>;
+      const byName = Object.fromEntries(resources.map((r) => [r.name, r]));
+      expect(byName["orders-api"]).toMatchObject({ status: "error" });
+      expect(byName["orders-web"]).toMatchObject({
+        status: "error",
+        statusReason: "orders-api failed",
+        blockedBy: ["orders-api"],
+      });
+      expect(byName.invoices).toMatchObject({ status: "ready" });
+      expect(byName["report-job"]).toMatchObject({ status: "unknown" });
+    });
+
+    it("shows every service as unknown when no Tilt answers", async () => {
+      const output = await runStatus(["--json"]);
+      const resources = JSON.parse(output).data.resources as Array<{ status: string }>;
+      expect(resources.map((r) => r.status)).toEqual(["unknown", "unknown", "unknown", "unknown"]);
+    });
+
+    it("lists service states in the human output and names the failed dependency", async () => {
+      vi.mocked(tiltGetUiResources).mockResolvedValue(apiDown);
+      const output = await runStatus();
+      expect(output).toContain("Services:");
+      expect(output).toContain("✗ orders-api  error");
+      expect(output).toContain("✗ orders-web  error (orders-api failed)");
+      expect(output).toContain("✓ invoices  ready");
+    });
+
+    it("prints no Services section when no Tilt answers", async () => {
+      const output = await runStatus();
+      expect(output).not.toContain("Services:");
+    });
   });
 
   it("fails on the missing project before printing any status line", async () => {

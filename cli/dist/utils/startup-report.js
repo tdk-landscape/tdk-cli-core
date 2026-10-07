@@ -1,7 +1,7 @@
 import { parseTiltResourceFailures, summarizeTiltBuildError } from "./doctor-runtime.js";
 import { isTiltResourcePending } from "./tilt-resource-state.js";
 import { onlyEnabledResources } from "./up-readiness.js";
-function transitiveDependencies(name, dependsOn) {
+export function transitiveDependencies(name, dependsOn) {
     const seen = new Set();
     const visit = (current) => {
         for (const dep of dependsOn[current] ?? []) {

@@ -7,6 +7,7 @@ import { formatCount, showDetail, showStep } from "../utils/formatting.js";
 import { getHostPortPlan } from "../utils/host-port-config.js";
 import { createMachineEnvelope, writeMachineError } from "../utils/machine-output.js";
 import { findProjectRoot } from "../utils/paths.js";
+import { deriveServiceStates } from "../utils/service-runtime-state.js";
 import { buildServicePorts, buildStackPorts } from "../utils/status-ports.js";
 import { getTiltfilePath, isTiltAvailable, runTilt } from "../utils/tilt.js";
 import { evaluateTiltReadiness, tiltGetUiResources } from "../utils/up-readiness.js";
@@ -58,15 +59,25 @@ export const statusCommand = new Command("status")
         // A single look at the running Tilt, so a caller that started `tdk up` detached can poll for readiness. Null when no
         // Tilt answers or its output cannot be read.
         let readiness = null;
-        if (options.json && tiltAvailable) {
+        // The same look at Tilt feeds readiness and each service's state, so `tdk status` and `tdk ui` cannot disagree.
+        let serviceStates = null;
+        if (tiltAvailable) {
             const port = Number.parseInt(process.env.TILT_PORT ?? "", 10);
             const text = await tiltGetUiResources(Number.isInteger(port) ? port : 10350);
             if (text) {
+                const deferred = getDeferredResourceNames();
                 try {
-                    readiness = evaluateTiltReadiness(text, getDeferredResourceNames()).result;
+                    if (options.json)
+                        readiness = evaluateTiltReadiness(text, deferred).result;
                 }
                 catch {
                     readiness = null;
+                }
+                try {
+                    serviceStates = deriveServiceStates(text, Object.fromEntries(discovery.resources.map((r) => [r.name, r.config?.dependsOn ?? []])), deferred);
+                }
+                catch {
+                    serviceStates = null;
                 }
             }
         }
@@ -94,6 +105,13 @@ export const statusCommand = new Command("status")
                     type: resource.type ?? "unknown",
                     port: resource.port ?? null,
                     ...buildServicePorts(resource, portPlan?.ingressHttp),
+                    status: serviceStates?.[resource.name]?.status ?? "unknown",
+                    ...(serviceStates?.[resource.name]?.reason
+                        ? { statusReason: serviceStates[resource.name]?.reason }
+                        : {}),
+                    ...(serviceStates?.[resource.name]?.blockedBy
+                        ? { blockedBy: serviceStates[resource.name]?.blockedBy }
+                        : {}),
                 })),
                 ports: buildStackPorts(portPlan, process.env.TILT_PORT ? Number.parseInt(process.env.TILT_PORT, 10) : undefined),
                 stacks: discovery.stacks.map((stack) => ({
@@ -130,6 +148,21 @@ export const statusCommand = new Command("status")
                 for (const resource of discovery.unassignedResources) {
                     showDetail(`${resource.name}`);
                 }
+            }
+        }
+        if (serviceStates && Object.keys(serviceStates).length > 0) {
+            console.log();
+            console.log(chalk.bold("Services:"));
+            for (const resource of discovery.resources) {
+                const state = serviceStates[resource.name];
+                if (!state)
+                    continue;
+                const mark = state.status === "ready"
+                    ? chalk.green("✓")
+                    : state.status === "error"
+                        ? chalk.red("✗")
+                        : chalk.yellow("…");
+                showDetail(`${mark} ${resource.name}  ${state.status}${state.reason ? ` (${state.reason})` : ""}`);
             }
         }
         if (options.tilt && tiltAvailable) {

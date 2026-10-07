@@ -15,7 +15,10 @@ interface Item {
   status?: { updateStatus?: string; runtimeStatus?: string };
 }
 
-function transitiveDependencies(name: string, dependsOn: Record<string, string[]>): Set<string> {
+export function transitiveDependencies(
+  name: string,
+  dependsOn: Record<string, string[]>,
+): Set<string> {
   const seen = new Set<string>();
   const visit = (current: string): void => {
     for (const dep of dependsOn[current] ?? []) {
