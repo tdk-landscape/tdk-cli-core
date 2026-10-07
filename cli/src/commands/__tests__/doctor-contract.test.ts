@@ -7,6 +7,7 @@ import { checkHostPorts } from "../../utils/doctor-runtime.js";
 import {
   checkBun,
   checkDockerOperatingSystem,
+  checkPublishedBindAddress,
   checkTilt,
   checkWslProjectLocation,
   doctorCommand,
@@ -84,6 +85,24 @@ describe("doctor environment contract", () => {
     const result = await checkDockerOperatingSystem(async () => "windows");
     expect(result.didPass).toBe(false);
     expect(result.message).toContain("requires Linux containers");
+  });
+
+  it("warns when TDK_BIND_ADDRESS exposes dev ports to the network (GHSA-3hj3-f39v-j2x5)", () => {
+    const unset = checkPublishedBindAddress({});
+    const loopback = checkPublishedBindAddress({ TDK_BIND_ADDRESS: "127.0.0.1" });
+    const lan = checkPublishedBindAddress({ TDK_BIND_ADDRESS: "192.168.1.20" });
+    const wildcard = checkPublishedBindAddress({ TDK_BIND_ADDRESS: "0.0.0.0" });
+    const wildcardStrict = checkPublishedBindAddress({ TDK_BIND_ADDRESS: "0.0.0.0" }, true);
+
+    expect(unset.didPass).toBe(true);
+    expect(unset.message).toContain("127.0.0.1");
+    expect(loopback.didPass).toBe(true);
+    expect(lan.didPass).toBe(true);
+    expect(wildcard.didPass).toBe(true);
+    expect(wildcard.isWarning).toBe(true);
+    expect(wildcard.message).toContain("reachable from other machines");
+    expect(wildcard.fix).toContain("Unset TDK_BIND_ADDRESS");
+    expect(wildcardStrict.didPass).toBe(false);
   });
 
   it("warns about /mnt/c and fails there only in strict WSL mode", () => {

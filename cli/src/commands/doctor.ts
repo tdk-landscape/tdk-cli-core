@@ -134,6 +134,36 @@ export function checkWslProjectLocation(
   };
 }
 
+const WILDCARD_BIND_ADDRESSES = new Set(["0.0.0.0", "::", "[::]"]);
+
+/**
+ * Dev ports (Traefik, Postgres) bind to 127.0.0.1 by default. TDK_BIND_ADDRESS
+ * opts in to another address; a wildcard exposes them to every machine on the
+ * network (GHSA-3hj3-f39v-j2x5).
+ */
+export function checkPublishedBindAddress(
+  env: NodeJS.ProcessEnv = process.env,
+  strict = false,
+): CheckResult {
+  const bindAddress = (env.TDK_BIND_ADDRESS ?? "").trim();
+  if (!WILDCARD_BIND_ADDRESSES.has(bindAddress)) {
+    return {
+      name: "Dev Port Bind Address",
+      didPass: true,
+      message: bindAddress
+        ? `Dev ports bind to ${bindAddress}`
+        : "Dev ports bind to 127.0.0.1 (this machine only)",
+    };
+  }
+  return {
+    name: "Dev Port Bind Address",
+    didPass: !strict,
+    isWarning: !strict,
+    message: `TDK_BIND_ADDRESS is ${bindAddress}: Traefik and Postgres are reachable from other machines on the network.`,
+    fix: "Unset TDK_BIND_ADDRESS to keep dev ports on 127.0.0.1. Keep it only when you test from another device on purpose.",
+  };
+}
+
 /** Failures are shown before passing statuses, with a 5432 conflict first. */
 export function orderDoctorResults(results: CheckResult[]): CheckResult[] {
   const failures = results.filter(
@@ -1404,6 +1434,7 @@ export const doctorCommand = new Command("doctor")
       checkDockerVersions,
       checkBun,
       () => checkWslProjectLocation(findProjectRoot() ?? process.cwd(), options.strict),
+      () => checkPublishedBindAddress(process.env, options.strict),
       // Each project needs several networks; a full address pool fails `tdk up` late.
       () => checkDockerNetworkCapacity(),
     ];
