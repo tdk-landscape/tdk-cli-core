@@ -9,12 +9,9 @@ import { downCommand } from "./commands/down.js";
 import { ejectCommand } from "./commands/eject.js";
 import { showHelp } from "./commands/help.js";
 import { importCommand } from "./commands/import.js";
-<<<<<<< HEAD
-=======
 import { logsCommand } from "./commands/logs.js";
 import { maintainersCommand } from "./commands/maintainers.js";
 import { mcpCommand } from "./commands/mcp.js";
->>>>>>> origin/main
 import { networksCommand } from "./commands/networks.js";
 import { projectCommand } from "./commands/project.js";
 import { projectsCommand } from "./commands/projects.js";
@@ -61,7 +58,6 @@ program.addCommand(resourceCommand);
 program.addCommand(runtimeCommand);
 program.addCommand(projectCommand);
 program.addCommand(configCommand);
-program.addCommand(importCommand);
 program.addCommand(uiCommand);
 program.addCommand(versionCommand);
 program.addCommand(maintainersCommand);

@@ -203,8 +203,6 @@ function slug(text: string): string {
   );
 }
 
-<<<<<<< HEAD
-=======
 /** Two steps whose names slug the same (`read back`, `read-back`) must not share a record directory. */
 function stepKey(seen: Map<string, number>, label: string): string {
   const base = slug(label);
@@ -213,7 +211,6 @@ function stepKey(seen: Map<string, number>, label: string): string {
   return n === 1 ? base : `${base}-${n}`;
 }
 
->>>>>>> origin/main
 interface StepRecord {
   service: string;
   step: string;
@@ -304,12 +301,8 @@ export async function runSmokePlan(plan: SmokePlan, deps: SmokeDeps = {}): Promi
           signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
         });
         await response.text();
-<<<<<<< HEAD
-        if (!NOT_READY_STATUSES.has(response.status)) break;
-=======
         // A 5xx from the health path (migrations running, database not up) is still "not ready"; 401 or 3xx means something answered.
         if (!NOT_READY_STATUSES.has(response.status) && response.status < 500) break;
->>>>>>> origin/main
       } catch {
         // not accepting connections yet
       }
@@ -318,13 +311,10 @@ export async function runSmokePlan(plan: SmokePlan, deps: SmokeDeps = {}): Promi
     }
   }
 
-<<<<<<< HEAD
-=======
   // The steps get their own `timeoutSeconds`; a slow build must not eat the first step's budget.
   deadline = now() + budgetMs;
   const stepKeys = new Map<string, number>();
 
->>>>>>> origin/main
   for (const [index, step] of plan.smoke.steps.entries()) {
     const label = step.name ?? `step ${index + 1}`;
     const method = (step.method ?? "GET").toUpperCase();
@@ -376,11 +366,7 @@ export async function runSmokePlan(plan: SmokePlan, deps: SmokeDeps = {}): Promi
         (step.bodyContains === undefined || text.includes(step.bodyContains));
       recordPath = writeStepRecord(
         deps.recordDir,
-<<<<<<< HEAD
-        slug(label),
-=======
         stepKey(stepKeys, label),
->>>>>>> origin/main
         {
           service: plan.name,
           step: label,

@@ -5,11 +5,8 @@ import { Command } from "commander";
 import { ensureProjectRuntimeAssets, ProjectConfigNotFoundError, verifyMasterConfigs, } from "../generator/template-engine.js";
 import { DEVCONTAINER_DOCKER_FIX, detectHost, isContainerHost, WEBCONTAINER_UP_MESSAGE, } from "../utils/agent-host.js";
 import { handleDryRun } from "../utils/command-helpers.js";
-<<<<<<< HEAD
 import { checkDriftGate } from "../utils/drift-gate.js";
-=======
 import { getDeferredResourceNames } from "../utils/doctor-runtime.js";
->>>>>>> origin/main
 import { completeEnvFile } from "../utils/env-validator.js";
 import { errorFactories, handleTiltFailure, requireProjectRoot, runCommand, showErrorAndExit, withTiltCheck, } from "../utils/errors.js";
 import { formatCount } from "../utils/formatting.js";
@@ -149,14 +146,10 @@ export const upCommand = new Command("up")
     .option("-q, --quiet", "Suppress non-essential output", false)
     .option("--dry-run", "Show what would be started without starting", false)
     .option("-f, --force", "Kill existing Tilt process before starting", false)
-<<<<<<< HEAD
-    .option("--ignore-drift", "Bypass drift verification and start Tilt anyway", false)
-=======
     .option("--ignore-drift", "Start even if generated files differ from service.json", false)
     .option("--ignore-version", "Start even if this tdk is older than minTdkVersion in .tdk/project.json", false)
     .option("--only <services...>", "Start only these services plus what the Tiltfile enables for them (their dependsOn services and shared infrastructure). With a stack, names must belong to that stack; dependencies may cross stacks")
     .option("--json", "Print one JSON object on stdout when the stack is ready or the command fails; implies --quiet", false)
->>>>>>> origin/main
     .action(async (stackName, options) => {
     const emit = options.json ? createJsonEmitter("UP_FAILED", "tdk up") : undefined;
     if (options.json)

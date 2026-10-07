@@ -14,11 +14,8 @@ import {
   WEBCONTAINER_UP_MESSAGE,
 } from "../utils/agent-host.js";
 import { handleDryRun } from "../utils/command-helpers.js";
-<<<<<<< HEAD
 import { checkDriftGate } from "../utils/drift-gate.js";
-=======
 import { getDeferredResourceNames } from "../utils/doctor-runtime.js";
->>>>>>> origin/main
 import { completeEnvFile } from "../utils/env-validator.js";
 import {
   errorFactories,
@@ -192,9 +189,6 @@ export const upCommand = new Command("up")
   .option("-q, --quiet", "Suppress non-essential output", false)
   .option("--dry-run", "Show what would be started without starting", false)
   .option("-f, --force", "Kill existing Tilt process before starting", false)
-<<<<<<< HEAD
-  .option("--ignore-drift", "Bypass drift verification and start Tilt anyway", false)
-=======
   .option("--ignore-drift", "Start even if generated files differ from service.json", false)
   .option(
     "--ignore-version",
@@ -210,7 +204,6 @@ export const upCommand = new Command("up")
     "Print one JSON object on stdout when the stack is ready or the command fails; implies --quiet",
     false,
   )
->>>>>>> origin/main
   .action(async (stackName, options) => {
     const emit = options.json ? createJsonEmitter("UP_FAILED", "tdk up") : undefined;
     if (options.json) options.quiet = true;

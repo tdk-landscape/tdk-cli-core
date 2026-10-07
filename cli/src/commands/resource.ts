@@ -566,30 +566,7 @@ export const resourceCommand = new Command("resource")
             ),
         });
       }
-<<<<<<< HEAD
 
-      let frameworkOption: string | undefined = options.framework;
-      if (
-        resourceType === "frontend" &&
-        frameworkOption === undefined &&
-        !options.yes &&
-        process.stdin.isTTY
-      ) {
-        frameworkOption = await promptSelect({
-          message: "Frontend framework:",
-          choices: listFrontendFrameworks()
-            .map((f) => ({ title: f.label, value: f.id }))
-            .sort((a, b) =>
-              a.value === DEFAULT_FRONTEND_FRAMEWORK
-                ? -1
-                : b.value === DEFAULT_FRONTEND_FRAMEWORK
-                  ? 1
-                  : 0,
-            ),
-        });
-      }
-=======
->>>>>>> origin/main
       const frontendFramework = resolveFrontendFramework(
         resourceType,
         frameworkOption,
