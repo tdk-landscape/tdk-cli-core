@@ -1,6 +1,12 @@
 # 4. Review a pull request
 
-Anyone can review a pull request. You do not need to be a maintainer, and you do not need to know the whole repository. Every PR has AI buttons that give you a first-pass review in one click. You read what the AI says, check it, and then write your own review on GitHub.
+Anyone can review a pull request. Every review follows the same rules:
+
+1. Use an AI review button for the first pass.
+2. Check every point the AI makes against the diff yourself.
+3. Submit your own review on GitHub and say what you checked.
+
+You are responsible for the review you submit, not the AI.
 
 ## The short version
 
