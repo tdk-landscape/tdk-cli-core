@@ -13,12 +13,12 @@ Notable changes to the `tdk` CLI. Versions match [npm](https://www.npmjs.com/pac
 - Repairing an empty generated value in an existing `.env` now rewrites the file atomically and keeps its mode; a failed write leaves the old file intact. Other lines and comments are unchanged. Fixes #724.
 - The engine's remaining Starlark `DEBUG` lines are now printed only with `TDK_DEBUG=1` (`TILT_DEBUG` still works). Fixes #701.
 - Internal: `tdk ui` key bindings come from one typed keymap shared by the help panel, footer and tab bar (#448); the scaffold templates moved to `cli/src/generator/resource-templates.ts` (#699) and doctor's Starlark load checks to `cli/src/utils/doctor-starlark.ts` (#698). No behaviour change.
-- Docs: `docs/ui.md` lists every `tdk ui` key binding (#697); new contributor guides for finding bugs (`docs/contributing/finding-bugs.md`) and for reviewing PRs with the AI buttons (`docs/contributing/04-review-a-pr.md`); README update.
+- Docs: `docs/ui.md` lists every `tdk ui` key binding (#697); new contributor guides for finding bugs (`docs/contributing/finding-bugs.md`) and for reviewing PRs with the AI buttons (`docs/contributing/04-review-a-pr.md`); a new README intro on why TDK generates the local infrastructure (#738).
 
 ## 1.3.124 (2026-10-07)
 
-- `tdk up` checks for Bun only when the project needs it, and refuses a `schemaVersion` it does not know instead of guessing (#731).
-- Discovered resources now get their `port` and `type` filled in, so `tdk resources`, `tdk networks` and doctor no longer show them blank (#736).
+- A `service.json` with a `schemaVersion` this tdk does not know now stops `tdk up` (dry run included) before anything starts and names the file; a missing `schemaVersion` still only warns. `tdk up` requires Bun only when the project has services that need it, the same rule `tdk doctor` uses (#731).
+- Discovered resources now carry their `port` and `type`, so `tdk resources --ports`/`--verbose` and `tdk status --json` show real values, and new services no longer all get port 4000 (#736).
 - `.env` files are parsed like Compose does: inline comments after whitespace, BOM and CRLF, matching quotes and the documented escapes; `N= # c` stays empty. Fixes #725 (#737).
 - CI: `wsl2-smoke` runs only when started by hand (#716, #717, #730).
 
@@ -130,14 +130,14 @@ Notable changes to the `tdk` CLI. Versions match [npm](https://www.npmjs.com/pac
 
 ## 1.3.108 (2026-10-05)
 
-- Commands that take a stack filter reject a missing value instead of ignoring it (#551).
+- `tdk resources` and `tdk networks` exit non-zero with the stack-not-found error when `--stack` names a stack that does not exist. Fixes #439 (#551).
 - Docs: `--version` and `--verbose` flags clarified (#555). Tests for `tdk down` projects and stacks (#554).
 
 ## 1.3.107 (2026-10-05)
 
 - `TILT_PORT` is validated before start-up (#550).
 - Shell completions cover every registered command (#556).
-- `tdk ui`: overlapping status-message timers no longer cut each other short (#553).
+- `tdk ui`: a new status message cancels the previous message's clear timer, so overlapping messages no longer disappear early. Fixes #454 (#553).
 
 ## 1.3.106 (2026-10-04)
 
@@ -242,7 +242,7 @@ Notable changes to the `tdk` CLI. Versions match [npm](https://www.npmjs.com/pac
 
 - Native backends: Go (#340), Fastify (#317) and Elysia (#315, recovered after it never reached `main`).
 - New frontend provider: vanilla TypeScript (Vite SPA) (#319).
-- Bring-your-own examples: Flask, Rails, SvelteKit, Django, Angular, Next.js, .NET, Laravel, Spring, Phoenix, Deno Fresh (#320–#342); five migration job examples recovered (#316).
+- Bring-your-own examples: Flask, Rails, SvelteKit, Django, Angular, Next.js, .NET, Laravel, Spring, Phoenix, Deno Fresh (#320, #322, #324, #326, #328, #330, #332, #334, #336, #338, #342); five migration job examples recovered (#316).
 
 ## 1.3.88 (2026-10-02)
 
