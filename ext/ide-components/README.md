@@ -13,6 +13,8 @@ The Tilt IDE provides browser-based tools for browsing, viewing, and executing c
 | **Config Inspector** | 9767 | http://configs.localhost | http://localhost:9767 |
 | **Code Executor** | 9768 | http://terminal.localhost | http://localhost:9768 |
 
+> **Note:** `code_executor` is not shipped in the npm package or started by `tilt up` (see #826). Its source stays in the repository.
+
 ## Quick Start
 
 All components start automatically when you run `tilt up`:

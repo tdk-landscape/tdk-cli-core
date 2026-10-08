@@ -4,6 +4,10 @@ Notable changes to the `tdk` CLI. Versions match [npm](https://www.npmjs.com/pac
 
 ## Unreleased
 
+## 1.3.127 (2026-10-08)
+
+- Security hardening flagged by Socket (#826). The npm package no longer includes `ext/ide-components/code_executor/server.py`, a browser terminal that ran client-supplied commands through a shell. `tdk` and the Tilt engine never started it. The other IDE components are unchanged. `tdk doctor` now single-quotes the registry URL and container name it passes to `curl` and `docker logs`, so a value such as `$(...)` can no longer run a command.
+
 ## 1.3.126 (2026-10-08)
 
 - Security: fixes [GHSA-phgf-pww4-7jxc](https://github.com/tdk-landscape/tdk-cli-core/security/advisories/GHSA-phgf-pww4-7jxc) (all earlier versions). A line break in a `service.json` value was written into the generated Docker Compose file and could add keys such as `privileged: true` to a service when you ran `tdk up` or `tilt up` on a repository you did not write. `tdk` and the Tilt engine now refuse any `service.json` string key or value that contains a line break (including U+0085, U+2028 and U+2029) or another control character, and `healthCheckPath`, `traefik.host`, `traefik.pathPrefix`, `traefik.healthCheck`, `nats.queueGroup`, `databaseName`, `stack` and `image` must also match a pattern. `smoke` is exempt. `tdk up` and `tdk config regenerate` stop with an error that names the field and does not print the value, and `tilt up` stops the same way. Upgrade, and check `service.json` files from repositories you did not write.
