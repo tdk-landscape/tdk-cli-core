@@ -6,5 +6,8 @@
     "drizzle-kit": "^0.31.0",
     "drizzle-orm": "^0.45.2",
     "pg": "^8.13.0"
+  },
+  "overrides": {
+    "esbuild": "^0.25.0"
   }
 }
