@@ -1,0 +1,48 @@
+# Report-only code health: unused code (Knip) and React/Ink hygiene (React Doctor). Results land in the job
+# summary; neither tool fails the build, so existing findings do not block PRs.
+name: 🩺 Code health
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  health:
+    name: 🩺 Report
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: cli
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: bun install --frozen-lockfile
+      - name: Knip (unused files, exports, dependencies)
+        run: |
+          {
+            echo '### Knip'
+            echo '```'
+            npx --no-install knip || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: React Doctor (score 0-100)
+        run: |
+          {
+            echo '### React Doctor'
+            echo "Score: $(npx -y react-doctor@0.9.17 --score --no-supply-chain --yes . 2>/dev/null | tail -1)/100"
+          } >> "$GITHUB_STEP_SUMMARY"
