@@ -346,7 +346,7 @@ jobs:
 
       # OpenSSF Scorecard's Signed-Releases check looks at the GitHub releases of THIS repository, while the binaries live in
       # tdk-cli-releases. So this repository gets a release per version that carries the binaries' checksums and a keyless
-      # Sigstore signature of them. It runs last and is allowed to fail: npm, the binary release and the version bump are already
+      # Sigstore signature of them (the signature is also attached to the binary release in tdk-cli-releases). It runs last and is allowed to fail: npm, the binary release and the version bump are already
       # done, and nothing here may ever block them.
       - name: Install cosign
         continue-on-error: true
@@ -356,12 +356,17 @@ jobs:
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TOKEN: ${{ secrets.BINARY_RELEASE_TOKEN }}
           VERSION: ${{ needs.build.outputs.version }}
           SOURCE_COMMIT: ${{ steps.source.outputs.commit }}
         run: |
           set -euo pipefail
           cp "release-dist-${VERSION}/checksums.txt" checksums.txt
           cosign sign-blob --yes --bundle checksums.txt.sigstore.json checksums.txt
+          # Next to the binaries users download, so they can verify them.
+          GH_TOKEN="$RELEASE_TOKEN" gh release upload "v${VERSION}" --repo tdk-landscape/tdk-cli-releases --clobber \
+            checksums.txt.sigstore.json || echo "::warning::Could not attach the signature to the tdk-cli-releases release"
+          # And to a release in this repository, which is where Scorecard looks.
           if gh release view "v${VERSION}" >/dev/null 2>&1; then
             gh release upload "v${VERSION}" --clobber checksums.txt checksums.txt.sigstore.json
           else
