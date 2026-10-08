@@ -6,8 +6,7 @@ WORKDIR /work/app
 # The generated app hard-codes `.listen(3000)`; TDK assigns the port through PORT. Patch it, and fail the build if the line is not there.
 RUN sed -i 's/\.listen(3000)/.listen(Number(process.env.PORT ?? 3000))/' src/index.ts \
  && grep -q 'process.env.PORT' src/index.ts
-RUN groupadd --gid 1000 app && useradd --uid 1000 --gid app --no-create-home app
-RUN chown -R app:app /work/app
-USER app
+RUN chown -R bun:bun /work/app
+USER bun
 # `bun run dev` is `bun run --watch src/index.ts`.
 CMD ["bun", "run", "dev"]
