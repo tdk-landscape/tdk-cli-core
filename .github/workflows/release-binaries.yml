@@ -11,6 +11,7 @@ on:
     paths:
       - ".github/workflows/release-binaries.yml"
       - "package.json"
+      - "bun.lock" # dependency-only PRs still need the required windows-smoke check to report
       - "cli/**"
       - "scripts/release-binaries.sh"
       - "Tiltfile"
