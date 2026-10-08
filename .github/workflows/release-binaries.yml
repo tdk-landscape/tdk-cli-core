@@ -37,15 +37,15 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       bumped: ${{ steps.version.outputs.bumped }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
 
-      - uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: latest
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: 24.15.0
           package-manager-cache: false
@@ -116,7 +116,7 @@ jobs:
         run: scripts/release-binaries.sh
 
       - name: Upload exact release candidate
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: release-dist-${{ steps.version.outputs.version }}
           path: release-dist-${{ steps.version.outputs.version }}/
@@ -130,7 +130,7 @@ jobs:
       contents: read
     steps:
       - name: Download exact release candidate
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: release-dist-${{ needs.build.outputs.version }}
           path: release-dist
@@ -201,15 +201,15 @@ jobs:
       issues: write
       pull-requests: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
 
-      - uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: latest
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: 24.15.0
           registry-url: "https://registry.npmjs.org"
@@ -239,7 +239,7 @@ jobs:
       - run: npm run build
 
       - name: Download exact release candidate
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: release-dist-${{ needs.build.outputs.version }}
           path: release-dist-${{ needs.build.outputs.version }}
@@ -258,7 +258,7 @@ jobs:
       # never fail the release, so it is allowed to error.
       - name: Credit fixed issues with this release
         continue-on-error: true
-        uses: actions/github-script@v8
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           VERSION: ${{ needs.build.outputs.version }}
           SOURCE_COMMIT: ${{ steps.source.outputs.commit }}

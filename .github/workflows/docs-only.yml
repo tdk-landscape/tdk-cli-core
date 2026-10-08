@@ -39,12 +39,12 @@ jobs:
       examples_only: ${{ steps.examples.outputs.code == 'false' }}
       wsl2_irrelevant: ${{ steps.wsl2.outputs.code == 'false' }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
 
       # `code` is true when any changed file is outside the docs patterns.
-      - uses: dorny/paths-filter@v4
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4
         id: filter
         with:
           predicate-quantifier: every
@@ -58,7 +58,7 @@ jobs:
 
       # `code` is true when any changed file is outside the docs patterns and examples/byo/. The Windows and WSL2
       # smoke jobs test the CLI itself, so a PR that only adds a bring-your-own example does not need them.
-      - uses: dorny/paths-filter@v4
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4
         id: examples
         with:
           predicate-quantifier: every
@@ -75,7 +75,7 @@ jobs:
       # Everything outside docs, BYO examples, tests, committed build output and the TUI screen (`tdk ui`, which the
       # smoke never opens) counts as relevant, so a new directory fails closed and still runs the smoke. The smoke
       # builds the CLI from source, so `cli/dist` alone cannot change its result.
-      - uses: dorny/paths-filter@v4
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4
         id: wsl2
         with:
           predicate-quantifier: every

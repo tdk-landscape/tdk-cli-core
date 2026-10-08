@@ -14,11 +14,11 @@ jobs:
     permissions:
       contents: write # push the synced skills to main
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: main
           persist-credentials: false
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           repository: tdk-landscape/tdk-skills
           path: .tmp-tdk-skills
