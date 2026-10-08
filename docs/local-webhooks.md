@@ -9,7 +9,7 @@ TDK's part is small: `tdk up` gives you the backend, the database and the route 
 Use a local emitter instead of the provider:
 
 - **Pinned payloads.** Sanitized fixtures with fixed event IDs, committed to the repository.
-- **A dummy signing key.** Not a real secret, set only in local development (see [Environment, params and secrets](environment.md)).
+- **A dummy signing key.** Not a real secret, used only in local development. Pass it to the service as a non-secret `params` value (see [Environment, params and secrets](environment.md#params)).
 - **A controllable clock**, so you can produce an expired signature on purpose.
 - **The real HTTP route and the production verification code.** Do not mock verification away, or you are not testing the handler you ship.
 
