@@ -7,6 +7,7 @@ Welcome! Small fixes and large features are both useful. Start with the short [c
 1. [Choose your change and get the repo ready](docs/contributing/01-first-change.md).
 2. [Follow the recipe for your kind of change](docs/contributing/02-feature-recipes.md).
 3. [Check your work and open a pull request](docs/contributing/03-open-a-pr.md).
+4. [Review someone else's pull request](docs/contributing/04-review-a-pr.md), with one-click AI review buttons.
 
 The focused [frontend provider guide](docs/frontend-framework-providers.md) has the exact steps for adding another Vite framework like Vue. The [backend provider guide](docs/backend-language-providers.md) covers adding a backend language like Python.
 
@@ -28,6 +29,12 @@ If one of these fails on a clean checkout, that is a bug in the project, not in 
 You do not need to write code to help. Run a command, compare what it prints with what TDK promises (its `--help`, the docs, or another command), and report any difference. That is a bug.
 
 [Finding bugs in TDK](docs/contributing/finding-bugs.md) has the exact steps: a scratch project to test in, a checklist of commands with the output you should see, the patterns that found past bugs, and the report format maintainers can act on. For example, if `tdk networks` lists no URLs while `tdk up --dry-run` prints them, the two commands disagree, so one of them is wrong.
+
+## Review pull requests
+
+You can help without writing code by reviewing open [pull requests](https://github.com/tdk-landscape/tdk-cli-core/pulls). Every PR ends with **Grok**, **Claude**, and **Codex** buttons that open an AI chat already asked to review that PR. The AI is your helper: check what it says against the diff, then submit your own review on GitHub as **Comment**, **Approve**, or **Request changes**.
+
+[Review a pull request](docs/contributing/04-review-a-pr.md) explains the buttons step by step, with example comments for approving and for requesting changes.
 
 ## Find something to work on
 

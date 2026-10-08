@@ -65,6 +65,8 @@ Delete checklist items that do not apply. Add a screenshot or real terminal outp
 
 After opening it, GitHub runs CI. If a check fails, read its log, fix the issue on the same branch, push again, and the PR updates automatically. Then answer reviewer questions on the PR.
 
+GitHub also adds **Grok**, **Claude**, and **Codex** buttons to the end of your PR description. Click one to get an AI review of your own PR before anyone else looks at it. [Review a pull request](04-review-a-pr.md) explains how the buttons work and how reviewers approve or request changes.
+
 ## What GitHub runs
 
 The [PR template](../../.github/pull_request_template.md) asks you to select the areas you changed and opens short instructions for each area. GitHub also adds matching `area:*` labels from changed paths and removes stale area labels when you push an updated diff. Labels organize the PR; workflow path rules decide which automation runs.

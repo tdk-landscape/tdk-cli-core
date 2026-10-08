@@ -16,6 +16,7 @@ You do not need to understand the whole repository. Pick one small change, follo
 | Change how TDK discovers services or generates configs | [Engine and discovery recipe](02-feature-recipes.md#change-the-engine-or-service-discovery) |
 | Fix wording, a link, or a typo | [Docs recipe](02-feature-recipes.md#change-documentation) |
 | Find and report bugs, no code needed | [Finding bugs](finding-bugs.md) |
+| Review someone else's pull request | [Review a PR](04-review-a-pr.md) |
 
 ## The whole process
 
@@ -23,6 +24,7 @@ You do not need to understand the whole repository. Pick one small change, follo
 2. Make one focused change. Ask for help if you get stuck.
 3. Run the checks that match your change. The recipes say which ones.
 4. [Open a pull request](03-open-a-pr.md) and explain what you checked.
+5. [Review other pull requests](04-review-a-pr.md). The AI buttons on every PR give you a first pass.
 
 **Not sure where code lives?** Search the repository for the command, config key, generated filename, or service name you see. Then look for its tests. If you are still unsure, open an issue and ask before making a large change.
 
