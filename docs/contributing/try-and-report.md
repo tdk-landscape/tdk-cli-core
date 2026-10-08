@@ -2,7 +2,7 @@
 
 You do not need to write code or a polished bug report. This page shows how to install TDK, run an example, and tell us what happened using a short form. Rough notes are fine: a half-finished report with real numbers helps more than none.
 
-[Open the form](https://github.com/tdk-landscape/tdk-cli-core/issues/new?template=try-it-and-report.yml). It has two required answers (what you tried, how it went) and the rest is optional.
+[Open the form](https://github.com/tdk-landscape/tdk-cli-core/issues/new?template=try-it-and-report.yml). It has three short required answers (what you tried, how it went, what you saw) and the rest is optional.
 
 ## 1. Install
 
