@@ -5,6 +5,11 @@ export declare const HOST_PORT_FIXES: {
     readonly port80: "Stop the process bound to port 80, or stop local nginx/caddy. Then: tdk doctor";
     readonly port5432: "Stop local Postgres or change the host port. Then: tdk doctor";
 };
+/**
+ * Quote a value for a POSIX shell command line. JSON.stringify is not enough:
+ * inside double quotes `$(...)`, backticks and `$VAR` are still expanded.
+ */
+export declare function shellQuote(value: string): string;
 /** Host ports Traefik publishes for local ingress. Without these, app routes never come up. */
 export declare const INGRESS_PORTS: readonly [80, 443];
 export declare function toComposeProjectPrefix(projectName: string): string;
