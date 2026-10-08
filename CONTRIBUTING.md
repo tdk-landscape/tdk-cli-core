@@ -1,5 +1,7 @@
 # Contributing to TDK
 
+English | [简体中文](docs/contributing/translations/CONTRIBUTING-zh_cn.md) | [繁體中文](docs/contributing/translations/CONTRIBUTING-zh_tw.md) | [日本語](docs/contributing/translations/CONTRIBUTING-ja.md) | [한국어](docs/contributing/translations/CONTRIBUTING-ko.md)
+
 Welcome! Small fixes and large features are both useful. Start with the short [contributor guide](docs/contributing/README.md); it walks you through finding a change, making it, checking it, and opening a pull request.
 
 ## Start here
