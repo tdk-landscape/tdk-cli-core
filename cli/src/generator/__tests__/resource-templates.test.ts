@@ -36,6 +36,18 @@ describe("resource scaffold templates", () => {
     expect(worker).toContain("process.on('SIGINT'");
   });
 
+  it("logs the fetched job count instead of the literal placeholder", () => {
+    const worker = getWorkerIndexTemplate("test-worker");
+    const line = worker.split("\n").find((candidate) => candidate.includes("[Worker] Fetched"));
+    expect(line).toBeDefined();
+
+    const logged: unknown[][] = [];
+    const log = (...args: unknown[]) => logged.push(args);
+    new Function("jobs", "console", line as string)([{}, {}, {}], { log });
+
+    expect(logged).toEqual([["[Worker] Fetched 3 jobs"]]);
+  });
+
   it("interpolates the generated test name", () => {
     expect(getTestTemplate("catalog")).toBe(
       [

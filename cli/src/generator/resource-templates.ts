@@ -91,7 +91,7 @@ async function main() {
         continue;
       }
 
-      console.log('[Worker] Fetched \${jobs.length} jobs');
+      console.log(\`[Worker] Fetched \${jobs.length} jobs\`);
 
       for (const job of jobs) {
         try {
