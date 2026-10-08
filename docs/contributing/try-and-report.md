@@ -55,28 +55,28 @@ tdk down
 time tdk up one-backend-python
 ```
 
-**Save to ready.** Change one line and measure how long until the service serves the change. We change the word `ok` that `/health` returns:
+**Save to ready.** Change one line and measure how long until the service serves the change. We change the word `ok` that `/health` returns. The example README says every edit rebuilds the image today, so expect seconds, not milliseconds. That is the number we want to see:
 
 ```bash
 now() { perl -MTime::HiRes=time -e 'printf "%.1f", time'; }
 f=services/one-backend-python/api/src/main.py
-sed -i.bak 's/"status": "ok"/"status": "changed"/' "$f"
+perl -pi -e 's/"status": "ok"/"status": "changed"/' "$f"
 start=$(now)
 until curl -fs http://api.one-backend-python.localhost/api/api-backend/health | grep -q changed; do sleep 0.2; done
 echo "save to ready: $(perl -e "printf '%.1f', $(now) - $start") s"
-mv "$f.bak" "$f"   # undo the edit
+git checkout -- "$f"   # undo the edit
 ```
 
-**Compare with `uvicorn --reload`.** Run the same change without TDK, so we can see the gap, if there is one. This needs Python 3.12 or newer:
+**Compare with `uvicorn --reload`.** Run the same change without TDK, so we can see the gap, if there is one. This needs Python 3.12 or newer. Run `tdk down` first so the two do not compete for CPU, and keep the virtual environment outside the project:
 
 ```bash
 cd services/one-backend-python/api
-python3 -m venv .venv && . .venv/bin/activate
+python3 -m venv /tmp/uvicorn-venv && . /tmp/uvicorn-venv/bin/activate
 pip install fastapi==0.115.6 "uvicorn[standard]==0.34.0"
 uvicorn main:app --app-dir src --port 4000 --reload
 ```
 
-In a second terminal, repeat the "save to ready" step against `http://localhost:4000/health` instead of the `.localhost` URL. Stop with Ctrl-C when you are done.
+In a second terminal, repeat the "save to ready" step from the example folder, using `http://localhost:4000/health` instead of the `.localhost` URL. Stop with Ctrl-C when you are done.
 
 If the Postgres part of the issue matters to you, also note any connection errors the API logs while Postgres starts. `tdk logs` shows them.
 
