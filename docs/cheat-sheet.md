@@ -1,14 +1,62 @@
-# TDK mega cheat sheet
+# ⚡ TDK mega cheat sheet
 
-Every `tdk` command, alias and flag on one page. The flags come from `tdk <command> --help` for v1.3.125. Run that command for the exact text in your version.
+> Every `tdk` command, alias and flag on one page. Taken from `tdk <command> --help` for **v1.3.125**. Your version may differ, so run `tdk <command> --help` to check.
 
-For the ten most common commands, see the [short cheat sheet](../cli/README.md#cheat-sheet).
+**Jump to:** [🚀 Start](#-first-five-minutes) · [🔥 Top 10](#-top-10) · [🗺️ Map](#️-how-it-fits-together) · [🌍 Project](#-project) · [📦 Resources](#-resources) · [🗂️ Stacks](#️-stacks) · [▶️ Lifecycle](#️-lifecycle) · [⚙️ Config](#️-configuration) · [🩺 Diagnostics](#-diagnostics-and-tooling) · [🤖 JSON](#-json-output-and-exit-codes) · [🌱 Env](#-environment-variables) · [📁 Files](#-files-tdk-writes) · [🍳 Recipes](#-recipes)
 
-Model: **Project → Stack → Resource**. A project holds resources (services). Stacks group resources so you can start them together.
+Want the short version? See the [10-row cheat sheet](../cli/README.md#cheat-sheet).
 
-Requirements: Docker (Engine 25+, Compose 2.20.2+), [Tilt](https://docs.tilt.dev/install.html), and Bun 1.2+ for the default generated services. On Windows, run the CLI in WSL2 ([setup](wsl2.md)).
+> [!NOTE]
+> Needs Docker (Engine 25+, Compose 2.20.2+), [Tilt](https://docs.tilt.dev/install.html), and Bun 1.2+ for the default generated services. On Windows, run the CLI in WSL2 ([setup](wsl2.md)).
 
-## Install and update
+## 🚀 First five minutes
+
+```bash
+curl -fsSL https://tdk-landscape.github.io/install.sh | sh   # install
+tdk doctor                                                  # Docker, Tilt and Bun OK?
+tdk project --yes                                           # create the project
+tdk resource api --type backend --stack api --yes           # a Bun + Hono API
+tdk resource web --type frontend --stack api --yes          # a React app
+tdk up api                                                  # start the stack
+tdk networks                                                # where is everything?
+tdk down --force                                            # stop it all
+```
+
+> [!TIP]
+> Run `tdk` with no arguments for a quick readiness check. It exits 1 if your machine is not ready.
+
+## 🔥 Top 10
+
+| You want to… | Run |
+| --- | --- |
+| Start everything | `tdk up` |
+| Start one service and what it needs | `tdk up --only orders-api` |
+| See what is running | `tdk status --tilt` |
+| Get the URLs | `tdk networks --raw` |
+| Read recent logs | `tdk logs -s orders-api --since 5m` |
+| Add a service | `tdk resource <name> --type backend --yes` |
+| Group services | `tdk stack api --resources a b --yes` |
+| Fix "my machine is weird" | `tdk doctor` |
+| Fix "generated files drifted" | `tdk config regenerate` |
+| Stop everything | `tdk down --force` |
+
+## 🗺️ How it fits together
+
+A **project** holds **resources** (services). **Stacks** group resources so you start them together.
+
+```mermaid
+flowchart LR
+  A[tdk project] --> B[tdk resource]
+  I[tdk import] --> B
+  B --> C[tdk stack]
+  C --> D[tdk up]
+  D --> E[tdk status / logs / networks]
+  E --> F[tdk down]
+  D -. drift? .-> G[tdk config regenerate]
+  G --> D
+```
+
+## ⬆️ Install and update
 
 ```bash
 curl -fsSL https://tdk-landscape.github.io/install.sh | sh
@@ -18,21 +66,7 @@ tdk upgrade --force --yes   # reinstall even if already on latest, no prompt
 tdk version                 # aliases: tdk v, tdk -v, tdk --version
 ```
 
-## First five minutes
-
-```bash
-tdk doctor                                    # check Docker, Tilt and Bun
-tdk project --yes                             # create master configs with defaults
-tdk resource api --type backend --stack api --yes
-tdk resource web --type frontend --stack api --yes
-tdk up api                                    # start the stack
-tdk networks                                  # print the Traefik URLs
-tdk down --force                              # stop everything
-```
-
-Running `tdk` with no arguments runs a quick readiness preflight and exits 1 if it fails.
-
-## Global options
+## 🌐 Global options
 
 | Flag | Effect |
 | --- | --- |
@@ -41,7 +75,7 @@ Running `tdk` with no arguments runs a quick readiness preflight and exits 1 if 
 | `-h`, `--help` | Help. `tdk help <command>` works too |
 | `tdk --doctor` | Same as `tdk doctor` |
 
-## Commands at a glance
+## 📋 Commands at a glance
 
 | Command | Aliases | What it does |
 | --- | --- | --- |
@@ -68,7 +102,7 @@ Running `tdk` with no arguments runs a quick readiness preflight and exits 1 if 
 | `tdk version` | `v` | Print the version |
 | `tdk maintainers check [file]` | | Check `MAINTAINERS.md` |
 
-## Project
+## 🌍 Project
 
 ### `tdk project [template]`
 
@@ -86,7 +120,7 @@ tdk project saas --path my-app       # clone into my-app/
 | `[template]` | Clone a starter instead of a blank project: `restaurant`, `saas`, `erp`, `user-management`, `ecommerce`, `example` |
 | `--path <dir>` | Directory to clone the template into (default: the template's repo name) |
 | `--check` | Check that master configs exist and are in sync |
-| `--force` | Overwrite existing configuration (destructive) |
+| `--force` | Overwrite existing configuration ⚠️ destructive |
 | `--yes` | Non-interactive, use defaults |
 | `--config-file <path>` | Load project config from an existing JSON file |
 
@@ -129,7 +163,7 @@ Writes `EJECTED.md` describing the generated Tilt files. It copies nothing; the 
 
 See [leaving TDK](leaving-tdk.md).
 
-## Resources
+## 📦 Resources
 
 ### `tdk resource [name]`
 
@@ -153,7 +187,7 @@ tdk resource old-api --path services/old-api --register-existing
 | `--framework <id>` | Frontend: `react` (default), `vue`, `svelte`, `preact`, `lit`, `solid`, `qwik`, `vanilla`, `tanstack-router`. Backend: `hono` (default), `express`, `elysia`, `fastify`, `nestjs`, `koa`, `h3` |
 | `--frameworks` | List registered frontend frameworks and exit |
 | `--language <id>` | Backend language: `bun` (default), `python`, `go`, `rust` |
-| `-s`, `--stack <stack>` | Stack to assign to (default `default`) |
+| `-s`, `--stack <stack>` | Stack to assign the resource to |
 | `-p`, `--path <path>` | Custom resource directory. `--resource-path` is an older alias |
 | `--register-existing` | Register an existing resource without creating templates |
 | `-y`, `--yes` | No prompts, use defaults |
@@ -191,7 +225,7 @@ tdk resources --json
 | `-v`, `--verbose` | More detail per resource |
 | `--json` | Versioned JSON report |
 
-## Stacks
+## 🗂️ Stacks
 
 ### `tdk stack [stack-name]`
 
@@ -216,7 +250,7 @@ tdk stack --list                                      # resources without a stac
 | `-v`, `--verbose` | More detail per stack |
 | `--json` | Versioned JSON report |
 
-## Lifecycle
+## ▶️ Lifecycle
 
 ### `tdk up [stack-name]` (alias `deploy`)
 
@@ -240,7 +274,11 @@ tdk up --json &                # one JSON object when ready; Tilt keeps running
 | `-q`, `--quiet` | Less output |
 | `-v`, `--verbose` | More output |
 
-`tdk up` prints the host ports and URLs it chose. A resource named `orders-api` is served at `/api/orders`.
+> [!TIP]
+> `tdk up` prints the host ports and URLs it chose. A resource named `orders-api` is served at `/api/orders`, because a trailing `-api` is dropped.
+
+> [!IMPORTANT]
+> `tdk up --json` returns once the stack is ready, and Tilt keeps running. Run it in the background (`&`).
 
 ### `tdk down`
 
@@ -264,7 +302,7 @@ tdk up --json &                # one JSON object when ready; Tilt keeps running
 
 ### `tdk logs`
 
-A bounded snapshot of recent logs, not a follow stream.
+A bounded snapshot of recent logs. It does not follow new output; for live logs, use the Tilt UI.
 
 ```bash
 tdk logs
@@ -289,7 +327,7 @@ tdk logs --since 5m --json
 | `--json` | Versioned JSON report |
 | `--json-legacy` | Old JSON array (deprecated) |
 
-## Configuration
+## ⚙️ Configuration
 
 ```bash
 tdk config regenerate --dry-run      # preview changes to the 4 master files
@@ -312,7 +350,7 @@ tdk config disable-infra elk
 
 See [configuration](configuration.md), [environment, params and secrets](environment.md) and [generated files](generated-files.md).
 
-## Diagnostics and tooling
+## 🩺 Diagnostics and tooling
 
 ### `tdk doctor`
 
@@ -370,7 +408,7 @@ tdk completion --shell bash --install
 
 Checks that `MAINTAINERS.md` (or `[file]`) lists 3 maintainers from 2 companies.
 
-## JSON output and exit codes
+## 🤖 JSON output and exit codes
 
 Commands with `--json`: `projects`, `resources`, `stacks`, `status`, `up`, `down`, `logs`, `networks`, `doctor`, `runtime`, `config verify`.
 
@@ -382,7 +420,7 @@ Commands with `--json`: `projects`, `resources`, `stacks`, `status`, `up`, `down
 
 stdout holds one JSON document; diagnostics go to stderr. See [machine-readable CLI](reference/machine-readable-cli.md).
 
-## Environment variables
+## 🌱 Environment variables
 
 | Variable | Effect |
 | --- | --- |
@@ -397,21 +435,20 @@ stdout holds one JSON document; diagnostics go to stderr. See [machine-readable 
 
 Project `.env` keys (`DB_PASSWORD`, `DATABASE_URL`, `JWT_SECRET`, ...) are covered in [environment, params and secrets](environment.md).
 
-## Files TDK writes
+## 📁 Files TDK writes
 
 | Path | What it is |
 | --- | --- |
-| `.tdk/project.json` | Project settings; the source for `tdk config regenerate` |
-| `TILT_RESOURCE_DEFAULTS.star` | Port ranges, health checks, memory limits |
-| `TILT_TECH_STACK.star` | Technology labels and compatibility checks |
-| `<resource>/service.json` | One per resource: type, port, stack, params, secrets |
-| `<resource>/.autogenerated/` | Generated Docker and Tilt files for that resource. Edit `service.json`, not these |
-| `.tdk/.tdk-out/` | Generated project-level files, checked by `tdk config verify` |
-| `.env` | Generated credentials (gitignored) |
+| `.tdk/project.json` | Project settings. `tdk config regenerate` rebuilds from it |
+| `.tdk/.tdk-out/` | The 4 master files: `Tiltfile`, `spec.master`, `TILT_RESOURCE_DEFAULTS.star`, `TILT_TECH_STACK.star` |
+| `services/<group>/<name>/service.json` | One per resource: type, port, stack, params, secrets. **Edit this** |
+| `services/<group>/<name>/.autogenerated/` | Docker and Tilt files generated from `service.json`. Don't hand-edit them |
+| `.env` | Generated credentials. Gitignored |
+| `shared-platform-engineering/` | Shared Docker helper scripts |
 
 See [generated files](generated-files.md) and [layout](layout.md).
 
-## Recipes
+## 🍳 Recipes
 
 ```bash
 # CI gate
@@ -423,11 +460,11 @@ tdk up --only orders-api --json > up.json &
 # What is running and where?
 tdk status --tilt && tdk networks --raw
 
-# Last 5 minutes of errors from one service
+# Last 5 minutes of logs from one service, as JSON
 tdk logs -s orders-api --since 5m --json
 
 # Clean shutdown, including unused networks
 tdk down --force --prune-networks
 ```
 
-More in [recipes](recipes/) and [CI](ci.md).
+More in [recipes](recipes/) and [CI](ci.md). Found a missing flag? [Open an issue](https://github.com/tdk-landscape/tdk-cli-core/issues/new). 🙌
