@@ -4,6 +4,17 @@ Notable changes to the `tdk` CLI. Versions match [npm](https://www.npmjs.com/pac
 
 ## Unreleased
 
+## 1.3.130 (2026-10-08)
+
+Covers changes merged since 1.3.127. Versions 1.3.128 and 1.3.129 were published automatically from the same branch without changelog entries.
+
+- Releases now come with a signed checksum list: `checksums.txt.sigstore.json` (keyless Sigstore signature from the release workflow) is attached next to the binaries in [tdk-cli-releases](https://github.com/tdk-landscape/tdk-cli-releases/releases) and to a release with the same tag here. How to verify is in [docs/security.md](docs/security.md#releases). The binaries themselves are not signed individually (#840).
+- `tdk resource` for a Python backend now writes `pytest==9.0.3` in the generated `pyproject.toml` (was 8.3.4, affected by GHSA-6w46-j5rx-g56g).
+- Examples: bumped past known advisories: fiber v2.52.15 and starlette 1.x (BYO examples), puma 7.2.1 (Sinatra), NestJS 11.1.18, drizzle-orm 0.45.2, pytest 9.0.3, and four transitive JavaScript dependencies in the repository lockfiles (#832, Dependabot alerts).
+- Supply chain: every GitHub Action is pinned to a commit SHA and every checked-in Dockerfile base image to a digest; the skills-sync workflow no longer has repository-wide write access (#831, #839).
+- Security policy: `SECURITY.md` now states acknowledgement, assessment, fix and disclosure timelines (#836).
+- Tests: a property-based fuzz test for the `service.json` line-break guard runs on every pull request (#834).
+
 ## 1.3.127 (2026-10-08)
 
 - Security hardening flagged by Socket (#826). The npm package no longer includes `ext/ide-components/code_executor/server.py`, a browser terminal that ran client-supplied commands through a shell. `tdk` and the Tilt engine never started it. The other IDE components are unchanged. `tdk doctor` now single-quotes the registry URL and container name it passes to `curl` and `docker logs`, so a value such as `$(...)` can no longer run a command.
