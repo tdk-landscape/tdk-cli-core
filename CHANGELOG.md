@@ -6,14 +6,23 @@ Notable changes to the `tdk` CLI. Versions match [npm](https://www.npmjs.com/pac
 
 ## 1.3.130 (2026-10-08)
 
-Covers changes merged since 1.3.127. Versions 1.3.128 and 1.3.129 were published automatically from the same branch without changelog entries.
+- Releases now come with a signed checksum list: `checksums.txt.sigstore.json` (keyless Sigstore signature from the release workflow) is attached next to the binaries in [tdk-cli-releases](https://github.com/tdk-landscape/tdk-cli-releases/releases) and to a release with the same tag here. How to verify is in [docs/security.md](docs/security.md#releases). The binaries themselves are not signed individually (#869, #840).
+- `tdk resource` for a Python backend now writes `pytest==9.0.3` in the generated `pyproject.toml` (was 8.3.4, affected by GHSA-6w46-j5rx-g56g) (#867).
+- Examples: bumped past open Dependabot alerts: puma 7.2.1 (Sinatra), NestJS 11.1.18, drizzle-orm 0.45.2 and pytest 9.0.3 (#867).
+- Supply chain: every checked-in Dockerfile base image is pinned to a digest (#865).
+- Tests: a property-based fuzz test for the `service.json` line-break guard runs on every pull request (#866).
+- Docs: the README shows the OpenSSF Best Practices badge (#868).
 
-- Releases now come with a signed checksum list: `checksums.txt.sigstore.json` (keyless Sigstore signature from the release workflow) is attached next to the binaries in [tdk-cli-releases](https://github.com/tdk-landscape/tdk-cli-releases/releases) and to a release with the same tag here. How to verify is in [docs/security.md](docs/security.md#releases). The binaries themselves are not signed individually (#840).
-- `tdk resource` for a Python backend now writes `pytest==9.0.3` in the generated `pyproject.toml` (was 8.3.4, affected by GHSA-6w46-j5rx-g56g).
-- Examples: bumped past known advisories: fiber v2.52.15 and starlette 1.x (BYO examples), puma 7.2.1 (Sinatra), NestJS 11.1.18, drizzle-orm 0.45.2, pytest 9.0.3, and four transitive JavaScript dependencies in the repository lockfiles (#832, Dependabot alerts).
-- Supply chain: every GitHub Action is pinned to a commit SHA and every checked-in Dockerfile base image to a digest; the skills-sync workflow no longer has repository-wide write access (#831, #839).
-- Security policy: `SECURITY.md` now states acknowledgement, assessment, fix and disclosure timelines (#836).
-- Tests: a property-based fuzz test for the `service.json` line-break guard runs on every pull request (#834).
+## 1.3.129 (2026-10-08)
+
+- Security policy: `SECURITY.md` now states acknowledgement, assessment, fix and disclosure timelines (#842).
+- Dependencies: four vulnerable transitive JavaScript dependencies bumped in `bun.lock` and `cli/pnpm-lock.yaml` (shell-quote, smol-toml, source-map-js, ws), and the BYO fiber (v2.52.15) and starlette (1.x) examples moved past known advisories (#843, #844, #845).
+- Supply chain: every GitHub Action is pinned to a commit SHA (#864).
+- Docs: a guide for testing webhooks locally (#846).
+
+## 1.3.128 (2026-10-08)
+
+- Internal: the skills-sync workflow gets `contents: write` only on the job that pushes, not workflow-wide (#841). No change to the CLI.
 
 ## 1.3.127 (2026-10-08)
 
