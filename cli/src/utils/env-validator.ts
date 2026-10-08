@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { writeTextFileAtomic } from "./atomic-write.js";
 
 export interface EnvVariable {
   name: string;
@@ -211,10 +212,26 @@ export function validateEnvFile(projectRoot: string): {
 }
 
 /**
- * Appends the keys a newer CLI expects to an existing .env, without touching or rotating anything already there (an existing
- * DB_PASSWORD must survive, or the database volume stops accepting it). Creates the file when it is missing.
+ * Replaces the value in one parsed assignment while preserving its prefix, inline comment, and line ending.
+ * The caller only uses this for assignments whose parsed value is empty or whitespace.
+ */
+function replaceEmptyEnvValue(line: string, name: string, value: string): string {
+  const parsed = parseEnv(line);
+  if (!parsed.has(name)) return line;
+
+  const equalsIndex = line.indexOf("=");
+  if (equalsIndex < 0) return line;
+  const rawValue = line.slice(equalsIndex + 1);
+  const commentIndex = rawValue.search(/\s#/);
+  const comment = commentIndex < 0 ? "" : rawValue.slice(commentIndex);
+  return line.slice(0, equalsIndex + 1) + value + comment;
+}
+
+/**
+ * Appends missing keys a newer CLI expects and fills empty generated keys in place.
+ * Non-empty values are not changed. Creates the file when it is missing.
  *
- * @returns the names that were added, empty when the file was already complete
+ * @returns the names that were added or filled in, empty when the file was already complete
  */
 export function completeEnvFile(projectRoot: string): string[] {
   const envPath = join(projectRoot, ".env");
@@ -226,25 +243,55 @@ export function completeEnvFile(projectRoot: string): string[] {
 
   const existing = readFileSync(envPath, "utf-8");
   const env = parseEnv(existing);
-  const toAdd = REQUIRED_ENV_VARS.filter((v) => v.complete && !env.has(v.name));
-  if (toAdd.length === 0) return [];
+  const toComplete = REQUIRED_ENV_VARS.filter((v) => {
+    if (!v.complete) return false;
+    if (!env.has(v.name)) return true;
+    return !(env.get(v.name) ?? "").trim();
+  });
+  if (toComplete.length === 0) return [];
 
-  // Anything generated from the password must use the project's existing one.
-  const password = env.get("DB_PASSWORD") || generateDbPassword();
-  const lines = [
-    "",
-    "# Added by TDK: keys this version expects. Existing values above were not changed.",
-    "",
-  ];
-  for (const envVar of toAdd) {
-    lines.push(...describe(envVar));
-    lines.push(`${envVar.name}=${generatedValue(envVar.name, password)}`);
-    lines.push("");
+  const toAdd = toComplete.filter((v) => !env.has(v.name));
+  const toRepair = toComplete.filter((v) => env.has(v.name));
+
+  // Anything generated from the password must use the project's existing non-empty value.
+  const existingPassword = env.get("DB_PASSWORD");
+  const password = existingPassword?.trim() ? existingPassword : generateDbPassword();
+  const lines = existing.split(/(\r\n|\n|\r)/);
+
+  for (const envVar of toRepair) {
+    let lineIndex = -1;
+    for (let index = 0; index < lines.length; index += 2) {
+      if (parseEnv(lines[index]).has(envVar.name)) lineIndex = index;
+    }
+    if (lineIndex < 0) {
+      throw new Error(`Could not locate empty .env assignment for ${envVar.name}`);
+    }
+    lines[lineIndex] = replaceEmptyEnvValue(
+      lines[lineIndex],
+      envVar.name,
+      generatedValue(envVar.name, password),
+    );
   }
 
-  const separator = existing.endsWith("\n") ? "" : "\n";
-  writeFileSync(envPath, `${existing}${separator}${lines.join("\n")}`);
-  return toAdd.map((v) => v.name);
+  let updated = lines.join("");
+  if (toAdd.length > 0) {
+    const addedLines = [
+      "",
+      "# Added by TDK: keys this version expects. Existing values above were not changed.",
+      "",
+    ];
+    for (const envVar of toAdd) {
+      addedLines.push(...describe(envVar));
+      addedLines.push(`${envVar.name}=${generatedValue(envVar.name, password)}`);
+      addedLines.push("");
+    }
+
+    const separator = updated.endsWith("\n") || updated.endsWith("\r") ? "" : "\n";
+    updated += separator + addedLines.join("\n");
+  }
+
+  writeTextFileAtomic(envPath, updated);
+  return toComplete.map((v) => v.name);
 }
 
 export function ensureEnvFile(projectRoot: string): boolean {

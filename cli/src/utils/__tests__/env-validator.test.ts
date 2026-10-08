@@ -1,7 +1,8 @@
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import * as atomicWrite from "../atomic-write.js";
 import * as envValidator from "../env-validator.js";
 
 let root = "";
@@ -169,6 +170,72 @@ describe("completing an existing .env", () => {
     expect(envValue(readEnv(), "JWT_SECRET")).toMatch(/^[0-9a-f]{64}$/);
   });
 
+  it("repairs empty generated keys in place and preserves the other file bytes", () => {
+    const original = [
+      "# keep this comment",
+      "TILT_ENV=   # cleared",
+      "DB_PASSWORD=keep-this-password",
+      "JWT_SECRET=",
+      "CUSTOM_VAR=unchanged",
+      "",
+    ].join("\r\n");
+    writeEnv(original);
+
+    const completed = envValidator.completeEnvFile(root);
+    const content = readEnv();
+    const secret = envValue(content, "JWT_SECRET");
+
+    expect(completed).toEqual(["TILT_ENV", "JWT_SECRET"]);
+    expect(secret).toMatch(/^[0-9a-f]{64}$/);
+    expect(content).toBe(
+      original
+        .replace("TILT_ENV=   # cleared", "TILT_ENV=dev # cleared")
+        .replace("JWT_SECRET=", `JWT_SECRET=${secret}`),
+    );
+  });
+
+  it("leaves the existing file intact when an atomic repair write fails", () => {
+    const original = envValidator.generateEnvFile().replace(/^TILT_ENV=.*$/m, "TILT_ENV=");
+    writeEnv(original);
+    const write = vi.spyOn(atomicWrite, "writeTextFileAtomic").mockImplementation(() => {
+      throw new Error("atomic replacement failed");
+    });
+
+    try {
+      expect(() => envValidator.completeEnvFile(root)).toThrow("atomic replacement failed");
+      expect(write).toHaveBeenCalledTimes(1);
+      expect(readEnv()).toBe(original);
+    } finally {
+      write.mockRestore();
+    }
+  });
+
+  it("repairs an empty database password without changing the database URL", () => {
+    const original = [
+      "TILT_ENV=dev",
+      "DB_PASSWORD=",
+      "JWT_SECRET=existing-secret",
+      "DATABASE_URL=postgresql://postgres:configured@postgres:5432/app_dev",
+      "",
+    ].join("\r\n");
+    writeEnv(original);
+
+    const completed = envValidator.completeEnvFile(root);
+    const content = readEnv();
+    const password = envValue(content, "DB_PASSWORD");
+
+    expect(completed).toEqual(["DB_PASSWORD"]);
+    expect(password).toMatch(/^[0-9a-f]{32}$/);
+    expect(content).toBe(original.replace("DB_PASSWORD=", `DB_PASSWORD=${password}`));
+  });
+
+  it("does not change non-empty generated keys", () => {
+    const original = "TILT_ENV=prod\nDB_PASSWORD=keep-this-password\nJWT_SECRET=keep-this-secret\n";
+    writeEnv(original);
+
+    expect(envValidator.completeEnvFile(root)).toEqual([]);
+    expect(readEnv()).toBe(original);
+  });
   it("keeps ensureEnvFile reporting only a newly created file", () => {
     writeEnv("TILT_ENV=dev\nDB_PASSWORD=keep-this-password\n");
     expect(envValidator.ensureEnvFile(root)).toBe(false);

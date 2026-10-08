@@ -16,10 +16,10 @@ export declare function validateEnvFile(projectRoot: string): {
     warnings: string[];
 };
 /**
- * Appends the keys a newer CLI expects to an existing .env, without touching or rotating anything already there (an existing
- * DB_PASSWORD must survive, or the database volume stops accepting it). Creates the file when it is missing.
+ * Appends missing keys a newer CLI expects and fills empty generated keys in place.
+ * Non-empty values are not changed. Creates the file when it is missing.
  *
- * @returns the names that were added, empty when the file was already complete
+ * @returns the names that were added or filled in, empty when the file was already complete
  */
 export declare function completeEnvFile(projectRoot: string): string[];
 export declare function ensureEnvFile(projectRoot: string): boolean;
