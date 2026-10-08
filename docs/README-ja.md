@@ -100,6 +100,6 @@ TDK は、このリポジトリや npm パッケージの日付から想像さ�
 
 ## コントリビューションとライセンス
 
-コントリビューションを歓迎します。まず [CONTRIBUTING.md](../CONTRIBUTING.md) と[コントリビューターガイド](contributing/README.md)をご覧ください。セキュリティ上の問題は [SECURITY.md](../SECURITY.md) に従って報告してください。
+コントリビューションを歓迎します。まず [コントリビュートガイド（日本語）](contributing/translations/CONTRIBUTING-ja.md) と[コントリビューターガイド](contributing/README.md)をご覧ください。pull request をレビューするには [pull request をレビューする](contributing/04-review-a-pr.md)（英語）をご覧ください。セキュリティ上の問題は [SECURITY.md](../SECURITY.md) に従って報告してください。
 
 TDK は MIT ライセンスです。[LICENSE](../LICENSE) を参照してください。

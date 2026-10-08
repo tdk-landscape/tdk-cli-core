@@ -100,6 +100,6 @@ TDK 比本仓库及其 npm 包所显示的更早。开发始于 2026 年 4 月 2
 
 ## 贡献与许可
 
-欢迎贡献。请从 [CONTRIBUTING.md](../CONTRIBUTING.md) 和[贡献者指南](contributing/README.md)开始。请按照 [SECURITY.md](../SECURITY.md) 报告安全问题。
+欢迎贡献。请从 [贡献指南（中文）](contributing/translations/CONTRIBUTING-zh_cn.md) 和[贡献者指南](contributing/README.md)开始。想审查 pull request？请看[审查 pull request](contributing/04-review-a-pr.md)（英文）。请按照 [SECURITY.md](../SECURITY.md) 报告安全问题。
 
 TDK 采用 MIT 许可；参见 [LICENSE](../LICENSE)。

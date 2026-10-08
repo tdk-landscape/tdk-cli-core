@@ -100,6 +100,6 @@ TDK는 이 저장소와 npm 패키지 날짜가 시사하는 것보다 오래되
 
 ## 기여 및 라이선스
 
-기여를 환영합니다. [CONTRIBUTING.md](../CONTRIBUTING.md)와 [기여자 가이드](contributing/README.md)부터 시작하세요. 보안 문제는 [SECURITY.md](../SECURITY.md)에 따라 신고해 주세요.
+기여를 환영합니다. [기여 가이드(한국어)](contributing/translations/CONTRIBUTING-ko.md)와 [기여자 가이드](contributing/README.md)부터 시작하세요. pull request를 리뷰하려면 [pull request 리뷰하기](contributing/04-review-a-pr.md)(영어)를 참고하세요. 보안 문제는 [SECURITY.md](../SECURITY.md)에 따라 신고해 주세요.
 
 TDK는 MIT 라이선스입니다. [LICENSE](../LICENSE)를 참고하세요.
