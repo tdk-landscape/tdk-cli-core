@@ -38,6 +38,7 @@
     "discovery",
     "specs",
     "ext",
+    "!ext/ide-components/code_executor",
     "shared-platform-engineering/docker-templates"
   ],
   "scripts": {
