@@ -87,6 +87,21 @@ describe("buildStartupReport", () => {
     expect(report.starting).toEqual([]);
   });
 
+  it("keeps the build error when an update failed on a container that is also unhealthy", () => {
+    const report = buildStartupReport(
+      json(
+        item("postgres", "error", "ok", {
+          ...unhealthy,
+          ...failedBuild("Bind for 0.0.0.0:5432 failed: port is already allocated"),
+        }),
+      ),
+      {},
+    );
+    expect(report.failed).toEqual([
+      { name: "postgres", message: "host port 5432 is already allocated" },
+    ]);
+  });
+
   it("keeps a database whose health check has not passed yet as starting", () => {
     const report = buildStartupReport(
       json(item("postgres", "ok", "ok", { composeResourceInfo: { healthStatus: "starting" } })),

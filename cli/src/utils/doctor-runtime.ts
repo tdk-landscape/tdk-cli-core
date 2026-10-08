@@ -170,9 +170,9 @@ export function parseTiltResourceFailures(
     const updateStatus = item.status?.updateStatus ?? "";
     const runtimeStatus = effectiveRuntimeStatus(item.status);
     const unhealthy = runtimeStatus === "error" && item.status?.runtimeStatus === "ok";
-    const error = unhealthy
-      ? UNHEALTHY_CONTAINER_MESSAGE
-      : (item.status?.buildHistory?.[0]?.error ?? "").trim();
+    // A failed build's own error is the cause to show; the health message only fills in when there is none.
+    const buildError = (item.status?.buildHistory?.[0]?.error ?? "").trim();
+    const error = buildError || (unhealthy ? UNHEALTHY_CONTAINER_MESSAGE : "");
 
     if (updateStatus === "error" || runtimeStatus === "error") {
       failures.push({
