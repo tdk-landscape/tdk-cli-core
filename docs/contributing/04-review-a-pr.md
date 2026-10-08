@@ -8,6 +8,32 @@ Anyone can review a pull request. Every review follows the same rules:
 
 You are responsible for the review you submit, not the AI.
 
+## Before your first review: required reading
+
+Read these before you review. They take about an hour in total, and you only do it once. Without them you cannot tell whether the AI's comments are right.
+
+**What TDK is**
+
+- [ ] [README](../../README.md): what TDK does and the commands people use.
+- [ ] [Project overview](../project-overview.md): the Project → Stack → Resource model.
+- [ ] [Scope](../scope.md): what TDK is for, and what it is not for.
+- [ ] [Generated files](../generated-files.md): which files TDK writes. Never edit generated files by hand; change the input that produces them.
+
+**How we work**
+
+- [ ] [Contributing](../../CONTRIBUTING.md): labels, issue claims, and DCO sign-off.
+- [ ] [1. Get ready to make a change](01-first-change.md): when a change needs an OpenSpec proposal.
+- [ ] [2. Recipes for each kind of change](02-feature-recipes.md): where code lives and which checks each change needs.
+- [ ] [3. Open a pull request](03-open-a-pr.md): what a good PR has, including before-and-after evidence.
+
+**Rules everyone follows**
+
+- [ ] [Code of Conduct](../../CODE_OF_CONDUCT.md): how we talk to each other in reviews.
+- [ ] [Security policy](../../SECURITY.md): report security problems privately, never in a PR comment.
+- [ ] [Governance](../../GOVERNANCE.md) and [Maintainers](../../MAINTAINERS.md): who decides and who merges.
+
+Then try it once: run the [quick setup](../../CONTRIBUTING.md#quick-setup) so you can check out a PR and run its checks yourself.
+
 ## The short version
 
 1. Open the PR on GitHub and scroll to the end of its description.

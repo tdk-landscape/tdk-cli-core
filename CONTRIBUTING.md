@@ -34,7 +34,7 @@ You do not need to write code to help. Run a command, compare what it prints wit
 
 You can help without writing code by reviewing open [pull requests](https://github.com/tdk-landscape/tdk-cli-core/pulls). Every PR ends with **Grok**, **Claude**, and **Codex** buttons that open an AI chat already asked to review that PR. The AI is your helper: check what it says against the diff, then submit your own review on GitHub as **Comment**, **Approve**, or **Request changes**.
 
-[Review a pull request](docs/contributing/04-review-a-pr.md) explains the buttons step by step, with example comments for approving and for requesting changes.
+Before your first review, read the [required docs](docs/contributing/04-review-a-pr.md#before-your-first-review-required-reading) (about an hour, once). [Review a pull request](docs/contributing/04-review-a-pr.md) then explains the buttons step by step, with example comments for approving and for requesting changes.
 
 ## Find something to work on
 
