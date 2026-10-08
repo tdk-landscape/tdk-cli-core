@@ -5,7 +5,7 @@
   "dependencies": {
     "@mikro-orm/cli": "^6.4.0",
     "@mikro-orm/core": "^6.4.0",
-    "@mikro-orm/migrations": "^6.4.0",
+    "@mikro-orm/migrations": "^7.2.4",
     "@mikro-orm/postgresql": "^6.4.0"
   }
 }
