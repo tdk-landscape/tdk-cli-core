@@ -17,6 +17,13 @@ export const HOST_PORT_FIXES = {
     port80: "Stop the process bound to port 80, or stop local nginx/caddy. Then: tdk doctor",
     port5432: "Stop local Postgres or change the host port. Then: tdk doctor",
 };
+/**
+ * Quote a value for a POSIX shell command line. JSON.stringify is not enough:
+ * inside double quotes `$(...)`, backticks and `$VAR` are still expanded.
+ */
+export function shellQuote(value) {
+    return `'${value.replace(/'/g, `'\\''`)}'`;
+}
 function runHostCommand(exec, command, args, shellCommand, options) {
     if (process.platform === "win32") {
         return execFileSync(findOnPath(command) ?? command, args, {
@@ -269,7 +276,7 @@ export function checkPrivateNpmRegistry(exec = execSync, projectRoot = findProje
                 timeout: REGISTRY_PROBE_TIMEOUT_MS + 1_000,
                 windowsHide: true,
             }).trim()
-            : exec(`curl -fsS -o /dev/null -w '%{http_code}' --max-time 2 ${JSON.stringify(registryUrl)}`, {
+            : exec(`curl -fsS -o /dev/null -w '%{http_code}' --max-time 2 ${shellQuote(registryUrl)}`, {
                 stdio: "pipe",
                 encoding: "utf-8",
                 timeout: REGISTRY_PROBE_TIMEOUT_MS + 1_000,
@@ -648,7 +655,7 @@ export function probeContainerRuntimeError(resourceName, exec = execSync) {
             names.find((name) => name.includes(resourceName));
         if (!match)
             return null;
-        const logs = runHostCommand(exec, "docker", ["logs", "--tail", "120", match], `docker logs --tail 120 ${JSON.stringify(match)} 2>&1`, {
+        const logs = runHostCommand(exec, "docker", ["logs", "--tail", "120", match], `docker logs --tail 120 ${shellQuote(match)} 2>&1`, {
             stdio: "pipe",
             encoding: "utf-8",
             timeout: EXEC_TIMEOUT_MS,
