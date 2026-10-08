@@ -1,6 +1,6 @@
 # falcon
 
-**Stack:** a minimal Falcon 4 ASGI app served by uvicorn (Python 3.12), two files: `app.py` and `requirements.txt`
+**Stack:** a minimal Falcon 4 ASGI app served by uvicorn (Python 3.12), `app.py`, `requirements.in` (the dependencies you want), and `requirements.txt` (hash-locked from it with `uv pip compile --generate-hashes`)
 
 **Notes:**
 - Falcon has no project generator, so unlike the `create-*` examples the app is written out here (a `/health` route and a `/` route).
