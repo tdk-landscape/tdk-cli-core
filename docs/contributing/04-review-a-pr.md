@@ -92,7 +92,7 @@ The first answer is a summary. Ask follow-ups to get a more useful review:
 
 ### Merge conflict buttons
 
-If a PR conflicts with `main`, the [AI conflict buttons workflow](../../.github/workflows/ai-conflict-buttons.yml) posts one comment on the PR with **Resolve conflict** buttons for Grok, Claude, and Codex. These give the AI step-by-step instructions to merge `main` into the branch and push the fix. Use them only if you can push to that branch, and check the result like any other change. When the conflict is gone, the same comment changes to say so and the buttons disappear.
+If a PR conflicts with `main`, the [AI conflict buttons workflow](../../.github/workflows/ai-conflict-buttons.yml) posts one comment on the PR with **Resolve conflict** buttons for Grok, Claude, and Codex. These give the AI step-by-step instructions to merge `main` into the branch and push the fix. If the AI cannot push to that branch (for example, a fork you do not own), the instructions tell it to push a `fix/<PR number>-conflict` branch instead and open a replacement PR that links the same issue. Check the result like any other change, and comment on the original PR with a link to the replacement. When the conflict is gone, the same comment changes to say so and the buttons disappear.
 
 ## What to look at
 
