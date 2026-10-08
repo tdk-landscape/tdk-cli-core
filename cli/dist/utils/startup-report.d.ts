@@ -3,7 +3,10 @@ export interface StartupReport {
         name: string;
         message: string;
     }>;
-    /** Not ready and depending, directly or through other services, on something that failed. */
+    /**
+     * Depending, directly or through other services, on something that failed. Such a service is not ready even when its
+     * own container runs: Tilt starts dependents once a dependency's container runs, before its health check passes.
+     */
     blocked: Array<{
         name: string;
         because: string[];

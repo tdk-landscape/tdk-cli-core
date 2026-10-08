@@ -1,6 +1,6 @@
 import type { ResourceStatus } from "../types/index.js";
 import { buildStartupReport, transitiveDependencies } from "./startup-report.js";
-import { isTiltResourcePending } from "./tilt-resource-state.js";
+import { effectiveRuntimeStatus, isTiltResourcePending } from "./tilt-resource-state.js";
 import { onlyEnabledResources } from "./up-readiness.js";
 
 export interface ServiceRuntimeState {
@@ -13,7 +13,11 @@ export interface ServiceRuntimeState {
 
 interface Item {
   metadata?: { name?: string };
-  status?: { updateStatus?: string; runtimeStatus?: string };
+  status?: {
+    updateStatus?: string;
+    runtimeStatus?: string;
+    composeResourceInfo?: { healthStatus?: string };
+  };
 }
 
 /**
@@ -49,7 +53,7 @@ export function deriveServiceStates(
       direct.set(name, { status: "pending" });
     } else if (
       deferred.has(name) &&
-      isTiltResourcePending(item.status?.updateStatus ?? "", item.status?.runtimeStatus ?? "")
+      isTiltResourcePending(item.status?.updateStatus ?? "", effectiveRuntimeStatus(item.status))
     ) {
       direct.set(name, { status: "unknown", reason: "starts on its first request" });
     } else {

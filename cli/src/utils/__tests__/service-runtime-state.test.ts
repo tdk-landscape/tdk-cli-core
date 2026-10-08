@@ -46,6 +46,37 @@ describe("deriveServiceStates", () => {
     expect(states.api).toEqual({ status: "pending", reason: "waiting for postgres" });
   });
 
+  it("shows a running api as waiting while its database health check has not passed", () => {
+    const states = deriveServiceStates(
+      json(
+        item("postgres", "ok", "ok", { composeResourceInfo: { healthStatus: "starting" } }),
+        item("api", "ok", "ok"),
+      ),
+      deps,
+    );
+    expect(states.postgres).toEqual({ status: "pending" });
+    expect(states.api).toEqual({ status: "pending", reason: "waiting for postgres" });
+  });
+
+  it("reports an unhealthy database as failed and the api as blocked by it", () => {
+    const states = deriveServiceStates(
+      json(
+        item("postgres", "ok", "ok", { composeResourceInfo: { healthStatus: "unhealthy" } }),
+        item("api", "ok", "ok"),
+      ),
+      deps,
+    );
+    expect(states.postgres).toEqual({
+      status: "error",
+      reason: "container is running, but its health check is failing",
+    });
+    expect(states.api).toEqual({
+      status: "error",
+      reason: "postgres failed",
+      blockedBy: ["postgres"],
+    });
+  });
+
   it("reports everything ready when everything is", () => {
     const states = deriveServiceStates(
       json(item("postgres", "ok", "ok"), item("api", "ok", "ok"), item("web", "ok", "ok")),

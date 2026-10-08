@@ -8,7 +8,7 @@ import { findProjectRoot } from "./paths.js";
 import { isApiServiceType } from "./resource-kind.js";
 import { getProjectName } from "./service-urls.js";
 import { discoverResources, discoverResourcesFromRoot } from "./services.js";
-import { isTiltResourcePending } from "./tilt-resource-state.js";
+import { effectiveRuntimeStatus, isTiltResourcePending, UNHEALTHY_CONTAINER_MESSAGE, } from "./tilt-resource-state.js";
 import { findOnPath } from "./which.js";
 const EXEC_TIMEOUT_MS = 10_000;
 const REGISTRY_PROBE_TIMEOUT_MS = 3_000;
@@ -104,8 +104,11 @@ export function parseTiltResourceFailures(jsonText, deferredNames = new Set()) {
     for (const item of items) {
         const name = item.metadata?.name ?? "unknown";
         const updateStatus = item.status?.updateStatus ?? "";
-        const runtimeStatus = item.status?.runtimeStatus ?? "";
-        const error = (item.status?.buildHistory?.[0]?.error ?? "").trim();
+        const runtimeStatus = effectiveRuntimeStatus(item.status);
+        const unhealthy = runtimeStatus === "error" && item.status?.runtimeStatus === "ok";
+        const error = unhealthy
+            ? UNHEALTHY_CONTAINER_MESSAGE
+            : (item.status?.buildHistory?.[0]?.error ?? "").trim();
         if (updateStatus === "error" || runtimeStatus === "error") {
             failures.push({
                 name,

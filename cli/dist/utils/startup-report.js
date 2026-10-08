@@ -1,6 +1,6 @@
 import { parseTiltResourceFailures, summarizeTiltBuildError } from "./doctor-runtime.js";
 import { portConflictFix } from "./port-conflict-fix.js";
-import { isTiltResourcePending } from "./tilt-resource-state.js";
+import { effectiveRuntimeStatus, isTiltResourcePending } from "./tilt-resource-state.js";
 import { onlyEnabledResources } from "./up-readiness.js";
 export function transitiveDependencies(name, dependsOn) {
     const seen = new Set();
@@ -16,7 +16,7 @@ export function transitiveDependencies(name, dependsOn) {
     return seen;
 }
 function isPending(item) {
-    return isTiltResourcePending(item.status?.updateStatus ?? "", item.status?.runtimeStatus ?? "");
+    return isTiltResourcePending(item.status?.updateStatus ?? "", effectiveRuntimeStatus(item.status));
 }
 export function buildStartupReport(jsonText, dependsOn, deferred = new Set()) {
     const enabledJson = onlyEnabledResources(jsonText);
@@ -33,15 +33,14 @@ export function buildStartupReport(jsonText, dependsOn, deferred = new Set()) {
     const starting = [];
     for (const item of items) {
         const name = item.metadata?.name ?? "unknown";
-        if (name === "(Tiltfile)" || failedNames.has(name) || deferred.has(name) || !isPending(item)) {
+        if (name === "(Tiltfile)" || failedNames.has(name) || deferred.has(name))
             continue;
-        }
         const because = [...transitiveDependencies(name, dependsOn)]
             .filter((dep) => failedNames.has(dep))
             .sort();
         if (because.length > 0)
             blocked.push({ name, because });
-        else
+        else if (isPending(item))
             starting.push(name);
     }
     return { failed, blocked, starting };
@@ -66,7 +65,12 @@ export function formatStartupReport(report, timedOut) {
         lines.push(`${timedOut ? "Timed out waiting for" : "Still starting:"} ${report.starting.join(", ")}`);
     }
     if (lines.length > 0) {
-        lines.push("The environment is not ready. Tilt is still running; inspect it or run: tdk down");
+        const causes = [...new Set(report.blocked.flatMap((entry) => entry.because))].sort();
+        const count = report.blocked.length;
+        const summary = count > 0
+            ? `: ${causes.join(", ")} failed, so ${count} dependent ${count === 1 ? "service is" : "services are"} not ready`
+            : "";
+        lines.push(`The environment is not ready${summary}. Tilt is still running; inspect it or run: tdk down`);
     }
     return lines;
 }

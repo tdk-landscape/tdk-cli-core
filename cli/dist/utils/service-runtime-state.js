@@ -1,5 +1,5 @@
 import { buildStartupReport, transitiveDependencies } from "./startup-report.js";
-import { isTiltResourcePending } from "./tilt-resource-state.js";
+import { effectiveRuntimeStatus, isTiltResourcePending } from "./tilt-resource-state.js";
 import { onlyEnabledResources } from "./up-readiness.js";
 /**
  * The one answer to "is this service ready?" for `tdk status` and `tdk ui`, from Tilt's resources and the `dependsOn`
@@ -32,7 +32,7 @@ export function deriveServiceStates(jsonText, dependsOn, deferred = new Set()) {
             direct.set(name, { status: "pending" });
         }
         else if (deferred.has(name) &&
-            isTiltResourcePending(item.status?.updateStatus ?? "", item.status?.runtimeStatus ?? "")) {
+            isTiltResourcePending(item.status?.updateStatus ?? "", effectiveRuntimeStatus(item.status))) {
             direct.set(name, { status: "unknown", reason: "starts on its first request" });
         }
         else {

@@ -1,11 +1,14 @@
 import { parseTiltResourceFailures, summarizeTiltBuildError } from "./doctor-runtime.js";
 import { portConflictFix } from "./port-conflict-fix.js";
-import { isTiltResourcePending } from "./tilt-resource-state.js";
+import { effectiveRuntimeStatus, isTiltResourcePending } from "./tilt-resource-state.js";
 import { onlyEnabledResources } from "./up-readiness.js";
 
 export interface StartupReport {
   failed: Array<{ name: string; message: string }>;
-  /** Not ready and depending, directly or through other services, on something that failed. */
+  /**
+   * Depending, directly or through other services, on something that failed. Such a service is not ready even when its
+   * own container runs: Tilt starts dependents once a dependency's container runs, before its health check passes.
+   */
   blocked: Array<{ name: string; because: string[] }>;
   /** Not ready with nothing failed upstream: still building or starting. */
   starting: string[];
@@ -13,7 +16,11 @@ export interface StartupReport {
 
 interface Item {
   metadata?: { name?: string };
-  status?: { updateStatus?: string; runtimeStatus?: string };
+  status?: {
+    updateStatus?: string;
+    runtimeStatus?: string;
+    composeResourceInfo?: { healthStatus?: string };
+  };
 }
 
 export function transitiveDependencies(
@@ -33,7 +40,10 @@ export function transitiveDependencies(
 }
 
 function isPending(item: Item): boolean {
-  return isTiltResourcePending(item.status?.updateStatus ?? "", item.status?.runtimeStatus ?? "");
+  return isTiltResourcePending(
+    item.status?.updateStatus ?? "",
+    effectiveRuntimeStatus(item.status),
+  );
 }
 
 export function buildStartupReport(
@@ -56,14 +66,12 @@ export function buildStartupReport(
   const starting: string[] = [];
   for (const item of items) {
     const name = item.metadata?.name ?? "unknown";
-    if (name === "(Tiltfile)" || failedNames.has(name) || deferred.has(name) || !isPending(item)) {
-      continue;
-    }
+    if (name === "(Tiltfile)" || failedNames.has(name) || deferred.has(name)) continue;
     const because = [...transitiveDependencies(name, dependsOn)]
       .filter((dep) => failedNames.has(dep))
       .sort();
     if (because.length > 0) blocked.push({ name, because });
-    else starting.push(name);
+    else if (isPending(item)) starting.push(name);
   }
   return { failed, blocked, starting };
 }
@@ -94,7 +102,15 @@ export function formatStartupReport(report: StartupReport, timedOut: boolean): s
     );
   }
   if (lines.length > 0) {
-    lines.push("The environment is not ready. Tilt is still running; inspect it or run: tdk down");
+    const causes = [...new Set(report.blocked.flatMap((entry) => entry.because))].sort();
+    const count = report.blocked.length;
+    const summary =
+      count > 0
+        ? `: ${causes.join(", ")} failed, so ${count} dependent ${count === 1 ? "service is" : "services are"} not ready`
+        : "";
+    lines.push(
+      `The environment is not ready${summary}. Tilt is still running; inspect it or run: tdk down`,
+    );
   }
   return lines;
 }

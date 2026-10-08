@@ -7,6 +7,7 @@ function item(name: string, update: string, runtime: string, extra: object = {})
 }
 const json = (...items: object[]) => JSON.stringify({ items });
 const failedBuild = (message: string) => ({ buildHistory: [{ error: message }] });
+const unhealthy = { composeResourceInfo: { healthStatus: "unhealthy" } };
 
 describe("buildStartupReport", () => {
   it("names the failed database and the api that is not ready because of it", () => {
@@ -26,7 +27,11 @@ describe("buildStartupReport", () => {
     expect(report.failed).toEqual([
       { name: "postgres", message: "host port 5432 is already allocated" },
     ]);
-    expect(report.blocked).toEqual([{ name: "api", because: ["postgres"] }]);
+    // frontend runs, but reaches postgres through api, so it is not ready either (as `tdk status` says).
+    expect(report.blocked).toEqual([
+      { name: "api", because: ["postgres"] },
+      { name: "frontend", because: ["postgres"] },
+    ]);
     expect(report.starting).toEqual([]);
   });
 
@@ -64,6 +69,30 @@ describe("buildStartupReport", () => {
       { api: ["redis", "postgres"] },
     );
     expect(report.blocked).toEqual([{ name: "api", because: ["postgres", "redis"] }]);
+  });
+
+  it("names an unhealthy database that Tilt calls running, and the running api that depends on it", () => {
+    const report = buildStartupReport(
+      json(
+        item("postgres", "ok", "ok", unhealthy),
+        item("api", "ok", "ok"),
+        item("worker", "ok", "ok"),
+      ),
+      { api: ["postgres"] },
+    );
+    expect(report.failed).toEqual([
+      { name: "postgres", message: "container is running, but its health check is failing" },
+    ]);
+    expect(report.blocked).toEqual([{ name: "api", because: ["postgres"] }]);
+    expect(report.starting).toEqual([]);
+  });
+
+  it("keeps a database whose health check has not passed yet as starting", () => {
+    const report = buildStartupReport(
+      json(item("postgres", "ok", "ok", { composeResourceInfo: { healthStatus: "starting" } })),
+      {},
+    );
+    expect(report).toEqual({ failed: [], blocked: [], starting: ["postgres"] });
   });
 
   it("falls back to the raw statuses when Tilt gave no error text", () => {
@@ -116,8 +145,38 @@ describe("formatStartupReport", () => {
       "✗ postgres failed: host port 5432 is already allocated",
       "  Fix: stop the process using port 5432 (find it with: lsof -nP -iTCP:5432 -sTCP:LISTEN), or set TDK_POSTGRES_PORT to a free port and run tdk up",
       "✗ api is not ready because postgres failed",
-      "The environment is not ready. Tilt is still running; inspect it or run: tdk down",
+      "The environment is not ready: postgres failed, so 1 dependent service is not ready. Tilt is still running; inspect it or run: tdk down",
     ]);
+  });
+
+  it("ends with how many dependent services each failure leaves not ready", () => {
+    const lines = formatStartupReport(
+      {
+        failed: [
+          { name: "postgres", message: "container is running, but its health check is failing" },
+        ],
+        blocked: [
+          { name: "api", because: ["postgres"] },
+          { name: "migrator", because: ["postgres"] },
+          { name: "worker", because: ["postgres"] },
+        ],
+        starting: [],
+      },
+      false,
+    );
+    expect(lines.at(-1)).toBe(
+      "The environment is not ready: postgres failed, so 3 dependent services are not ready. Tilt is still running; inspect it or run: tdk down",
+    );
+  });
+
+  it("keeps the plain closing line when a failure blocks nothing", () => {
+    const lines = formatStartupReport(
+      { failed: [{ name: "worker", message: "exited with 1" }], blocked: [], starting: [] },
+      false,
+    );
+    expect(lines.at(-1)).toBe(
+      "The environment is not ready. Tilt is still running; inspect it or run: tdk down",
+    );
   });
 
   it("says timed out for services that never finished", () => {
@@ -139,6 +198,11 @@ describe("isStartupStalled", () => {
       item("api", "pending", "pending"),
       item("web", "pending", "pending"),
     );
+    expect(isStartupStalled(text, deps)).toBe(true);
+  });
+
+  it("is true when an unhealthy database fails a running api that depends on it", () => {
+    const text = json(item("postgres", "ok", "ok", unhealthy), item("api", "ok", "ok"));
     expect(isStartupStalled(text, deps)).toBe(true);
   });
 

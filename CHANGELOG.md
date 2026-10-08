@@ -4,6 +4,8 @@ Notable changes to the `tdk` CLI. Versions match [npm](https://www.npmjs.com/pac
 
 ## Unreleased
 
+- `tdk up`, `tdk status` and `tdk ui` now treat a container as ready only once its Docker health check passes. Tilt reports a running container as ready even while its health check is starting or failing, so a Postgres that never accepted connections counted as up and its dependents looked ready. A health check that is still starting now counts as starting (`waiting for postgres` on dependents), and a failing one makes `tdk up` stop with `✗ postgres failed: container is running, but its health check is failing`, the services it blocks, and how many dependents are not ready. Containers without a health check (BYO images) are unchanged. Part of #683.
+
 ## 1.3.125 (2026-10-08)
 
 - `tdk upgrade` no longer falls back to installing from the repository's moving GitHub default branch when the npm or Bun registry install fails. It reports the original install error, exits non-zero and prints the published-package command (`npm install -g @tdk-landscape/tdk-cli-core@latest` or `bun install -g @tdk-landscape/tdk-cli-core@latest`). npm `EACCES`/`EPERM` failures also point at npm's global-prefix docs and the official installer. Fixes #702.

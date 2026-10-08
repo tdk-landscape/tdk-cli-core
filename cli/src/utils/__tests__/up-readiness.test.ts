@@ -29,6 +29,25 @@ describe("waitForTiltResourcesReady", () => {
     expect(result.timedOut).toBe(false);
     expect(result.failures.map((f) => f.name)).toEqual(["db"]);
   });
+  it("waits while a running container's health check is starting, then fails when it turns unhealthy", async () => {
+    const withHealth = (name: string, healthStatus: string) => ({
+      metadata: { name },
+      status: { updateStatus: "ok", runtimeStatus: "ok", composeResourceInfo: { healthStatus } },
+    });
+    const responses = [
+      json(withHealth("postgres", "starting"), item("api", "ok", "ok")),
+      json(withHealth("postgres", "unhealthy"), item("api", "ok", "ok")),
+    ];
+    const result = await waitForTiltResourcesReady(1, {
+      ...opts,
+      fetchJson: async () => responses.shift() ?? null,
+    });
+    expect(responses).toEqual([]);
+    expect(result).toMatchObject({ ready: false, timedOut: false });
+    expect(result.failures).toEqual([
+      { name: "postgres", message: "container is running, but its health check is failing" },
+    ]);
+  });
   it("ignores deferred resources", async () => {
     const result = await waitForTiltResourcesReady(1, {
       ...opts,
