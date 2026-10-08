@@ -21,7 +21,7 @@ We follow coordinated disclosure:
 1. **Acknowledgement** within 3 business days of your report.
 2. **Assessment**: we confirm whether it is a vulnerability and tell you our severity estimate within 10 days.
 3. **Fix**: we aim to publish a fixed release within 30 days of confirming it. Critical issues are handled first. If a fix needs longer, we tell you why and agree a new date with you.
-4. **Disclosure**: once a fixed version is on npm, we publish a GitHub security advisory (with a CVE where one applies) and credit you unless you prefer otherwise. Please keep the details private until then, and until at most 90 days after your report.
+4. **Disclosure**: once a fixed version is on npm, we publish a GitHub security advisory (with a CVE where one applies) and credit you unless you prefer otherwise. Please keep the details private until then. If no fixed release is available 90 days after your report, we will publish the advisory anyway at day 90, with mitigations where we have them, unless you and we agree on a later date.
 
 If you do not hear back within 5 business days, please send the report again through the same advisory form.
 
