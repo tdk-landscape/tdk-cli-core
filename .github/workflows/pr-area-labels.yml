@@ -23,19 +23,29 @@ jobs:
       # Labels applied by the labeler above use GITHUB_TOKEN, which does not
       # trigger a separate `labeled` workflow, so the reviewer request lives here.
       # Skipped on `synchronize` so pushes don't re-request a reviewer who already reviewed.
-      - name: Request reviewer for JavaScript PRs
+      - name: Request reviewer for JavaScript and TypeScript PRs
         if: github.event.action != 'synchronize'
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           REPO: ${{ github.repository }}
           REVIEWER: sb123sb123
-          LABEL: "tech: javascript"
+          LABELS: |
+            tech: javascript
+            tech: typescript
         run: |
           pr=$(gh api "repos/$REPO/pulls/$PR_NUMBER")
 
-          if [ "$(jq -r --arg l "$LABEL" '[.labels[].name] | index($l) != null' <<< "$pr")" != "true" ]; then
-            echo "PR does not have the '$LABEL' label; nothing to do."
+          matched=false
+          while IFS= read -r label; do
+            if [ "$(jq -r --arg l "$label" '[.labels[].name] | index($l) != null' <<< "$pr")" = "true" ]; then
+              matched=true
+              break
+            fi
+          done <<< "$LABELS"
+
+          if [ "$matched" != "true" ]; then
+            echo "PR has none of the JavaScript/TypeScript labels; nothing to do."
             exit 0
           fi
 
