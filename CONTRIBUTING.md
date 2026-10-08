@@ -23,11 +23,18 @@ bun run typecheck && bun run lint && bun run test   # about a minute; all of it 
 
 If one of these fails on a clean checkout, that is a bug in the project, not in your setup: please [open an issue](https://github.com/tdk-landscape/tdk-cli-core/issues/new/choose).
 
+## Find bugs
+
+You do not need to write code to help. Run a command, compare what it prints with what TDK promises (its `--help`, the docs, or another command), and report any difference. That is a bug.
+
+[Finding bugs in TDK](docs/contributing/finding-bugs.md) has the exact steps: a scratch project to test in, a checklist of commands with the output you should see, the patterns that found past bugs, and the report format maintainers can act on. For example, if `tdk networks` lists no URLs while `tdk up --dry-run` prints them, the two commands disagree, so one of them is wrong.
+
 ## Find something to work on
 
 - 🗺️ [The TDK Journey](docs/journey/README.md): pick an island, finish a quest, rank up (8 kyu → 1 dan)
 - [Good first issues](https://github.com/tdk-landscape/tdk-cli-core/labels/good%20first%20issue)
 - [Help wanted](https://github.com/tdk-landscape/tdk-cli-core/labels/help%20wanted)
+- [Hunt for bugs](docs/contributing/finding-bugs.md) with the step-by-step checklist
 - [Report a bug or ask a question](https://github.com/tdk-landscape/tdk-cli-core/issues/new/choose)
 
 If you pick an issue, comment `I'll take this` (or `I would like this one`, `I'd like to work on this`, `Can I take this?`). A bot assigns you and adds the `claimed` label so two people do not do the same work. A claim with no pull request is nudged after 14 days and released after 21; a draft PR counts as progress. For a bug report, include the output of `tdk doctor` when you can.

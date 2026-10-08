@@ -15,6 +15,7 @@ You do not need to understand the whole repository. Pick one small change, follo
 | Add a database or infrastructure tool | [Database and tool recipe](02-feature-recipes.md#add-a-database-or-infrastructure-tool) |
 | Change how TDK discovers services or generates configs | [Engine and discovery recipe](02-feature-recipes.md#change-the-engine-or-service-discovery) |
 | Fix wording, a link, or a typo | [Docs recipe](02-feature-recipes.md#change-documentation) |
+| Find and report bugs, no code needed | [Finding bugs](finding-bugs.md) |
 
 ## The whole process
 
