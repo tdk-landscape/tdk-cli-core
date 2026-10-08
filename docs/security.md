@@ -42,5 +42,14 @@ Tags are version tags, not digests, so a registry could still move them. The gol
 
 - The npm package is published from GitHub Actions with `npm publish --provenance` ([release workflow](../.github/workflows/release-binaries.yml)).
 - Release binaries and the engine archive have SHA-256 entries in `checksums.txt`, verified by `tdk upgrade` (read in the source). The `install.sh` in this repository only hands off to the official installer at `tdk-landscape.github.io/install.sh`, which is not in this repository; its header comment says it verifies the release checksums, and that script was **not audited** here. The checksums come from the same release as the binaries, so they detect a bad download but not a compromised release.
-- There is no SBOM and the binaries are not signed.
+- After each release, the workflow signs `checksums.txt` (keyless, with [cosign](https://docs.sigstore.dev/) and the workflow's GitHub identity) and attaches it and `checksums.txt.sigstore.json` to a release with the same tag in this repository. This step runs last and is best effort: it can fail without affecting the npm package or the binaries, so a release may exist without it. Check a download with:
+
+  ```bash
+  cosign verify-blob --bundle checksums.txt.sigstore.json \
+    --certificate-identity-regexp 'https://github.com/tdk-landscape/tdk-cli-core/.github/workflows/release-binaries.yml@.*' \
+    --certificate-oidc-issuer https://token.actions.githubusercontent.com checksums.txt
+  shasum -a 256 -c checksums.txt   # then check the file you downloaded against the verified list
+  ```
+
+- The binaries themselves are not individually signed, and there is no SBOM.
 - Core is MIT, so you can build from source.

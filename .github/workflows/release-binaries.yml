@@ -343,3 +343,29 @@ jobs:
               echo "::notice::Released ${VERSION}. The version bump was not pushed to main (branch protection or a newer commit). This is harmless: the next release starts from the newest npm version and its notes skip entries already published. CHANGELOG.md is not rolled over until the bot may push to main."
             fi
           fi
+
+      # OpenSSF Scorecard's Signed-Releases check looks at the GitHub releases of THIS repository, while the binaries live in
+      # tdk-cli-releases. So this repository gets a release per version that carries the binaries' checksums and a keyless
+      # Sigstore signature of them. It runs last and is allowed to fail: npm, the binary release and the version bump are already
+      # done, and nothing here may ever block them.
+      - name: Install cosign
+        continue-on-error: true
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+      - name: Sign the checksums and attach them to a release in this repository
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.build.outputs.version }}
+          SOURCE_COMMIT: ${{ steps.source.outputs.commit }}
+        run: |
+          set -euo pipefail
+          cp "release-dist-${VERSION}/checksums.txt" checksums.txt
+          cosign sign-blob --yes --bundle checksums.txt.sigstore.json checksums.txt
+          if gh release view "v${VERSION}" >/dev/null 2>&1; then
+            gh release upload "v${VERSION}" --clobber checksums.txt checksums.txt.sigstore.json
+          else
+            gh release create "v${VERSION}" --target "$SOURCE_COMMIT" --latest=false --title "v${VERSION}" \
+              --notes "Signed checksums for tdk ${VERSION}. The binaries are on https://github.com/tdk-landscape/tdk-cli-releases/releases/tag/v${VERSION} and the npm package is @tdk-landscape/tdk-cli-core@${VERSION}. Verify with: cosign verify-blob --bundle checksums.txt.sigstore.json --certificate-identity-regexp 'https://github.com/tdk-landscape/tdk-cli-core/.github/workflows/release-binaries.yml@.*' --certificate-oidc-issuer https://token.actions.githubusercontent.com checksums.txt" \
+              checksums.txt checksums.txt.sigstore.json
+          fi
