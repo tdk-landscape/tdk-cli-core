@@ -25,6 +25,14 @@ export const HOST_PORT_FIXES = {
   port5432: "Stop local Postgres or change the host port. Then: tdk doctor",
 } as const;
 
+/**
+ * Quote a value for a POSIX shell command line. JSON.stringify is not enough:
+ * inside double quotes `$(...)`, backticks and `$VAR` are still expanded.
+ */
+export function shellQuote(value: string): string {
+  return `'${value.replace(/'/g, `'\\''`)}'`;
+}
+
 function runHostCommand(
   exec: typeof execSync,
   command: string,
@@ -385,14 +393,11 @@ export function checkPrivateNpmRegistry(
               windowsHide: true,
             },
           ).trim()
-        : exec(
-            `curl -fsS -o /dev/null -w '%{http_code}' --max-time 2 ${JSON.stringify(registryUrl)}`,
-            {
-              stdio: "pipe",
-              encoding: "utf-8",
-              timeout: REGISTRY_PROBE_TIMEOUT_MS + 1_000,
-            },
-          ).trim();
+        : exec(`curl -fsS -o /dev/null -w '%{http_code}' --max-time 2 ${shellQuote(registryUrl)}`, {
+            stdio: "pipe",
+            encoding: "utf-8",
+            timeout: REGISTRY_PROBE_TIMEOUT_MS + 1_000,
+          }).trim();
     httpOk = /^[23]\d\d$/.test(probe);
     httpDetail = `HTTP ${probe}`;
   } catch (error) {
@@ -844,7 +849,7 @@ export function probeContainerRuntimeError(
       exec,
       "docker",
       ["logs", "--tail", "120", match],
-      `docker logs --tail 120 ${JSON.stringify(match)} 2>&1`,
+      `docker logs --tail 120 ${shellQuote(match)} 2>&1`,
       {
         stdio: "pipe",
         encoding: "utf-8",
