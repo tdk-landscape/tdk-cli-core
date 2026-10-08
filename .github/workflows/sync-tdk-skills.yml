@@ -6,11 +6,13 @@ on:
     types: [tdk-skills-updated]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   sync:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # push the synced skills to main
     steps:
       - uses: actions/checkout@v7
         with:
