@@ -12,7 +12,7 @@ Anyone can review a pull request. You do not need to be a maintainer, and you do
 
 ## The AI is your helper, not the reviewer
 
-The AI buttons open a chat with an AI assistant. That assistant is yours: it answers you, in your own account, and nobody else sees the chat. It does not post anything on GitHub, approve anything, or change any code.
+The AI buttons open a chat with an AI assistant. That assistant is yours: it answers you, in your own account, and the chat is not shared with the PR author or other reviewers. It does not post anything on GitHub, approve anything, or change any code.
 
 You are the reviewer. The review that counts is the one you submit on GitHub under your name. So:
 
@@ -34,13 +34,13 @@ Each button is a plain link. It opens the AI's website in a new tab with this me
 Review this pull request. Read the title and diff at https://github.com/tdk-landscape/tdk-cli-core/pull/123.
 ```
 
-| Button | Opens | You need |
-|---|---|---|
-| **Grok** | grok.com | A Grok or X account |
-| **Claude** | claude.ai | A Claude account |
-| **Codex** | chatgpt.com | A ChatGPT account |
+| Button | Opens |
+|---|---|
+| **Grok** | grok.com |
+| **Claude** | claude.ai |
+| **Codex** | chatgpt.com |
 
-Pick whichever you already use. They all get the same message. If the chat opens empty, sign in and click the button again. If you are not signed in, copy the message above, put the PR's link in it, and paste it into any AI chat.
+Pick whichever you already use. They all get the same message. Each site may ask you to sign in; if the chat opens empty after that, click the button again. If you are not signed in, copy the message above, put the PR's link in it, and paste it into any AI chat.
 
 Things to know:
 
