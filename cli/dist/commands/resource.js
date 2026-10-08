@@ -12,7 +12,7 @@ import { hasDddLicense } from "../generator/extension-fetch.js";
 import { getDockerfileTemplate, getTestTemplate, getWorkerIndexTemplate, } from "../generator/resource-templates.js";
 import { CREATABLE_RESOURCE_TYPES } from "../types/index.js";
 import { assertValid, confirmOrCancel } from "../utils/command-helpers.js";
-import { BRING_YOUR_OWN_TYPE, SERVICE_JSON } from "../utils/constants.js";
+import { BRING_YOUR_OWN_TYPE, PORT_RANGES, SERVICE_JSON } from "../utils/constants.js";
 import { chooseResourcePath, isPathDiscovered, readDiscoveryPaths, } from "../utils/discovery-paths.js";
 import { errorFactories, requireProjectRoot, runCommand, TdkError } from "../utils/errors.js";
 import { writeFilesWithProgress } from "../utils/file-helpers.js";
@@ -62,17 +62,25 @@ export const TYPE_SPECIFIC = {
 };
 const BYO_RESTART_POLICIES = ["no", "on-failure", "unless-stopped", "always"];
 export function resolveByoPort(value, assignedPort, resources) {
+    return resolveResourcePort(BRING_YOUR_OWN_TYPE, value, assignedPort, resources);
+}
+// `--port` is an override for every port-assigned type, validated against that type's range.
+// Without it the next free port in the type's range is used.
+export function resolveResourcePort(resourceType, value, assignedPort, resources) {
     if (!value)
         return assignedPort;
+    const { min, max } = PORT_RANGES[resourceType];
+    const flag = resourceType === BRING_YOUR_OWN_TYPE ? "BYO --port" : "--port";
+    const subject = resourceType === BRING_YOUR_OWN_TYPE ? "BYO port" : "Port";
     if (!/^\d+$/.test(value)) {
-        throw new TdkError("BYO --port must be an integer from 4000 through 5999.");
+        throw new TdkError(`${flag} must be an integer from ${min} through ${max}.`);
     }
     const port = Number(value);
-    if (!Number.isInteger(port) || port < 4000 || port > 5999) {
-        throw new TdkError("BYO --port must be an integer from 4000 through 5999.");
+    if (!Number.isInteger(port) || port < min || port > max) {
+        throw new TdkError(`${flag} must be an integer from ${min} through ${max}.`);
     }
     if (resources.some((resource) => resource.config?.port === port)) {
-        throw new TdkError(`BYO port ${port} is already assigned to another resource.`);
+        throw new TdkError(`${subject} ${port} is already assigned to another resource.`);
     }
     return port;
 }
@@ -277,7 +285,7 @@ export const resourceCommand = new Command("resource")
     .option("--no-proxy", "Disable the Traefik route (bring-your-own only)")
     .option("--restart <policy>", "Compose restart policy: no, on-failure, unless-stopped, always (bring-your-own only; use no for one-shot jobs)")
     .option("--image <name>", "Docker image name instead of building from Dockerfile (for bring-your-own)")
-    .option("--port <port>", "Port number (default: next free in 4000-5999)")
+    .option("--port <port>", "Port for the resource, within its type's range (default: next free port in that range)")
     .option("--feature <feature...>", "Enable a resource feature (for example: prisma)")
     .action(async (name, options) => {
     if (options.frameworks) {
@@ -436,6 +444,11 @@ export const resourceCommand = new Command("resource")
         // Check if resource already exists
         const isExistingResource = existsSync(fullPath);
         const hasServiceJson = existsSync(resolve(fullPath, SERVICE_JSON));
+        if (options.port !== undefined && resourceType === "sdk") {
+            throw new TdkError("--port does not apply to --type sdk.", [
+                "Drop --port, or use a service type",
+            ]);
+        }
         if (resourceType === "sdk" && !hasServiceJson) {
             throw new TdkError(`No service.json in ${finalResourcePath}`, [
                 'Add one with "appType": "sdk", then run this again to register it',
@@ -462,9 +475,9 @@ export const resourceCommand = new Command("resource")
                 ]);
             }
         }
-        const assignedPort = resourceType === BRING_YOUR_OWN_TYPE
-            ? resolveByoPort(options.port, nextPort, allResources)
-            : nextPort;
+        const assignedPort = resourceType === "sdk"
+            ? 0
+            : resolveResourcePort(resourceType, options.port, nextPort, allResources);
         console.log(chalk.gray("\nResource details:"));
         console.log(chalk.gray(`  Name:  ${resourceName}`));
         console.log(chalk.gray(`  Type:  ${resourceType}`));

@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import { getBackendIndexTemplate } from "../backend-languages/bun.js";
-import type { CreatableResourceType } from "../types/index.js";
+import type { CreatableResourceType, PortAssignableResourceType } from "../types/index.js";
 export { getDockerfileTemplate, getShutdownHandlerTemplate, getTestTemplate, getWorkerIndexTemplate, } from "../generator/resource-templates.js";
 export declare const BASE_TEMPLATE: {
     readonly port: 0;
@@ -24,6 +24,11 @@ interface TypeSpecificConfig {
 }
 export declare const TYPE_SPECIFIC: Record<CreatableResourceType, TypeSpecificConfig>;
 export declare function resolveByoPort(value: string | undefined, assignedPort: number, resources: Array<{
+    config?: {
+        port?: number;
+    };
+}>): number;
+export declare function resolveResourcePort(resourceType: PortAssignableResourceType, value: string | undefined, assignedPort: number, resources: Array<{
     config?: {
         port?: number;
     };
