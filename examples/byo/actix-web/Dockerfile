@@ -9,4 +9,7 @@ RUN touch src/main.rs && cargo build --release
 
 FROM debian:stable-slim@sha256:eb593cf2c358cacef45ca0a424bbc7d30cfa3466265fc2662b9466a0ca6ba1c5
 COPY --from=build /app/target/release/actix-app /usr/local/bin/actix-app
+RUN groupadd --gid 1000 app && useradd --uid 1000 --gid app --no-create-home app
+USER app
+HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=3 CMD bash -c "exec 3<>/dev/tcp/127.0.0.1/${PORT:-8080}" || exit 1
 CMD ["actix-app"]
