@@ -33,6 +33,7 @@
 - [Troubleshooting](troubleshooting.md): tdk and Tilt messages as printed, with cause, fix and how each was checked
 - [Leaving TDK](leaving-tdk.md): what `tdk eject` really does, what stays usable without TDK, what you lose
 - [Local data: reset, seed, snapshot](data.md): where Postgres data lives and how to reset it
+- [Testing webhooks locally](local-webhooks.md): a proposed recipe for replaying duplicate, retried and tampered provider deliveries without the provider
 - [Upgrading and version pinning](upgrading.md): `minTdkVersion`, installing a specific version, what is versioned
 - [Security: network calls, secrets and supply chain](security.md): what TDK sends, where secrets live, image tags and release checks
 - [Smoke check](smoke.md): `tdk up` checks a service through the URL it prints
