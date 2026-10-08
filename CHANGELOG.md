@@ -185,6 +185,10 @@ Notable changes to the `tdk` CLI. Versions match [npm](https://www.npmjs.com/pac
 - Docs: Japanese and Chinese READMEs (#484).
 - CI: `wsl2-smoke` skipped for docs, BYO-example and TUI-only changes (#487); journey-map workflow fixes (#485, #486).
 
+## 1.3.98 (2026-10-03)
+
+- Rebuild of 1.3.97 from the same source commit; no change.
+
 ## 1.3.97 (2026-10-03)
 
 - `tdk up` keeps each smoke step's status and response body under `.tdk/smoke/<service>/<step>/` (`latest.json` and `body.txt`, body capped at 64 KiB), plus `last-success.json` and `last-success-body.txt` that a later failure never overwrites, so a regression can be diffed against the last good response. The failure line ends with the record path, and `tdk project` gitignores `.tdk/smoke/`. A new `smoke-e2e` workflow runs `scripts/verify-smoke.sh` and uploads the records. Before its first step a smoke check now waits for the service's health path (`healthCheckPath`, default `/health` for backends) with GETs until it answers something other than a connection error, 404 or 5xx, so a write is no longer the first request to hit a service that is still building; write retry rules are unchanged. (#480)
@@ -198,7 +202,9 @@ Notable changes to the `tdk` CLI. Versions match [npm](https://www.npmjs.com/pac
 - Bring-your-own examples: Tornado, Polka, Sanic, Falcon, Starlette, Hapi (#430, #431, #432, #446, #457, #468).
 - Docs: contributor journey map with islands and kyu/dan ranks (#466, #471, #474).
 
-1.3.96 and 1.3.98 rebuilt the same commits as 1.3.95 and 1.3.97.
+## 1.3.96 (2026-10-03)
+
+- Rebuild of 1.3.95 from the same source commit; no change.
 
 ## 1.3.95 (2026-10-03)
 
