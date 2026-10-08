@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "dependencies": {
     "drizzle-kit": "^0.31.0",
-    "drizzle-orm": "^0.44.0",
+    "drizzle-orm": "^0.45.2",
     "pg": "^8.13.0"
   }
 }
