@@ -9,7 +9,7 @@ export const svelteFrontendProvider: FrontendFrameworkProvider = {
     svelte: "^5.0.0",
   },
   devDependencies: {
-    "@sveltejs/vite-plugin-svelte": "^4.0.4",
+    "@sveltejs/vite-plugin-svelte": "^5.0.0",
   },
   compilerOptions: {},
   createFiles(name) {

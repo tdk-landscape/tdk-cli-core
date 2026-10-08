@@ -201,7 +201,9 @@ export function createPackageJson(name, type, frameworkId, prismaEnabled = false
             typescript: "^7.0.2",
             vitest: "^5.0.0",
             "@biomejs/biome": "^2.5.13",
-            ...(isFrontend ? { vite: "^5.0.0" } : {}),
+            // vitest 5 peers on vite ^6.4.0 || ^7 || ^8; vite 5 makes `vitest run` fail at startup with
+            // ERR_PACKAGE_PATH_NOT_EXPORTED ('./module-runner'), in every resource once it is hoisted.
+            ...(isFrontend ? { vite: "^6.4.1" } : {}),
             ...(framework?.devDependencies ?? {}),
             ...(backendFramework?.devDependencies ?? {}),
         },
