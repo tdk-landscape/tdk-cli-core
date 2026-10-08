@@ -23,6 +23,8 @@ Run in a project with Bun, Docker, and Tilt. On Windows, run the CLI in WSL2.
 | `tdk doctor --no-ping` | Check readiness without pinging service health endpoints. |
 | `tdk projects --check` | Validate project configuration before CI. |
 
+Every command and flag: [mega cheat sheet](../docs/cheat-sheet.md).
+
 ---
 
 ## 🏗️ Project-Stack-Resource Commands

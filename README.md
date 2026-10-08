@@ -111,6 +111,7 @@ Set `TDK_DEBUG=1` before running `tdk up --verbose` to include Starlark debug lo
 ## Docs
 
 - [CLI command cheat sheet](cli/README.md#cheat-sheet)
+- [Mega cheat sheet: every command and flag](docs/cheat-sheet.md)
 - [Documentation index](docs/README.md)
 - [Pilot TDK on a real repository](docs/adopt-tdk.md)
 - [FAQ for agencies and multi-client teams](docs/faq-teams.md)

@@ -5,6 +5,7 @@
 - [Run one backend locally](../examples/one-backend/README.md)
 - [Run one Python backend locally](../examples/one-backend-python/README.md)
 - [Full multi-service example](../examples/tdk-example/README.md)
+- [Mega cheat sheet](cheat-sheet.md): every `tdk` command, alias and flag
 - [Configuration and editor schemas](configuration.md)
 - [Generated service files](generated-files.md): what TDK writes from `service.json`, and how to handle drift
 - [Environment, params and secrets](environment.md): the project `.env`, `params`, `secrets` and auth
