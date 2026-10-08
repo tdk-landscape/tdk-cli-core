@@ -18,6 +18,7 @@ const DEPRECATED_FIELDS: Record<string, string> = {
 const KNOWN_SERVICE_FIELDS = new Set([
   "$schema",
   "apiBasePath",
+  "apiPath",
   "appName",
   "appType",
   "backendName",
@@ -60,6 +61,16 @@ export interface ServiceManifestValidation {
   manifest?: Record<string, unknown>;
 }
 
+const SERVICE_ROUTE_PATH_FIELDS = ["apiPath", "basePath"] as const;
+
+export function getInvalidServiceRoutePathFields(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return [];
+  const manifest = value as Record<string, unknown>;
+  return SERVICE_ROUTE_PATH_FIELDS.filter(
+    (field) => field in manifest && typeof manifest[field] !== "string",
+  );
+}
+
 export function validateServiceManifest(
   value: unknown,
   displayPath: string,
@@ -82,6 +93,9 @@ export function validateServiceManifest(
     errors.push(
       `${displayPath}.schemaVersion: unsupported version ${String(manifest.schemaVersion)} (supported: ${SERVICE_MANIFEST_SCHEMA_VERSION})`,
     );
+  }
+  for (const field of getInvalidServiceRoutePathFields(manifest)) {
+    errors.push(`${displayPath}.${field}: expected a string`);
   }
   const dev = manifest.dev;
   const liveReload =

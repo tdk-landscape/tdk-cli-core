@@ -14,6 +14,7 @@ const DEPRECATED_FIELDS = {
 const KNOWN_SERVICE_FIELDS = new Set([
     "$schema",
     "apiBasePath",
+    "apiPath",
     "appName",
     "appType",
     "backendName",
@@ -49,6 +50,13 @@ const KNOWN_SERVICE_FIELDS = new Set([
     "traefik",
     "type",
 ]);
+const SERVICE_ROUTE_PATH_FIELDS = ["apiPath", "basePath"];
+export function getInvalidServiceRoutePathFields(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value))
+        return [];
+    const manifest = value;
+    return SERVICE_ROUTE_PATH_FIELDS.filter((field) => field in manifest && typeof manifest[field] !== "string");
+}
 export function validateServiceManifest(value, displayPath) {
     if (!value || typeof value !== "object" || Array.isArray(value)) {
         return { errors: [`${displayPath}: expected a JSON object`], warnings: [] };
@@ -66,6 +74,9 @@ export function validateServiceManifest(value, displayPath) {
     }
     if ("schemaVersion" in manifest && manifest.schemaVersion !== SERVICE_MANIFEST_SCHEMA_VERSION) {
         errors.push(`${displayPath}.schemaVersion: unsupported version ${String(manifest.schemaVersion)} (supported: ${SERVICE_MANIFEST_SCHEMA_VERSION})`);
+    }
+    for (const field of getInvalidServiceRoutePathFields(manifest)) {
+        errors.push(`${displayPath}.${field}: expected a string`);
     }
     const dev = manifest.dev;
     const liveReload = dev && typeof dev === "object" && !Array.isArray(dev)

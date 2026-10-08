@@ -140,6 +140,31 @@ describe("service manifest compatibility", () => {
     expect(result.warnings).toEqual([]);
   });
 
+  it("validates route path overrides as strings", () => {
+    const base = {
+      appName: "api",
+      appType: "backend",
+      stack: "shop",
+      schemaVersion: SERVICE_MANIFEST_SCHEMA_VERSION,
+    };
+    const valid = validateServiceManifest(
+      { ...base, apiPath: "/api/v2", basePath: "/web" },
+      "services/shop/api/service.json",
+    );
+    expect(valid.errors).toEqual([]);
+    expect(valid.warnings).toEqual([]);
+
+    const invalid = validateServiceManifest(
+      { ...base, apiPath: 42, basePath: null },
+      "services/shop/api/service.json",
+    );
+    expect(invalid.errors).toEqual([
+      "services/shop/api/service.json.apiPath: expected a string",
+      "services/shop/api/service.json.basePath: expected a string",
+    ]);
+    expect(invalid.warnings).toEqual([]);
+  });
+
   it("rejects unsupported schema versions", () => {
     const result = validateServiceManifest(
       { appName: "api", appType: "backend", stack: "shop", schemaVersion: 2 },

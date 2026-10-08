@@ -12,6 +12,7 @@ import { createMachineEnvelope, writeMachineError } from "../utils/machine-outpu
 import { findProjectRoot } from "../utils/paths.js";
 import { checkPortStatus } from "../utils/port-assignment.js";
 import { isApiServiceType } from "../utils/resource-kind.js";
+import { resolveServicePath } from "../utils/service-urls.js";
 import { stackExists } from "../utils/services.js";
 import { isValidPort, sanitizeForShell } from "../utils/validation.js";
 import { findOnPath } from "../utils/which.js";
@@ -186,21 +187,22 @@ export const networksCommand = new Command("networks")
         const apiDomain = `api.${bareDomain}`;
         const services = discovery.resources;
         const servicesWithUrls = await Promise.all(services
-            .filter((s) => typeof s.config?.basePath === "string")
+            .filter((s) => s.config?.appType === "frontend" || isApiServiceType(s.config?.appType))
             .map(async (s) => {
-            const basePath = s.config.basePath.replace(/^\//, "");
+            const resolvedPath = resolveServicePath(s);
+            const basePath = resolvedPath.startsWith("/") ? resolvedPath : `/${resolvedPath}`;
             const isBackend = isApiServiceType(s.config?.appType);
             const host = isBackend ? apiDomain : appDomain;
-            const url = `http://${host}:${httpPort}/${basePath}`;
-            const port = s.config.port;
+            const url = `http://${host}:${httpPort}${basePath}`;
+            const port = s.config?.port;
             const status = await checkServiceStatus(s.name, port, url);
             return {
                 name: s.name,
                 stack: s.stack,
-                basePath: s.config.basePath,
+                basePath,
                 url,
                 ...(process.platform === "win32"
-                    ? { loopbackUrl: `http://127.0.0.1:${httpPort}/${basePath}`.replace(/\/$/, "") }
+                    ? { loopbackUrl: `http://127.0.0.1:${httpPort}${basePath}`.replace(/\/$/, "") }
                     : {}),
                 port,
                 status,
@@ -218,12 +220,10 @@ export const networksCommand = new Command("networks")
         }
         if (filteredServices.length === 0) {
             if (options.stack) {
-                console.log(chalk.yellow(`⚠️ No services with basePath found in stack "${options.stack}"`));
+                console.log(chalk.yellow(`⚠️ No routable services found in stack "${options.stack}"`));
             }
             else {
-                console.log(chalk.yellow("⚠️ No services with basePath found"));
-                console.log(chalk.gray("\nAdd basePath to your service.json:"));
-                console.log(chalk.gray('  "basePath": "/my-service"'));
+                console.log(chalk.yellow("⚠️ No routable services found"));
             }
             process.exit(0);
         }
