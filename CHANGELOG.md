@@ -4,6 +4,9 @@ Notable changes to the `tdk` CLI. Versions match [npm](https://www.npmjs.com/pac
 
 ## Unreleased
 
+## 1.3.126 (2026-10-08)
+
+- Security: fixes [GHSA-phgf-pww4-7jxc](https://github.com/tdk-landscape/tdk-cli-core/security/advisories/GHSA-phgf-pww4-7jxc) (all earlier versions). A line break in a `service.json` value was written into the generated Docker Compose file and could add keys such as `privileged: true` to a service when you ran `tdk up` or `tilt up` on a repository you did not write. `tdk` and the Tilt engine now refuse any `service.json` string key or value that contains a line break (including U+0085, U+2028 and U+2029) or another control character, and `healthCheckPath`, `traefik.host`, `traefik.pathPrefix`, `traefik.healthCheck`, `nats.queueGroup`, `databaseName`, `stack` and `image` must also match a pattern. `smoke` is exempt. `tdk up` and `tdk config regenerate` stop with an error that names the field and does not print the value, and `tilt up` stops the same way. Upgrade, and check `service.json` files from repositories you did not write.
 - `tdk up`, `tdk status` and `tdk ui` now treat a container as ready only once its Docker health check passes. Tilt reports a running container as ready even while its health check is starting or failing, so a Postgres that never accepted connections counted as up and its dependents looked ready. A health check that is still starting now counts as starting (`waiting for postgres` on dependents), and a failing one makes `tdk up` stop with `✗ postgres failed: container is running, but its health check is failing`, the services it blocks, and how many dependents are not ready. Containers without a health check (BYO images) are unchanged. Part of #683.
 
 ## 1.3.125 (2026-10-08)
