@@ -1,7 +1,7 @@
 FROM node:22-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402
 WORKDIR /app
-COPY package.json ./
-RUN npm install --omit=dev
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
 COPY server.js ./
 USER node
 HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=3 CMD nc -z 127.0.0.1 ${PORT:-3000} || exit 1
