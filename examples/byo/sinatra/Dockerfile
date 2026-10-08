@@ -5,7 +5,8 @@ WORKDIR /app
 COPY Gemfile ./
 RUN bundle install --quiet
 COPY app.rb ./
-RUN groupadd --gid 1000 app && useradd --uid 1000 --gid app --no-create-home app
+RUN groupadd --gid 1000 app && useradd --uid 1000 --gid app --no-create-home app && chown -R app:app .
 USER app
+HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=3 CMD ruby -rsocket -e "TCPSocket.new('127.0.0.1', ${PORT:-3000}).close"
 # Classic-style apps start their own server when run directly (Puma here); app.rb binds 0.0.0.0 and reads PORT.
 CMD ["ruby", "app.rb"]

@@ -15,4 +15,5 @@ RUN sed -i 's/http: \[ip: {127, 0, 0, 1}\]/http: [ip: {0, 0, 0, 0}]/' config/dev
 RUN groupadd --gid 1000 app && useradd --uid 1000 --gid app --no-create-home app
 RUN chown -R app:app /work
 USER app
+HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=3 CMD bash -c "exec 3<>/dev/tcp/127.0.0.1/${PORT:-8080}" || exit 1
 CMD ["mix", "phx.server"]

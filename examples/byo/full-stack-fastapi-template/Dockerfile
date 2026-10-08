@@ -15,4 +15,5 @@ WORKDIR /src/backend
 RUN groupadd --gid 1000 app && useradd --uid 1000 --gid app --no-create-home app
 RUN chown -R app:app /src
 USER app
+HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=3 CMD python -c "import os,socket; socket.create_connection(('127.0.0.1', int(os.environ.get('PORT','8000'))), 3)"
 CMD ["sh", "/entrypoint.sh"]

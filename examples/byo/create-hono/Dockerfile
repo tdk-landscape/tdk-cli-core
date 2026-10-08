@@ -3,9 +3,9 @@ FROM oven/bun:1@sha256:9114c058aeae42162ee16dd5084b95fe9473970bb6bcb5b232ab1630f
 WORKDIR /work
 RUN bun create hono@latest app --template bun --install --pm bun
 WORKDIR /work/app
-# The template exports the app (`export default app`) and Bun serves it, reading PORT itself, so nothing needs patching.
-# `bun run dev` is `bun run --hot src/index.ts`.
-RUN chown -R bun:bun /work/app
+RUN chown -R bun:bun .
 USER bun
 HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=3 CMD bash -c "exec 3<>/dev/tcp/127.0.0.1/${PORT:-3000}" || exit 1
+# The template exports the app (`export default app`) and Bun serves it, reading PORT itself, so nothing needs patching.
+# `bun run dev` is `bun run --hot src/index.ts`.
 CMD ["bun", "run", "dev"]

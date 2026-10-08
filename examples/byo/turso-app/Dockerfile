@@ -8,4 +8,5 @@ COPY server.mjs ./
 ENV LIBSQL_URL=http://turso:4500
 RUN chown -R node:node .
 USER node
+HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=3 CMD node -e "require('net').connect(${PORT:-3000},'127.0.0.1').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))"
 CMD ["node", "server.mjs"]

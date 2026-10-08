@@ -8,6 +8,7 @@ RUN go mod tidy && CGO_ENABLED=0 go build -o /out/app .
 FROM alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
 ENV GIN_MODE=release
 COPY --from=build /out/app /app
-RUN addgroup -g 1000 app && adduser -u 1000 -G app -D -H app
+RUN addgroup -g 1000 -S app && adduser -u 1000 -S -G app app
 USER app
+HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=3 CMD nc -z 127.0.0.1 ${PORT:-3000} || exit 1
 CMD ["/app"]
