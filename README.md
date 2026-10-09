@@ -29,7 +29,7 @@ No vendor lock-in. No tedious plumbing. Run a single command to natively orchest
 * **Messaging & Gateway:** NATS, Traefik
 
 
-TDK CLI — start services on your laptop. It is not a deploy and not a Compose file: define each service in `service.json`, then run `tdk up`. No Kubernetes is needed on the machine.
+TDK CLI — start services on your machine. It is not a deploy and not a Compose file: define each service in `service.json`, then run `tdk up`. No Kubernetes is needed on the machine.
 
 Stability: 1.x local dev. Write `service.json`; TDK generates the local runtime files. See [what TDK writes](docs/generated-files.md) and how to check for drift. Core CLI is MIT and needs no key. Premium is optional.
 
