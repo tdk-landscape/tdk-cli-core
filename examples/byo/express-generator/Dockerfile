@@ -5,8 +5,9 @@ WORKDIR /generator
 COPY scaffolder/package.json scaffolder/package-lock.json ./
 RUN npm ci --ignore-scripts --no-audit --no-fund \
  && ./node_modules/.bin/express --no-view /work/app
+COPY runtime/package.json runtime/package-lock.json /work/app/
 WORKDIR /work/app
-RUN npm install
+RUN npm ci --ignore-scripts --no-audit --no-fund
 RUN chown -R node:node .
 USER node
 HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=3 CMD nc -z 127.0.0.1 ${PORT:-3000} || exit 1
