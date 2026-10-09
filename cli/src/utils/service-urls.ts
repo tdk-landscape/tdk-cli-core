@@ -3,6 +3,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { DiscoveredResource } from "../types/index.js";
+import { PROJECT_JSON } from "./constants.js";
 import { findProjectRoot } from "./paths.js";
 import { isApiServiceType } from "./resource-kind.js";
 
@@ -24,7 +25,7 @@ export function getProjectName(): string {
   const root = findProjectRoot();
   if (root) {
     try {
-      const content = readFileSync(join(root, ".tdk", "project.json"), "utf-8");
+      const content = readFileSync(join(root, ".tdk", PROJECT_JSON), "utf-8");
       const parsed = JSON.parse(content);
       if (parsed?.project?.name) {
         return parsed.project.name;

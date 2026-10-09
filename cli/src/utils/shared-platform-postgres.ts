@@ -3,7 +3,7 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { DATABASE_MANAGEMENT_FEATURE } from "./constants.js";
+import { DATABASE_MANAGEMENT_FEATURE, PROJECT_JSON } from "./constants.js";
 import { DEFAULT_ALWAYS_ENABLED_INFRA } from "./project-config-defaults.js";
 import { discoverResourcesFromRoot } from "./services.js";
 
@@ -58,7 +58,7 @@ export interface SharedPlatformPostgresEvaluation {
 
 function readProjectJson(projectRoot: string): Record<string, unknown> | undefined {
   try {
-    return JSON.parse(readFileSync(join(projectRoot, ".tdk", "project.json"), "utf-8"));
+    return JSON.parse(readFileSync(join(projectRoot, ".tdk", PROJECT_JSON), "utf-8"));
   } catch {
     return undefined;
   }

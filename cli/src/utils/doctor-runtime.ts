@@ -5,7 +5,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { join } from "node:path";
 import type { CheckResult, DiscoveredResource } from "../types/index.js";
-import { STANDARD_PORTS } from "./constants.js";
+import { PROJECT_JSON, STANDARD_PORTS } from "./constants.js";
 import { formatCount } from "./formatting.js";
 import { findProjectRoot } from "./paths.js";
 import { isApiServiceType } from "./resource-kind.js";
@@ -294,7 +294,7 @@ export function isRegistryRelatedBuildError(error: string): boolean {
 export function projectConfigEnablesVerdaccio(
   projectRoot: string = findProjectRoot() ?? process.cwd(),
 ): boolean {
-  const projectJsonPath = join(projectRoot, ".tdk", "project.json");
+  const projectJsonPath = join(projectRoot, ".tdk", PROJECT_JSON);
   if (!existsSync(projectJsonPath)) return false;
   try {
     const parsed = JSON.parse(readFileSync(projectJsonPath, "utf-8")) as {

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { PROJECT_JSON } from "./constants.js";
 
 /**
  * A repo can pin the oldest CLI it works with: `"minTdkVersion": "1.3.80"` in .tdk/project.json.
@@ -20,7 +21,7 @@ function toParts(raw: string): number[] | null {
 
 function readMinTdkVersion(projectRoot: string): unknown {
   try {
-    const parsed = JSON.parse(readFileSync(join(projectRoot, ".tdk", "project.json"), "utf-8"));
+    const parsed = JSON.parse(readFileSync(join(projectRoot, ".tdk", PROJECT_JSON), "utf-8"));
     return parsed?.minTdkVersion;
   } catch {
     return undefined;

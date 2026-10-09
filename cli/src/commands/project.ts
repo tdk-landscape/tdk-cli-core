@@ -9,7 +9,7 @@ import chalk from "chalk";
 import { Command } from "commander";
 import { generateMasterConfigs, readProjectConfig } from "../generator/template-engine.js";
 import type { ProjectConfig } from "../types/index.js";
-import { MASTER_CONFIG_FILES } from "../utils/constants.js";
+import { MASTER_CONFIG_FILES, PROJECT_JSON } from "../utils/constants.js";
 import { completeEnvFile, ensureEnvFile, validateEnvFile } from "../utils/env-validator.js";
 import { errorFactories, runCommand, showErrorAndExit } from "../utils/errors.js";
 import { ensureDirectory, ensureGitignore, writeJsonFile } from "../utils/file-helpers.js";
@@ -78,7 +78,7 @@ function syncDiscoveredStacksToPreAlpha(
  * `tdk up` without re-running `tdk project`. Returns the stacks it enabled.
  */
 export function enableDiscoveredStacks(projectRoot: string): string[] {
-  const projectJsonPath = join(projectRoot, ".tdk", "project.json");
+  const projectJsonPath = join(projectRoot, ".tdk", PROJECT_JSON);
   if (!existsSync(projectJsonPath)) return [];
 
   const projectConfig = readProjectConfig(projectRoot);
@@ -242,7 +242,7 @@ export const projectCommand = new Command("project")
       }
 
       const tdkDir = join(projectRoot, ".tdk");
-      const projectJsonPath = join(tdkDir, "project.json");
+      const projectJsonPath = join(tdkDir, PROJECT_JSON);
 
       if (options.check) {
         const allFilesExist = MASTER_CONFIG_FILES.every((f) =>

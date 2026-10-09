@@ -15,7 +15,7 @@ import {
 import type { JsonValue, ProjectConfig } from "../types/index.js";
 import { isMasterConfigFileName } from "../types/index.js";
 import { assertValid } from "../utils/command-helpers.js";
-import { MASTER_CONFIG_FILES } from "../utils/constants.js";
+import { MASTER_CONFIG_FILES, PROJECT_JSON } from "../utils/constants.js";
 import { checkPrismaConsistency } from "../utils/doctor-wiring.js";
 import { errorFactories, requireProjectRoot, runCommand } from "../utils/errors.js";
 import { writeJsonFile } from "../utils/file-helpers.js";
@@ -354,7 +354,7 @@ export const configCommand = new Command("config")
       await runCommand(async () => {
         const projectRoot = requireProjectRoot();
 
-        const projectJsonPath = join(projectRoot, ".tdk", "project.json");
+        const projectJsonPath = join(projectRoot, ".tdk", PROJECT_JSON);
         if (!existsSync(projectJsonPath)) {
           throw new Error(".tdk/project.json not found");
         }
@@ -439,7 +439,7 @@ async function toggleInfraService(service: string, enabled: boolean): Promise<vo
   // Type-safe assignment: service is now narrowed to OptionalInfraKey
   config.optional_infra[service] = enabled;
 
-  const projectJsonPath = join(projectRoot, ".tdk", "project.json");
+  const projectJsonPath = join(projectRoot, ".tdk", PROJECT_JSON);
   // ProjectConfig is guaranteed to be JSON-serializable
   writeJsonFile(projectJsonPath, config as unknown);
 
