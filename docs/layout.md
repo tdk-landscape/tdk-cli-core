@@ -124,7 +124,7 @@ To catch a `service.json` that was edited without regenerating, run `tdk config 
 
 ## Layouts for about 5, 20 and 50 services
 
-These are recommendations built from the checks above, not measured results. The only scale numbers TDK has are in the [claims registry](claims.md) and the [scale benchmarks](benchmarks/scale-bench.md): generated `/health` stubs, with images already built, 10 services healthy after 8 s, 50 after 24 s (829 MiB in total) and 100 after 112 s on a 16 GB machine. A real application is larger. **Memory, CPU and start time for real services are unmeasured**, and so is how many real services fit on a developer laptop ([#508](https://github.com/tdk-landscape/tdk-cli-core/issues/508)).
+These are recommendations built from the checks above, not measured results. The only scale numbers TDK has are in the [claims registry](claims.md) and the [scale benchmarks](benchmarks/scale-bench.md): generated `/health` stubs, with images already built, 10 services healthy after 8 s, 50 after 24 s (829 MiB in total) and 100 after 112 s on a 16 GB machine. A real application is larger. **Memory, CPU and start time for real services are unmeasured**, and so is how many real services fit on a developer machine ([#508](https://github.com/tdk-landscape/tdk-cli-core/issues/508)).
 
 ### About 5 services
 

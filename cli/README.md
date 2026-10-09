@@ -1,6 +1,6 @@
-# 🚀 TDK CLI — start services on your laptop
+# 🚀 TDK CLI — start services on your machine
 
-TDK CLI — start services on your laptop. It is not a deploy and not a Compose file. Define services in `service.json`, then run `tdk up`. No Kubernetes is needed on the machine. If your existing Helm, Compose, or Tilt workflow already works locally, keep using it.
+TDK CLI — start services on your machine. It is not a deploy and not a Compose file. Define services in `service.json`, then run `tdk up`. No Kubernetes is needed on the machine. If your existing Helm, Compose, or Tilt workflow already works locally, keep using it.
 
 > Command reference for the `tdk` CLI. See the **[main README](../README.md)** for onboarding and the **[Helm handoff guide](../docs/with-helm.md)** for the local-development/production boundary.
 
@@ -328,7 +328,7 @@ The general Tilt-resource fix points to the URL printed by `tdk up`; the default
 
 ### Container footprint
 
-Generated runtimes are sized so large landscapes fit on a 16 GB laptop:
+Generated runtimes are sized so large landscapes fit on a 16 GB machine:
 
 - **One process per container.** A service whose `start` script is just `bun run <file>` runs `bun <file>` directly under Docker's init (`init: true`). Any other `start` script keeps `bun run start`.
 - **Healthchecks:** every 2 s during startup, then every 30 s. You can override the timing for a run:
@@ -428,7 +428,7 @@ To bring an existing repo in (Procfile, Compose, Dockerfile, `package.json`), `t
 
 <div align="center">
 
-**[⬆️ Back to Top](#-tdk-cli--start-services-on-your-laptop)**
+**[⬆️ Back to Top](#-tdk-cli--start-services-on-your-machine)**
 
 Made with 💚 for developers who ship
 
