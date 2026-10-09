@@ -195,6 +195,9 @@ The frontend provider owns root `index.html` and starter source. After TDK gener
 `-v` is context-specific: `tdk -v` prints the version, while `tdk up -v` and `tdk down -v`
 enable verbose output. Use `--version` and `--verbose` when clarity matters.
 
+`tdk status` and `tdk ui` poll Tilt on `TILT_PORT` when it contains only decimal digits
+and is in the range 1–65535. Missing or invalid values fall back to port 10350.
+
 Use `tdk ui --high-contrast` for a brighter palette with clearer text hierarchy
 and no dimmed secondary text. `tdk ui --no-animations` keeps the loading screen
 static. If `NO_COLOR` is set (including an empty value), or `TERM` begins with

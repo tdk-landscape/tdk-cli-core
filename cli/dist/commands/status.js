@@ -12,6 +12,7 @@ import { findProjectRoot } from "../utils/paths.js";
 import { deriveServiceStates } from "../utils/service-runtime-state.js";
 import { buildServicePorts, buildStackPorts } from "../utils/status-ports.js";
 import { getTiltfilePath, isTiltAvailable, runTilt } from "../utils/tilt.js";
+import { getTiltPollingPort } from "../utils/tilt-startup.js";
 import { evaluateTiltReadiness, tiltGetUiResources } from "../utils/up-readiness.js";
 export const statusCommand = new Command("status")
     .description("Show status of resources and stacks")
@@ -63,9 +64,9 @@ export const statusCommand = new Command("status")
         let readiness = null;
         // The same look at Tilt feeds readiness and each service's state, so `tdk status` and `tdk ui` cannot disagree.
         let serviceStates = null;
+        const tiltPort = getTiltPollingPort(process.env.TILT_PORT);
         if (tiltAvailable) {
-            const port = Number.parseInt(process.env.TILT_PORT ?? "", 10);
-            const text = await tiltGetUiResources(Number.isInteger(port) ? port : 10350);
+            const text = await tiltGetUiResources(tiltPort);
             if (text) {
                 const deferred = getDeferredResourceNames();
                 try {
@@ -115,7 +116,7 @@ export const statusCommand = new Command("status")
                         ? { blockedBy: serviceStates[resource.name]?.blockedBy }
                         : {}),
                 })),
-                ports: buildStackPorts(portPlan, process.env.TILT_PORT ? Number.parseInt(process.env.TILT_PORT, 10) : undefined),
+                ports: buildStackPorts(portPlan, tiltPort),
                 stacks: discovery.stacks.map((stack) => ({
                     name: stack.name,
                     resourceCount: stack.resourceCount,

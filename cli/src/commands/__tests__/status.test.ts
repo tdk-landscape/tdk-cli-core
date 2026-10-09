@@ -104,9 +104,29 @@ describe("tdk status", () => {
   });
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     vi.mocked(isTiltAvailable).mockReset();
     vi.mocked(runTilt).mockReset();
     vi.mocked(tiltGetUiResources).mockReset();
+  });
+
+  it.each([
+    [undefined, 10350],
+    ["12345", 12345],
+    ["12345abc", 10350],
+    ["10350.5", 10350],
+    ["0", 10350],
+    ["-1", 10350],
+    ["65536", 10350],
+  ])("polls and reports the same port for TILT_PORT=%s", async (value, port) => {
+    vi.stubEnv("TILT_PORT", value);
+    const output = JSON.parse(await runStatus(["--json"]));
+    expect(tiltGetUiResources).toHaveBeenCalledWith(port);
+    expect(output.data.ports).toContainEqual({
+      name: "tilt-ui",
+      hostPort: port,
+      purpose: "Tilt UI",
+    });
   });
 
   it("prints Tilt availability, resource and stack counts, and next steps by default", async () => {
