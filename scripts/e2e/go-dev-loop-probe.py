@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import argparse
 import datetime
+import http.client
 import os
 import re
 import statistics
@@ -29,8 +30,6 @@ import subprocess
 import sys
 import threading
 import time
-import urllib.error
-import urllib.request
 
 ap = argparse.ArgumentParser()
 ap.add_argument("main_go")
@@ -43,10 +42,15 @@ ap.add_argument("edits", type=int)
 ap.add_argument("--max-ready", type=float, default=20.0)
 args = ap.parse_args()
 
-# The URL is always http://127.0.0.1:<port><path>; reject anything that could change its host or scheme.
-if not args.traefik_port.isdigit() or not args.route.startswith("/"):
-    ap.error("traefik_port must be digits and route must start with /")
-url = f"http://127.0.0.1:{args.traefik_port}{args.route}"
+# Connect to loopback directly so a route can never select a URL scheme or host.
+if (
+    not args.traefik_port.isdigit()
+    or not 1 <= int(args.traefik_port) <= 65535
+    or not args.route.startswith("/")
+    or args.route.startswith("//")
+    or any(ord(char) < 0x20 for char in args.route)
+):
+    ap.error("traefik_port must be in 1..65535 and route must be a path starting with a single /")
 failures: list[str] = []
 samples: list[tuple[float, str]] = []  # (time, "200 <version>" | "HTTP 502" | "ERR ...")
 stop = False
@@ -61,15 +65,18 @@ def tilt_log() -> str:
 
 
 def probe_once() -> str:
-    req = urllib.request.Request(url, headers={"Host": args.host})
+    conn = http.client.HTTPConnection("127.0.0.1", int(args.traefik_port), timeout=1)
     try:
-        with urllib.request.urlopen(req, timeout=1) as r:
-            m = re.search(r'"version":"([^"]*)"', r.read().decode())
+        conn.request("GET", args.route, headers={"Host": args.host})
+        response = conn.getresponse()
+        if response.status == 200:
+            m = re.search(r'"version":"([^"]*)"', response.read().decode())
             return f"200 {m.group(1) if m else '?'}"
-    except urllib.error.HTTPError as e:
-        return f"HTTP {e.code}"
-    except Exception as e:  # connection refused, reset, timeout
+        return f"HTTP {response.status}"
+    except (OSError, http.client.HTTPException) as e:  # connection refused, reset, timeout
         return f"ERR {type(e).__name__}"
+    finally:
+        conn.close()
 
 
 def poll() -> None:

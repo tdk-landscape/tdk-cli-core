@@ -4,9 +4,9 @@ RUN apt-get update -qq && apt-get install -y -qq --no-install-recommends build-e
  && rm -rf /var/lib/apt/lists/*
 WORKDIR /work
 RUN gem install hanami --no-document >/dev/null \
- && hanami new bookshelf --skip-db --skip-assets \
- && cd bookshelf && bundle install --quiet
+ && hanami new bookshelf --skip-db --skip-assets
 WORKDIR /work/bookshelf
+RUN bundle install --quiet
 RUN groupadd --gid 1000 app && useradd --uid 1000 --gid app --no-create-home app
 RUN chown -R app:app /work
 USER app

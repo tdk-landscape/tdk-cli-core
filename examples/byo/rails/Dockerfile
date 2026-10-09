@@ -5,9 +5,9 @@ RUN apt-get update -qq && apt-get install -y -qq --no-install-recommends build-e
  && rm -rf /var/lib/apt/lists/*
 WORKDIR /work
 RUN gem install rails --no-document >/dev/null \
- && rails new app --minimal --skip-git --skip-docker --skip-kamal --skip-test -d sqlite3 --skip-bundle \
- && cd app && bundle install --quiet
+ && rails new app --minimal --skip-git --skip-docker --skip-kamal --skip-test -d sqlite3 --skip-bundle
 WORKDIR /work/app
+RUN bundle install --quiet
 RUN bin/rails db:prepare
 # Rails blocks unknown Host headers in development. Through Traefik the host is api.<project>.localhost, which the default
 # allow-list rejects ("Blocked hosts: ..."), so allow any host for local use.
