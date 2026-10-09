@@ -53,8 +53,12 @@ jobs:
                 --json baseRefName,mergeStateStatus,headRefOid \
                 --jq '[.baseRefName, .mergeStateStatus, .headRefOid] | @tsv')"
               IFS=$'\t' read -r base state head_sha <<< "$state_and_sha"
-              [[ "$state" != "UNKNOWN" ]] && break
-              sleep 5
+              if [[ "$state" != "UNKNOWN" ]]; then
+                break
+              fi
+              if [[ "$attempt" -lt 6 ]]; then
+                sleep 5
+              fi
             done
             if [[ "$base" != "main" || "$state" != "BEHIND" ]]; then
               echo "PR #${number} does not need a clean update (base=${base}, state=${state})."
