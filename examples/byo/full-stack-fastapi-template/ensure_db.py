@@ -23,4 +23,5 @@ for attempt in range(60):
 with conn:
     exists = conn.execute("select 1 from pg_database where datname = %s", (db,)).fetchone()
     if not exists:
-        conn.execute(sql.SQL("create database {}").format(sql.Identifier(db)))  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query -- psycopg sql.Identifier safely quotes the database identifier
+        # psycopg sql.Identifier quotes the identifier before composing this DDL statement.
+        conn.execute(sql.SQL("create database {}").format(sql.Identifier(db)))  # nosemgrep: python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query
