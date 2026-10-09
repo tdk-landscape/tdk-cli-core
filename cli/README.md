@@ -428,7 +428,7 @@ To bring an existing repo in (Procfile, Compose, Dockerfile, `package.json`), `t
 
 <div align="center">
 
-**[⬆️ Back to Top](#-tdk-cli-reference)**
+**[⬆️ Back to Top](#-tdk-cli--start-services-on-your-laptop)**
 
 Made with 💚 for developers who ship
 
