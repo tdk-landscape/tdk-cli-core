@@ -4,11 +4,12 @@ import { existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { cwd } from "node:process";
 import packageJson from "../../package.json" with { type: "json" };
+import { PROJECT_JSON } from "./constants.js";
 export function findProjectRoot(startDir = cwd()) {
     let currentDir = resolve(startDir);
     const root = resolve("/");
     while (currentDir !== root) {
-        if (existsSync(join(currentDir, ".tdk", "project.json"))) {
+        if (existsSync(join(currentDir, ".tdk", PROJECT_JSON))) {
             return currentDir;
         }
         const parentDir = dirname(currentDir);

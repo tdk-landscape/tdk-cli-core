@@ -12,10 +12,10 @@ import {
 import type { CheckResult } from "../types/index.js";
 import { BUN_FLOOR_LABEL, bunMeetsFloor } from "./bun-floor.js";
 import { projectNeedsBun } from "./bun-requirement.js";
+import { PROJECT_JSON } from "./constants.js";
 import { checkNatsBroker } from "./doctor-wiring.js";
 import { getHostPortPlan } from "./host-port-config.js";
 import { findProjectRoot } from "./paths.js";
-import { PROJECT_JSON } from "./constants.js";
 import { discoverResourcesFromRoot } from "./services.js";
 import { findOnPath } from "./which.js";
 

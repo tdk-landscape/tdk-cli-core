@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 import { existsSync, readFileSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
+import { PROJECT_JSON } from "./constants.js";
 // Mirrors discovery/json_manifest_scanner.star: every `discovery.paths` entry is a shell
 // glob of directories, and `find -maxdepth 3` looks for service.json under each match. So a
 // resource is only seen by Tilt if some directory matching a pattern is the resource
@@ -48,7 +49,7 @@ function globMatchesDir(patternSegments, dirSegments) {
 }
 /** `discovery.paths` from .tdk/project.json, or the generic default when unset/unreadable. */
 export function readDiscoveryPaths(projectRoot) {
-    const configPath = join(projectRoot, ".tdk", "project.json");
+    const configPath = join(projectRoot, ".tdk", PROJECT_JSON);
     if (!existsSync(configPath))
         return DEFAULT_DISCOVERY_PATHS;
     try {

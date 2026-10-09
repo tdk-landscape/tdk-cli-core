@@ -1,3 +1,6 @@
+// Copyright (c) 2026 TDK Landscape contributors
+// SPDX-License-Identifier: MIT
+import { TECH_STACK_FILE } from "../utils/constants.js";
 export const RESOURCE_CONFIG_APP_TYPES = [
     "backend",
     "frontend",
@@ -24,7 +27,7 @@ export function isCreatableResourceType(value) {
  */
 export function isMasterConfigFileName(filename) {
     const validNames = [
-        "TILT_TECH_STACK.star",
+        TECH_STACK_FILE,
         "TILT_RESOURCE_DEFAULTS.star",
         "spec.master",
     ];

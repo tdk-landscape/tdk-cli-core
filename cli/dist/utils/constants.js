@@ -17,8 +17,16 @@ export const DATABASE_MANAGEMENT_FEATURE = "database-management";
 export const TILTIGNORE_FILE = ".tiltignore";
 // Manifest file name for a resource, used by discovery and the resource command.
 export const SERVICE_JSON = "service.json";
+export const TECH_STACK_FILE = "TILT_TECH_STACK.star";
+// TDK project manifest file name. The canonical project config lives at
+// `<project-root>/.tdk/project.json` — discovery, doctor, generator, config
+// edits, and stack-features all read/write it. Referenced by value across
+// these modules, so a typo in one copy would compile and silently stop
+// matching (or worse, read a different file). Keep the literal here and
+// import it everywhere it's needed.
+export const PROJECT_JSON = "project.json";
 export const MASTER_CONFIG_FILES = [
-    "TILT_TECH_STACK.star",
+    TECH_STACK_FILE,
     "TILT_RESOURCE_DEFAULTS.star",
     "spec.master",
 ];

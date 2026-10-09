@@ -3,6 +3,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { PROJECT_JSON } from "./constants.js";
 import { createHostPortPlan, isHostPortAvailable } from "./host-port-plan.js";
 const CONFIG_PATH = join(".tdk", ".tdk-out", "host-ports.json");
 export function isDockerPortOwnedByProject(dockerPs, projectPrefix, port) {
@@ -56,7 +57,7 @@ export async function getHostPortPlan(projectRoot, options = {}) {
         return saved;
     let prefix = "";
     try {
-        const project = JSON.parse(readFileSync(join(projectRoot, ".tdk", "project.json"), "utf-8"));
+        const project = JSON.parse(readFileSync(join(projectRoot, ".tdk", PROJECT_JSON), "utf-8"));
         prefix = String(project?.project?.name ?? "tdk-project")
             .replace(/-/g, "_")
             .toLowerCase();

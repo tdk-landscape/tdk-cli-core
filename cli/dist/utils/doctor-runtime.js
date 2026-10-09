@@ -4,7 +4,7 @@ import { execFileSync, execSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { join } from "node:path";
-import { STANDARD_PORTS } from "./constants.js";
+import { PROJECT_JSON, STANDARD_PORTS } from "./constants.js";
 import { formatCount } from "./formatting.js";
 import { findProjectRoot } from "./paths.js";
 import { isApiServiceType } from "./resource-kind.js";
@@ -204,7 +204,7 @@ export function isRegistryRelatedBuildError(error) {
     return /ConnectionRefused downloading package manifest|Verdaccio|private registry|dependency install failed during ImageBuild|install-deps\.sh|bun install/i.test(error);
 }
 export function projectConfigEnablesVerdaccio(projectRoot = findProjectRoot() ?? process.cwd()) {
-    const projectJsonPath = join(projectRoot, ".tdk", "project.json");
+    const projectJsonPath = join(projectRoot, ".tdk", PROJECT_JSON);
     if (!existsSync(projectJsonPath))
         return false;
     try {

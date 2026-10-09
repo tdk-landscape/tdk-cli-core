@@ -1,5 +1,7 @@
 // Copyright (c) 2026 TDK Landscape contributors
 // SPDX-License-Identifier: MIT
+import { TECH_STACK_FILE } from "../utils/constants.js";
+
 export interface DiscoveredResource {
   name: string;
   path: string;
@@ -398,7 +400,7 @@ export type PortAssignableResourceType = Extract<
 // ============================================================================
 
 export type MasterConfigFileName =
-  | "TILT_TECH_STACK.star"
+  | typeof TECH_STACK_FILE
   | "TILT_RESOURCE_DEFAULTS.star"
   | "spec.master";
 
@@ -408,7 +410,7 @@ export type MasterConfigFileName =
  */
 export function isMasterConfigFileName(filename: string): filename is MasterConfigFileName {
   const validNames: readonly string[] = [
-    "TILT_TECH_STACK.star",
+    TECH_STACK_FILE,
     "TILT_RESOURCE_DEFAULTS.star",
     "spec.master",
   ];

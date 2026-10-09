@@ -2,13 +2,14 @@
 // SPDX-License-Identifier: MIT
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { PROJECT_JSON } from "./constants.js";
 function toParts(raw) {
     const match = raw.trim().match(/(\d+)\.(\d+)(?:\.(\d+))?/);
     return match ? [Number(match[1]), Number(match[2]), Number(match[3] ?? 0)] : null;
 }
 function readMinTdkVersion(projectRoot) {
     try {
-        const parsed = JSON.parse(readFileSync(join(projectRoot, ".tdk", "project.json"), "utf-8"));
+        const parsed = JSON.parse(readFileSync(join(projectRoot, ".tdk", PROJECT_JSON), "utf-8"));
         return parsed?.minTdkVersion;
     }
     catch {

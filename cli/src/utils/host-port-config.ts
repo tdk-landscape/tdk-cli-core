@@ -3,8 +3,8 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { createHostPortPlan, type HostPortPlan, isHostPortAvailable } from "./host-port-plan.js";
 import { PROJECT_JSON } from "./constants.js";
+import { createHostPortPlan, type HostPortPlan, isHostPortAvailable } from "./host-port-plan.js";
 
 const CONFIG_PATH = join(".tdk", ".tdk-out", "host-ports.json");
 
