@@ -25,6 +25,7 @@ Hard-won, repo-specific facts for anyone (human or agent) working here. Keep ent
 - 2026-10-08 (#873): A build tool used by a `prepack`/`build` script must be a declared devDependency of the package that runs it (`cli/`). A stray copy in `node_modules` from an earlier `bun add` hides the omission locally; CI's clean `bun install --frozen-lockfile` fails with `ERR_MODULE_NOT_FOUND`. Verify with `rm -rf node_modules cli/node_modules` and a frozen install before pushing.
 
 ## Engine and generators
+- From a projectless MCP client, the server's launch directory may not be the intended TDK project; pass an absolute `projectPath` to each tool call (2026-10-09).
 - A changed `.star` file reaches a running container only after re-vendoring (`tdk project --yes`), a Tiltfile content change, and an image rebuild. Byte-identical output logs `Skipping ... (no changes)`.
 - Check a BYO example through `tdk up` (`scripts/verify-byo-tdk.sh`), not only a standalone `docker run`: TDK adds a `Host: api.<project>.localhost` header, a Postgres `DATABASE_URL`, and its own bind expectations.
 - Do not make a service run its own migrations to prove a database path works (2026-10-04, #533): a fixture whose `index.ts` ran `bunx prisma migrate deploy` crashed in CI with `Cannot find module '@prisma/engines'`, then looped until the script timed out. Use a `migrator` resource and check Postgres, migrator, API order through `tdk up`.
