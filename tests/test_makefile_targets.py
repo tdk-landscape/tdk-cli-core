@@ -64,6 +64,7 @@ def test_shell_target_fails_when_a_verification_script_is_invalid(tmp_path: Path
         str(path.relative_to(REPOSITORY_ROOT))
         for path in (REPOSITORY_ROOT / "scripts").glob("verify-*.sh")
     )
+    assert len(expected_scripts) >= 2, "need two verify scripts to prove the loop stops at the failure"
     failing_script = expected_scripts[1]
 
     log_path = tmp_path / "checked-scripts.txt"
