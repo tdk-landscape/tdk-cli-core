@@ -4,7 +4,7 @@
 
 This SDK provides a **professional, layered architecture** for managing 5000+ lines of Tilt/Starlark configuration code.
 
-```
+```text
 .tilt/
 ├── core/                         # 🔧 Foundational Layer (Low-level)
 │   ├── utils.star                # Shared helpers, I/O, validation
