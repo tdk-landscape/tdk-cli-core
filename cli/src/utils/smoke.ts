@@ -178,7 +178,11 @@ function readPath(value: unknown, path: string): unknown {
     // Own properties only: a path like "__proto__" must not reach inherited values.
     if (part === "__proto__" || part === "constructor" || part === "prototype") return undefined;
     if (!Object.hasOwn(current, part)) return undefined;
-    current = (current as Record<string, unknown>)[part];
+    // Resolve only own data properties. Besides avoiding inherited properties, this
+    // avoids invoking accessors on values supplied by smoke-test responses.
+    const descriptor = Object.getOwnPropertyDescriptor(current, part);
+    if (!descriptor || !("value" in descriptor)) return undefined;
+    current = descriptor.value;
   }
   return current;
 }

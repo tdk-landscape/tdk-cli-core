@@ -116,7 +116,11 @@ function readPath(value, path) {
             return undefined;
         if (!Object.hasOwn(current, part))
             return undefined;
-        current = current[part];
+        // Resolve only own data properties; do not invoke accessors from response data.
+        const descriptor = Object.getOwnPropertyDescriptor(current, part);
+        if (!descriptor || !("value" in descriptor))
+            return undefined;
+        current = descriptor.value;
     }
     return current;
 }
