@@ -64,6 +64,7 @@
 ## Contributing
 
 - [Contributor guide](contributing/README.md)
+- [Category, naming, and adoption research](growth/README.md): sourced developer comments, candidate screening, and a compatibility plan for #990
 
 ## Where things live
 

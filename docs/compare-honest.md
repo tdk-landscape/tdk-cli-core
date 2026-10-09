@@ -4,7 +4,9 @@ TDK CLI turns a `service.json` per service into a local Docker stack, with Tilt 
 
 ## Compose
 
-Compose is better for 2–3 services you already wrote. TDK is useful when you want scaffolding, selective `tdk up <stack>`, and a generated Tiltfile for a larger service set.
+[Compose](https://docs.docker.com/compose/) defines and runs multi-container applications from a YAML configuration. [Compose Watch](https://docs.docker.com/compose/how-tos/file-watch/) also supports synchronization, rebuilds, and restarts while you develop, so hot reload alone is not a reason to adopt TDK.
+
+TDK is worth evaluating when you want a `service.json` contract, scaffolding, selective `tdk up <stack>`, and generated Docker/Tilt configuration. Compare the configuration you would maintain in each workflow. A working Compose setup may already meet your needs; there is no measured service-count threshold for switching.
 
 ## Tilt
 
