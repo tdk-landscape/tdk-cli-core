@@ -1,0 +1,502 @@
+{
+  "checked_on": "2026-10-09",
+  "purpose": "Exact namespace observations for issue #990, not clearance or guaranteed availability.",
+  "interpretation": {
+    "http_200": "Endpoint returned a record; inspect service and name.",
+    "http_404": "Endpoint returned no record for this exact identifier at this time; not a reservation or clearance.",
+    "other_status_or_error": "Inconclusive; do not infer availability.",
+    "github_repository_search": "Name-substring matches, not exclusively exact names; returned sample is capped at 3.",
+    "scope_limits": "Unscoped npm bare and -cli names, PyPI bare names, GitHub repository-name search and account names, and .com/.dev RDAP only. No scoped npm ownership, other domains/social platforms, language review, or trademark clearance."
+  },
+  "rdap_bootstrap": {
+    "url": "https://data.iana.org/rdap/dns.json",
+    "checked_at_utc": "2026-10-09T15:22:58+00:00",
+    "http_status": 200
+  },
+  "candidates": [
+    {
+      "candidate": "inforio",
+      "checks": {
+        "npm:inforio": {
+          "url": "https://registry.npmjs.org/inforio",
+          "checked_at_utc": "2026-10-09T15:22:58+00:00",
+          "http_status": 404
+        },
+        "npm:inforio-cli": {
+          "url": "https://registry.npmjs.org/inforio-cli",
+          "checked_at_utc": "2026-10-09T15:22:59+00:00",
+          "http_status": 404
+        },
+        "pypi:inforio": {
+          "url": "https://pypi.org/pypi/inforio/json",
+          "checked_at_utc": "2026-10-09T15:22:59+00:00",
+          "http_status": 404
+        },
+        "github_repositories": {
+          "url": "https://api.github.com/search/repositories?q=inforio%20in%3Aname",
+          "query": "inforio in:name",
+          "checked_at_utc": "2026-10-09T15:23:01+00:00",
+          "total_name_matches": 15,
+          "incomplete_results": false,
+          "sample": [
+            {
+              "full_name": "gabriella-muniz/helpdesk-inforio",
+              "url": "https://github.com/gabriella-muniz/helpdesk-inforio"
+            },
+            {
+              "full_name": "Mohammad-Alhasan/inforion",
+              "url": "https://github.com/Mohammad-Alhasan/inforion"
+            },
+            {
+              "full_name": "thiagocruzrj/InfoRio",
+              "url": "https://github.com/thiagocruzrj/InfoRio"
+            }
+          ]
+        },
+        "github_account": {
+          "url": "https://api.github.com/users/inforio",
+          "checked_at_utc": "2026-10-09T15:23:01+00:00",
+          "http_status": 200,
+          "returned_login": "inforio"
+        },
+        "rdap:inforio.dev": {
+          "url": "https://pubapi.registry.google/rdap/domain/inforio.dev",
+          "checked_at_utc": "2026-10-09T15:23:01+00:00",
+          "http_status": 404
+        },
+        "rdap:inforio.com": {
+          "url": "https://rdap.verisign.com/com/v1/domain/inforio.com",
+          "checked_at_utc": "2026-10-09T15:23:01+00:00",
+          "http_status": 200,
+          "returned_domain": "INFORIO.COM",
+          "domain_status": [
+            "client delete prohibited",
+            "client renew prohibited",
+            "client transfer prohibited",
+            "client update prohibited"
+          ]
+        }
+      }
+    },
+    {
+      "candidate": "loopraft",
+      "checks": {
+        "npm:loopraft": {
+          "url": "https://registry.npmjs.org/loopraft",
+          "checked_at_utc": "2026-10-09T15:22:58+00:00",
+          "http_status": 404
+        },
+        "npm:loopraft-cli": {
+          "url": "https://registry.npmjs.org/loopraft-cli",
+          "checked_at_utc": "2026-10-09T15:22:59+00:00",
+          "http_status": 404
+        },
+        "pypi:loopraft": {
+          "url": "https://pypi.org/pypi/loopraft/json",
+          "checked_at_utc": "2026-10-09T15:22:59+00:00",
+          "http_status": 404
+        },
+        "github_repositories": {
+          "url": "https://api.github.com/search/repositories?q=loopraft%20in%3Aname",
+          "query": "loopraft in:name",
+          "checked_at_utc": "2026-10-09T15:23:00+00:00",
+          "total_name_matches": 0,
+          "incomplete_results": false,
+          "sample": []
+        },
+        "github_account": {
+          "url": "https://api.github.com/users/loopraft",
+          "checked_at_utc": "2026-10-09T15:23:00+00:00",
+          "http_status": 404
+        },
+        "rdap:loopraft.dev": {
+          "url": "https://pubapi.registry.google/rdap/domain/loopraft.dev",
+          "checked_at_utc": "2026-10-09T15:23:00+00:00",
+          "http_status": 404
+        },
+        "rdap:loopraft.com": {
+          "url": "https://rdap.verisign.com/com/v1/domain/loopraft.com",
+          "checked_at_utc": "2026-10-09T15:23:01+00:00",
+          "http_status": 404
+        }
+      }
+    },
+    {
+      "candidate": "devorio",
+      "checks": {
+        "npm:devorio": {
+          "url": "https://registry.npmjs.org/devorio",
+          "checked_at_utc": "2026-10-09T15:22:58+00:00",
+          "http_status": 404
+        },
+        "npm:devorio-cli": {
+          "url": "https://registry.npmjs.org/devorio-cli",
+          "checked_at_utc": "2026-10-09T15:22:59+00:00",
+          "http_status": 404
+        },
+        "pypi:devorio": {
+          "url": "https://pypi.org/pypi/devorio/json",
+          "checked_at_utc": "2026-10-09T15:22:59+00:00",
+          "http_status": 404
+        },
+        "github_repositories": {
+          "url": "https://api.github.com/search/repositories?q=devorio%20in%3Aname",
+          "query": "devorio in:name",
+          "checked_at_utc": "2026-10-09T15:23:00+00:00",
+          "total_name_matches": 7,
+          "incomplete_results": false,
+          "sample": [
+            {
+              "full_name": "masjoncpp/devorionclinic",
+              "url": "https://github.com/masjoncpp/devorionclinic"
+            },
+            {
+              "full_name": "oops-solution/devorionllc-website",
+              "url": "https://github.com/oops-solution/devorionllc-website"
+            },
+            {
+              "full_name": "akashthakur2701/DevOrion",
+              "url": "https://github.com/akashthakur2701/DevOrion"
+            }
+          ]
+        },
+        "github_account": {
+          "url": "https://api.github.com/users/devorio",
+          "checked_at_utc": "2026-10-09T15:23:00+00:00",
+          "http_status": 200,
+          "returned_login": "devorio"
+        },
+        "rdap:devorio.dev": {
+          "url": "https://pubapi.registry.google/rdap/domain/devorio.dev",
+          "checked_at_utc": "2026-10-09T15:23:01+00:00",
+          "http_status": 404
+        },
+        "rdap:devorio.com": {
+          "url": "https://rdap.verisign.com/com/v1/domain/devorio.com",
+          "checked_at_utc": "2026-10-09T15:23:01+00:00",
+          "http_status": 200,
+          "returned_domain": "DEVORIO.COM",
+          "domain_status": [
+            "client transfer prohibited"
+          ]
+        }
+      }
+    },
+    {
+      "candidate": "devweave",
+      "checks": {
+        "npm:devweave": {
+          "url": "https://registry.npmjs.org/devweave",
+          "checked_at_utc": "2026-10-09T15:22:58+00:00",
+          "http_status": 404
+        },
+        "npm:devweave-cli": {
+          "url": "https://registry.npmjs.org/devweave-cli",
+          "checked_at_utc": "2026-10-09T15:22:59+00:00",
+          "http_status": 404
+        },
+        "pypi:devweave": {
+          "url": "https://pypi.org/pypi/devweave/json",
+          "checked_at_utc": "2026-10-09T15:22:59+00:00",
+          "http_status": 404
+        },
+        "github_repositories": {
+          "url": "https://api.github.com/search/repositories?q=devweave%20in%3Aname",
+          "query": "devweave in:name",
+          "checked_at_utc": "2026-10-09T15:23:01+00:00",
+          "total_name_matches": 38,
+          "incomplete_results": false,
+          "sample": [
+            {
+              "full_name": "sahuhasrh/devweave",
+              "url": "https://github.com/sahuhasrh/devweave"
+            },
+            {
+              "full_name": "mavia28/DevWeave",
+              "url": "https://github.com/mavia28/DevWeave"
+            },
+            {
+              "full_name": "SammarGaikwad/DevWeave",
+              "url": "https://github.com/SammarGaikwad/DevWeave"
+            }
+          ]
+        },
+        "github_account": {
+          "url": "https://api.github.com/users/devweave",
+          "checked_at_utc": "2026-10-09T15:23:01+00:00",
+          "http_status": 200,
+          "returned_login": "Devweave"
+        },
+        "rdap:devweave.dev": {
+          "url": "https://pubapi.registry.google/rdap/domain/devweave.dev",
+          "checked_at_utc": "2026-10-09T15:23:01+00:00",
+          "http_status": 404
+        },
+        "rdap:devweave.com": {
+          "url": "https://rdap.verisign.com/com/v1/domain/devweave.com",
+          "checked_at_utc": "2026-10-09T15:23:01+00:00",
+          "http_status": 200,
+          "returned_domain": "DEVWEAVE.COM",
+          "domain_status": [
+            "client transfer prohibited"
+          ]
+        }
+      }
+    },
+    {
+      "candidate": "tiltkit",
+      "checks": {
+        "npm:tiltkit": {
+          "url": "https://registry.npmjs.org/tiltkit",
+          "checked_at_utc": "2026-10-09T15:23:01+00:00",
+          "http_status": 404
+        },
+        "npm:tiltkit-cli": {
+          "url": "https://registry.npmjs.org/tiltkit-cli",
+          "checked_at_utc": "2026-10-09T15:23:01+00:00",
+          "http_status": 404
+        },
+        "pypi:tiltkit": {
+          "url": "https://pypi.org/pypi/tiltkit/json",
+          "checked_at_utc": "2026-10-09T15:23:01+00:00",
+          "http_status": 404
+        },
+        "github_repositories": {
+          "url": "https://api.github.com/search/repositories?q=tiltkit%20in%3Aname",
+          "query": "tiltkit in:name",
+          "checked_at_utc": "2026-10-09T15:23:02+00:00",
+          "total_name_matches": 1,
+          "incomplete_results": false,
+          "sample": [
+            {
+              "full_name": "chaert-s/TiltKit",
+              "url": "https://github.com/chaert-s/TiltKit"
+            }
+          ]
+        },
+        "github_account": {
+          "url": "https://api.github.com/users/tiltkit",
+          "checked_at_utc": "2026-10-09T15:23:02+00:00",
+          "http_status": 404
+        },
+        "rdap:tiltkit.dev": {
+          "url": "https://pubapi.registry.google/rdap/domain/tiltkit.dev",
+          "checked_at_utc": "2026-10-09T15:23:02+00:00",
+          "http_status": 404
+        },
+        "rdap:tiltkit.com": {
+          "url": "https://rdap.verisign.com/com/v1/domain/tiltkit.com",
+          "checked_at_utc": "2026-10-09T15:23:03+00:00",
+          "http_status": 404
+        }
+      }
+    },
+    {
+      "candidate": "stackloom",
+      "checks": {
+        "npm:stackloom": {
+          "url": "https://registry.npmjs.org/stackloom",
+          "checked_at_utc": "2026-10-09T15:23:01+00:00",
+          "http_status": 404
+        },
+        "npm:stackloom-cli": {
+          "url": "https://registry.npmjs.org/stackloom-cli",
+          "checked_at_utc": "2026-10-09T15:23:01+00:00",
+          "http_status": 200,
+          "returned_name": "stackloom-cli",
+          "latest_version": "1.22.1"
+        },
+        "pypi:stackloom": {
+          "url": "https://pypi.org/pypi/stackloom/json",
+          "checked_at_utc": "2026-10-09T15:23:01+00:00",
+          "http_status": 404
+        },
+        "github_repositories": {
+          "url": "https://api.github.com/search/repositories?q=stackloom%20in%3Aname",
+          "query": "stackloom in:name",
+          "checked_at_utc": "2026-10-09T15:23:03+00:00",
+          "total_name_matches": 9,
+          "incomplete_results": false,
+          "sample": [
+            {
+              "full_name": "Ra59s-Das/stackloom",
+              "url": "https://github.com/Ra59s-Das/stackloom"
+            },
+            {
+              "full_name": "ooiai/stackloom",
+              "url": "https://github.com/ooiai/stackloom"
+            },
+            {
+              "full_name": "tionmon/stackloom",
+              "url": "https://github.com/tionmon/stackloom"
+            }
+          ]
+        },
+        "github_account": {
+          "url": "https://api.github.com/users/stackloom",
+          "checked_at_utc": "2026-10-09T15:23:03+00:00",
+          "http_status": 200,
+          "returned_login": "stackloom"
+        },
+        "rdap:stackloom.dev": {
+          "url": "https://pubapi.registry.google/rdap/domain/stackloom.dev",
+          "checked_at_utc": "2026-10-09T15:23:03+00:00",
+          "http_status": 200,
+          "returned_domain": "stackloom.dev",
+          "domain_status": [
+            "client transfer prohibited"
+          ]
+        },
+        "rdap:stackloom.com": {
+          "url": "https://rdap.verisign.com/com/v1/domain/stackloom.com",
+          "checked_at_utc": "2026-10-09T15:23:03+00:00",
+          "http_status": 200,
+          "returned_domain": "STACKLOOM.COM",
+          "domain_status": [
+            "client delete prohibited",
+            "client renew prohibited",
+            "client transfer prohibited",
+            "client update prohibited"
+          ]
+        }
+      }
+    },
+    {
+      "candidate": "stackora",
+      "checks": {
+        "npm:stackora": {
+          "url": "https://registry.npmjs.org/stackora",
+          "checked_at_utc": "2026-10-09T15:23:01+00:00",
+          "http_status": 404
+        },
+        "npm:stackora-cli": {
+          "url": "https://registry.npmjs.org/stackora-cli",
+          "checked_at_utc": "2026-10-09T15:23:01+00:00",
+          "http_status": 404
+        },
+        "pypi:stackora": {
+          "url": "https://pypi.org/pypi/stackora/json",
+          "checked_at_utc": "2026-10-09T15:23:02+00:00",
+          "http_status": 404
+        },
+        "github_repositories": {
+          "url": "https://api.github.com/search/repositories?q=stackora%20in%3Aname",
+          "query": "stackora in:name",
+          "checked_at_utc": "2026-10-09T15:23:03+00:00",
+          "total_name_matches": 29,
+          "incomplete_results": false,
+          "sample": [
+            {
+              "full_name": "SanketKhule/Stackora",
+              "url": "https://github.com/SanketKhule/Stackora"
+            },
+            {
+              "full_name": "MuhammadUsamaAwan/stackora",
+              "url": "https://github.com/MuhammadUsamaAwan/stackora"
+            },
+            {
+              "full_name": "gnmsss/Stackora",
+              "url": "https://github.com/gnmsss/Stackora"
+            }
+          ]
+        },
+        "github_account": {
+          "url": "https://api.github.com/users/stackora",
+          "checked_at_utc": "2026-10-09T15:23:03+00:00",
+          "http_status": 200,
+          "returned_login": "Stackora"
+        },
+        "rdap:stackora.dev": {
+          "url": "https://pubapi.registry.google/rdap/domain/stackora.dev",
+          "checked_at_utc": "2026-10-09T15:23:03+00:00",
+          "http_status": 200,
+          "returned_domain": "stackora.dev",
+          "domain_status": [
+            "client transfer prohibited"
+          ]
+        },
+        "rdap:stackora.com": {
+          "url": "https://rdap.verisign.com/com/v1/domain/stackora.com",
+          "checked_at_utc": "2026-10-09T15:23:04+00:00",
+          "http_status": 200,
+          "returned_domain": "STACKORA.COM",
+          "domain_status": [
+            "client delete prohibited",
+            "client renew prohibited",
+            "client transfer prohibited",
+            "client update prohibited"
+          ]
+        }
+      }
+    },
+    {
+      "candidate": "stackpilot",
+      "checks": {
+        "npm:stackpilot": {
+          "url": "https://registry.npmjs.org/stackpilot",
+          "checked_at_utc": "2026-10-09T15:23:01+00:00",
+          "http_status": 200,
+          "returned_name": "stackpilot",
+          "latest_version": "1.0.0"
+        },
+        "npm:stackpilot-cli": {
+          "url": "https://registry.npmjs.org/stackpilot-cli",
+          "checked_at_utc": "2026-10-09T15:23:01+00:00",
+          "http_status": 404
+        },
+        "pypi:stackpilot": {
+          "url": "https://pypi.org/pypi/stackpilot/json",
+          "checked_at_utc": "2026-10-09T15:23:02+00:00",
+          "http_status": 200,
+          "returned_name": "stackpilot",
+          "latest_version": "0.1.0"
+        },
+        "github_repositories": {
+          "url": "https://api.github.com/search/repositories?q=stackpilot%20in%3Aname",
+          "query": "stackpilot in:name",
+          "checked_at_utc": "2026-10-09T15:23:03+00:00",
+          "total_name_matches": 155,
+          "incomplete_results": false,
+          "sample": [
+            {
+              "full_name": "AdityaRoy999/StackPilot",
+              "url": "https://github.com/AdityaRoy999/StackPilot"
+            },
+            {
+              "full_name": "cheburek4535/StackPilot",
+              "url": "https://github.com/cheburek4535/StackPilot"
+            },
+            {
+              "full_name": "evil1morty/stackpilot",
+              "url": "https://github.com/evil1morty/stackpilot"
+            }
+          ]
+        },
+        "github_account": {
+          "url": "https://api.github.com/users/stackpilot",
+          "checked_at_utc": "2026-10-09T15:23:03+00:00",
+          "http_status": 200,
+          "returned_login": "stackpilot"
+        },
+        "rdap:stackpilot.dev": {
+          "url": "https://pubapi.registry.google/rdap/domain/stackpilot.dev",
+          "checked_at_utc": "2026-10-09T15:23:03+00:00",
+          "http_status": 200,
+          "returned_domain": "stackpilot.dev",
+          "domain_status": [
+            "client transfer prohibited"
+          ]
+        },
+        "rdap:stackpilot.com": {
+          "url": "https://rdap.verisign.com/com/v1/domain/stackpilot.com",
+          "checked_at_utc": "2026-10-09T15:23:03+00:00",
+          "http_status": 200,
+          "returned_domain": "STACKPILOT.COM",
+          "domain_status": [
+            "active"
+          ]
+        }
+      }
+    }
+  ]
+}
