@@ -589,7 +589,7 @@ function createHelpHint(activeTab, selectedStack, selectedService, showEnabledOn
     const cycleTabs = formatUiKeyHint("cycle-tabs", "Tabs", ascii);
     if (activeTab === "overview") {
         const introduction = selectedStack
-            ? 'Stack "' + selectedStack + '" selected. ' + formatUiKeyHint("select", "view", ascii)
+            ? `Stack "${selectedStack}" selected. ${formatUiKeyHint("select", "view", ascii)}`
             : formatUiKeyHint("list-navigation", "Navigate", ascii);
         const controls = selectedStack
             ? [formatUiKeyHint("back", "back", ascii), ...common]
@@ -605,11 +605,7 @@ function createHelpHint(activeTab, selectedStack, selectedService, showEnabledOn
         ].join(separator);
     }
     if (activeTab === "files" && selectedService) {
-        return [
-            'Service "' + selectedService + '"',
-            formatUiKeyHint("back", "Back", ascii),
-            ...common,
-        ].join(separator);
+        return [`Service "${selectedService}"`, formatUiKeyHint("back", "Back", ascii), ...common].join(separator);
     }
     if (activeTab === "files") {
         return ["Select service to view files", ...common].join(separator);
