@@ -8,4 +8,3 @@ export function projectNeedsBun(resources) {
         resource.config?.appType === "frontend" ||
         resource.config?.appType === "worker");
 }
-//# sourceMappingURL=bun-requirement.js.map

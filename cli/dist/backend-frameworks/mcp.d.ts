@@ -5,4 +5,3 @@ export declare function getMcpIndexTemplate(name: string): string;
  * choice for a backend.
  */
 export declare const mcpBackendProvider: BackendFrameworkProvider;
-//# sourceMappingURL=mcp.d.ts.map

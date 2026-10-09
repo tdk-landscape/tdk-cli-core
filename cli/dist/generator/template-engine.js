@@ -746,4 +746,3 @@ function verifyGeneratedResourceFiles(projectRoot, serviceJsonPath) {
     }
     return { errors, handEdited };
 }
-//# sourceMappingURL=template-engine.js.map

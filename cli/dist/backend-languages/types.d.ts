@@ -19,4 +19,3 @@ export interface BackendLanguageProvider {
     /** Printed under "Next steps" after scaffolding. */
     installHint: string;
 }
-//# sourceMappingURL=types.d.ts.map

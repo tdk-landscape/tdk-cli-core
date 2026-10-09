@@ -4,4 +4,3 @@
  * 5432 looked free and `tdk doctor` passed before Docker failed to publish it.
  */
 export declare function hasLocalListener(port: number, timeoutMs?: number): Promise<boolean>;
-//# sourceMappingURL=port-listener-probe.d.ts.map

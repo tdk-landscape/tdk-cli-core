@@ -84,4 +84,3 @@ export const mcpBackendProvider = {
     devDependencies: {},
     createIndex: getMcpIndexTemplate,
 };
-//# sourceMappingURL=mcp.js.map

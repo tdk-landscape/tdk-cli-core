@@ -15,4 +15,3 @@ export declare function importInvocation(args: string[], env?: NodeJS.ProcessEnv
 export declare function runImport(args: string[], spawnFn?: SpawnFn): Promise<number>;
 export declare const importCommand: Command;
 export {};
-//# sourceMappingURL=import.d.ts.map

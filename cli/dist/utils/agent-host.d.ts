@@ -16,4 +16,3 @@ export declare const DEVCONTAINER_DOCKER_FIX = "Docker is not reachable from thi
 /** Classify where the CLI is running. Informational: Docker reachability is still decided by the runtime checks. */
 export declare function detectHost(inputs?: HostProbeInputs): HostInfo;
 export declare function isContainerHost(kind: HostKind): boolean;
-//# sourceMappingURL=agent-host.d.ts.map

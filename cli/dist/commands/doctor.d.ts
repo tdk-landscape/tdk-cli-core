@@ -49,4 +49,3 @@ export declare function checkGeneratedProjectRuntimeAssets(): CheckResult;
 export declare function checkTypeScriptTypeDependencies(): CheckResult;
 export declare function checkFrontendDockerPreflight(): CheckResult;
 export declare const doctorCommand: Command;
-//# sourceMappingURL=doctor.d.ts.map

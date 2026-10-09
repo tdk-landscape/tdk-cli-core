@@ -170,4 +170,3 @@ export const stackCommand = new Command("stack")
         showDetail(`\nYou can now run: tdk up ${targetStack}`, 0);
     });
 });
-//# sourceMappingURL=stack.js.map

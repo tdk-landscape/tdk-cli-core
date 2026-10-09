@@ -230,4 +230,3 @@ export function sharedPlatformPostgresMessage(evaluation) {
         : `resource(s) ${evaluation.dependsOnUsers.join(", ")} depend on postgres/database-management`;
     return `Shared platform Postgres will start because ${why}${projectScopeNote}`;
 }
-//# sourceMappingURL=shared-platform-postgres.js.map

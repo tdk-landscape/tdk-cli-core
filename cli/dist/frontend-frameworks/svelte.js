@@ -65,4 +65,3 @@ export default app;
         ];
     },
 };
-//# sourceMappingURL=svelte.js.map

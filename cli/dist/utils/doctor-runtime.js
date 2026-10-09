@@ -817,4 +817,3 @@ export function checkHealthRoutes(projectRoot = findProjectRoot() ?? process.cwd
             'To use a different path, set "healthCheckPath" (container healthcheck) or "traefik.healthCheck" (Traefik) in its service.json.',
     };
 }
-//# sourceMappingURL=doctor-runtime.js.map

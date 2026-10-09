@@ -76,4 +76,3 @@ export function formatStartupReport(report, timedOut) {
     }
     return lines;
 }
-//# sourceMappingURL=startup-report.js.map

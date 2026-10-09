@@ -56,4 +56,3 @@ export declare function databaseManagementEnabled(projectRoot: string): boolean;
 export declare function evaluateSharedPlatformPostgres(projectRoot: string): SharedPlatformPostgresEvaluation;
 /** Human-readable will-start / will-not-start sentence shared by doctor + verify. */
 export declare function sharedPlatformPostgresMessage(evaluation: SharedPlatformPostgresEvaluation): string;
-//# sourceMappingURL=shared-platform-postgres.d.ts.map

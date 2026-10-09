@@ -4,4 +4,3 @@ import type { ResourceStatus, StackHealthStatus } from "../types/index.js";
  * status, the share of ready services decides it.
  */
 export declare function deriveStackStatus(statuses: ResourceStatus[]): StackHealthStatus;
-//# sourceMappingURL=stack-status.d.ts.map

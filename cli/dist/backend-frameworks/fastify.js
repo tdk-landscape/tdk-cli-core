@@ -41,4 +41,3 @@ export const fastifyBackendProvider = {
     devDependencies: {},
     createIndex: getFastifyIndexTemplate,
 };
-//# sourceMappingURL=fastify.js.map

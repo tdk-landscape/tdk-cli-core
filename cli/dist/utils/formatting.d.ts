@@ -29,4 +29,3 @@ export declare function formatBytes(bytes: number): string;
  */
 export declare function printBoxedHeader(title: string, subtitle?: string, width?: number): void;
 export {};
-//# sourceMappingURL=formatting.d.ts.map

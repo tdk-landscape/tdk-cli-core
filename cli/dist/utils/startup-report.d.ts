@@ -19,4 +19,3 @@ export declare function buildStartupReport(jsonText: string, dependsOn: Record<s
 /** A failure exists and everything still pending is blocked by it, so waiting longer cannot help. */
 export declare function isStartupStalled(jsonText: string, dependsOn: Record<string, string[]>, deferred?: Set<string>): boolean;
 export declare function formatStartupReport(report: StartupReport, timedOut: boolean): string[];
-//# sourceMappingURL=startup-report.d.ts.map

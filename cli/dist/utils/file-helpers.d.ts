@@ -17,4 +17,3 @@ export declare function ensureDirectory(dirPath: string): void;
  * output. Returns the entries it added.
  */
 export declare function ensureGitignore(projectRoot: string): string[];
-//# sourceMappingURL=file-helpers.d.ts.map

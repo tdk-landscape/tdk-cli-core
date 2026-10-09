@@ -7,4 +7,3 @@ type StackResourceConfig = {
 export declare function parseStackResourceConfig(content: string, configPath: string): StackResourceConfig;
 export declare const stackCommand: Command;
 export {};
-//# sourceMappingURL=stack.d.ts.map

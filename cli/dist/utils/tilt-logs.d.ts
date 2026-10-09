@@ -20,4 +20,3 @@ export declare function isValidTail(value: string): boolean;
 export declare function parseTiltLogLines(output: string, limit: number): LogLine[];
 /** True when `tilt logs` failed because no Tilt server answered, as opposed to rejecting its arguments. */
 export declare function isTiltConnectionFailure(stderr: string): boolean;
-//# sourceMappingURL=tilt-logs.d.ts.map

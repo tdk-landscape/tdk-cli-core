@@ -635,4 +635,3 @@ export const upgradeCommand = new Command("upgrade")
         }
     }
 });
-//# sourceMappingURL=upgrade.js.map

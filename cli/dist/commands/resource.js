@@ -795,4 +795,3 @@ This file contains the resource configuration for TDK.
         console.log(chalk.gray(`  tdk up ${stackName}`));
     });
 });
-//# sourceMappingURL=resource.js.map

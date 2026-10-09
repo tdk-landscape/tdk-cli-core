@@ -3,4 +3,3 @@ export declare function checkPortStatus(port: number): Promise<"running" | "stop
 export declare function findAvailablePort(basePort: number, maxAttempts?: number): Promise<number | null>;
 export declare function getUsedPorts(resources: DiscoveredResource[]): Set<number>;
 export declare function assignPort(resourceType: PortAssignableResourceType, existingResources: DiscoveredResource[]): number;
-//# sourceMappingURL=port-assignment.d.ts.map

@@ -431,4 +431,3 @@ export const projectCommand = new Command("project")
         showDetail("\nAfter editing .tdk/project.json, run `tdk config regenerate`.", 0);
     });
 });
-//# sourceMappingURL=project.js.map

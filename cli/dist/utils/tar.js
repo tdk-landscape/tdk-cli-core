@@ -44,4 +44,3 @@ export function extractTarball(data, destDir) {
     }
     rmSync(tempDir, { recursive: true, force: true });
 }
-//# sourceMappingURL=tar.js.map

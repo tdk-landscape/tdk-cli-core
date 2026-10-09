@@ -49,4 +49,3 @@ export const FileTree = ({ nodes, onSelect, selectedPath }) => {
     };
     return (_jsx(Box, { flexDirection: "column", paddingX: 1, children: nodes.map((node) => renderNode(node, 0)) }));
 };
-//# sourceMappingURL=FileTree.js.map

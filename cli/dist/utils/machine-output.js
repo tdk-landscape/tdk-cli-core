@@ -30,4 +30,3 @@ export function writeMachineError(error) {
     console.error(result.error.message);
     process.exit(result.exitCode);
 }
-//# sourceMappingURL=machine-output.js.map

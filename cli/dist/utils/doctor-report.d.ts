@@ -48,4 +48,3 @@ export declare function createDoctorReport(checks: CheckResult[], inProject: boo
 /** 0: ready (warnings permitted), 1: blocking findings, 2: usage/internal failure. */
 export declare function getDoctorExitCode(report: DoctorReport): 0 | 1 | 2;
 export {};
-//# sourceMappingURL=doctor-report.d.ts.map

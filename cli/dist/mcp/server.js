@@ -99,4 +99,3 @@ export function createMcpServer(tools, info) {
         },
     };
 }
-//# sourceMappingURL=server.js.map

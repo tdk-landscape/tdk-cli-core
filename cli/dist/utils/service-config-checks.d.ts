@@ -19,4 +19,3 @@ export declare function warnSchemaVersions(projectRoot: string): void;
 export declare function enforceServiceConfigGate(projectRoot: string, options?: {
     onInvalid?: (message: string) => void;
 }, exit?: (code: number) => never): void;
-//# sourceMappingURL=service-config-checks.d.ts.map

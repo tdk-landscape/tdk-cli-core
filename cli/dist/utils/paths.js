@@ -41,4 +41,3 @@ function getPackageInfo() {
 export function getPackageVersion() {
     return getPackageInfo().version;
 }
-//# sourceMappingURL=paths.js.map

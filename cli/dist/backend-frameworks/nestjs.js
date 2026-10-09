@@ -53,4 +53,3 @@ export const nestBackendProvider = {
     compilerOptions: { experimentalDecorators: true, emitDecoratorMetadata: true },
     createIndex: getNestIndexTemplate,
 };
-//# sourceMappingURL=nestjs.js.map

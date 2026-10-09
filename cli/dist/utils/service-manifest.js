@@ -251,4 +251,3 @@ export function validateServiceManifestFile(filePath, displayPath) {
         return { errors: [`${displayPath}: invalid JSON (${message})`], warnings: [] };
     }
 }
-//# sourceMappingURL=service-manifest.js.map

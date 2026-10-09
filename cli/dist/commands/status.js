@@ -196,4 +196,3 @@ export const statusCommand = new Command("status")
     }
     await runCommand(action);
 });
-//# sourceMappingURL=status.js.map

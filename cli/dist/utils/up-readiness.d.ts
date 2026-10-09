@@ -46,4 +46,3 @@ export declare function waitForTiltResourcesReady(port: number, options?: {
     /** Called with Tilt's JSON while something has failed: true means nothing left pending can still progress. */
     isStalled?: (jsonText: string) => boolean;
 }): Promise<ReadinessResult>;
-//# sourceMappingURL=up-readiness.d.ts.map

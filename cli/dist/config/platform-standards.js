@@ -180,4 +180,3 @@ export const PLATFORM_STANDARDS = {
     docker: DOCKER,
     runtime: RUNTIME,
 };
-//# sourceMappingURL=platform-standards.js.map

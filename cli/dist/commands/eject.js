@@ -105,4 +105,3 @@ export const ejectCommand = new Command("eject")
         console.log("Read EJECTED.md");
     });
 });
-//# sourceMappingURL=eject.js.map

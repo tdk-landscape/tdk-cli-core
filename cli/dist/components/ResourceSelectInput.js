@@ -40,4 +40,3 @@ export const ResourceSelectInput = ({ items, onSelect, highlightedIndex, width, 
             return (_jsx(Box, { width: width, children: _jsxs(Text, { wrap: "truncate-end", children: [_jsx(Text, { color: isSelected ? theme.selectedForeground : theme.muted, backgroundColor: isSelected ? theme.selectedBackground : undefined, children: isSelected ? `${theme.selectionMarker} ` : "    " }), _jsx(Text, { color: isSelected ? theme.selectedForeground : theme.foreground, bold: isSelected || theme.highContrast, backgroundColor: isSelected ? theme.selectedBackground : undefined, children: item.label })] }) }, item.value));
         }) }));
 };
-//# sourceMappingURL=ResourceSelectInput.js.map

@@ -10,4 +10,3 @@ export interface BackendFrameworkProvider {
     /** Contents of `src/index.ts`. The health routes and the PORT read are part of the contract. */
     createIndex(name: string): string;
 }
-//# sourceMappingURL=types.d.ts.map

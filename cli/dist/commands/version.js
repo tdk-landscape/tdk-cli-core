@@ -8,4 +8,3 @@ export const versionCommand = new Command("version")
     .action(() => {
     console.log(getPackageVersion());
 });
-//# sourceMappingURL=version.js.map

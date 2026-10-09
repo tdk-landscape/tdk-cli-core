@@ -31,4 +31,3 @@ export const DetailPanel = ({ stack, service, stackMetadata, visible, }) => {
     }
     return (_jsxs(Box, { width: 40, borderStyle: theme.ascii ? undefined : "single", borderColor: theme.border, paddingX: 2, paddingY: 2, flexDirection: "column", children: [_jsx(Box, { marginBottom: 1, justifyContent: "center", children: _jsx(Text, { color: theme.muted, dimColor: theme.dimMuted, children: "Select a stack or service" }) }), _jsx(Box, { justifyContent: "center", children: _jsx(Text, { color: theme.muted, dimColor: theme.dimMuted, children: "to view details" }) })] }));
 };
-//# sourceMappingURL=DetailPanel.js.map

@@ -26,4 +26,3 @@ export function resolveOnlySelection(requested, all) {
         dependencies: all.map((r) => r.name).filter((n) => wanted.has(n) && !requested.includes(n)),
     };
 }
-//# sourceMappingURL=up-only.js.map

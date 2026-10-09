@@ -69,4 +69,3 @@ export const stacksCommand = new Command("stacks")
     }
     await runCommand(action);
 });
-//# sourceMappingURL=stacks.js.map

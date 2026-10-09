@@ -12,4 +12,3 @@ export declare function resolveBackendFramework(resourceType: string, frameworkI
     id: string;
     createFiles?: unknown;
 }): BackendFrameworkProvider | undefined;
-//# sourceMappingURL=registry.d.ts.map

@@ -38,4 +38,3 @@ export function startSpinner(initialText) {
         warn: (message) => finish(chalk.yellow("⚠"), message),
     };
 }
-//# sourceMappingURL=spinner.js.map

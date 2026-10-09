@@ -32,4 +32,3 @@ export function applyServiceStates(metadata, states) {
         overallStatus: deriveStackStatus(resources.map((r) => r.status)),
     };
 }
-//# sourceMappingURL=ui-service-state.js.map

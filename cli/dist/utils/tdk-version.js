@@ -49,4 +49,3 @@ export function evaluateTdkVersionFloor(projectRoot, currentVersion) {
     }
     return { status: "ok", required: requiredText };
 }
-//# sourceMappingURL=tdk-version.js.map

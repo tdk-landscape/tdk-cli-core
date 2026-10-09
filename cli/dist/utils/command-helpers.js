@@ -38,4 +38,3 @@ export async function confirmOrCancel(message, onCancel) {
     }
     return true;
 }
-//# sourceMappingURL=command-helpers.js.map

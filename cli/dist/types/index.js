@@ -29,4 +29,3 @@ export function isMasterConfigFileName(filename) {
     const validNames = [TECH_STACK_FILE, RESOURCE_DEFAULTS_FILE, "spec.master"];
     return validNames.includes(filename);
 }
-//# sourceMappingURL=index.js.map

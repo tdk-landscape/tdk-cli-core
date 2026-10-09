@@ -27,4 +27,3 @@ export declare function resolveServicePath(resource: DiscoveredResource): string
 export declare function buildHealthTargets(resources: DiscoveredResource[], ingressPort?: number): HealthTarget[];
 export declare function pingHealthTarget(target: HealthTarget, timeoutMs: number): Promise<HealthProbe>;
 export declare function pingHealthTargets(targets: HealthTarget[], timeoutMs: number): Promise<HealthProbe[]>;
-//# sourceMappingURL=service-urls.d.ts.map

@@ -75,4 +75,3 @@ export function createDoctorReport(checks, inProject, errors = [], portPlan, hos
 export function getDoctorExitCode(report) {
     return report.errors.length > 0 ? 2 : report.data.ready ? 0 : 1;
 }
-//# sourceMappingURL=doctor-report.js.map

@@ -11,4 +11,3 @@ export const TOOLTIPS = {
     help: "Show keyboard shortcuts and help",
     quit: "Exit the TUI",
 };
-//# sourceMappingURL=Tooltip.js.map

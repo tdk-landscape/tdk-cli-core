@@ -7,4 +7,3 @@
 export function isApiServiceType(appType) {
     return appType === "backend" || appType === "mcp";
 }
-//# sourceMappingURL=resource-kind.js.map

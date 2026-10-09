@@ -26,4 +26,3 @@ export function createJsonEmitter(failureCode, command) {
     });
     return emit;
 }
-//# sourceMappingURL=json-output.js.map

@@ -91,4 +91,3 @@ export function chooseResourcePath(projectRoot, conventionalPath, stack, name) {
     }
     return { path: conventionalPath };
 }
-//# sourceMappingURL=discovery-paths.js.map

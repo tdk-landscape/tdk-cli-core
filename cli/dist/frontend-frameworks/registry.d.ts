@@ -13,4 +13,3 @@ export interface FrontendFrameworkInventoryEntry {
 export declare function listFrontendFrameworks(): FrontendFrameworkInventoryEntry[];
 export declare function getFrontendFramework(frameworkId?: string, resourceName?: string): FrontendFrameworkProvider;
 export declare function resolveFrontendFramework(resourceType: string, frameworkId?: string, resourceName?: string): FrontendFrameworkProvider | undefined;
-//# sourceMappingURL=registry.d.ts.map

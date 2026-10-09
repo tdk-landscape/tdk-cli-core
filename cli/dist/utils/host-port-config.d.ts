@@ -7,4 +7,3 @@ export declare function exportHostPortPlan(plan: HostPortPlan): void;
 export declare function getHostPortPlan(projectRoot: string, options?: {
     inspectDocker?: boolean;
 }): Promise<HostPortPlan>;
-//# sourceMappingURL=host-port-config.d.ts.map

@@ -5,4 +5,3 @@ export declare function findExternallyOccupiedPorts(occupied: number[], dockerHo
 export declare function checkWindowsRuntimeTools(): CheckResult;
 export declare function checkWindowsDockerMode(): CheckResult;
 export declare function checkWindowsHostConfiguration(): Promise<CheckResult>;
-//# sourceMappingURL=windows-doctor.d.ts.map

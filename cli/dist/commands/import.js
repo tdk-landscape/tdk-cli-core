@@ -38,4 +38,3 @@ export const importCommand = new Command("import")
     .action(async (args) => {
     process.exitCode = await runImport(args);
 });
-//# sourceMappingURL=import.js.map

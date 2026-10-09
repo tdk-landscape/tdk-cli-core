@@ -27,4 +27,3 @@ export declare function runMaintainersCheck(file: string): {
     output: string;
 };
 export declare const maintainersCommand: Command;
-//# sourceMappingURL=maintainers.d.ts.map

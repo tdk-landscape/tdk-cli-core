@@ -41,4 +41,3 @@ function staleGoldens(actual, goldenDir) {
         return [];
     return readdirSync(goldenDir).filter((name) => !(name in actual));
 }
-//# sourceMappingURL=golden-helpers.js.map

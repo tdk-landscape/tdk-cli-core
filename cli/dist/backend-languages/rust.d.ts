@@ -5,4 +5,3 @@ import type { BackendLanguageProvider } from "./types.js";
  */
 export declare const RUST_DEV_COMMAND = "cargo run";
 export declare const rustBackendProvider: BackendLanguageProvider;
-//# sourceMappingURL=rust.d.ts.map

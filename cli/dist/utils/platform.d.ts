@@ -10,4 +10,3 @@ export declare function binaryAssetName(): string | null;
 export declare function executableName(): string;
 export declare function pathLookups(binName: string, windows?: boolean): string[];
 export declare function pathDelimiter(windows?: boolean): string;
-//# sourceMappingURL=platform.d.ts.map

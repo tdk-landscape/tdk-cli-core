@@ -23,4 +23,3 @@ export const mcpCommand = new Command("mcp")
     await new Promise((resolve) => lines.once("close", resolve));
     await Promise.allSettled(pending);
 });
-//# sourceMappingURL=mcp.js.map

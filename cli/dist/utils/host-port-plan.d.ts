@@ -43,4 +43,3 @@ export declare const DEFAULT_HOST_PORT_RANGES: {
 export declare function isHostPortAvailable(port: number): Promise<boolean>;
 export declare function createHostPortPlan(options?: HostPortPlanOptions): Promise<HostPortPlan>;
 export declare function formatHostPortPlan(plan: HostPortPlan): string;
-//# sourceMappingURL=host-port-plan.d.ts.map

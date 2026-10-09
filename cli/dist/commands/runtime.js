@@ -73,4 +73,3 @@ export const runtimeCommand = new Command("runtime")
     if (!ok)
         process.exitCode = 1;
 });
-//# sourceMappingURL=runtime.js.map

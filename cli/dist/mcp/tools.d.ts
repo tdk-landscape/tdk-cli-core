@@ -35,4 +35,3 @@ export declare function buildUpArgs(args: Record<string, unknown>): string[];
 export declare function startUp(args: Record<string, unknown>, deps?: UpDeps): Promise<McpToolResult>;
 export declare function buildLogsArgs(args: Record<string, unknown>): string[];
 export declare function createTdkTools(run?: RunTdk, up?: UpDeps): McpTool[];
-//# sourceMappingURL=tools.d.ts.map

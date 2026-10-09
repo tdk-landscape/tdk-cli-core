@@ -60,4 +60,3 @@ export default App;
         ];
     },
 };
-//# sourceMappingURL=preact.js.map

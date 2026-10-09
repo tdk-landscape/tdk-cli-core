@@ -17,4 +17,3 @@ export declare function effectiveRuntimeStatus(status?: {
         healthStatus?: string;
     };
 }): string;
-//# sourceMappingURL=tilt-resource-state.d.ts.map

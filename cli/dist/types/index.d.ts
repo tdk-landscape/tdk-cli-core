@@ -294,4 +294,3 @@ export type MasterConfigFileName = typeof TECH_STACK_FILE | typeof RESOURCE_DEFA
  * Eliminates the need for 'as MasterConfigFileName' assertion.
  */
 export declare function isMasterConfigFileName(filename: string): filename is MasterConfigFileName;
-//# sourceMappingURL=index.d.ts.map

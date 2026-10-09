@@ -9,4 +9,3 @@ export declare const TOOLTIPS: {
     help: string;
     quit: string;
 };
-//# sourceMappingURL=Tooltip.d.ts.map

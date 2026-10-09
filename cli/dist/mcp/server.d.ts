@@ -23,4 +23,3 @@ export declare function createMcpServer(tools: McpTool[], info: {
     name: string;
     version: string;
 }): McpServer;
-//# sourceMappingURL=server.d.ts.map

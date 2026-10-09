@@ -109,4 +109,3 @@ export declare const UI_KEYMAP: readonly [{
 export type UiKeymapId = (typeof UI_KEYMAP)[number]["id"];
 export declare function formatUiKeyNames(id: UiKeymapId, ascii?: boolean): string;
 export declare function formatUiKeyHint(id: UiKeymapId, label?: string, ascii?: boolean): string;
-//# sourceMappingURL=ui-keymap.d.ts.map

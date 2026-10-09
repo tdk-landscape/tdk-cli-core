@@ -23,4 +23,3 @@ export declare function stackExists(stackName: string, resources?: DiscoveredRes
 export declare function clearMetadataCache(): void;
 export declare function getResourceMetadata(resource: DiscoveredResource): ResourceMetadata;
 export declare function getStackMetadata(stack: DiscoveredStack): StackMetadata;
-//# sourceMappingURL=services.d.ts.map

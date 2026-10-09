@@ -70,4 +70,3 @@ declare module '*.vue' {
         ];
     },
 };
-//# sourceMappingURL=vue.js.map

@@ -70,4 +70,3 @@ export function ensureGitignore(projectRoot) {
     appendFileSync(gitignorePath, `${prefix}${header}${missing.join("\n")}\n`);
     return missing;
 }
-//# sourceMappingURL=file-helpers.js.map

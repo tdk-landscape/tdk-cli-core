@@ -34,4 +34,3 @@ export function writeTextFileAtomic(filePath, content) {
         throw error;
     }
 }
-//# sourceMappingURL=atomic-write.js.map

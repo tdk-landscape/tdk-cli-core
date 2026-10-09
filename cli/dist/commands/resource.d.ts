@@ -135,4 +135,3 @@ export { getBackendIndexTemplate };
 /** Resource types `tdk resource --type` accepts; `byo` is an alias of `bring-your-own`. */
 export declare function parseResourceType(type: string): CreatableResourceType | "sdk";
 export declare const resourceCommand: Command;
-//# sourceMappingURL=resource.d.ts.map

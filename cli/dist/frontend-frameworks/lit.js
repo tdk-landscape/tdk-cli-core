@@ -62,4 +62,3 @@ customElements.define('app-root', AppRoot);
         ];
     },
 };
-//# sourceMappingURL=lit.js.map

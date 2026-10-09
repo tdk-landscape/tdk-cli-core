@@ -17,4 +17,3 @@ export function getTabBarDensity(terminalWidth) {
 export function getListRowFromMouseY(mouseY, listTop) {
     return mouseY - 1 - listTop;
 }
-//# sourceMappingURL=terminal-layout.js.map

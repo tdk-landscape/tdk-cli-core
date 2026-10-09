@@ -100,4 +100,3 @@ export const maintainersCommand = new Command("maintainers")
     (exitCode === 0 ? console.log : console.error)(output);
     process.exitCode = exitCode;
 }));
-//# sourceMappingURL=maintainers.js.map

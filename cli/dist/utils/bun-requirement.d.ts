@@ -4,4 +4,3 @@ import type { DiscoveredResource } from "../types/index.js";
  * `tdk up` needs it. Doctor and the start-up preflight share this rule so they cannot disagree.
  */
 export declare function projectNeedsBun(resources: readonly DiscoveredResource[]): boolean;
-//# sourceMappingURL=bun-requirement.d.ts.map

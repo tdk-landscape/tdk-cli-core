@@ -34,4 +34,3 @@ export declare function stopTiltForUp(options: {
     log: (message: string) => void;
     wait: (milliseconds: number) => Promise<void>;
 }): Promise<void>;
-//# sourceMappingURL=tilt-startup.d.ts.map

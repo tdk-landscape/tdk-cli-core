@@ -52,4 +52,3 @@ export function pathLookups(binName, windows = isWindows()) {
 export function pathDelimiter(windows = isWindows()) {
     return windows ? ";" : delimiter;
 }
-//# sourceMappingURL=platform.js.map

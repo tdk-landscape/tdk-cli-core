@@ -59,4 +59,3 @@ export function parseTiltLogLines(output, limit) {
 export function isTiltConnectionFailure(stderr) {
     return /connection refused|connecting to Tilt|no such host|dial tcp|websocket_token/i.test(stderr);
 }
-//# sourceMappingURL=tilt-logs.js.map

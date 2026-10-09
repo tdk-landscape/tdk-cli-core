@@ -16,4 +16,3 @@ export declare function envSecretValues(projectRoot: string): string[];
 export declare function redactSecrets(text: string, secrets: readonly string[]): string;
 /** Redacts every string inside a JSON-shaped value, so the output stays valid JSON. */
 export declare function redactValue<T>(value: T, secrets: readonly string[]): T;
-//# sourceMappingURL=secret-redaction.d.ts.map

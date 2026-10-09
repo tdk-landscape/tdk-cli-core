@@ -14,4 +14,3 @@ export declare function isValidPort(port: number): boolean;
 export declare function isPathSafe(path: string): boolean;
 export declare function sanitizeForShell(value: string, replacement?: string): string;
 export declare function includes<T extends readonly string[]>(array: T, value: string): value is T[number];
-//# sourceMappingURL=validation.d.ts.map

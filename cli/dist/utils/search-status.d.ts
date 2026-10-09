@@ -6,4 +6,3 @@ export interface SearchStatus {
 }
 /** Describes a `/` search result for the `tdk ui` header; null when there is no query. */
 export declare function describeSearch(query: string, matches: number, total: number): SearchStatus | null;
-//# sourceMappingURL=search-status.d.ts.map

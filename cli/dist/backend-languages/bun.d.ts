@@ -5,4 +5,3 @@ export declare function getBackendIndexTemplate(name: string): string;
  * the shared scaffold so omitted-language output is byte-identical to before providers existed.
  */
 export declare const bunBackendProvider: BackendLanguageProvider;
-//# sourceMappingURL=bun.d.ts.map

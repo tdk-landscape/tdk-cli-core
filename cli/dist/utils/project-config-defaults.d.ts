@@ -12,4 +12,3 @@
  * the reverse). See shared-platform-postgres.ts.
  */
 export declare const DEFAULT_ALWAYS_ENABLED_INFRA: readonly ["database-management", "proxy"];
-//# sourceMappingURL=project-config-defaults.d.ts.map

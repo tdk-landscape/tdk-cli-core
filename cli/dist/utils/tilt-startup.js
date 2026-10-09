@@ -41,4 +41,3 @@ export async function stopTiltForUp(options, dependencies) {
     dependencies.stop(options.port);
     await dependencies.wait(2000);
 }
-//# sourceMappingURL=tilt-startup.js.map

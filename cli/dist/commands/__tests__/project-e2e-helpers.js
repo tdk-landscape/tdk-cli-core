@@ -34,4 +34,3 @@ export function starlarkSection(content, name) {
     expect(end).toBeGreaterThan(start);
     return content.slice(start, end + 2);
 }
-//# sourceMappingURL=project-e2e-helpers.js.map

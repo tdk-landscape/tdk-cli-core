@@ -14,4 +14,3 @@ export interface ChosenResourcePath {
  * resource outside every discovery path is scaffolded but never started by `tdk up`.
  */
 export declare function chooseResourcePath(projectRoot: string, conventionalPath: string, stack: string, name: string): ChosenResourcePath;
-//# sourceMappingURL=discovery-paths.d.ts.map

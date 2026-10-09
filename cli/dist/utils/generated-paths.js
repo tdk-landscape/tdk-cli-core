@@ -49,4 +49,3 @@ export function assertTdkGeneratedPath(projectRoot, path) {
     }
     return absolute;
 }
-//# sourceMappingURL=generated-paths.js.map

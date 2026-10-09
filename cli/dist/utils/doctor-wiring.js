@@ -695,4 +695,3 @@ export async function checkDockerNetworkCapacity(exec = execAsync) {
     }
     return { name: "Docker networks", didPass: true, message: "Docker can create networks" };
 }
-//# sourceMappingURL=doctor-wiring.js.map

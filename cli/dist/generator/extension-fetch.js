@@ -289,4 +289,3 @@ export async function hasDddLicense(projectRoot) {
 export async function hasSablierLicense(projectRoot) {
     return hasLiveResourceLicense(projectRoot, "sablier");
 }
-//# sourceMappingURL=extension-fetch.js.map

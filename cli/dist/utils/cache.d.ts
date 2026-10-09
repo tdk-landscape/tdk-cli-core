@@ -16,4 +16,3 @@ export declare function createCacheValidator(ttlMs: number): {
     markUpdated(): void;
     reset(): void;
 };
-//# sourceMappingURL=cache.d.ts.map

@@ -130,4 +130,3 @@ export function checkStarlarkLoadExports() {
         fix: "Regenerate with a current TDK (`tdk config regenerate`). If the issue remains, rename loaded symbols without leading underscores and update stale load paths.",
     };
 }
-//# sourceMappingURL=doctor-starlark.js.map

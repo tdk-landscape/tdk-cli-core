@@ -28,4 +28,3 @@ export declare function enforceVersionFloor(projectRoot: string, options: {
     onFail?: (message: string) => void;
 }, currentVersion?: string, exit?: (code: number) => never): void;
 export declare const upCommand: Command;
-//# sourceMappingURL=up.d.ts.map

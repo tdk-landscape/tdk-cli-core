@@ -6,4 +6,3 @@
 export declare function enforceSchemaVersionGate(projectRoot: string, options?: {
     onInvalid?: (message: string) => void;
 }, exit?: (code: number) => never): void;
-//# sourceMappingURL=schema-version-gate.d.ts.map

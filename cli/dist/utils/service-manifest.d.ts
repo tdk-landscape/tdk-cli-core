@@ -18,4 +18,3 @@ export declare function validateServiceManifest(value: unknown, displayPath: str
  */
 export declare function generatedFieldErrorsForFile(filePath: string, displayPath: string): string[];
 export declare function validateServiceManifestFile(filePath: string, displayPath: string): ServiceManifestValidation;
-//# sourceMappingURL=service-manifest.d.ts.map

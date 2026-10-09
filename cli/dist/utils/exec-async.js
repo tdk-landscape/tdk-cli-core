@@ -29,4 +29,3 @@ export function isExecTimeout(err) {
     const e = err;
     return e?.code === "ETIMEDOUT" || e?.killed === true;
 }
-//# sourceMappingURL=exec-async.js.map

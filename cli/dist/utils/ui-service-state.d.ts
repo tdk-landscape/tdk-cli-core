@@ -5,4 +5,3 @@ export type ServiceStates = Record<string, ServiceRuntimeState>;
 export declare function fetchServiceStates(services: DiscoveredResource[], tiltPort: number): Promise<ServiceStates>;
 /** The same states `tdk status` shows, put onto the stack the UI is about to draw. */
 export declare function applyServiceStates(metadata: StackMetadata, states: ServiceStates): StackMetadata;
-//# sourceMappingURL=ui-service-state.d.ts.map

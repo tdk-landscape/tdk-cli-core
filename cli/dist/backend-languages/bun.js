@@ -50,4 +50,3 @@ export const bunBackendProvider = {
     label: "Bun + Hono",
     installHint: "bun install",
 };
-//# sourceMappingURL=bun.js.map

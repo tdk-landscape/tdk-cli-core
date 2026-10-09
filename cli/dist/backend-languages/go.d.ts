@@ -5,4 +5,3 @@ import type { BackendLanguageProvider } from "./types.js";
  */
 export declare const GO_DEV_COMMAND = "go run .";
 export declare const goBackendProvider: BackendLanguageProvider;
-//# sourceMappingURL=go.d.ts.map

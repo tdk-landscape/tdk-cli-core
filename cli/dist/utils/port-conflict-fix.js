@@ -23,4 +23,3 @@ export function portConflictFix(message) {
         return `Fix: stop the process using port ${port} (${find})`;
     return `Fix: stop the process using port ${port} (${find}), or set ${envVar} to a free port and run tdk up`;
 }
-//# sourceMappingURL=port-conflict-fix.js.map

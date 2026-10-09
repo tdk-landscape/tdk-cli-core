@@ -39,4 +39,3 @@ export declare const TUIThemeContext: import("react").Context<TUITheme>;
 /** Read the theme provided to the current TUI subtree. */
 export declare function useTUITheme(): TUITheme;
 export {};
-//# sourceMappingURL=ui-theme.d.ts.map

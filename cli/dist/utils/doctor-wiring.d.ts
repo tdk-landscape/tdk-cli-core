@@ -60,4 +60,3 @@ export declare function parseTiltProcesses(psOutput: string): TiltProcess[];
 export declare function checkTiltInstances(projectRoot?: string, exec?: typeof execSync): CheckResult;
 export declare function checkDockerNetworkCapacity(exec?: ExecAsync): Promise<CheckResult>;
 export {};
-//# sourceMappingURL=doctor-wiring.d.ts.map

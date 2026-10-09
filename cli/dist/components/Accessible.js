@@ -9,4 +9,3 @@ export const AccessibleTooltip = ({ content, shortcut, visible }) => {
     const theme = useTUITheme();
     return (_jsx(BaseTooltip, { content: content, shortcut: shortcut, visible: visible, prefix: theme.ascii ? "[i] " : "ℹ ", marginTop: 1 }));
 };
-//# sourceMappingURL=Accessible.js.map

@@ -1,0 +1,80 @@
+# Keep clean PR branches based on main without checking out or executing PR code.
+# The pull_request_target job only calls GitHub's update-branch API. A conflict
+# or missing fork permission is reported for human follow-up.
+name: Keep PR branches current
+
+on:
+  push:
+    branches: [main]
+  pull_request_target: # zizmor: ignore[dangerous-triggers] uses only GitHub API metadata; never checks out or runs PR code
+    types: [opened, reopened, synchronize, ready_for_review]
+
+permissions: {}
+
+concurrency:
+  group: update-pr-branches-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  update:
+    name: Update stale branches based on main
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Update clean branches
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
+        run: |
+          set -euo pipefail
+
+          update_branch() {
+            local number="$1"
+            local head_sha="$2"
+            if gh api --method PUT \
+              "repos/${GITHUB_REPOSITORY}/pulls/${number}/update-branch" \
+              -f "expected_head_sha=${head_sha}"; then
+              echo "::notice title=PR branch update::Requested an update for PR #${number}."
+            else
+              echo "::warning title=PR branch update skipped::PR #${number} could not be updated automatically. Check for conflicts or fork permissions; the existing conflict guidance will remain available."
+            fi
+          }
+
+          update_if_behind() {
+            local number="$1"
+            local state_and_sha
+            local base state head_sha
+            for attempt in {1..6}; do
+              state_and_sha="$(gh pr view "$number" --repo "$GITHUB_REPOSITORY" \
+                --json baseRefName,mergeStateStatus,headRefOid \
+                --jq '[.baseRefName, .mergeStateStatus, .headRefOid] | @tsv')"
+              IFS=$'\t' read -r base state head_sha <<< "$state_and_sha"
+              [[ "$state" != "UNKNOWN" ]] && break
+              sleep 5
+            done
+            if [[ "$base" != "main" || "$state" != "BEHIND" ]]; then
+              echo "PR #${number} does not need a clean update (base=${base}, state=${state})."
+              return 0
+            fi
+            update_branch "$number" "$head_sha"
+          }
+
+          if [[ "$EVENT_NAME" == "pull_request_target" ]]; then
+            if [[ "$BASE_BRANCH" != "main" ]]; then
+              echo "Skipping PR #${PR_NUMBER}; its base branch is not main."
+              exit 0
+            fi
+            update_if_behind "$PR_NUMBER"
+            exit 0
+          fi
+
+          gh pr list --repo "$GITHUB_REPOSITORY" --state open --base main \
+            --limit 1000 --json number,mergeStateStatus \
+            --jq '.[] | select(.mergeStateStatus == "BEHIND" or .mergeStateStatus == "UNKNOWN") | .number' |
+          while IFS= read -r number; do
+            [[ -z "$number" ]] || update_if_behind "$number"
+          done

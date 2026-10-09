@@ -3,4 +3,3 @@ type CommandRunner = (command: string, args: string[]) => string;
 export declare function findTiltProcessIdsOnPort(port: number, platform?: NodeJS.Platform, commandRunner?: CommandRunner): number[];
 export declare function stopTiltOnPort(port: number, platform?: NodeJS.Platform, commandRunner?: CommandRunner): number[];
 export {};
-//# sourceMappingURL=tilt-process.d.ts.map

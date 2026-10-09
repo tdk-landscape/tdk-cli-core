@@ -15,4 +15,3 @@ import { DATABASE_MANAGEMENT_FEATURE } from "./constants.js";
  * the reverse). See shared-platform-postgres.ts.
  */
 export const DEFAULT_ALWAYS_ENABLED_INFRA = [DATABASE_MANAGEMENT_FEATURE, "proxy"];
-//# sourceMappingURL=project-config-defaults.js.map

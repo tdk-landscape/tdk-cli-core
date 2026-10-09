@@ -19,4 +19,3 @@ export function createStatusMessageController(setMessage) {
         },
     };
 }
-//# sourceMappingURL=status-message.js.map

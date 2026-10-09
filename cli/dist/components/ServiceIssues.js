@@ -11,4 +11,3 @@ export function ServiceIssues({ resources }) {
         return null;
     return (_jsx(Box, { flexDirection: "column", marginTop: 1, children: issues.map((resource) => (_jsxs(Text, { color: theme.muted, children: [resource.name, ": ", resource.statusReason] }, resource.name))) }));
 }
-//# sourceMappingURL=ServiceIssues.js.map

@@ -30,4 +30,3 @@ export function effectiveRuntimeStatus(status) {
         return "pending";
     return runtimeStatus;
 }
-//# sourceMappingURL=tilt-resource-state.js.map

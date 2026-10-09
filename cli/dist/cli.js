@@ -88,4 +88,3 @@ if (unknownHelp) {
     });
 }
 program.parse();
-//# sourceMappingURL=cli.js.map

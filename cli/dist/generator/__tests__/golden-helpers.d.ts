@@ -5,4 +5,3 @@ export declare const UPDATE_COMMAND = "UPDATE_GOLDEN=1 bun run test -- golden-ge
  * instead and returns nothing, which is how an intentional change is accepted.
  */
 export declare function compareWithGolden(actual: Record<string, string>, goldenDir: string, update?: boolean): string[];
-//# sourceMappingURL=golden-helpers.d.ts.map

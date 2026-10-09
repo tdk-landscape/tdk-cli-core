@@ -57,4 +57,3 @@ if (root) {
         ];
     },
 };
-//# sourceMappingURL=vanilla.js.map

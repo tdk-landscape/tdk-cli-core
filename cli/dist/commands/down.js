@@ -107,4 +107,3 @@ export const downCommand = new Command("down")
         });
     });
 });
-//# sourceMappingURL=down.js.map

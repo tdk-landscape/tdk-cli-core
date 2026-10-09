@@ -12,4 +12,3 @@ export interface ServiceRuntimeState {
  * is still starting. Services Tilt does not list are absent: the caller shows them as unknown.
  */
 export declare function deriveServiceStates(jsonText: string, dependsOn: Record<string, string[]>, deferred?: Set<string>): Record<string, ServiceRuntimeState>;
-//# sourceMappingURL=service-runtime-state.d.ts.map

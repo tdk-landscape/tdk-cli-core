@@ -81,4 +81,3 @@ export function resolveFrontendFramework(resourceType, frameworkId, resourceName
     }
     return getFrontendFramework(frameworkId, resourceName);
 }
-//# sourceMappingURL=registry.js.map

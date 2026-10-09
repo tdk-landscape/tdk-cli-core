@@ -26,4 +26,3 @@ export const PROJECT_TEMPLATES = {
         description: "Hono + Postgres + NATS worker + Vite example with a routed write path",
     },
 };
-//# sourceMappingURL=project-templates.js.map

@@ -34,4 +34,3 @@ export function detectHost(inputs = defaultInputs()) {
 export function isContainerHost(kind) {
     return kind === "devcontainer" || kind === "codespaces";
 }
-//# sourceMappingURL=agent-host.js.map

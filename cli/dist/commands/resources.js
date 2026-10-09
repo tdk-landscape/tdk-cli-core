@@ -125,4 +125,3 @@ export const resourcesCommand = new Command("resources")
     }
     await runCommand(action);
 });
-//# sourceMappingURL=resources.js.map

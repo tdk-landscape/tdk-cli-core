@@ -10,4 +10,3 @@ export type JsonEmitter = (data: Record<string, unknown>, errors?: JsonError[]) 
  * so a JSON consumer never sees an empty stdout. Uses writeSync because `process.exit` does not flush async writes.
  */
 export declare function createJsonEmitter(failureCode: string, command: string): JsonEmitter;
-//# sourceMappingURL=json-output.d.ts.map

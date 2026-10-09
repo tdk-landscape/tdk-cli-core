@@ -25,4 +25,3 @@ export function findOnPath(command) {
     }
     return null;
 }
-//# sourceMappingURL=which.js.map

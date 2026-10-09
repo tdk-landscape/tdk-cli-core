@@ -1152,4 +1152,3 @@ export const doctorCommand = new Command("doctor")
     if (exitCode !== 0)
         process.exit(exitCode);
 });
-//# sourceMappingURL=doctor.js.map

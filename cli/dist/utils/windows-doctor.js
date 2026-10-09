@@ -174,4 +174,3 @@ export async function checkWindowsHostConfiguration() {
         ...(dnsOk ? {} : { fix: WINDOWS_DNS_FAILURE }),
     };
 }
-//# sourceMappingURL=windows-doctor.js.map

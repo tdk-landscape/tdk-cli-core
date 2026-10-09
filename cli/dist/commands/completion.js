@@ -359,4 +359,3 @@ export const completionCommand = new Command("completion")
         console.log(completionScript);
     }
 });
-//# sourceMappingURL=completion.js.map

@@ -5,4 +5,3 @@ export declare function findMissingRelativeStarlarkLoads(file: string, content: 
 export declare function findRelativeStarlarkLoadTargets(file: string, content: string, projectRoot: string): string[];
 export declare function collectReachableStarlarkFiles(entryFile: string, projectRoot: string): string[];
 export declare function checkStarlarkLoadExports(): CheckResult;
-//# sourceMappingURL=doctor-starlark.d.ts.map

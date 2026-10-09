@@ -115,4 +115,3 @@ export function formatUiKeyHint(id, label, ascii = false) {
     const entry = getUiKeymapEntry(id);
     return `[${formatUiKeyNames(id, ascii)}] ${label ?? entry.label}`;
 }
-//# sourceMappingURL=ui-keymap.js.map

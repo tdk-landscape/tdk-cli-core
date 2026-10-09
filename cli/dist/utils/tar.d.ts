@@ -4,4 +4,3 @@
  * implementation - available by default on macOS and Linux.
  */
 export declare function extractTarball(data: Buffer, destDir: string): void;
-//# sourceMappingURL=tar.d.ts.map

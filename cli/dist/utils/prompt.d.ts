@@ -25,4 +25,3 @@ export declare function promptConfirm(options: ConfirmPromptOptions): Promise<bo
 export declare function promptSelect<T extends string>(options: ChoicePromptOptions<T>): Promise<T>;
 export declare function promptMultiSelect<T extends string>(options: MultiSelectPromptOptions<T>): Promise<T[]>;
 export {};
-//# sourceMappingURL=prompt.d.ts.map

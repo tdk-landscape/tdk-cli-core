@@ -95,4 +95,3 @@ func TestHealth(t *testing.T) {
         ];
     },
 };
-//# sourceMappingURL=go.js.map

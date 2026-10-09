@@ -61,4 +61,3 @@ export declare function runSmokePlan(plan: SmokePlan, deps?: SmokeDeps): Promise
 export declare function formatSmokeFailure(result: SmokeResult): string;
 /** Runs every plan side by side; each plan keeps its own timeout. */
 export declare function runSmokePlans(plans: SmokePlan[], deps?: SmokeDeps): Promise<SmokeResult[]>;
-//# sourceMappingURL=smoke.d.ts.map

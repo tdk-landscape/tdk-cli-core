@@ -36,4 +36,3 @@ export const elysiaBackendProvider = {
     devDependencies: {},
     createIndex: getElysiaIndexTemplate,
 };
-//# sourceMappingURL=elysia.js.map

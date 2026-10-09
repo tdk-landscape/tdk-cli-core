@@ -38,4 +38,3 @@ export function enforceSchemaVersionGate(projectRoot, options = {}, exit = proce
     console.error(chalk.gray(`  Fix: ${fix}`));
     exit(1);
 }
-//# sourceMappingURL=schema-version-gate.js.map

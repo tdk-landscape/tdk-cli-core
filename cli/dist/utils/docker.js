@@ -32,4 +32,3 @@ export function getContainerRuntimeStatus() {
     }
     return sawTimeout ? "unresponsive" : "missing";
 }
-//# sourceMappingURL=docker.js.map

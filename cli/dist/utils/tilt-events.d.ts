@@ -24,4 +24,3 @@ export declare class TiltEventsLoadError extends Error {
 export declare function stripTerminalControls(value: string): string;
 export declare function parseTiltUiResourceList(value: unknown): TiltEventSnapshot;
 export declare function loadTiltEvents(): Promise<TiltEventSnapshot>;
-//# sourceMappingURL=tilt-events.d.ts.map

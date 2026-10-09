@@ -4,4 +4,3 @@
  * superseded before it finishes.
  */
 export declare function singleFlight<T>(apply: (value: T) => void): (load: () => Promise<T>) => Promise<void>;
-//# sourceMappingURL=single-flight.d.ts.map

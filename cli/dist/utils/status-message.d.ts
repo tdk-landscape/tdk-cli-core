@@ -3,4 +3,3 @@ export interface StatusMessageController {
     dispose(): void;
 }
 export declare function createStatusMessageController(setMessage: (message: string) => void): StatusMessageController;
-//# sourceMappingURL=status-message.d.ts.map

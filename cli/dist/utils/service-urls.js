@@ -96,4 +96,3 @@ export async function pingHealthTarget(target, timeoutMs) {
 export async function pingHealthTargets(targets, timeoutMs) {
     return Promise.all(targets.map((target) => pingHealthTarget(target, timeoutMs)));
 }
-//# sourceMappingURL=service-urls.js.map

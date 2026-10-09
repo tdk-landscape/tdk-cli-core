@@ -83,4 +83,3 @@ export async function promptMultiSelect(options) {
         console.log(validation);
     }
 }
-//# sourceMappingURL=prompt.js.map

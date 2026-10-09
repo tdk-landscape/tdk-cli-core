@@ -142,4 +142,3 @@ export function showHelp() {
     console.log(chalk.gray(`  GitHub: ${chalk.cyan("https://github.com/tdk-landscape/tdk-cli-core")}`));
     console.log();
 }
-//# sourceMappingURL=help.js.map

@@ -7,4 +7,3 @@ interface TUIHeaderProps {
 }
 export declare const TUIHeader: React.FC<TUIHeaderProps>;
 export {};
-//# sourceMappingURL=TUIHeader.d.ts.map

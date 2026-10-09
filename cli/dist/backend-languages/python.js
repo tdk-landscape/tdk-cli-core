@@ -86,4 +86,3 @@ def test_health() -> None:
         ];
     },
 };
-//# sourceMappingURL=python.js.map

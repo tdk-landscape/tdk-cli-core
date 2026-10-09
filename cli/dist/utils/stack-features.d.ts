@@ -19,4 +19,3 @@ export interface StackFeaturePhaseConfig {
     };
 }
 export declare function isStackFeatureEnabledInStacks(stacks: StackFeaturePhaseConfig, featureName: string): boolean;
-//# sourceMappingURL=stack-features.d.ts.map

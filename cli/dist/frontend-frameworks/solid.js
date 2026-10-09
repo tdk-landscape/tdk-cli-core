@@ -60,4 +60,3 @@ export default App;
         ];
     },
 };
-//# sourceMappingURL=solid.js.map

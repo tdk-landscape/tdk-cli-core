@@ -12,4 +12,3 @@ export interface FrontendFrameworkProvider {
     compilerOptions: Record<string, string>;
     createFiles(name: string): FrontendFrameworkFile[];
 }
-//# sourceMappingURL=types.d.ts.map

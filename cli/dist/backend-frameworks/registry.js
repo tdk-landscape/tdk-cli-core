@@ -66,4 +66,3 @@ export function resolveBackendFramework(resourceType, frameworkId, language) {
     }
     return getBackendFramework(frameworkId);
 }
-//# sourceMappingURL=registry.js.map

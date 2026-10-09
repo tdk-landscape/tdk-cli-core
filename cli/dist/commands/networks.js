@@ -304,4 +304,3 @@ export const networksCommand = new Command("networks")
     }
     await action();
 });
-//# sourceMappingURL=networks.js.map

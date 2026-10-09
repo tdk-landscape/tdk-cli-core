@@ -20,4 +20,3 @@ export declare const PROJECT_FEATURES: Record<string, ProjectFeature>;
  * Get all enabled project features
  */
 export declare function getEnabledProjectFeatures(optional_infra?: Record<string, boolean>): string[];
-//# sourceMappingURL=project-features.d.ts.map

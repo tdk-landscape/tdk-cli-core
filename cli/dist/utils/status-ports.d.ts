@@ -17,4 +17,3 @@ export interface StackPort {
 export declare function buildServicePorts(resource: DiscoveredResource, ingressHttp?: number): ServicePorts;
 /** Ports a client should forward or open: ingress, Tilt UI, and the published datastore. Not one per service. */
 export declare function buildStackPorts(plan: HostPortPlan | null, tiltPort?: number): StackPort[];
-//# sourceMappingURL=status-ports.d.ts.map

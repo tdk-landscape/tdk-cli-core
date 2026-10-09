@@ -3,4 +3,3 @@ import type { ResourceMetadata } from "../types/index.js";
 export declare function ServiceIssues({ resources }: {
     resources: ResourceMetadata[];
 }): import("react").JSX.Element | null;
-//# sourceMappingURL=ServiceIssues.d.ts.map

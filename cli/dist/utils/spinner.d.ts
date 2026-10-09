@@ -6,4 +6,3 @@ export interface Spinner {
     warn(message?: string): void;
 }
 export declare function startSpinner(initialText: string): Spinner;
-//# sourceMappingURL=spinner.d.ts.map

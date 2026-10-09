@@ -28,4 +28,3 @@ export declare function withTiltCheck<T>(action: () => Promise<T>, options?: {
 }): Promise<T | never>;
 export declare function showErrorAndExit(message: string, exitCode?: number): never;
 export declare function handleTiltFailure(command: "up" | "down", exitCode: number): never;
-//# sourceMappingURL=errors.d.ts.map

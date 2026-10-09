@@ -117,4 +117,3 @@ export const logsCommand = new Command("logs")
     };
     await runCommand(action);
 });
-//# sourceMappingURL=logs.js.map

@@ -24,4 +24,3 @@ export const TUIHeader = ({ projectRoot, resourceCount, terminalWidth, version, 
     const rootWidth = contentWidth - headingWidth;
     return (_jsxs(Box, { flexDirection: "row", paddingX: paddingX, width: terminalWidth, children: [_jsx(Text, { color: theme.accent, bold: true, children: title }), _jsx(Text, { color: theme.muted, children: " | " }), _jsx(Box, { flexShrink: 0, width: rootWidth, children: _jsx(Text, { color: theme.foreground, wrap: "truncate-end", children: projectRoot }) }), _jsx(Text, { color: theme.muted, children: " | " }), _jsx(Text, { color: theme.success, children: resourceLabel })] }));
 };
-//# sourceMappingURL=TUIHeader.js.map

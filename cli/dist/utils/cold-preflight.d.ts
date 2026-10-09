@@ -25,4 +25,3 @@ export declare function formatColdPreflight(result: PreflightResult, options?: {
 }): string;
 /** Exits before machine-dependent command work when any machine check fails. */
 export declare function assertMachineReadyOrExit(): Promise<void>;
-//# sourceMappingURL=cold-preflight.d.ts.map

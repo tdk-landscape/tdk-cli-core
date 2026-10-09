@@ -24,4 +24,3 @@ export declare function stopProjectTiltUp(tiltfilePath: string, platform?: NodeJ
 /** Wait (up to `timeoutMs`) for the `tilt up` processes to exit after TERM, so `tilt down` does not race a live Tilt. */
 export declare function waitForTiltUpExit(tiltfilePath: string, timeoutMs?: number, findPids?: (tiltfilePath: string) => number[]): Promise<boolean>;
 export {};
-//# sourceMappingURL=down-cleanup.d.ts.map

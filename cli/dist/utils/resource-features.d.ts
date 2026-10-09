@@ -27,4 +27,3 @@ export declare function getDefaultFeaturesForResourceType(appType: ResourceType)
  * Get all generators for a resource type (for documentation)
  */
 export declare function getGeneratorsForResourceType(appType: ResourceType): ResourceFeature[];
-//# sourceMappingURL=resource-features.d.ts.map

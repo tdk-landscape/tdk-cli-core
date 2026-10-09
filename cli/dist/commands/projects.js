@@ -101,4 +101,3 @@ export const projectsCommand = new Command("projects")
     }
     await runCommand(action);
 });
-//# sourceMappingURL=projects.js.map

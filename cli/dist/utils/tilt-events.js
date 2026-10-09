@@ -192,4 +192,3 @@ export async function loadTiltEvents() {
         throw new TiltEventsLoadError(error instanceof Error ? error.message : "Tilt returned an invalid UIResource list", "error");
     }
 }
-//# sourceMappingURL=tilt-events.js.map

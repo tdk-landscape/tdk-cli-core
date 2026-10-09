@@ -145,4 +145,3 @@ export declare function findMissingHealthRoutes(resources: DiscoveredResource[])
  */
 export declare function checkHealthRoutes(projectRoot?: string): CheckResult;
 export {};
-//# sourceMappingURL=doctor-runtime.d.ts.map

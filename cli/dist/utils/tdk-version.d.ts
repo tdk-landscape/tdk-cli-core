@@ -18,4 +18,3 @@ export type TdkVersionFloor = {
     fix: string;
 };
 export declare function evaluateTdkVersionFloor(projectRoot: string, currentVersion: string): TdkVersionFloor;
-//# sourceMappingURL=tdk-version.d.ts.map

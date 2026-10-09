@@ -35,4 +35,3 @@ export const h3BackendProvider = {
     devDependencies: {},
     createIndex: getH3IndexTemplate,
 };
-//# sourceMappingURL=h3.js.map

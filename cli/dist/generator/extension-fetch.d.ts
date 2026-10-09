@@ -22,4 +22,3 @@ export declare function hasDddLicense(projectRoot: string): Promise<boolean>;
  * engine/topologies/platform/docker/networking/).
  */
 export declare function hasSablierLicense(projectRoot: string): Promise<boolean>;
-//# sourceMappingURL=extension-fetch.d.ts.map

@@ -47,4 +47,3 @@ export const expressBackendProvider = {
     devDependencies: { "@types/express": "^5.0.0" },
     createIndex: getExpressIndexTemplate,
 };
-//# sourceMappingURL=express.js.map

@@ -15,4 +15,3 @@ export declare function toMachineError(error: unknown): {
 };
 /** Keep machine stdout parseable when a command fails before it has data to return. */
 export declare function writeMachineError(error: unknown): never;
-//# sourceMappingURL=machine-output.d.ts.map

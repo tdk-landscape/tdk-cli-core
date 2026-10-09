@@ -33,4 +33,3 @@ export function resolveBackendLanguage(resourceType, languageId) {
     }
     return getBackendLanguage(languageId);
 }
-//# sourceMappingURL=registry.js.map

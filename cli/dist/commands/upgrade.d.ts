@@ -21,4 +21,3 @@ export declare function upgradeViaNpm(): Promise<boolean>;
 export declare function upgradeViaBun(): Promise<boolean>;
 export declare const upgradeCommand: Command;
 export {};
-//# sourceMappingURL=upgrade.d.ts.map

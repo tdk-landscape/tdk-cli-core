@@ -6,4 +6,3 @@ export declare const TUIApp: React.FC<{
     animated?: boolean;
 }>;
 export declare const uiCommand: Command;
-//# sourceMappingURL=ui.d.ts.map

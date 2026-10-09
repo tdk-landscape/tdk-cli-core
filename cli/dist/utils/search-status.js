@@ -10,4 +10,3 @@ export function describeSearch(query, matches, total) {
     }
     return { summary: `${matches} of ${total}` };
 }
-//# sourceMappingURL=search-status.js.map

@@ -3,4 +3,3 @@
  * names the command that starts it; Tilt's own connection error is not repeated, because it only restates that.
  */
 export declare function tiltUnreachableMessage(port: string): string;
-//# sourceMappingURL=tilt-unreachable-message.d.ts.map

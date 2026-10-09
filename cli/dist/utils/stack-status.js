@@ -12,4 +12,3 @@ export function deriveStackStatus(statuses) {
         return "degraded";
     return "error";
 }
-//# sourceMappingURL=stack-status.js.map

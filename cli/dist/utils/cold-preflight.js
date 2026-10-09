@@ -199,4 +199,3 @@ export async function assertMachineReadyOrExit() {
         process.exit(1);
     }
 }
-//# sourceMappingURL=cold-preflight.js.map

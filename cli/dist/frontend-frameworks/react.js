@@ -67,4 +67,3 @@ export default App;
         ];
     },
 };
-//# sourceMappingURL=react.js.map

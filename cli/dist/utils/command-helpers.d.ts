@@ -14,4 +14,3 @@ export declare function handleDryRun(options: {
  * @returns Promise<boolean> - true if confirmed, false if cancelled (with callback)
  */
 export declare function confirmOrCancel(message: string, onCancel?: () => void): Promise<boolean>;
-//# sourceMappingURL=command-helpers.d.ts.map

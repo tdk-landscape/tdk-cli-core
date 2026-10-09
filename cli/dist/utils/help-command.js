@@ -9,4 +9,3 @@ export function unknownHelpTarget(args, commands) {
     const known = commands.some((command) => command.name() === target || command.aliases().includes(target));
     return known ? undefined : target;
 }
-//# sourceMappingURL=help-command.js.map

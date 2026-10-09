@@ -650,4 +650,3 @@ export const uiCommand = new Command("ui")
         alternateScreen: true,
     });
 });
-//# sourceMappingURL=ui.js.map

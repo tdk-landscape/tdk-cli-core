@@ -61,4 +61,3 @@ export function suggestClosest(input, candidates) {
     }
     return closest;
 }
-//# sourceMappingURL=suggestions.js.map

@@ -45,4 +45,3 @@ export const koaBackendProvider = {
     devDependencies: { "@types/koa": "^3.0.0" },
     createIndex: getKoaIndexTemplate,
 };
-//# sourceMappingURL=koa.js.map

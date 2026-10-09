@@ -182,4 +182,3 @@ export function getDefaultFeaturesForResourceType(appType) {
 export function getGeneratorsForResourceType(appType) {
     return Object.values(RESOURCE_FEATURES).filter((f) => f.applies_to.includes(appType));
 }
-//# sourceMappingURL=resource-features.js.map

@@ -126,4 +126,3 @@ describe('${name}', () => {
 });
 `;
 }
-//# sourceMappingURL=resource-templates.js.map

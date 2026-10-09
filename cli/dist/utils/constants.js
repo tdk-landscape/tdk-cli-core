@@ -154,4 +154,3 @@ export function getStackEmoji(stackName) {
     }
     return "📦";
 }
-//# sourceMappingURL=constants.js.map

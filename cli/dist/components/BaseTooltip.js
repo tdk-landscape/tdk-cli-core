@@ -28,4 +28,3 @@ function wrapContent(content, maxWidth) {
     }
     return lines;
 }
-//# sourceMappingURL=BaseTooltip.js.map
