@@ -263,7 +263,7 @@ export const upCommand = new Command("up")
                 if (!options.quiet) {
                     console.log(chalk.gray("No generated Tiltfile yet; generating .tdk/.tdk-out/ ..."));
                 }
-                await generateMasterConfigs(projectRoot);
+                await generateMasterConfigs(projectRoot, { quiet: options.quiet });
             }
             const copiedAssets = ensureProjectRuntimeAssets(projectRoot);
             if (copiedAssets.length > 0 && options.verbose && !options.quiet) {
