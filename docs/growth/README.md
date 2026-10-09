@@ -31,10 +31,11 @@ Proposed descriptor under a future product name:
 
 > Local multi-service development, built on Docker and Tilt.
 
-The next naming step is to test **Loopraft** and **Inforio** after reviewing their
-different collision risks. The [name screening](naming.md) explains why neither
-is ready to adopt today. A name should identify the product; the descriptor
-should explain its category.
+The earlier Loopraft/Inforio shortlist is withdrawn. Further research found
+closer category neighbors using names such as Open Workbench, Switchyard, and
+Trellis, so the first pass is not a sound basis for a recommendation. The
+[updated name research](naming.md) records these findings and the next testing
+criteria. No candidate is currently recommended.
 
 ## What the research establishes
 
@@ -43,7 +44,7 @@ should explain its category.
 | Category and audience | A category recommendation, audience hypothesis, and product boundaries below | Maintainer agreement and direct TDK comprehension testing |
 | Alternatives | A comparison using current primary documentation | A real pilot against a team's existing workflow |
 | Public developer input | [Ten distinct public commenters](public-feedback.md), with individual sources | Direct reactions to TDK and the proposed names; no interviews have occurred |
-| Naming | [Eight candidates screened](naming.md) with dated namespace observations | Spoken spelling, language review, remaining social namespaces, and clearance |
+| Naming | [Eight first-pass candidates screened and withdrawn](naming.md), plus closer category neighbors | Fresh candidates and direct comprehension testing before another namespace sweep |
 | Transition | [Source inventory and delivery sequence](migration.md) | Accepted name, assigned owners, and implementation issues |
 
 The ten public comments concern adjacent tools and naming incidents. They do
@@ -112,8 +113,8 @@ to validate, not conclusions about TDK users.
 
 ## Next decisions
 
-Maintainers should review the category and descriptor, choose which screened
-names deserve further testing, and appoint an owner for each phase in the
+Maintainers should review the category and descriptor, agree on naming criteria
+before producing a fresh shortlist, and appoint an owner for each phase in the
 [delivery plan](migration.md). Acceptance is recorded in the PR or issue under
 [the existing governance process](../../GOVERNANCE.md).
 

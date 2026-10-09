@@ -1,9 +1,11 @@
-# Name screening and recommendation
+# Naming research and next steps
 
 Research date: 9 October 2026. Related work:
 [#990](https://github.com/tdk-landscape/tdk-cli-core/issues/990).
-This is a screening result and a recommendation for further testing, not a final
-name selection. Maintainers have not accepted a new name.
+This is a screening result and a record of rejected directions, not a final
+name selection. Maintainers have not accepted a new name. Following further
+category research, the earlier recommendation to advance Loopraft and compare
+Inforio is withdrawn; neither name has user validation.
 
 ## The existing TDK name
 
@@ -67,42 +69,67 @@ The account and domain records do not establish who owns the news organization
 or whether those namespaces could ever be acquired.
 
 The npm and PyPI checks returned no record for the queried names. That does not
-make Inforio an unused brand. Keep it in the comparison because it is the
-requested candidate, while testing search results, spoken spelling, and the
-association with information/news before investing in it.
+make Inforio an unused brand. It remains in the record only because it was
+requested for investigation; the evidence does not support advancing it.
 
-## Ranked screening shortlist
+## First-pass names: do not advance
 
-The order below is the researcher's judgment, using category fit, typing and
-spelling, observed collision risk, and room for the product to evolve. It is not
-a user preference score or a trademark assessment.
+The first pass mixed generic developer terms with invented `-io` and `-kit`
+blends. The ranking was the researcher's judgment, not a user preference score;
+the user has since rejected this direction. Keep the dated namespace results as
+an audit trail, not as an active shortlist. None of these names was tested with
+developers.
 
-| Rank | Candidate | Rationale | Disposition |
-| --- | --- | --- | --- |
-| 1 | Loopraft | Suggests a development loop and making things; the checked endpoints returned no matching records | Advance to comprehension and spoken-spelling testing. The spelling may be mistaken for “Loopcraft”; test that explicitly |
-| 2 | Inforio | Requested candidate; broad enough for a product family, but weak immediate category meaning and an existing news brand | Compare with Loopraft only after reviewing the known brand and namespace risks |
-| 3 | Devorio | The `dev` prefix suggests developers; domain/account records exist, and the repository query includes longer names | Hold for deeper collision checks; do not infer a clean brand from missing npm metadata |
-| 4 | Tiltkit | Accurately signals the dependency, but may imply Tilt affiliation and constrain future identity; [TiltKit](https://github.com/chaert-s/TiltKit) is already a SwiftUI package | Consider as a technical descriptor, not the preferred independent product name |
-| 5 | Devweave | Suggests connecting development components; multiple [same-name repositories](https://github.com/sahuhasrh/devweave) and account/domain records exist | Deprioritize given the aim of reducing software-name overlap |
-| 6 | Stackora | Suggests a stack, but is already used by [a software workspace project](https://github.com/gnmsss/Stackora) and matching developer projects | Deprioritize; another crowded software identity would weaken the rationale for renaming |
-| 7 | Stackloom | A useful composition metaphor, but `stackloom-cli` exists on npm and [Stackloom](https://github.com/ooiai/stackloom) is already a software project | Exclude from the leading shortlist |
-| 8 | Stackpilot | Clear stack-management association, but the bare name exists in both npm and PyPI and many repository names match | Exclude from the leading shortlist |
+| Candidate | Why it was considered | Current disposition |
+| --- | --- | --- |
+| Loopraft | Invented `loop` + `craft` blend; no records in the limited queried endpoints | Withdrawn: sounds constructed and may be misheard as “Loopcraft”; no user validation |
+| Inforio | Requested by the issue author | Keep only in the evidence record: unclear category meaning and existing Inforío news brand / namespace overlaps |
+| Devorio | Invented `dev` + `-orio` blend | Withdrawn: generic prefix and account/domain matches |
+| Tiltkit | Signals the current implementation dependency | Withdrawn: risks implying affiliation and is already a SwiftUI package name |
+| Devweave | Metaphor for connecting components | Withdrawn: generic developer blend and multiple matching software identities |
+| Stackora | Signals a software stack | Withdrawn: generic suffix and existing software workspace identity |
+| Stackloom | Metaphor for composing a stack | Withdrawn: `stackloom-cli` package and existing software project |
+| Stackpilot | Signals stack management | Withdrawn: bare package names already exist and the query is crowded |
 
-Recommendation: test Loopraft first, with Inforio retained as the requested
-comparison. Use the descriptor **local multi-service development, built on Docker
-and Tilt** with each candidate so the test measures the identity and category
-together. Do not shorten either command back to `tdk`; that would retain the
-known overlap.
+**No candidate is recommended.** The category descriptor can carry the
+explanation while a future product name earns distinctiveness, pronunciation,
+and searchability. The current working descriptor remains **local
+multi-service development, built on Docker and Tilt**; it does not imply an
+accepted product identity.
+
+## Additional category and naming research
+
+The first search missed projects close enough to change the naming bar:
+
+| Project | Public evidence | Naming lesson for this project |
+| --- | --- | --- |
+| Open Workbench | [Maintainer's 2025 update](https://www.reddit.com/r/golang/comments/1mkk3me/update_on_my_go_cli_you_gave_feedback_i_listened/) describes a Go CLI with a `workbench.yaml` manifest, multi-service local development, and generated Docker Compose. The [project repository](https://github.com/jashkahar/open-workbench-platform) documents the tool. | This is a direct category neighbor, not merely a generic “developer tool.” `Workbench` is already used for a closely matching job and should not be proposed. |
+| Switchyard | Its [product site](https://switchyard.davidcuellar.tech/) calls it a local development command center; its [CLI docs](https://switchyard.davidcuellar.tech/docs/cli/) cover managing local projects and services. | The local-operations metaphor is already used by a close product. Do not use Switchyard or assume adding a suffix makes it distinct. |
+| Trellis | [Trellis documentation](https://trellis.dev/docs/overview/) describes running and supervising local application services. | A pleasant organic metaphor is still crowded when another tool already occupies the same workflow and name. |
+| Yard / Railyard | [Yard's CLI](https://useyard.app/docs/install/cli) manages workspaces and runners; the [@kranehq/yard repository](https://github.com/calasanmarko/yard/tree/main/packages/cli) routes local dev servers; [Railyard](https://railyard.run/docs/cli) is a separate deploy CLI. | Short place-and-infrastructure words collide across adjacent developer products and commands. |
+
+The 2025 Open Workbench discussion also reports that its maintainer sought
+feedback and evolved the product after hearing that local multi-service
+development was a pain point. This is evidence of another project pursuing the
+category, not proof of TDK demand, adoption, superiority, or name preference.
+The [ten public comments collected here](public-feedback.md) did not assess
+Loopraft, Inforio, or any name for TDK.
+
+The next naming round should start from a fresh search and distinctiveness brief,
+then compare a small set with developers before another domain/package sweep.
+Reject a candidate early if a local-development or multi-service tool already
+uses it. Include spoken spelling, unaided recall, category association, and
+search-result recognition in that evaluation. No name should advance on an
+empty registry result alone.
 
 ## Remaining checks before adoption
 
 Scoped npm ownership, other domains and social platforms, language/cultural
 review, trademark research, and spoken spelling were not checked. A registry
-404 cannot stand in for any of them. Search data should be refreshed immediately
-before reservation or release.
+404 cannot stand in for any of them. Search data should be refreshed after a
+new shortlist exists, before reservation or release.
 
-Direct TDK user comprehension and preference remain unknown. The
-[ten public voices](public-feedback.md) offer useful naming lessons, but none
-evaluated these candidates. Review the results with maintainers, complete the
-remaining checks for the leading names, and record the accepted identity before
-starting the [migration sequence](migration.md).
+Direct TDK user comprehension and preference remain unknown. Review the
+category and naming criteria with maintainers, test fresh candidates with real
+developers, complete the remaining checks, and record an accepted identity
+before starting the [migration sequence](migration.md).
