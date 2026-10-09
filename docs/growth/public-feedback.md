@@ -12,9 +12,8 @@ preferences. Five comments come from one
 [Devbox launch discussion](https://news.ycombinator.com/item?id=45421302), and
 five from one [Tilt discussion](https://news.ycombinator.com/item?id=43806296).
 It is a convenience sample, not a representative survey. The source metadata in
-[public-feedback-sources.json](public-feedback-sources.json) records the authors,
-dates, original links, and official Hacker News API endpoints used to verify the
-comments. Dates below are the UTC posting dates, not research dates.
+the table below links directly to each original comment. Dates are the UTC
+posting dates, not research dates.
 
 ## Naming lessons from a real incident
 
@@ -49,7 +48,7 @@ linked in [the category analysis](README.md#alternatives-and-the-adoption-questi
 
 ## What remains unknown
 
-The public research establishes ten attributable technical comments and a naming
+The public research establishes ten linked technical comments and a naming
 incident in an adjacent category. It supplies zero direct TDK naming responses,
 zero completed interviews, and no validated preference between Loopraft and
 Inforio. A public handle is not proof of a unique, independently verified person.

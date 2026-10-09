@@ -28,9 +28,8 @@ canonical command separately from an optional compatibility alias.
 
 ## Checks performed
 
-[The dated JSON snapshot](name-checks-2026-10-09.json) records each requested URL,
-UTC check time, response status, and the relevant returned identifier. It covers
-eight candidates, with seven checks per candidate:
+This first-pass screen was checked on 9 October 2026. The table summarizes eight
+candidates across package registries, GitHub, and `.com` / `.dev` domain records:
 
 - Unscoped npm metadata for the bare name and the `-cli` variant.
 - PyPI metadata for the bare name.
@@ -38,11 +37,10 @@ eight candidates, with seven checks per candidate:
 - `.com` and `.dev` domain records through the RDAP service listed in
   [IANA's bootstrap](https://data.iana.org/rdap/dns.json).
 
-An HTTP 200 means a record was returned. HTTP 404 means that endpoint returned no
-record for that exact identifier at that time. It does not reserve a namespace,
-guarantee registration, or clear a name. Other errors would be inconclusive.
-GitHub repository counts include longer matching names, not only exact matches.
-They are search observations, not a count of competing products.
+The package columns show whether those exact names returned a registry record;
+GitHub counts are substring search results and can include longer names. Domain
+records indicate registrations. These are quick collision checks, not namespace
+reservations, trademark clearance, or a measure of product confusion.
 
 | Candidate | npm bare / `-cli` | PyPI bare | GitHub name-query matches | Exact GitHub account | `.com` RDAP | `.dev` RDAP |
 | --- | --- | --- | --- | --- | --- | --- |
