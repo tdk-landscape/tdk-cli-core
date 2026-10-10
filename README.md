@@ -55,7 +55,7 @@ tdk up shop
 curl http://api.shop.localhost:8080/api/orders/health
 ```
 
-`tdk up` prints the host ports it chose. It uses port 80 when it is free, so URLs carry no port; otherwise it picks one from 8080-8180 (Linux and WSL2 always do, because a non-root process cannot check port 80 there). Use the HTTP port `tdk up` reports, or set `TDK_HTTP_PORT`. A resource named `orders-api` is served at `/api/orders` (a trailing `-api` is dropped); `tdk up` prints the exact URLs.
+`tdk up` prints the host ports it chose. It uses port 80 when it is free, so URLs carry no port. Otherwise it picks one from 8080-8180. On Linux and WSL2 a non-root user cannot check port 80, so TDK uses the range there. Use the HTTP port `tdk up` reports, or set `TDK_HTTP_PORT`. A resource named `orders-api` is served at `/api/orders` (a trailing `-api` is dropped); `tdk up` prints the exact URLs.
 
 ![TDK scaffolding a backend and a frontend, then listing the stack](docs/assets/demo.svg)
 

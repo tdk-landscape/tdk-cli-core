@@ -63,5 +63,5 @@ The [WSL2 smoke workflow](https://github.com/tdk-landscape/tdk-cli-core/actions/
 ## Troubleshooting
 
 - If `docker version` cannot reach the server, enable the Ubuntu distribution under Docker Desktop's **Resources → WSL Integration** and restart Ubuntu.
-- TDK defaults to HTTP ingress port 8080 and selects a free fallback ingress and Postgres host port when needed. It prints the selected values; use the reported HTTP port in routed URLs if it differs from 8080. Set `TDK_HTTP_PORT`, `TDK_HTTPS_PORT`, or `TDK_POSTGRES_PORT` to override a selection; a conflicting override is reported without stopping the process using it.
+- TDK asks for HTTP ingress port 80 and uses it when it is free. Otherwise, or on WSL2 where a non-root user cannot check port 80, it selects a free port from 8080-8180, and it selects a fallback Postgres host port when needed. It prints the selected values; use the reported HTTP port in routed URLs if it differs from the URL without a port. Set `TDK_HTTP_PORT`, `TDK_HTTPS_PORT`, or `TDK_POSTGRES_PORT` to override a selection; a conflicting override is reported without stopping the process using it.
 - Use the API and app URLs printed by TDK if your project name differs from `tdk-example`.

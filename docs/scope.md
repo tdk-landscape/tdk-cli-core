@@ -20,7 +20,7 @@ Read from the generated Compose file and `.env` of a scaffolded backend. Check e
 | Auth | `AUTH_MODE=local-jwt` signed with a `JWT_SECRET` generated per project in `.env`; or an identity service when you add one | Your real identity provider and key management |
 | Database | One shared Postgres 16 container, a database per stack (`<project>_<stack>`), password from `.env`, data in a Docker volume ([local data](data.md)) | Managed database, backups, credentials, migrations |
 | Migrations | Services may migrate at container start (`AUTO_MIGRATE` is an escape hatch); `tdk doctor` warns about it | A migrator that runs once, for example a [one-shot job](byo.md#one-shot-jobs-migrations-seeders) |
-| URLs and routing | Traefik with `*.localhost` hostnames on host ports 8080 and 8443 by default; hosts and ports are TDK's | Your ingress class, DNS, certificates |
+| URLs and routing | Traefik with `*.localhost` hostnames on host ports 80 and 443 when they are free (otherwise a port from 8080-8180 and 8443-8543); hosts and ports are TDK's | Your ingress class, DNS, certificates |
 | Secrets | Read from the git-ignored `.env`, or Infisical when `TDK_SECRET_PROVIDER=infisical` ([environment](environment.md)) | Your secret store |
 | Resources | The generated Compose file sets limits: for the scaffolded backend 512 MB and 0.5 CPU, with 256 MB and 0.2 CPU reserved | Replicas, limits, autoscaling |
 | Restarts and health | `restart: unless-stopped`; for a generated service, a Compose health check that runs `curl` inside the image. A bring-your-own service gets no Compose health check (read in `compose.star`, not run): its image does not need `curl`, and Traefik's own health check applies | Readiness and liveness probes |

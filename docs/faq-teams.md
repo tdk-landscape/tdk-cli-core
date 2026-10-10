@@ -36,7 +36,7 @@ Ubuntu on WSL2 with Docker Desktop is supported ([WSL2 guide](wsl2.md)). Native 
 
 ## Ports and running two stacks at once
 
-If the default host ports are taken, TDK picks the next free ports from bounded ranges (ingress 8080 to 8180, HTTPS 8443 to 8543, Postgres 15432 to 15532, read from `host-port-plan.ts`) and prints them in `tdk up` and `tdk networks`. Environment overrides exist, for example `TDK_POSTGRES_PORT`. The ranges are small, and running more than two projects at the same time is **not documented or tested** ([#509](https://github.com/tdk-landscape/tdk-cli-core/issues/509)).
+TDK asks for ingress ports 80 and 443 first, so routed URLs carry no port. If they are taken, or on Linux and WSL2 where a non-root user cannot check them, TDK picks the next free ports from bounded ranges (ingress 8080 to 8180, HTTPS 8443 to 8543, Postgres 15432 to 15532, read from `host-port-plan.ts`) and prints them in `tdk up` and `tdk networks`. Environment overrides exist, for example `TDK_POSTGRES_PORT`. The ranges are small, and running more than two projects at the same time is **not documented or tested** ([#509](https://github.com/tdk-landscape/tdk-cli-core/issues/509)).
 
 ## RAM and CPU on a 16 GB machine
 
