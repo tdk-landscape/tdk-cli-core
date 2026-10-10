@@ -105,6 +105,30 @@ export function buildSmokePlans(resources, ingressPort) {
     }
     return plans;
 }
+/** Caps each read-only smoke check so a doctor run cannot wait the full `tdk up` budget per service. */
+export const DOCTOR_SMOKE_TIMEOUT_SECONDS = 10;
+/**
+ * The GET-only part of each smoke block, for `tdk doctor`. Doctor must never write to a service, and a step whose path reads
+ * a value saved by an earlier write (`{{name}}`) cannot run on its own, so both are dropped. A service with no such steps is left out.
+ */
+export function readOnlySmokePlans(plans, options = {}) {
+    const cap = options.timeoutSeconds ?? DOCTOR_SMOKE_TIMEOUT_SECONDS;
+    return plans.flatMap((plan) => {
+        const steps = plan.smoke.steps.filter((step) => (step.method ?? "GET").toUpperCase() === "GET" &&
+            step.body === undefined &&
+            !step.path.includes("{{"));
+        if (steps.length === 0)
+            return [];
+        const budget = Math.min(plan.smoke.timeoutSeconds ?? DEFAULT_SMOKE_TIMEOUT_SECONDS, cap);
+        return [
+            {
+                name: plan.name,
+                baseUrl: plan.baseUrl,
+                smoke: { via: plan.smoke.via, timeoutSeconds: budget, steps },
+            },
+        ];
+    });
+}
 function readPath(value, path) {
     const parts = path.replace(/^\$\.?/, "").match(/[^.[\]]+/g) ?? [];
     let current = value;

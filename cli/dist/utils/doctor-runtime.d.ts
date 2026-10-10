@@ -1,6 +1,7 @@
 import { execSync } from "node:child_process";
 import type { CheckResult, DiscoveredResource } from "../types/index.js";
 import { type HealthProbe } from "./service-urls.js";
+import type { SmokeResult } from "./smoke.js";
 export declare const HOST_PORT_FIXES: {
     readonly port80: "Stop the process bound to port 80, or stop local nginx/caddy. Then: tdk doctor";
     readonly port5432: "Stop local Postgres or change the host port. Then: tdk doctor";
@@ -93,6 +94,11 @@ export declare function probeHostPort(port: number): Promise<PortState>;
  * route as "Traefik never bound :80" and skipped the check.
  */
 export declare function summarizeServiceProbes(probes: HealthProbe[]): CheckResult;
+/**
+ * Summarizes the read-only smoke checks. A 404 here usually means the service never registered the route its service.json
+ * names, which the health ping cannot see because /health answers regardless.
+ */
+export declare function summarizeSmokeResults(results: SmokeResult[]): CheckResult;
 /**
  * Catches host ports taken by something other than this project's containers,
  * most often a local Postgres on 5432 or a web server on 80. Docker-held 80/443

@@ -56,6 +56,15 @@ export declare const SMOKE_RECORD_BODY_MAX_BYTES: number;
 export declare function validateSmoke(smoke: unknown): string[];
 /** One plan per routable service that declares `smoke`. Workers and BYO with exposeViaProxy false have no public route. */
 export declare function buildSmokePlans(resources: DiscoveredResource[], ingressPort?: number): SmokePlan[];
+/** Caps each read-only smoke check so a doctor run cannot wait the full `tdk up` budget per service. */
+export declare const DOCTOR_SMOKE_TIMEOUT_SECONDS = 10;
+/**
+ * The GET-only part of each smoke block, for `tdk doctor`. Doctor must never write to a service, and a step whose path reads
+ * a value saved by an earlier write (`{{name}}`) cannot run on its own, so both are dropped. A service with no such steps is left out.
+ */
+export declare function readOnlySmokePlans(plans: SmokePlan[], options?: {
+    timeoutSeconds?: number;
+}): SmokePlan[];
 /** Runs the steps in order. A not-ready answer (connection error, 404, 502-504) is retried until the timeout; a real wrong answer fails at once. */
 export declare function runSmokePlan(plan: SmokePlan, deps?: SmokeDeps): Promise<SmokeResult>;
 export declare function formatSmokeFailure(result: SmokeResult): string;
