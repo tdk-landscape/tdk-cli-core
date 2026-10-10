@@ -78,4 +78,6 @@ scripts/benchmark/tdk-up-warm-start.sh \
 - *Wall* is from launching `tdk up` until every Tilt resource is idle and the expected containers are healthy. It includes Tilt's startup and is the number to compare with what a user waits for.
 - *Settled* requires a loaded resource list, no resource in progress or pending, and the expected healthy containers. A fixed sleep is not used, so a fast warm start is not reported as 60 seconds.
 
+**Failure handling:** the driver waits for the project to settle and gives up after 30 minutes, and it does not stop early when `tdk up` itself fails. Read `<run>/up.log` if a run shows a wall time near 1800 seconds.
+
 **Comparing results:** results depend on the machine, Docker's memory and CPU allocation, and the image cache. Compare runs on the same machine, with the same project and the same `--healthy`. A published result is one sample; re-run it before you rely on a difference of a few seconds. Do not commit a new dated result for each run. Publish one when you are recording a baseline.
