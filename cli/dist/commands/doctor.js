@@ -28,7 +28,7 @@ import { discoverResourcesFromRoot } from "../utils/services.js";
 import { buildSmokePlans, readOnlySmokePlans, runSmokePlans } from "../utils/smoke.js";
 import { evaluateTdkVersionFloor } from "../utils/tdk-version.js";
 import { findOnPath } from "../utils/which.js";
-export { checkIngressPorts, checkPrivateNpmRegistry, checkTiltResourceHealth, summarizeServiceProbes, summarizeSmokeResults, summarizeTiltBuildError, } from "../utils/doctor-runtime.js";
+export { checkIngressPorts, checkPrivateNpmRegistry, checkTiltResourceHealth, summarizeServiceProbes, summarizeTiltBuildError, } from "../utils/doctor-runtime.js";
 export { checkStarlarkLoadExports };
 // A wedged Docker daemon makes `docker ps` block forever instead of failing,
 // and doctor is exactly the tool people run when their environment is broken.

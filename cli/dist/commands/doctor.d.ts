@@ -2,7 +2,7 @@ import { Command } from "commander";
 import type { CheckResult } from "../types/index.js";
 import { checkStarlarkLoadExports } from "../utils/doctor-starlark.js";
 import { type ExecAsync } from "../utils/exec-async.js";
-export { checkIngressPorts, checkPrivateNpmRegistry, checkTiltResourceHealth, summarizeServiceProbes, summarizeSmokeResults, summarizeTiltBuildError, } from "../utils/doctor-runtime.js";
+export { checkIngressPorts, checkPrivateNpmRegistry, checkTiltResourceHealth, summarizeServiceProbes, summarizeTiltBuildError, } from "../utils/doctor-runtime.js";
 export { checkStarlarkLoadExports };
 export declare const DOCTOR_FIXES: {
     readonly dockerMissing: "See https://docs.docker.com/get-docker/";

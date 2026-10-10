@@ -510,6 +510,12 @@ describe("readOnlySmokePlans", () => {
     expect(kept.smoke.steps.map((step) => step.name)).toEqual(["list"]);
   });
 
+  it("clears bodyContains so doctor checks the route, not data that earlier writes created", () => {
+    const [kept] = readOnlySmokePlans([plan]);
+    expect(kept.smoke.steps[0].expect).toBe(200);
+    expect(kept.smoke.steps[0].bodyContains).toBeUndefined();
+  });
+
   it("leaves out a service that has no read-only steps", () => {
     const writesOnly: SmokePlan = {
       ...plan,

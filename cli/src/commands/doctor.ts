@@ -82,7 +82,6 @@ export {
   checkPrivateNpmRegistry,
   checkTiltResourceHealth,
   summarizeServiceProbes,
-  summarizeSmokeResults,
   summarizeTiltBuildError,
 } from "../utils/doctor-runtime.js";
 export { checkStarlarkLoadExports };
