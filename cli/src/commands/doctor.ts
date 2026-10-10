@@ -35,6 +35,7 @@ import {
   checkPrivateNpmRegistry,
   checkTiltResourceHealth,
   projectConfigEnablesVerdaccio,
+  summarizeAdvertisedProbes,
   summarizeServiceProbes,
   summarizeSmokeResults,
 } from "../utils/doctor-runtime.js";
@@ -71,7 +72,11 @@ import {
   checkSchemaVersions,
   checkServicePorts,
 } from "../utils/service-config-checks.js";
-import { buildHealthTargets, pingHealthTargets } from "../utils/service-urls.js";
+import {
+  buildAdvertisedTargets,
+  buildHealthTargets,
+  pingHealthTargets,
+} from "../utils/service-urls.js";
 import { discoverResourcesFromRoot } from "../utils/services.js";
 import { buildSmokePlans, readOnlySmokePlans, runSmokePlans } from "../utils/smoke.js";
 import { evaluateTdkVersionFloor } from "../utils/tdk-version.js";
@@ -1171,6 +1176,28 @@ async function checkServiceSmoke(timeoutMs: number, ingressPort?: number): Promi
   return summarizeSmokeResults(await runSmokePlans(plans));
 }
 
+/**
+ * Requests the URL each routable service advertises, the same one `tdk networks` and the TDK App show, and warns on a 404.
+ * Like the other runtime checks, it only runs once services answer. A stopped stack is skipped, not reported.
+ */
+async function checkAdvertisedEndpoints(
+  timeoutMs: number,
+  ingressPort?: number,
+): Promise<CheckResult> {
+  const projectRoot = findProjectRoot() ?? process.cwd();
+  const resources = discoverResourcesFromRoot(projectRoot);
+  const targets = buildAdvertisedTargets(resources, ingressPort);
+  if (targets.length === 0) {
+    return {
+      name: "Advertised Endpoints",
+      didPass: true,
+      isSkipped: true,
+      message: "No routable services to check",
+    };
+  }
+  return summarizeAdvertisedProbes(await pingHealthTargets(targets, timeoutMs));
+}
+
 export const doctorCommand = new Command("doctor")
   .description("Check environment readiness for TDK")
   .option("--json", "Output a versioned JSON readiness report", false)
@@ -1365,6 +1392,7 @@ export const doctorCommand = new Command("doctor")
     if (options.ping) {
       projectChecks.push(() => checkServiceHealth(pingTimeout, hostPortPlan?.ingressHttp));
       projectChecks.push(() => checkServiceSmoke(pingTimeout, hostPortPlan?.ingressHttp));
+      projectChecks.push(() => checkAdvertisedEndpoints(pingTimeout, hostPortPlan?.ingressHttp));
     }
 
     // Right after installing, people run `tdk doctor` before they have a

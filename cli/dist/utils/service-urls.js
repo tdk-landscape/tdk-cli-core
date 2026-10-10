@@ -67,6 +67,16 @@ export function resolveServicePath(resource) {
  * skipped rather than reported as unreachable.
  */
 export function buildHealthTargets(resources, ingressPort) {
+    return routableTargets(resources, ingressPort, (path) => appendHealthPath(path));
+}
+/**
+ * The URL `tdk up` and `tdk networks` advertise for each routable service, with no suffix. A service can answer /health while
+ * this URL is a 404 (nothing handles the bare path), which is the dead link users click.
+ */
+export function buildAdvertisedTargets(resources, ingressPort) {
+    return routableTargets(resources, ingressPort, (path) => path);
+}
+function routableTargets(resources, ingressPort, toPath) {
     const { appBase, apiBase } = resolveSubdomainBases(ingressPort);
     return resources
         .filter((resource) => resource.config?.appType === "frontend" || isApiServiceType(resource.config?.appType))
@@ -75,7 +85,7 @@ export function buildHealthTargets(resources, ingressPort) {
         return {
             name: resource.name,
             appType: resource.config.appType,
-            url: `${base}${appendHealthPath(resolveServicePath(resource))}`,
+            url: `${base}${toPath(resolveServicePath(resource))}`,
         };
     });
 }
