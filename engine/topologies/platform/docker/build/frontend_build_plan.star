@@ -18,14 +18,16 @@ _VITE_BUILD = 'vite build'
 
 
 def _default_plan():
-    return {'build_cmd': DEFAULT_FRONTEND_BUILD_CMD, 'typecheck': False}
+    return {'build_cmd': DEFAULT_FRONTEND_BUILD_CMD, 'typecheck': False, 'typecheck_cmd': ''}
 
 
 def frontend_build_plan(package_json_path):
-    """Returns {'build_cmd': str, 'typecheck': bool} for the package.json at package_json_path.
+    """Returns {'build_cmd', 'typecheck', 'typecheck_cmd'} for the package.json at package_json_path.
 
     build_cmd is the command the image runs; the generated Vite config is appended to it.
-    typecheck is True only when the standard `tsc ... && vite build` form was recognised.
+    typecheck is True only when the standard `tsc ... && vite build` form was recognised;
+    typecheck_cmd is then the host command for the non-blocking type-check resource (`tsc -b` keeps
+    project references, otherwise `tsc --noEmit`).
     A missing or unreadable package.json, or any other script, gets the default plan.
     """
     if not os.path.exists(package_json_path):
@@ -47,4 +49,5 @@ def frontend_build_plan(package_json_path):
     # Any flags after `vite build` are kept. The CLI scaffold already passes the generated
     # `--config`; the image appends the same path again, which Vite accepts.
     extra_args = vite_step[len(_VITE_BUILD):]
-    return {'build_cmd': 'bunx vite build' + extra_args, 'typecheck': True}
+    typecheck_cmd = 'bunx tsc -b' if '-b' in typecheck_step.split(' ') else 'bunx tsc --noEmit'
+    return {'build_cmd': 'bunx vite build' + extra_args, 'typecheck': True, 'typecheck_cmd': typecheck_cmd}

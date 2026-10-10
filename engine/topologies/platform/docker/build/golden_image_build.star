@@ -41,7 +41,13 @@ group "default" {
 }
 @@BAKE_TARGETS@@
 HCL
-  HASH="$HASH" docker buildx bake --allow "fs.read=$ROOT" -f golden-layers.bake.hcl --load
+  # Buildx 0.19 and later ask for read access outside the bake file's directory; older releases do not know the flag.
+  BUILDX_VER="$(docker buildx version 2>/dev/null | sed -n 's/.* v\\([0-9]*\\)\\.\\([0-9]*\\).*/\\1 \\2/p')"
+  BUILDX_MAJOR="${BUILDX_VER%% *}"
+  BUILDX_MINOR="${BUILDX_VER##* }"
+  BAKE_ALLOW=""
+  if [ "${BUILDX_MAJOR:-0}" -gt 0 ] || [ "${BUILDX_MINOR:-0}" -ge 19 ]; then BAKE_ALLOW="--allow fs.read=$ROOT"; fi
+  HASH="$HASH" docker buildx bake $BAKE_ALLOW -f golden-layers.bake.hcl --load
 else
   echo "  ⚠️  docker buildx is not available - building golden targets one at a time"
   @@SERIAL_BUILDS@@

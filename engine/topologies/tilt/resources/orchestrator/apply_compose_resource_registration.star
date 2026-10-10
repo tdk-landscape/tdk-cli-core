@@ -576,11 +576,15 @@ def _should_skip_frontend(res, should_enable):
     return res.get('frontend', False) and should_enable('backends-only')
 
 
-def _register_frontend_typecheck(res, service_dir):
-    """Non-blocking `<service>-typecheck` resource: runs tsc --noEmit so type errors show in Tilt without gating the image."""
+def _register_frontend_typecheck(res, service_dir, typecheck_cmd):
+    """Non-blocking `<service>-typecheck` resource: runs the planned tsc command so type errors show in Tilt without gating the image.
+
+    The command runs on the host, so TypeScript must resolve from the service directory (`bun install`, at the
+    service or workspace root). Without it the resource fails with that instruction instead of a bare module error.
+    """
     local_resource(
         name=res['name'] + '-typecheck',
-        cmd="cd '" + service_dir + "' && bunx tsc --noEmit",
+        cmd="cd '" + service_dir + "' && { bunx tsc --version >/dev/null 2>&1 || { echo 'typecheck needs host dependencies: run bun install in " + service_dir + "'; exit 1; }; } && " + typecheck_cmd,
         deps=[service_dir + '/src', service_dir + '/tsconfig.json'],
         labels=['app.' + res['name'], 'typecheck'],
     )
@@ -603,7 +607,7 @@ def _process_frontend_resource(res, manifest, full_res_path, resource_path, reso
         build_cmd=plan['build_cmd'],
     )
     if plan['typecheck']:
-        _register_frontend_typecheck(res, service_dir)
+        _register_frontend_typecheck(res, service_dir, plan['typecheck_cmd'])
     return Docker.frontend_compose(resource_path=resource_path, resource_name=resource_name, res=res, manifest=manifest)
 
 
