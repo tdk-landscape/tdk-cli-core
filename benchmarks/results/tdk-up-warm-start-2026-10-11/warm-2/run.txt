@@ -1,0 +1,7 @@
+name=warm-2
+kind=warm
+wall_seconds=19
+healthy_expected=8
+healthy_seen=8
+port=10350
+date=2026-10-10T22:31:08Z
