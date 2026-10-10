@@ -64,7 +64,7 @@ The 1.5 GiB-per-build budget is a starting estimate from frontend builds (Vite p
 
 ### Type-check frontends outside the image build
 
-When a frontend's `build` script matches the standard form `tsc[ --noEmit][ -b] && vite build[ ...]`, the L3 frontend stage runs `bunx vite build --config <generated build config>` directly instead of `bun run build`. TDK also registers a `<service>-typecheck` Tilt `local_resource` that runs `bunx tsc --noEmit` in the service directory on file changes. It does not gate the service, and it shows errors in Tilt.
+When a frontend's `build` script matches the standard form `tsc --noEmit && vite build[ ...]` (a non-emitting type-check; a plain `tsc` that emits output stays in the image), the L3 frontend stage runs `bunx vite build --config <generated build config>` directly instead of `bun run build`. TDK also registers a `<service>-typecheck` Tilt `local_resource` that runs `bunx tsc --noEmit` in the service directory on file changes. It does not gate the service, and it shows errors in Tilt.
 
 When the script has any other form, the image keeps running `bun run build --config ...` exactly as today, because the script may run codegen or other steps TDK cannot see.
 

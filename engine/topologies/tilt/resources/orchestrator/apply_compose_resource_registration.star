@@ -587,6 +587,8 @@ def _register_frontend_typecheck(res, service_dir, typecheck_cmd):
         cmd="cd '" + service_dir + "' && { bunx tsc --version >/dev/null 2>&1 || { echo 'typecheck needs host dependencies: run bun install in " + service_dir + "'; exit 1; }; } && " + typecheck_cmd,
         deps=[service_dir + '/src', service_dir + '/tsconfig.json'],
         labels=['app.' + res['name'], 'typecheck'],
+        # tsc --noEmit writes no files, so it can run alongside the image builds.
+        allow_parallel=True,
     )
 
 
