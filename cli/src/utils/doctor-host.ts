@@ -28,14 +28,30 @@ export function checkDiskSpace(statfs: StatFs = statfsSync, path: string = homed
     const stats = statfs(path);
     freeGib = (Number(stats.bavail) * Number(stats.bsize)) / GIB;
   } catch {
-    return { name: DISK_SPACE_CHECK, didPass: true, isSkipped: true, message: "Could not read free disk space" };
+    return {
+      name: DISK_SPACE_CHECK,
+      didPass: true,
+      isSkipped: true,
+      message: "Could not read free disk space",
+    };
   }
   const shown = `${freeGib.toFixed(1)} GB free`;
   if (freeGib < DISK_FAIL_GIB) {
-    return { name: DISK_SPACE_CHECK, didPass: false, message: `${shown}: Docker cannot build or start containers`, fix: DISK_CLEANUP_FIX };
+    return {
+      name: DISK_SPACE_CHECK,
+      didPass: false,
+      message: `${shown}: Docker cannot build or start containers`,
+      fix: DISK_CLEANUP_FIX,
+    };
   }
   if (freeGib < DISK_WARN_GIB) {
-    return { name: DISK_SPACE_CHECK, didPass: false, isWarning: true, message: `${shown}: image builds may fail`, fix: DISK_CLEANUP_FIX };
+    return {
+      name: DISK_SPACE_CHECK,
+      didPass: false,
+      isWarning: true,
+      message: `${shown}: image builds may fail`,
+      fix: DISK_CLEANUP_FIX,
+    };
   }
   return { name: DISK_SPACE_CHECK, didPass: true, message: shown };
 }
@@ -47,7 +63,10 @@ export const DOCKER_DESKTOP_STUCK_FIX =
  * Docker Desktop's app process is up but `docker ps` fails: the engine is stopped or stuck, which needs a different fix
  * than "start Docker". Returns the failing check, or null when that is not the situation.
  */
-export function dockerDesktopStuck(desktopRunning: boolean, platform: NodeJS.Platform = process.platform): CheckResult | null {
+export function dockerDesktopStuck(
+  desktopRunning: boolean,
+  platform: NodeJS.Platform = process.platform,
+): CheckResult | null {
   if (platform !== "darwin" || !desktopRunning) return null;
   return {
     name: "Container Runtime",

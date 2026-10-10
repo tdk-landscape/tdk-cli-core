@@ -9,7 +9,10 @@ import {
 } from "../doctor-host.js";
 
 const GIB = 1024 ** 3;
-const statfsWith = (freeGib: number) => () => ({ bavail: Math.round((freeGib * GIB) / 4096), bsize: 4096 });
+const statfsWith = (freeGib: number) => () => ({
+  bavail: Math.round((freeGib * GIB) / 4096),
+  bsize: 4096,
+});
 
 describe("checkDiskSpace", () => {
   it("fails below 2 GB with cleanup commands", () => {
@@ -26,11 +29,16 @@ describe("checkDiskSpace", () => {
   });
 
   it("passes with plenty of space", () => {
-    expect(checkDiskSpace(statfsWith(40))).toMatchObject({ didPass: true, message: "40.0 GB free" });
+    expect(checkDiskSpace(statfsWith(40))).toMatchObject({
+      didPass: true,
+      message: "40.0 GB free",
+    });
   });
 
   it("accepts bigint stats and skips when the disk cannot be read", () => {
-    expect(checkDiskSpace(() => ({ bavail: BigInt(50 * 262144), bsize: BigInt(4096) })).didPass).toBe(true);
+    expect(
+      checkDiskSpace(() => ({ bavail: BigInt(50 * 262144), bsize: BigInt(4096) })).didPass,
+    ).toBe(true);
     const skipped = checkDiskSpace(() => {
       throw new Error("EACCES");
     });
@@ -41,7 +49,11 @@ describe("checkDiskSpace", () => {
 describe("dockerDesktopStuck", () => {
   it("reports a stuck engine when Docker Desktop is open on macOS", () => {
     const result = dockerDesktopStuck(true, "darwin");
-    expect(result).toMatchObject({ didPass: false, message: "Docker Desktop is open, but its engine is not responding", fix: DOCKER_DESKTOP_STUCK_FIX });
+    expect(result).toMatchObject({
+      didPass: false,
+      message: "Docker Desktop is open, but its engine is not responding",
+      fix: DOCKER_DESKTOP_STUCK_FIX,
+    });
   });
 
   it("returns null when Docker Desktop is not running or on other platforms", () => {

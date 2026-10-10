@@ -23,6 +23,7 @@ import {
   REQUIRED_PACKAGE_SCRIPTS,
 } from "../utils/constants.js";
 import { isPathDiscovered, readDiscoveryPaths } from "../utils/discovery-paths.js";
+import { checkDiskSpace, dockerDesktopStuck } from "../utils/doctor-host.js";
 import {
   collectDoctorChecks,
   createDoctorReport,
@@ -36,7 +37,6 @@ import {
   projectConfigEnablesVerdaccio,
   summarizeServiceProbes,
 } from "../utils/doctor-runtime.js";
-import { checkDiskSpace, dockerDesktopStuck } from "../utils/doctor-host.js";
 import { checkStarlarkLoadExports } from "../utils/doctor-starlark.js";
 import {
   checkDockerNetworkCapacity,
