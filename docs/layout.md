@@ -77,7 +77,7 @@ The project name is `project.name` in `.tdk/project.json`, and `tdk project` too
 
 Services in different projects have different networks, so a service in `orders-repo` cannot reach one in `billing-repo` by name. That was concluded from the generated network names, not tested at runtime.
 
-Host ports: each project asks for Traefik on 8080/8443 and Postgres on 15432. When they are taken, TDK picks the next free port from a range of about a hundred ports for each of the three (8080 to 8180, 8443 to 8543, 15432 to 15532 in `host-port-plan.ts`); see the [FAQ](faq-teams.md#ports-and-running-two-stacks-at-once). Running more than two projects at once is not documented or tested ([#509](https://github.com/tdk-landscape/tdk-cli-core/issues/509)).
+Host ports: each project asks for Traefik on 80/443 and Postgres on 15432 (not 5432, which local databases often hold). When they are taken, TDK picks the next free port from a range of about a hundred ports for each of the three (8080 to 8180, 8443 to 8543, 15432 to 15532 in `host-port-plan.ts`); see the [FAQ](faq-teams.md#ports-and-running-two-stacks-at-once). Running more than two projects at once is not documented or tested ([#509](https://github.com/tdk-landscape/tdk-cli-core/issues/509)).
 
 ## Name and port clashes
 

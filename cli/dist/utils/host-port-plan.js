@@ -19,17 +19,21 @@ export const PREFERRED_HOST_PORTS = {
     ingressHttp: REQUESTED_PORTS.ingressHttp,
     ingressHttps: REQUESTED_PORTS.ingressHttps,
 };
+/**
+ * Whether a failed bind on 127.0.0.1 means the port is still free for Docker. Only macOS
+ * refuses a non-root bind below 1024 while Docker Desktop publishes it through a privileged
+ * helper. Callers check for a listener first, so a bind error here is never another process.
+ */
+export function isPrivilegedBindFree(errorCode, platform) {
+    return errorCode === "EACCES" && platform === "darwin";
+}
 export async function isHostPortAvailable(port) {
     if (await hasLocalListener(port))
         return false;
     return new Promise((resolve) => {
         const server = createServer();
         server.once("error", (error) => {
-            // macOS refuses a non-root bind below 1024 on 127.0.0.1, but Docker Desktop
-            // publishes those ports through its privileged helper. Nothing is listening
-            // (checked above), so the port is free for Docker. Elsewhere (Linux, WSL2,
-            // rootless Docker) a privileged port stays unavailable and the range is used.
-            resolve(error.code === "EACCES" && process.platform === "darwin");
+            resolve(isPrivilegedBindFree(error.code, process.platform));
         });
         // Docker Desktop and Windows publish these host ports through IPv4 loopback.
         // Match that target instead of probing wildcard binds that may differ by OS.

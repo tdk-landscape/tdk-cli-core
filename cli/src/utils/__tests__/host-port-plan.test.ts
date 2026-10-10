@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 import { createServer } from "node:net";
 import { describe, expect, it } from "vitest";
-import { createHostPortPlan, formatHostPortPlan } from "../host-port-plan.js";
+import { createHostPortPlan, formatHostPortPlan, isPrivilegedBindFree } from "../host-port-plan.js";
 import { resolveSubdomainBases } from "../service-urls.js";
 
 describe("createHostPortPlan", () => {
@@ -110,5 +110,18 @@ describe("createHostPortPlan", () => {
     } finally {
       server.close();
     }
+  });
+});
+
+describe("isPrivilegedBindFree", () => {
+  it("treats a refused privileged bind as free only on macOS", () => {
+    expect(isPrivilegedBindFree("EACCES", "darwin")).toBe(true);
+    expect(isPrivilegedBindFree("EACCES", "linux")).toBe(false);
+    expect(isPrivilegedBindFree("EACCES", "win32")).toBe(false);
+  });
+
+  it("never treats other bind errors as free", () => {
+    expect(isPrivilegedBindFree("EADDRINUSE", "darwin")).toBe(false);
+    expect(isPrivilegedBindFree(undefined, "darwin")).toBe(false);
   });
 });
