@@ -36,6 +36,7 @@ import {
   projectConfigEnablesVerdaccio,
   summarizeServiceProbes,
 } from "../utils/doctor-runtime.js";
+import { checkDiskSpace, dockerDesktopStuck } from "../utils/doctor-host.js";
 import { checkStarlarkLoadExports } from "../utils/doctor-starlark.js";
 import {
   checkDockerNetworkCapacity,
@@ -286,6 +287,10 @@ export async function checkDockerRuntime(): Promise<CheckResult> {
       };
     }
   }
+
+  // Docker Desktop open but its engine down or stuck: say so instead of "not running".
+  const stuck = dockerDesktopStuck(await succeeds("pgrep -f com.docker.backend"));
+  if (stuck) return stuck;
 
   // Docker not running: check for Colima, then Podman
   if (await succeeds("colima status")) {
@@ -1271,6 +1276,7 @@ export const doctorCommand = new Command("doctor")
               message: "Ingress port plan is unavailable",
             },
       checkDockerRuntime,
+      () => checkDiskSpace(),
       checkDockerOperatingSystem,
       checkTilt,
       checkDockerCompose,

@@ -226,12 +226,9 @@ describe("tdk status", () => {
 
   it("includes Tilt resource status in JSON when requested and available", async () => {
     vi.mocked(isTiltAvailable).mockResolvedValue(true);
-    vi.mocked(runTilt).mockResolvedValue({
-      exitCode: 0,
-      stdout: JSON.stringify({ items: [{ metadata: { name: "orders-api" } }] }),
-      stderr: "",
-    });
-    vi.mocked(tiltGetUiResources).mockResolvedValue(null);
+    vi.mocked(tiltGetUiResources).mockResolvedValue(
+      JSON.stringify({ items: [{ metadata: { name: "orders-api" } }] }),
+    );
 
     const output = await runStatus(["--json", "--tilt"]);
     const envelope = JSON.parse(output);
@@ -241,9 +238,31 @@ describe("tdk status", () => {
       available: true,
       resourcesQueried: true,
       resources: { items: [{ metadata: { name: "orders-api" } }] },
-      readiness: null,
     });
-    expect(runTilt).toHaveBeenCalledTimes(1);
+    // Resources come from the Tilt API on its port; `tilt get -f` does not exist and must not be called.
+    expect(runTilt).not.toHaveBeenCalled();
+    expect(envelope.errors ?? []).toEqual([]);
+  });
+
+  it("explains which port has no Tilt when --tilt is requested but nothing answers", async () => {
+    vi.mocked(isTiltAvailable).mockResolvedValue(true);
+    vi.mocked(tiltGetUiResources).mockResolvedValue(null);
+
+    const lines: string[] = [];
+    const log = vi.spyOn(console, "log").mockImplementation((...parts: unknown[]) => {
+      lines.push(parts.map(String).join(" "));
+    });
+    try {
+      // A status with errors exits non-zero; the JSON envelope is still printed first.
+      await statusCommand.parseAsync(["--json", "--tilt"], { from: "user" }).catch(() => undefined);
+    } finally {
+      log.mockRestore();
+    }
+    // The status envelope comes first; vitest turns the following process.exit into an error that prints a second one.
+    const envelope = JSON.parse(stripVTControlCharacters(lines.filter(Boolean)[0] ?? "{}"));
+    expect(envelope.errors?.[0]).toMatchObject({ code: "TILT_STATUS_UNAVAILABLE" });
+    expect(envelope.errors?.[0]?.message).toMatch(/No Tilt is answering on port \d+/);
+    expect(runTilt).not.toHaveBeenCalled();
   });
 
   describe("service state from a running Tilt", () => {

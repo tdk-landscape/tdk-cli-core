@@ -11,7 +11,7 @@ import { createMachineEnvelope, writeMachineError } from "../utils/machine-outpu
 import { findProjectRoot } from "../utils/paths.js";
 import { deriveServiceStates, type ServiceRuntimeState } from "../utils/service-runtime-state.js";
 import { buildServicePorts, buildStackPorts } from "../utils/status-ports.js";
-import { getTiltfilePath, isTiltAvailable, runTilt } from "../utils/tilt.js";
+import { isTiltAvailable, runTilt } from "../utils/tilt.js";
 import { getTiltPollingPort } from "../utils/tilt-startup.js";
 import { evaluateTiltReadiness, tiltGetUiResources } from "../utils/up-readiness.js";
 
@@ -50,24 +50,6 @@ export const statusCommand = new Command("status")
 
       let tiltResources: unknown = null;
       let queryError: string | null = null;
-      if (options.json && options.tilt && tiltAvailable) {
-        const result = await runTilt(
-          "get",
-          ["-f", getTiltfilePath(), "resources", "--output=json"],
-          {
-            inheritStdio: false,
-          },
-        );
-        if (result.exitCode === 0) {
-          try {
-            tiltResources = JSON.parse(result.stdout);
-          } catch (error) {
-            queryError = `Tilt returned invalid JSON: ${error instanceof Error ? error.message : String(error)}`;
-          }
-        } else {
-          queryError = result.stderr || "Could not retrieve Tilt resource status";
-        }
-      }
 
       // A single look at the running Tilt, so a caller that started `tdk up` detached can poll for readiness. Null when no
       // Tilt answers or its output cannot be read.
@@ -77,6 +59,18 @@ export const statusCommand = new Command("status")
       const tiltPort = getTiltPollingPort(process.env.TILT_PORT);
       if (tiltAvailable) {
         const text = await tiltGetUiResources(tiltPort);
+        // `tilt get` has no -f flag; resources come from the running Tilt's API on its port, the same source as readiness.
+        if (options.json && options.tilt) {
+          if (text) {
+            try {
+              tiltResources = JSON.parse(text);
+            } catch (error) {
+              queryError = `Tilt returned invalid JSON: ${error instanceof Error ? error.message : String(error)}`;
+            }
+          } else {
+            queryError = `No Tilt is answering on port ${tiltPort}. Start it with: tdk up`;
+          }
+        }
         if (text) {
           const deferred = getDeferredResourceNames();
           try {
@@ -198,15 +192,14 @@ export const statusCommand = new Command("status")
         console.log();
         showStep("Tilt Resources:");
 
-        const tiltfilePath = getTiltfilePath();
-        const result = await runTilt("get", ["-f", tiltfilePath, "resources"], {
+        const result = await runTilt("get", ["uiresources", "--port", String(tiltPort)], {
           inheritStdio: false,
         });
 
         if (result.exitCode === 0) {
           console.log(result.stdout || chalk.gray("  No active tilt resources"));
         } else {
-          showDetail("Could not retrieve tilt resource status");
+          showDetail(`No Tilt is answering on port ${tiltPort}. Start it with: tdk up`);
         }
       }
 
