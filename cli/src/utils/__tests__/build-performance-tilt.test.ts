@@ -54,7 +54,7 @@ const pkg = (scripts: Record<string, string>) => JSON.stringify({ name: "web", s
 
 describe.skipIf(!hasTilt)("frontend build plan", () => {
   const plan = (scripts: Record<string, string> | null) => {
-    const files = scripts === null ? {} : { "web/package.json": pkg(scripts) };
+    const files: Record<string, string> = scripts === null ? {} : { "web/package.json": pkg(scripts) };
     return evaluate(
       `load(${JSON.stringify(framePlan)}, "frontend_build_plan")
 RESULT = frontend_build_plan("web/package.json")`,
