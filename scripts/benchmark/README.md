@@ -68,7 +68,7 @@ scripts/benchmark/tdk-up-warm-start.sh \
 - `--sample-vm` samples the Docker VM processes' memory every 3 seconds. The process names are macOS-specific; elsewhere the column reads "not sampled".
 
 **Side effects, read before you run it:**
-- A cold run removes the project's built images (`<project>-l*` and `<project_with_underscores>_*`) and runs `docker builder prune -af`. That clears the build cache for every project on the machine, so the next build of anything else is slower too.
+- A cold run removes the project's built images, matched by exact name: its golden layers (`<project>-l<n>[-<name>]`) and its service images (`<project_with_underscores>_<stack>_<service>`, from `services/<stack>/<service>`). It then runs `docker builder prune -af`, which clears the build cache for every project on the machine, so the next build of anything else is slower too.
 - Every run starts with `tdk down` in the project, which stops its containers and Tilt.
 
 **What it writes:** one directory per run (`cold-1/`, `warm-1/`, ...) with `durations.txt` (per-resource build times from `tilt-build-durations.mjs`), `run.txt`, `wall-seconds.txt`, `containers.txt`, `vm-samples.txt` and the `tdk up` log, plus `environment.txt` (tool versions and machine details). It then runs `summarize-tdk-up.mjs`, which writes `summary.md` (the tables), `summary.json` and `span.svg` (a chart).
@@ -78,6 +78,6 @@ scripts/benchmark/tdk-up-warm-start.sh \
 - *Wall* is from launching `tdk up` until every Tilt resource is idle and the expected containers are healthy. It includes Tilt's startup and is the number to compare with what a user waits for.
 - *Settled* requires a loaded resource list, no resource in progress or pending, and the expected healthy containers. A fixed sleep is not used, so a fast warm start is not reported as 60 seconds.
 
-**Failure handling:** the driver waits for the project to settle and gives up after 30 minutes, and it does not stop early when `tdk up` itself fails. Read `<run>/up.log` if a run shows a wall time near 1800 seconds.
+**Outcomes:** each run's `run.txt` records one of `settled` (timed), `timeout` (no settled state within 30 minutes; the wall time is the limit, and `up.log` shows why), `down_failed` or `cleanup_failed` (the starting state could not be set up, so the run is not timed). The summary reports the outcome of every run and lists failed Tilt resources. A `timeout` is not a warm-start time and must not be reported as one.
 
 **Comparing results:** results depend on the machine, Docker's memory and CPU allocation, and the image cache. Compare runs on the same machine, with the same project and the same `--healthy`. A published result is one sample; re-run it before you rely on a difference of a few seconds. Do not commit a new dated result for each run. Publish one when you are recording a baseline.

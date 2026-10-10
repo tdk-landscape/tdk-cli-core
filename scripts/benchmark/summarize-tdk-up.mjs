@@ -21,18 +21,28 @@ const toSeconds = (hms) => {
 	return h * 3600 + m * 60 + s;
 };
 
-// One line per resource from tilt-build-durations.mjs: "HH:MM:SS  12.3s  name  ok|FAILED: ...".
-const parseDurations = (text) =>
-	text
+// One line per resource from tilt-build-durations.mjs, in start order: "HH:MM:SS  12.3s  name  ok|FAILED: ...".
+// Times are clock times only, so a run that crosses midnight is unwrapped by adding a day when the clock goes back.
+const parseDurations = (text) => {
+	let day = 0;
+	let previous = -1;
+	return text
 		.split("\n")
 		.map((line) => line.match(/^(\d{2}:\d{2}:\d{2})\s+([\d.]+)s\s+(\S+)\s+(.+)$/))
 		.filter(Boolean)
-		.map(([, start, seconds, resource, status]) => ({
-			resource,
-			start: toSeconds(start),
-			seconds: Number(seconds),
-			failed: !status.trim().startsWith("ok"),
-		}));
+		.map(([, start, seconds, resource, status]) => {
+			let at = toSeconds(start);
+			if (previous >= 0 && at < previous) day += 86400;
+			previous = at;
+			at += day;
+			return {
+				resource,
+				start: at,
+				seconds: Number(seconds),
+				failed: !status.trim().startsWith("ok"),
+			};
+		});
+};
 
 const runs = readdirSync(dir)
 	.filter((name) => /^(cold|warm)-\d+$/.test(name))
@@ -50,6 +60,9 @@ const runs = readdirSync(dir)
 			? Math.max(...resources.map((r) => r.start + r.seconds)) - Math.min(...resources.map((r) => r.start))
 			: null;
 		const golden = resources.find((r) => r.resource === "golden-layers-build");
+		// Tilt's own log says whether the golden build skipped (a fast completed build is not a skip).
+		const goldenLog = readOr(join(runDir, "golden.log"));
+		const goldenSkipped = goldenLog ? /up to date/.test(goldenLog) : null;
 		const samples = readOr(join(runDir, "vm-samples.txt"))
 			.split("\n")
 			.filter(Boolean)
@@ -61,7 +74,9 @@ const runs = readdirSync(dir)
 			wallSeconds: Number(readOr(join(runDir, "wall-seconds.txt"), "NaN").trim()),
 			spanSeconds: span,
 			goldenSeconds: golden ? golden.seconds : null,
-			goldenSkipped: golden ? golden.seconds < 2 : null,
+			goldenSkipped,
+			outcome: meta.outcome ?? "unknown",
+			failedResources: resources.filter((r) => r.failed).map((r) => r.resource),
 			healthySeen: Number(meta.healthy_seen ?? NaN),
 			healthyExpected: Number(meta.healthy_expected ?? NaN),
 			vmMinMiB: samples.length ? Math.min(...samples) : null,
@@ -83,16 +98,22 @@ const services = [...new Set(runs.flatMap((r) => r.resources.map((x) => x.resour
 
 const lines = [];
 lines.push("# tdk up warm-start benchmark", "");
-lines.push("| Run | Kind | Span (s) | Wall (s) | golden-layers-build (s) | Healthy | Docker VM peak (MiB) |");
-lines.push("|---|---|---:|---:|---:|---:|---:|");
+lines.push("| Run | Kind | Outcome | Span (s) | Wall (s) | golden-layers-build (s) | Healthy | Failed resources | Docker VM peak (MiB) |");
+lines.push("|---|---|---|---:|---:|---:|---:|---:|---:|");
 for (const r of runs) {
-	const golden = r.goldenSeconds === null ? "n/a" : `${fmt(r.goldenSeconds)}${r.goldenSkipped ? " (skipped)" : ""}`;
+	const golden =
+		r.goldenSeconds === null ? "n/a" : `${fmt(r.goldenSeconds)}${r.goldenSkipped === true ? " (skipped)" : ""}`;
 	const vm = r.vmPeakMiB === null ? "not sampled" : `${r.vmPeakMiB}`;
+	const failed = r.failedResources.length ? `${r.failedResources.length} (${r.failedResources.join(", ")})` : "0";
 	lines.push(
-		`| ${r.name} | ${r.kind} | ${fmt(r.spanSeconds)} | ${fmt(r.wallSeconds, 0)} | ${golden} | ${r.healthySeen}/${r.healthyExpected} | ${vm} |`,
+		`| ${r.name} | ${r.kind} | ${r.outcome} | ${fmt(r.spanSeconds)} | ${fmt(r.wallSeconds, 0)} | ${golden} | ${r.healthySeen}/${r.healthyExpected} | ${failed} | ${vm} |`,
 	);
 }
-lines.push("", "Span is from the first Tilt build step to the last build finishing. Wall is from launching `tdk up` until every resource was idle and the expected containers were healthy.", "");
+lines.push(
+	"",
+	"Span is from the first Tilt build step to the last build finishing. Wall is from launching `tdk up` until every resource was idle and the expected containers were healthy (outcome `settled`), or until the 30-minute limit (`timeout`). Runs with any other outcome were not timed.",
+	"",
+);
 lines.push("## Build time per service (s)", "");
 lines.push(`| Resource | ${runs.map((r) => r.name).join(" | ")} |`);
 lines.push(`|---|${runs.map(() => "---:").join("|")}|`);
@@ -115,13 +136,14 @@ writeFileSync(
 );
 
 // A simple horizontal bar chart of span and golden build time per run, no dependencies.
+const timed = runs.filter((r) => r.outcome === "settled" && r.spanSeconds !== null);
 const barHeight = 22;
 const left = 110;
 const width = 520;
-const maxSeconds = Math.max(1, ...runs.map((r) => r.spanSeconds ?? 0));
+const maxSeconds = Math.max(1, ...timed.map((r) => r.spanSeconds ?? 0));
 const scale = (s) => (s / maxSeconds) * width;
-const height = runs.length * (barHeight * 2 + 18) + 40;
-const svgRows = runs.flatMap((r, i) => {
+const height = Math.max(1, timed.length) * (barHeight * 2 + 18) + 40;
+const svgRows = timed.flatMap((r, i) => {
 	const y = 30 + i * (barHeight * 2 + 18);
 	const span = scale(r.spanSeconds ?? 0);
 	const golden = scale(r.goldenSeconds ?? 0);

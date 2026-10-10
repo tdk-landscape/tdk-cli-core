@@ -3,20 +3,21 @@
 # SPDX-License-Identifier: MIT
 #
 # Times `tdk up` on a TDK project: one cold run (built images and build cache removed first) and
-# N warm runs. Each run is timed until every Tilt resource is idle and every container is healthy.
-# The raw per-resource build durations are kept per run; scripts/benchmark/summarize-tdk-up.mjs
-# turns a run directory into the tables and chart in benchmarks/results/.
+# N warm runs. A run is timed until every Tilt resource is idle and the expected containers are
+# healthy, or until 30 minutes pass. Every run records an outcome; a run that could not establish
+# its starting state is recorded as failed and is not timed. scripts/benchmark/summarize-tdk-up.mjs
+# turns the run directory into the tables and chart in benchmarks/results/.
 #
 # Usage:
 #   scripts/benchmark/tdk-up-warm-start.sh --project <dir> --out <dir> [--cold-runs 1] [--warm-runs 3]
 #                                          [--port 10350] [--healthy 8] [--sample-vm]
 #
 # --cold-runs 0 skips the cold run. --sample-vm records the Docker VM processes' memory every 3 seconds
-# (macOS process names; on other systems the samples are empty and the summary says so).
+# (macOS process names; elsewhere the samples are empty and the summary says so).
 #
-# Side effects, read before running: a cold run removes the project's built images (named after the
-# project) and runs `docker builder prune -af`, which clears the build cache for every project on the
-# machine. Every run starts with `tdk down` in the project, so Tilt and the project's containers stop.
+# Side effects: a cold run removes the project's built images (its golden layers and its service
+# images, matched by exact name) and runs `docker builder prune -af`, which clears the build cache for
+# every project on the machine. Every run starts with `tdk down` in the project.
 
 set -eu
 
@@ -37,7 +38,7 @@ while [ $# -gt 0 ]; do
     --port) port="$2"; shift 2 ;;
     --healthy) healthy="$2"; shift 2 ;;
     --sample-vm) sample_vm=1; shift ;;
-    -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,21p' "$0"; exit 0 ;;
     *) echo "unknown option: $1" >&2; exit 2 ;;
   esac
 done
@@ -53,6 +54,7 @@ durations="$here/tilt-build-durations.mjs"
 project="$(cd "$project" && pwd)"
 slug="$(basename "$project")"
 slug_us="$(printf '%s' "$slug" | tr '-' '_')"
+slug_re="$(printf '%s' "$slug" | sed 's/[][\.*^$+?(){}|/-]/\\&/g')"
 mkdir -p "$out"
 out="$(cd "$out" && pwd)"
 
@@ -60,8 +62,7 @@ settled() {
   # Settled: at least one resource was loaded, no resource is in progress or pending, and the expected number of containers are healthy.
   busy=$(tilt get uiresources --port "$port" -o json 2>/dev/null | jq '[.items[] | select(.status.updateStatus=="in_progress" or .status.updateStatus=="pending")] | length' 2>/dev/null || echo 1)
   loaded=$(tilt get uiresources --port "$port" -o json 2>/dev/null | jq '.items | length' 2>/dev/null || echo 0)
-  # Compose names use hyphens for services and underscores for the infrastructure containers (Traefik, Postgres).
-  ok=$(docker ps --format '{{.Names}} {{.Status}}' 2>/dev/null | grep -E -c "($slug|$slug_us).*\(healthy\)" || true)
+  ok=$(docker ps --format '{{.Names}} {{.Status}}' 2>/dev/null | grep -E -c "($slug|$slug_us).*\\(healthy\\)" || true)
   [ "${busy:-1}" = "0" ] && [ "${loaded:-0}" -gt 0 ] && [ "${ok:-0}" -ge "$healthy" ]
 }
 
@@ -70,36 +71,75 @@ vm_memory_mib() {
   ps -axo rss=,command= | awk '/Virtualization.framework.*XPCServices.*Virtualization|com\.docker\.(backend|build|virtualization)/ && !/awk/ {s+=$1} END {printf "%d", s/1024}'
 }
 
+project_repositories() {
+  # The exact image repositories this project builds: its golden layers (<slug>-l<n>[-<name>]) and its
+  # service images (<slug_us>_<stack>_<service>, from services/<stack>/<service>). Nothing else is matched.
+  for dir in services/*/*/; do
+    [ -d "$dir" ] || continue
+    stack="$(basename "$(dirname "$dir")")"
+    service="$(basename "$dir")"
+    printf '%s_%s_%s\n' "$slug_us" "$stack" "$service"
+  done
+}
+
 cold_cleanup() {
-  docker images --format '{{.Repository}}:{{.Tag}}' \
-    | grep -E "^${slug}-l[0-9]|^${slug_us}_" | xargs -r docker rmi -f >/dev/null 2>&1 || true
-  docker builder prune -af >/dev/null 2>&1 || true
+  # Returns non-zero when the cleanup could not finish, so the run is recorded as failed.
+  list="$1"
+  ids=$(docker images --format '{{.Repository}}	{{.ID}}' \
+    | awk -F'\t' -v L="$list" -v R="$slug_re" 'BEGIN { while ((getline r < L) > 0) want[r] = 1 } ($1 in want) || ($1 ~ ("^" R "-l[0-9]+(-[a-z-]+)?$")) { print $2 }' \
+    | sort -u)
+  if [ -n "$ids" ]; then
+    # shellcheck disable=SC2086
+    docker rmi -f $ids >/dev/null 2>&1 || return 1
+  fi
+  docker builder prune -af >/dev/null 2>&1 || return 1
 }
 
 run_once() {
   name="$1"; kind="$2"
   dir="$out/$name"; mkdir -p "$dir"
-  (cd "$project" && tdk down > "$dir/down.log" 2>&1) || true
-  [ "$kind" = cold ] && cold_cleanup
+  started_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  write_run() {
+    printf 'name=%s\nkind=%s\noutcome=%s\nwall_seconds=%s\nhealthy_expected=%s\nhealthy_seen=%s\nport=%s\nstarted=%s\n' \
+      "$name" "$kind" "$1" "$2" "$healthy" "$(grep -c '(healthy)' "$dir/containers.txt" 2>/dev/null || echo 0)" "$port" "$started_at" > "$dir/run.txt"
+  }
+  : > "$dir/containers.txt"
+
+  if ! (cd "$project" && tdk down > "$dir/down.log" 2>&1); then
+    write_run down_failed 0
+    echo "$name: tdk down failed; not timed (see $dir/down.log)" >&2
+    return 0
+  fi
+  if [ "$kind" = cold ]; then
+    project_repositories > "$dir/repositories.txt"
+    if ! cold_cleanup "$dir/repositories.txt" > "$dir/cleanup.log" 2>&1; then
+      write_run cleanup_failed 0
+      echo "$name: cold cleanup failed; not timed (see $dir/cleanup.log)" >&2
+      return 0
+    fi
+  fi
+
   : > "$dir/vm-samples.txt"
   start=$(date +%s)
   (cd "$project" && tdk up > "$dir/up.log" 2>&1) &
   waited=0
+  outcome=timeout
   while :; do
     if [ "$sample_vm" = 1 ]; then
       echo "$(date +%T) $(vm_memory_mib)" >> "$dir/vm-samples.txt"
     fi
-    if [ "$waited" -gt 15 ] && settled; then break; fi
-    if [ "$waited" -gt 1800 ]; then echo "$name did not settle within 30 minutes" >&2; break; fi
+    if settled; then outcome=settled; break; fi
+    if [ "$waited" -ge 1800 ]; then break; fi
     sleep 3; waited=$((waited + 3))
   done
   end=$(date +%s)
-  echo "$((end - start))" > "$dir/wall-seconds.txt"
+  wall=$((end - start))
+  echo "$wall" > "$dir/wall-seconds.txt"
   node "$durations" --port "$port" > "$dir/durations.txt" 2>&1 || true
+  tilt logs golden-layers-build --port "$port" > "$dir/golden.log" 2>&1 || true
   docker ps --format '{{.Names}} {{.Status}}' | grep -E "($slug|$slug_us)" > "$dir/containers.txt" || true
-  printf 'name=%s\nkind=%s\nwall_seconds=%s\nhealthy_expected=%s\nhealthy_seen=%s\nport=%s\ndate=%s\n' \
-    "$name" "$kind" "$((end - start))" "$healthy" "$(grep -c '(healthy)' "$dir/containers.txt" || true)" "$port" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$dir/run.txt"
-  echo "$name: $((end - start)) s"
+  write_run "$outcome" "$wall"
+  echo "$name: $outcome after $wall s"
 }
 
 {
