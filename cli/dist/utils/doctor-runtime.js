@@ -463,6 +463,35 @@ export function summarizeServiceProbes(probes) {
     };
 }
 /**
+ * Summarizes the read-only smoke checks. A 404 here usually means the service never registered the route its service.json
+ * names, which the health ping cannot see because /health answers regardless.
+ */
+export function summarizeSmokeResults(results) {
+    if (results.length === 0) {
+        return {
+            name: "Service Smoke",
+            didPass: true,
+            isSkipped: true,
+            message: "No read-only smoke checks declared",
+        };
+    }
+    const failed = results.filter((result) => !result.ok);
+    if (failed.length === 0) {
+        return {
+            name: "Service Smoke",
+            didPass: true,
+            message: `All ${formatCount(results.length, "service")} pass their smoke checks`,
+        };
+    }
+    const details = failed.map((result) => result.failure ?? `${result.name}: failed`).join("\n    ");
+    return {
+        name: "Service Smoke",
+        didPass: false,
+        message: `${formatCount(failed.length, "service")} failing a smoke check (${results.length - failed.length}/${results.length} passing):\n    ${details}`,
+        fix: 'Add the route the smoke step expects, or correct its "path" in the service.json "smoke" block. Then re-run tdk doctor.',
+    };
+}
+/**
  * Catches host ports taken by something other than this project's containers,
  * most often a local Postgres on 5432 or a web server on 80. Docker-held 80/443
  * are reported by checkIngressPorts, so only 5432 is checked against other

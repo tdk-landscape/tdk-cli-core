@@ -11,6 +11,7 @@ import { findProjectRoot } from "./paths.js";
 import { isApiServiceType } from "./resource-kind.js";
 import { getProjectName, type HealthProbe } from "./service-urls.js";
 import { discoverResources, discoverResourcesFromRoot } from "./services.js";
+import type { SmokeResult } from "./smoke.js";
 import {
   effectiveRuntimeStatus,
   isTiltResourcePending,
@@ -604,6 +605,36 @@ export function summarizeServiceProbes(probes: HealthProbe[]): CheckResult {
     fix: notRouted
       ? "If `tdk up` just started, images may still be building: re-run `tdk doctor` in a minute. Otherwise check `docker ps` and the resource in the Tilt UI, and compare `tdk networks` with the URL above."
       : "Check container state and routing: docker ps, then tdk networks to compare the advertised URLs against Traefik's routers",
+  };
+}
+
+/**
+ * Summarizes the read-only smoke checks. A 404 here usually means the service never registered the route its service.json
+ * names, which the health ping cannot see because /health answers regardless.
+ */
+export function summarizeSmokeResults(results: SmokeResult[]): CheckResult {
+  if (results.length === 0) {
+    return {
+      name: "Service Smoke",
+      didPass: true,
+      isSkipped: true,
+      message: "No read-only smoke checks declared",
+    };
+  }
+  const failed = results.filter((result) => !result.ok);
+  if (failed.length === 0) {
+    return {
+      name: "Service Smoke",
+      didPass: true,
+      message: `All ${formatCount(results.length, "service")} pass their smoke checks`,
+    };
+  }
+  const details = failed.map((result) => result.failure ?? `${result.name}: failed`).join("\n    ");
+  return {
+    name: "Service Smoke",
+    didPass: false,
+    message: `${formatCount(failed.length, "service")} failing a smoke check (${results.length - failed.length}/${results.length} passing):\n    ${details}`,
+    fix: 'Add the route the smoke step expects, or correct its "path" in the service.json "smoke" block. Then re-run tdk doctor.',
   };
 }
 
