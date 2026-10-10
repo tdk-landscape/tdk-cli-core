@@ -519,7 +519,7 @@ export function summarizeAdvertisedProbes(probes) {
         didPass: true,
         isWarning: true,
         message: `${formatCount(dead.length, "advertised link")} returns 404:\n    ${details}`,
-        fix: 'Nothing handles this path, so the link is dead. Add a route for it, or declare a read-only "smoke" step on a real route in service.json and link to that instead.',
+        fix: 'Nothing handles this path, so the link is dead. Add a route for it, or declare a read-only "smoke" step on a real route in service.json. The URL tdk networks and the TDK App print stays the same until the CLI changes how it reports it.',
     };
 }
 /**
