@@ -100,6 +100,11 @@ export declare function summarizeServiceProbes(probes: HealthProbe[]): CheckResu
  */
 export declare function summarizeSmokeResults(results: SmokeResult[]): CheckResult;
 /**
+ * Flags advertised links that answer 404. Only a 404 counts: a route that answers with any other status is reachable, and many APIs
+ * have no root route, so this is a warning and never fails the run on its own.
+ */
+export declare function summarizeAdvertisedProbes(probes: HealthProbe[]): CheckResult;
+/**
  * Catches host ports taken by something other than this project's containers,
  * most often a local Postgres on 5432 or a web server on 80. Docker-held 80/443
  * are reported by checkIngressPorts, so only 5432 is checked against other
