@@ -50,13 +50,13 @@ Alternative considered: a Tilt `deps=` trigger only. Tilt still runs `local_reso
 
 The generator writes a bake file (JSON, next to the golden Dockerfile) with one target per golden image, each with its `target`, tag and hash label, and a default group containing all of them. The resource runs `docker buildx bake -f <file> --load`. BuildKit then solves the shared stages once and builds independent stages (L3 backend/frontend/migrator, L4 variants) in parallel.
 
-If `docker buildx bake` is unavailable or fails before building (for example an old buildx), the command falls back to the existing serial `docker build` loop and says so in the resource log.
+If `docker buildx` is not installed, the command falls back to the existing serial `docker build` loop and says so in the resource log. A bake failure fails the resource; it is not retried serially.
 
 Alternative considered: run the existing `docker build` calls in the background with `&` and `wait`. That parallelizes but keeps nine context loads and gives poor error reporting.
 
 ### Derive Tilt build concurrency from the Docker engine
 
-The generated Tiltfile calls `update_settings(max_parallel_updates=N)`. `N` is computed at Tiltfile load from `docker info` (`NCPU`, `MemTotal`): `N = clamp(min(NCPU - 2, floor(MemTotal / 1.5 GiB)), 3, 8)`. A project setting or the `TDK_MAX_PARALLEL_BUILDS` environment variable overrides it. If `docker info` fails, `N` stays at Tilt's default and the Tiltfile logs why.
+The generated Tiltfile calls `update_settings(max_parallel_updates=N)`. `N` is computed at Tiltfile load from `docker info` (`NCPU`, `MemTotal`): `N = clamp(min(NCPU - 2, floor(MemTotal / 1.5 GiB)), 3, 8)`. The `TDK_MAX_PARALLEL_BUILDS` environment variable overrides it (no project setting). If `docker info` fails, `N` stays at Tilt's default and the Tiltfile logs why.
 
 Using the engine's numbers instead of the host's matters on macOS, where the Docker VM usually has fewer CPUs and much less memory than the host.
 

@@ -24,20 +24,20 @@
 
 ### Requirement: Golden images build in one parallel invocation
 
-When golden images must be built, TDK SHALL build all golden targets with a single `docker buildx bake` invocation so independent stages build in parallel. If bake is unavailable, TDK SHALL fall back to building each target with `docker build` and SHALL log that it did so.
+When golden images must be built, TDK SHALL build all golden targets with a single `docker buildx bake` invocation so independent stages build in parallel. If `docker buildx` is not installed, TDK SHALL fall back to building each target with `docker build` and SHALL log that it did so. A bake failure fails the golden resource; it does not fall back.
 
 #### Scenario: Bake available
 - **WHEN** golden images need building and `docker buildx bake` is available
 - **THEN** all golden targets are built by one bake invocation with the same targets and tags as the serial build
 
-#### Scenario: Bake unavailable
-- **WHEN** golden images need building and `docker buildx bake` cannot run
+#### Scenario: Buildx not installed
+- **WHEN** golden images need building and `docker buildx` is not installed
 - **THEN** TDK builds each golden target with `docker build`
 - **AND** the resource log explains that it fell back to serial builds
 
 ### Requirement: Image build concurrency matches the Docker engine
 
-The generated Tiltfile SHALL set Tilt's maximum parallel updates from the Docker engine's CPU count and memory, with a minimum of 3 and a maximum of 8. A `TDK_MAX_PARALLEL_BUILDS` environment variable or project setting SHALL override the computed value. If the engine's resources cannot be read, the Tiltfile SHALL leave Tilt's default in place and log why.
+The generated Tiltfile SHALL set Tilt's maximum parallel updates from the Docker engine's CPU count and memory, with a minimum of 3 and a maximum of 8. A `TDK_MAX_PARALLEL_BUILDS` environment variable SHALL override the computed value. If the engine's resources cannot be read, the Tiltfile SHALL leave Tilt's default in place and log why.
 
 #### Scenario: Engine with spare capacity
 - **WHEN** the Docker engine reports enough CPUs and memory for more than 3 concurrent builds
