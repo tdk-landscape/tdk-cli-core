@@ -40,6 +40,13 @@ export declare const DEFAULT_HOST_PORT_RANGES: {
         readonly end: 15532;
     };
 };
+declare const REQUESTED_PORTS: {
+    readonly ingressHttp: 80;
+    readonly ingressHttps: 443;
+    readonly postgres: 5432;
+};
+export declare const PREFERRED_HOST_PORTS: Partial<Record<keyof typeof REQUESTED_PORTS, number>>;
 export declare function isHostPortAvailable(port: number): Promise<boolean>;
 export declare function createHostPortPlan(options?: HostPortPlanOptions): Promise<HostPortPlan>;
 export declare function formatHostPortPlan(plan: HostPortPlan): string;
+export {};

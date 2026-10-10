@@ -34,12 +34,24 @@ const ENV_KEYS = {
   postgres: "TDK_POSTGRES_PORT",
 } as const;
 const REQUESTED_PORTS = { ingressHttp: 80, ingressHttps: 443, postgres: 5432 } as const;
+// Tried before the fallback range so routed URLs need no port. Postgres keeps
+// its range: a local Postgres on 5432 is common, and no URL carries that port.
+export const PREFERRED_HOST_PORTS: Partial<Record<keyof typeof REQUESTED_PORTS, number>> = {
+  ingressHttp: REQUESTED_PORTS.ingressHttp,
+  ingressHttps: REQUESTED_PORTS.ingressHttps,
+};
 
 export async function isHostPortAvailable(port: number): Promise<boolean> {
   if (await hasLocalListener(port)) return false;
   return new Promise((resolve) => {
     const server = createServer();
-    server.once("error", () => resolve(false));
+    server.once("error", (error: NodeJS.ErrnoException) => {
+      // macOS refuses a non-root bind below 1024 on 127.0.0.1, but Docker Desktop
+      // publishes those ports through its privileged helper. Nothing is listening
+      // (checked above), so the port is free for Docker. Elsewhere (Linux, WSL2,
+      // rootless Docker) a privileged port stays unavailable and the range is used.
+      resolve(error.code === "EACCES" && process.platform === "darwin");
+    });
     // Docker Desktop and Windows publish these host ports through IPv4 loopback.
     // Match that target instead of probing wildcard binds that may differ by OS.
     server.listen(port, "127.0.0.1", () => server.close(() => resolve(true)));
@@ -68,9 +80,13 @@ export async function createHostPortPlan(options: HostPortPlanOptions = {}): Pro
     const envValue = env[ENV_KEYS[key]];
     const explicit = envValue !== undefined && envValue.trim() !== "";
     const range = options.ranges?.[key] ?? DEFAULT_HOST_PORT_RANGES[key];
+    const preferred = PREFERRED_HOST_PORTS[key];
     const candidates = explicit
       ? [parsePort(ENV_KEYS[key], envValue)]
-      : Array.from({ length: range.end - range.start + 1 }, (_, index) => range.start + index);
+      : [
+          ...(preferred === undefined ? [] : [preferred]),
+          ...Array.from({ length: range.end - range.start + 1 }, (_, index) => range.start + index),
+        ];
 
     let chosen: number | undefined;
     for (const port of candidates) {
@@ -95,7 +111,9 @@ export async function createHostPortPlan(options: HostPortPlanOptions = {}): Pro
     explicitFlags[key] = explicit;
     reasons[key] = explicit
       ? "explicit override"
-      : `selected from fallback range ${range.start}-${range.end}`;
+      : chosen === preferred
+        ? "requested port is free"
+        : `selected from fallback range ${range.start}-${range.end}`;
   }
 
   return {

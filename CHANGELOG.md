@@ -4,6 +4,7 @@ Notable changes to the `tdk` CLI. Versions match [npm](https://www.npmjs.com/pac
 
 ## Unreleased
 
+- `tdk up` now publishes Traefik on host port 80 (and 443) when they are free, so routed URLs read `http://app.<project>.localhost/<app>` instead of `...localhost:8080/<app>`. It always wanted 80 but only ever tried 8080-8180. On macOS the free-port check treated the kernel's refusal of a non-root bind below 1024 as "busy", although Docker Desktop publishes those ports itself; that also made `TDK_HTTP_PORT=80` fail with "already in use". A project whose saved plan is on 8080 moves to 80 on its next `tdk up` once 80 is free. Linux and WSL2 keep the 8080-8180 range. Printed URLs no longer end in `:80`.
 - TDK MCP tools now accept an absolute `projectPath` so a projectless MCP client can run doctor, inspect services and logs, and manage the intended project without depending on the server launch directory.
 - Shared platform stacks (postgres, traefik, proxy, messaging, infisical, monitoring, cdc, elk) now run in Compose projects named `<project>-<stack>` (for example `tdk-erp-system-database-management`) instead of the directory-named `database-management`, `tdk-out` and so on. Two TDK projects on one Docker daemon no longer share them.
 
