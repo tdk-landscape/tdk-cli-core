@@ -31,12 +31,15 @@ tdk up shop
 
 Leave `tdk up shop` running. From another Ubuntu terminal, check the routed API and UI, create an order, and wait for the NATS worker to mark it:
 
+Set `HTTP_PORT` to the HTTP port `tdk up` printed (80, or 8080 on WSL2 when 80 is not available):
+
 ```sh
 set -euo pipefail
-api=http://api.tdk-example.localhost:8080/api/orders
+: "${HTTP_PORT:?set HTTP_PORT to the port tdk up printed}"
+api=http://api.tdk-example.localhost:$HTTP_PORT/api/orders
 curl -fsS "$api/health"
 curl -fsS "$api/worker-ready"
-curl -fsS http://app.tdk-example.localhost:8080/orders-app/ >/dev/null
+curl -fsS http://app.tdk-example.localhost:$HTTP_PORT/orders-app/ >/dev/null
 order_id="$(curl -fsS -X POST "$api" -H 'content-type: application/json' \
   -d '{"item":"WSL2 smoke test"}' | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>process.stdout.write(String(JSON.parse(s).order.id)))')"
 echo "Created order $order_id"

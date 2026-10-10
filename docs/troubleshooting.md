@@ -281,7 +281,7 @@ All **read from source, not reproduced**.
 The same check prints `Stop the process bound to port 80, or stop local nginx/caddy. Then: tdk doctor` when the first port found taken is 80, and for 443 `Stop the process bound to port 443. Then: tdk doctor`. The names in the middle line come from `HOST_PORTS` in the source; the exact label text was not captured.
 
 - **Cause:** something other than this project holds 5432, 80 or 443 (a local Postgres is the case the message is written for). With Docker holding 5432, the line says `is published by container <name>`.
-- **Fix:** stop the program, or choose other host ports with `TDK_POSTGRES_PORT`. Default host ports are 80, 443 and 5432 (Postgres is 15432 by default), and TDK picks the next free one when a default is busy; see [the FAQ](faq-teams.md#ports-and-running-two-stacks-at-once). How the 5432 check relates to the default of 15432 was not investigated.
+- **Fix:** stop the program, or choose other host ports with `TDK_POSTGRES_PORT`. The default host ports are 80 and 443 for HTTP and HTTPS, and 15432 for Postgres (TDK does not try 5432). TDK picks the next free one when a default is busy; see [the FAQ](faq-teams.md#ports-and-running-two-stacks-at-once). How the 5432 check relates to the default of 15432 was not investigated.
 - **Defined in:** [`doctor-runtime.ts`](../cli/src/utils/doctor-runtime.ts) (`checkHostPorts`).
 - **Checked:** read from source, not reproduced.
 
