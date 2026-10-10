@@ -26,7 +26,11 @@ export function resolveSubdomainBases(ingressPort) {
     try {
         const u = new URL(raw.includes("://") ? raw : `http://${raw}`);
         const host = u.hostname;
-        const port = u.port || (ingressPort ? String(ingressPort) : "");
+        // URL drops a default port (80 for http, 443 for https), so u.port is empty
+        // for http://x.localhost:80. Keep it empty instead of re-adding ingressPort.
+        const defaultPort = u.protocol === "https:" ? "443" : "80";
+        const explicitPort = u.port || (ingressPort ? String(ingressPort) : "");
+        const port = explicitPort === defaultPort ? "" : explicitPort;
         if (host === "localhost" || /^\d+\.\d+\.\d+\.\d+$/.test(host)) {
             return {
                 appBase: `${u.protocol}//${host}${port ? `:${port}` : ""}`,
