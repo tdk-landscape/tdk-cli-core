@@ -44,9 +44,7 @@ def frontend_build_plan(package_json_path):
     if vite_step != _VITE_BUILD and not vite_step.startswith(_VITE_BUILD + ' '):
         return _default_plan()
 
+    # Any flags after `vite build` are kept. The CLI scaffold already passes the generated
+    # `--config`; the image appends the same path again, which Vite accepts.
     extra_args = vite_step[len(_VITE_BUILD):]
-    # The generated config is appended with --config, so a script that already sets one is not standard.
-    if '--config' in extra_args or ' -c ' in extra_args:
-        return _default_plan()
-
     return {'build_cmd': 'bunx vite build' + extra_args, 'typecheck': True}

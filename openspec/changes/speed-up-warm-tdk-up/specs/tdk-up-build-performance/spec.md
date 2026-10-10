@@ -72,6 +72,11 @@ For a frontend whose `build` script has the standard form `tsc` (optionally `--n
 - **THEN** the image build runs the service's `build` script with the generated build config, as before
 - **AND** no type-check resource is added for it
 
+#### Scenario: Focus mode enables the typecheck with its service
+- **WHEN** a user runs `tdk up` in focus mode for a frontend that has a type-check resource
+- **THEN** the `<service>-typecheck` resource is enabled alongside the service
+- **AND** it is not left disabled by the focus filter
+
 #### Scenario: User scripts are not rewritten
 - **WHEN** TDK regenerates a project
 - **THEN** it does not modify the frontend's `package.json` scripts

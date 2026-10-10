@@ -25,6 +25,7 @@
 - [x] 4.1 Detect the standard `tsc[ --noEmit][ -b] && vite build[ ...]` build-script form; for it, emit a direct `bunx vite build --config <generated build config>` step in the L3 frontend stage. Leave other script forms unchanged.
 - [x] 4.2 Register a non-blocking `<service>-typecheck` local resource for those frontends.
 - [ ] 4.3 Tests for the detection (standard forms, custom scripts, missing script) and the generated Dockerfile step.
+- [x] 4.5 Name `<service>-typecheck` in the focus filter so focus mode enables it (regression test in template-engine.test.ts).
 - [ ] 4.4 Measure frontend build time and the end-to-end warm start; post on #1023.
 
 ## 5. Docs and follow-ups
