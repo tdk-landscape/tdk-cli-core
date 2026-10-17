@@ -421,14 +421,11 @@
 		},
 		{
 			"workflow": "release-binaries.yml",
-			"job": "windows-smoke",
+			"job": "windows-binary",
 			"tier": "e2e",
 			"required": false,
-			"reason": "Duplicate check name of windows-smoke.yml; removed in #1300",
-			"owner": "maintainers",
-			"exempt": {
-				"check-name": "#1300"
-			}
+			"reason": "Checks the Windows release candidate through tests/e2e/platforms/windows-binary (#1300)",
+			"owner": "maintainers"
 		},
 		{
 			"workflow": "release-binaries.yml",
@@ -489,18 +486,15 @@
 			"job": "windows-smoke",
 			"tier": "e2e",
 			"required": true,
-			"reason": "Windows CLI smoke; required; moved to e2e-platforms in #1300",
-			"owner": "maintainers",
-			"exempt": {
-				"check-name": "#1300"
-			}
+			"reason": "Windows CLI smoke; required; runs tests/e2e/platforms/windows (#1300)",
+			"owner": "maintainers"
 		},
 		{
 			"workflow": "wsl2-smoke.yml",
 			"job": "wsl2-smoke",
 			"tier": "e2e",
 			"required": false,
-			"reason": "WSL2 smoke; moved to e2e-platforms in #1300",
+			"reason": "WSL2 smoke; manual; runs tests/e2e/platforms/wsl2 (#1300)",
 			"owner": "maintainers"
 		},
 		{
